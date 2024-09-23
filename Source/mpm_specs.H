@@ -35,6 +35,7 @@ struct realData
         Gama_pressure=43,			//40
         Dynamic_viscosity=44,		//41
 		yacceleration=45,			//45	This is for storing the acceleration of each particle in the y-direction. This variable is not generic and used only for the spring-mass and membrane simulations only
+		lambda=46,							//46 Lame's const for hyper-elastic solid
         count
     };
 };

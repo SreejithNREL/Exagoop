@@ -103,6 +103,13 @@ void MPMParticleContainer::InitParticles (const std::string& filename,
             	ifs >> p.rdata(realData::Gama_pressure);
             	ifs >> p.rdata(realData::Dynamic_viscosity);
             }
+            else if(p.idata(intData::constitutive_model)==2)		//Hyper-elastic solid
+            {
+            	p.rdata(realData::lambda)=0.0;
+                p.rdata(realData::nu)=0.0;
+                ifs >> p.rdata(realData::nu);								//using the same variable for h-e-s as l-e-s
+                ifs >> p.rdata(realData::lambda);
+            }
             else
             {
             	amrex::Abort("\n\tIncorrect constitutive model. Please check your particle file");

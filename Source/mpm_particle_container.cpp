@@ -44,6 +44,8 @@ void MPMParticleContainer::apply_constitutive_model(const amrex::Real& dt,
                 amrex::Real strainrate[NCOMP_TENSOR];
                 amrex::Real strain[NCOMP_TENSOR];
                 amrex::Real stress[NCOMP_TENSOR];
+                amrex::Real deform_gradient[NCOMP_TENSOR];
+
 
                 for(int d=0;d<NCOMP_TENSOR;d++)
                 {
@@ -58,6 +60,7 @@ void MPMParticleContainer::apply_constitutive_model(const amrex::Real& dt,
                 {
                     strainrate[d]=p.rdata(realData::strainrate+d);
                     strain[d]=p.rdata(realData::strain+d);
+                    deform_gradient[d]=p.rdata(realData::deformation_gradient+d);
                 }
 
                 if(p.idata(intData::constitutive_model)==0)		//Elastic solid
@@ -70,7 +73,10 @@ void MPMParticleContainer::apply_constitutive_model(const amrex::Real& dt,
                     (pow(1/p.rdata(realData::jacobian),p.rdata(realData::Gama_pressure))-1.0)+p_inf;
                     Newtonian_Fluid(strainrate,stress,p.rdata(realData::Dynamic_viscosity),p.rdata(realData::pressure));
                 }
-
+                else if(p.idata(intData::constitutive_model)==2)		//Hyper-elastic solid
+                {
+                	Hyper_Elastic_Solid(deform_gradient,stress,p.rdata(realData::jacobian),p.rdata(realData::nu),p.rdata(realData::lambda));
+                }
                 for(int d=0;d<NCOMP_TENSOR;d++)
                 {
                     p.rdata(realData::stress+d)=stress[d];
