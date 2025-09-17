@@ -289,9 +289,7 @@ int main (int argc, char* argv[])
         }
         else
         {
-            amrex::Abort("Order scheme not implemented yet");
-           // Please use order_scheme=1 
-           //              or order_scheme=3 in the input file \n");
+            amrex::Abort("Order scheme not implemented yet");           
         }
 
         MultiFab nodaldata(nodeba, dm, NUM_STATES, ng_cells_nodaldata);

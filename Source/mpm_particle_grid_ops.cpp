@@ -336,10 +336,7 @@ void MPMParticleContainer::deposit_onto_grid(MultiFab& nodaldata,
             				IntVect ivlocal(iv[XDIR]+l,iv[YDIR]+m,iv[ZDIR]+n);
 
             				if(iv[YDIR]+m==lo[1] && iv[XDIR]+l==25 && iv[ZDIR]+n==25)
-            				//if(iv[XDIR]+l==25 && iv[ZDIR]+n==25)
-            				{
-            					//amrex::Print()<<"\n Particle = "<<p.pos(0)<<" "<<p.pos(1)<<" "<<p.pos(2);
-            				}
+            				
             				if(nodalbox.contains(ivlocal))
             				{
             					amrex::Real basisvalue=basisval(l,m,n,iv[XDIR],iv[YDIR],iv[ZDIR],xp,plo,dx,order_scheme_directional,periodic,lo,hi);
@@ -439,8 +436,7 @@ void MPMParticleContainer::deposit_onto_grid(MultiFab& nodaldata,
         nodalbox, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept 
         {
             if(update_massvel)
-            {
-            	//amrex::Print()<<"\n Nodal mass values for i = "<<i<<" j = "<<j<<" k = "<<k<<" is "<<nodal_data_arr(i,j,k,MASS_INDEX);
+            {            	
                 if(nodal_data_arr(i,j,k,MASS_INDEX) > 0.0)
                 {
                     for(int dim=0;dim<AMREX_SPACEDIM;dim++)
@@ -633,8 +629,7 @@ void MPMParticleContainer::deposit_onto_grid_rigidnodesonly(MultiFab& nodaldata,
         nodalbox, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
             if(update_massvel)
-            {
-            	//amrex::Print()<<"\n Nodal mass values for i = "<<i<<" j = "<<j<<" k = "<<k<<" is "<<nodal_data_arr(i,j,k,MASS_INDEX);
+            {            	
                 if(nodal_data_arr(i,j,k,MASS_RIGID_INDEX) > 0.0)
                 {
                     for(int dim=0;dim<AMREX_SPACEDIM;dim++)

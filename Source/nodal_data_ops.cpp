@@ -360,8 +360,7 @@ void nodal_bcs(const amrex::Geometry geom,
 
                 Real normaldir[AMREX_SPACEDIM]={1.0,0.0,0.0};
                 int tmp=applybc(relvel_in,relvel_out,wall_mu_lo[XDIR],
-                                normaldir,bclo[XDIR]);
-                //amrex::Print()<<"\nVelx 0 = "<<relvel_out[0];*/
+                                normaldir,bclo[XDIR]);                
 
             }
             else if(nodeid[XDIR]==(domhi[XDIR]+1))
@@ -375,9 +374,7 @@ void nodal_bcs(const amrex::Geometry geom,
 
                 Real normaldir[AMREX_SPACEDIM]={-1.0,0.0,0.0};
                 int tmp=applybc(relvel_in,relvel_out,wall_mu_hi[XDIR],
-                                normaldir,bchi[XDIR]);
-                //relvel_out[0]=0.0;
-                //amrex::Print()<<"\nVelx 1 = "<<relvel_out[0];
+                                normaldir,bchi[XDIR]);                
             }
             else if(nodeid[YDIR]==domlo[YDIR])
             {
@@ -390,8 +387,7 @@ void nodal_bcs(const amrex::Geometry geom,
 
                 Real normaldir[AMREX_SPACEDIM]={0.0,1.0,0.0};
                 int tmp=applybc(relvel_in,relvel_out,wall_mu_lo[YDIR],
-                                normaldir,bclo[YDIR]);
-                //relvel_out[1]=0.0;
+                                normaldir,bclo[YDIR]);                
             }
             else if(nodeid[YDIR]==(domhi[YDIR]+1))
             {
@@ -404,8 +400,7 @@ void nodal_bcs(const amrex::Geometry geom,
 
                 Real normaldir[AMREX_SPACEDIM]={0.0,-1.0,0.0};
                 int tmp=applybc(relvel_in,relvel_out,wall_mu_hi[YDIR],
-                                normaldir,bchi[YDIR]);
-                //relvel_out[1]=0.0;
+                                normaldir,bchi[YDIR]);                
             }
             else if(nodeid[ZDIR]==domlo[ZDIR])
             {
@@ -418,8 +413,7 @@ void nodal_bcs(const amrex::Geometry geom,
 
                 Real normaldir[AMREX_SPACEDIM]={0.0,0.0,1.0};
                 int tmp=applybc(relvel_in,relvel_out,wall_mu_lo[ZDIR],
-                                normaldir,bclo[ZDIR]);
-                //relvel_out[2]=0.0;
+                                normaldir,bclo[ZDIR]);                
             }
             else if(nodeid[ZDIR]==(domhi[ZDIR]+1))
             {
@@ -432,8 +426,7 @@ void nodal_bcs(const amrex::Geometry geom,
 
                 Real normaldir[AMREX_SPACEDIM]={0.0,0.0,-1.0};
                 int tmp=applybc(relvel_in,relvel_out,wall_mu_hi[ZDIR],
-                                normaldir,bchi[ZDIR]);
-                //relvel_out[2]=0.0;
+                                normaldir,bchi[ZDIR]);                
             }
             else //nothing to do
             {}
@@ -441,8 +434,7 @@ void nodal_bcs(const amrex::Geometry geom,
             for(int d=0;d<AMREX_SPACEDIM;d++)
             {
                 nodal_data_arr(nodeid,VELX_INDEX+d)=relvel_out[d]+wallvel[d];
-            }
-            //amrex::Print()<<"\nX = Vel "<<nodal_data_arr(nodeid,0);
+            }            
         });
     }
 }

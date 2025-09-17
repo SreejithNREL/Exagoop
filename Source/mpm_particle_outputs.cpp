@@ -84,11 +84,7 @@ void MPMParticleContainer::update_phase_field(MultiFab& phasedata,int refratio,R
                             amrex::Gpu::Atomic::Min(
                                 &phase_data_arr(ivlocal),
                                 dist);
-                        }
-                        //else
-                        //{
-                        //   amrex::Print()<<"iv,box,p:"<<iv<<"\t"<<box<<"\t"<<p.pos(0)<<"\t"<<p.pos(1)<<"\t"<<p.pos(2)<<"\n";
-                        //}
+                        }                        
                     }
                 }
             }

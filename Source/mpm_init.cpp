@@ -264,8 +264,6 @@ void MPMParticleContainer::InitParticles (Real mincoords[AMREX_SPACEDIM],Real ma
 
     }
 
-    // We shouldn't need this if the particles are tiled with one tile per grid, but otherwise
-    // we do need this to move particles from tile 0 to the correct tile.
     Redistribute();
 }
 

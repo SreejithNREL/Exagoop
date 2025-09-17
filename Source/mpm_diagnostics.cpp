@@ -118,8 +118,7 @@ void MPMParticleContainer::WriteDeflectionCantilever()
 	            amrex::Real xp[AMREX_SPACEDIM];
 
 	            xp[XDIR]=p.pos(XDIR);
-	            xp[YDIR]=p.pos(YDIR);
-	            //PrintToFile("CantileverDeflection.out")<<xp[XDIR]<<"\t"<<xp[YDIR]<<"\n";
+	            xp[YDIR]=p.pos(YDIR);	            
 	        });
 	    }
 
@@ -269,20 +268,7 @@ void MPMParticleContainer::CalculateErrorP2G(MultiFab& nodaldata,amrex::Real p2g
 	        });
 	    }
 	    outputfile = amrex::Concatenate("P2GTest2",ncell,3);
-	    //std::ofstream ofs(outputfile, std::ofstream::out);
-
-	      /*amrex::Print(ofs)
-	        << "L, rho, umax, p, T, gamma, mu, k, Re, Ma, Pr, dpdx, G, radius"
-	        << std::endl;
-	      amrex::Print(ofs).SetPrecision(17)
-	        << L << "," << PeleC::h_prob_parm_device->rho << ","
-	        << PeleC::h_prob_parm_device->umax << "," << PeleC::h_prob_parm_device->p
-	        << "," << PeleC::h_prob_parm_device->T << "," << eos.gamma << ","
-	        << trans_parm.const_viscosity << "," << trans_parm.const_conductivity << ","
-	        << PeleC::h_prob_parm_device->Re << "," << PeleC::h_prob_parm_device->Ma
-	        << "," << PeleC::h_prob_parm_device->Pr << ","
-	        << PeleC::h_prob_parm_device->dpdx << "," << PeleC::h_prob_parm_device->G
-	        << "," << PeleC::h_prob_parm_device->radius << std::endl;*/
+	    //std::ofstream ofs(outputfile, std::ofstream::out);	      
 
 	    for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
 	    {
@@ -310,8 +296,7 @@ void MPMParticleContainer::CalculateErrorP2G(MultiFab& nodaldata,amrex::Real p2g
 	    		xp[XDIR]=p.pos(XDIR);
 
 	    		y_exact = p.rdata(realData::yvel);
-	    		//PrintToFile(outputfile).SetPrecision(17)<<xp[XDIR]<<"\t"<<y_exact<<"\n";
-	    		//amrex::Print(ofs).SetPrecision(17)<<xp[XDIR]<<"\t"<<y_exact<<"\n";
+	    			
 
 	    	});
 	    }
@@ -329,8 +314,7 @@ void MPMParticleContainer::WriteDeflectionTVB(Real tvb_E,Real tvb_v0,Real tvb_L,
 	Real Amplitude = tvb_v0*tvb_L/(c*pi)*sin(w0*time);
 	std::string outputfile;
 	int num_of_digits_in_filenames = 5;
-	outputfile = amrex::Concatenate("TVB_Deflection_", output_it, num_of_digits_in_filenames);
-	//amrex::Print()<<"\nE = "<<tvb_E<<" "<<tvb_rho<<" "<<c<<" "<<w0;
+	outputfile = amrex::Concatenate("TVB_Deflection_", output_it, num_of_digits_in_filenames);	
 
 	for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
 	{
@@ -357,8 +341,7 @@ void MPMParticleContainer::WriteDeflectionTVB(Real tvb_E,Real tvb_v0,Real tvb_L,
 
 	            xp[XDIR]=p.pos(XDIR);
 	            xp[YDIR]=p.pos(YDIR);
-	            y_exact = Amplitude*sin(pi*xp[XDIR]/tvb_L);
-	            //PrintToFile(outputfile)<<xp[XDIR]<<"\t"<<xp[YDIR]<<"\t"<<y_exact<<"\n";
+	            y_exact = Amplitude*sin(pi*xp[XDIR]/tvb_L);	            
 	        });
 	    }
 

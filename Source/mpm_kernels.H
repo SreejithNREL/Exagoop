@@ -16,7 +16,7 @@ int  applybc(Real relvel_in[AMREX_SPACEDIM],
     //look at section 8
     //Stomakhin et al., "A material point method for snow simulation",
     //ACS Trans. Graphics, 32, 4, 102, 2013
-	//Warning!(Sreejith): veln
+	
     int modify_pos=false;
     Real velt[AMREX_SPACEDIM],velt_hat[AMREX_SPACEDIM];
     Real veln=relvel_in[XDIR]*normaldir[XDIR]+relvel_in[YDIR]*normaldir[YDIR]+relvel_in[ZDIR]*normaldir[ZDIR];

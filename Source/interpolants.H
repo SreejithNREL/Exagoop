@@ -175,9 +175,6 @@ amrex::Real cubicspline_1d_der(int shapefunctiontype,amrex:: Real zi)
 	}
 	else
 	{
-#ifndef AMREX_USE_GPU
-		amrex::Print()<<"\n Shapefunction = "<<shapefunctiontype;
-#endif
 		amrex::Abort("\n Incorrect shape function type in cubicspline_1d_der");
 	}
 	return value;
@@ -284,9 +281,6 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 	}
 	else
 	{
-#ifndef AMREX_USE_GPU
-		amrex::Print()<<"\n Shapefunction = "<<shapefunctiontype;
-#endif
 		amrex::Abort("\n Incorrect shape function type in cubicspline_1d");
 	}
 	return value;
@@ -334,9 +328,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 
     			rx = (xp[XDIR]-(plo[XDIR]+(i+l)*dx[XDIR]))/dx[XDIR];
     			ry  = (xp[YDIR]-(plo[YDIR]+(j+m)*dx[YDIR]))/dx[YDIR];
-    			rz  = (xp[ZDIR]-(plo[ZDIR]+(k+n)*dx[ZDIR]))/dx[ZDIR];
-
-    			//amrex::Print()<<"\n dx = "<<dx[XDIR]<<" "<<dx[YDIR]<<" "<<dx[ZDIR];
+    			rz  = (xp[ZDIR]-(plo[ZDIR]+(k+n)*dx[ZDIR]))/dx[ZDIR];    			
 
     			lval=cubicspline_1d(shapetypex,rx,0);
     			mval=cubicspline_1d(shapetypey,ry,1);
