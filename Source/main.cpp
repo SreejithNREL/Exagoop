@@ -49,14 +49,14 @@ int main(int argc, char *argv[]) {
 
     // Initializing and reading input file for the simulation
     MPMspecs specs;
-    Rigid_Bodies *Rb;
+    // Rigid_Bodies *Rb;
     specs.read_mpm_specs();
 
     // Declaring solver variables
     int steps = 0;
     Real dt;
     Real time = 0.0;
-    int num_of_rigid_bodies = 0;
+    // int num_of_rigid_bodies = 0;
     int output_it = 0;
     std::string pltfile;
     Real output_time = zero;
@@ -329,8 +329,8 @@ int main(int argc, char *argv[]) {
         Real Vmex = 0.0;
         Real Xwf;
         Real err = 0.0;
-        Real Fy_bottom = 0.0;
-        Real Fy_top = 0.0;
+        // Real Fy_bottom = 0.0;
+        // Real Fy_top = 0.0;
 
         switch (specs.test_number) {
         case (1): // Axial vibration of continuum bar
@@ -529,7 +529,7 @@ int main(int argc, char *argv[]) {
 
     amrex::Print() << "\n\nTimestepping begins\n\n";
 
-    amrex::Real vel_piston_old = 0.0;
+    // amrex::Real vel_piston_old = 0.0;
 
     while ((steps < specs.maxsteps) and (time < specs.final_time)) {
       auto iter_time_start = amrex::second();
@@ -710,9 +710,9 @@ int main(int argc, char *argv[]) {
           Real Vmex = 0.0;
           Real Xwf = 0.0;
           Real err = 0.0;
-          Real Fy_top = 0.0;
-          Real Fy_bottom = 0.0;
-          Real ymin = 0.0;
+          // Real Fy_top = 0.0;
+          // Real Fy_bottom = 0.0;
+          // Real ymin = 0.0;
           Real ymax = 0.0;
 
           switch (specs.test_number) {

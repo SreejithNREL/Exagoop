@@ -39,13 +39,14 @@ void backup_current_velocity(MultiFab &nodaldata) {
 }
 
 void nodal_levelset_bcs(MultiFab &nodaldata, const Geometry geom,
-                        amrex::Real &dt, int lsetbc, amrex::Real lset_wall_mu) {
+                        amrex::Real & /*dt*/, int /*lsetbc*/,
+                        amrex::Real /*lset_wall_mu*/) {
   // need something more sophisticated
   // but lets get it working!
   //
   int lsref = mpm_ebtools::ls_refinement;
   const auto plo = geom.ProbLoArray();
-  const auto phi = geom.ProbHiArray();
+  // const auto phi = geom.ProbHiArray();
   const auto dx = geom.CellSizeArray();
 
   for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi) {
@@ -69,7 +70,6 @@ void nodal_levelset_bcs(MultiFab &nodaldata, const Geometry geom,
               relvel_out[d] = relvel_in[d];
             }
 
-            amrex::Real eps = 0.00001;
             amrex::Real xp[AMREX_SPACEDIM] = {plo[XDIR] + i * dx[XDIR],
                                               plo[YDIR] + j * dx[YDIR],
                                               plo[ZDIR] + k * dx[ZDIR]};
@@ -88,8 +88,9 @@ void nodal_levelset_bcs(MultiFab &nodaldata, const Geometry geom,
             normaldir[YDIR] = normaldir[YDIR] / (gradmag + TINYVAL);
             normaldir[ZDIR] = normaldir[ZDIR] / (gradmag + TINYVAL);
 
-            int modify_pos =
-                applybc(relvel_in, relvel_out, lset_wall_mu, normaldir, lsetbc);
+            // int modify_pos =
+            //     applybc(relvel_in, relvel_out, lset_wall_mu, normaldir,
+            //     lsetbc);
 
             nodal_data_arr(nodeid, VELX_INDEX + XDIR) = relvel_out[XDIR];
             nodal_data_arr(nodeid, VELX_INDEX + YDIR) = relvel_out[YDIR];
@@ -145,7 +146,8 @@ void nodal_update(MultiFab &nodaldata, const amrex::Real &dt,
 }
 
 void nodal_detect_contact(
-    MultiFab &nodaldata, const Geometry geom, amrex::Real &contact_tolerance,
+    MultiFab &nodaldata, const Geometry /*geom*/,
+    amrex::Real &contact_tolerance,
     amrex::GpuArray<amrex::GpuArray<amrex::Real, AMREX_SPACEDIM>,
                     numrigidbodies>
         velocity) {
@@ -194,8 +196,8 @@ void initialise_shape_function_indices(iMultiFab &shapefunctionindex,
   const int *domloarr = geom.Domain().loVect();
   const int *domhiarr = geom.Domain().hiVect();
 
-  int periodic[AMREX_SPACEDIM] = {geom.isPeriodic(XDIR), geom.isPeriodic(YDIR),
-                                  geom.isPeriodic(ZDIR)};
+  /*int periodic[AMREX_SPACEDIM] = {geom.isPeriodic(XDIR),
+     geom.isPeriodic(YDIR), geom.isPeriodic(ZDIR)};*/
 
   GpuArray<int, AMREX_SPACEDIM> lo = {domloarr[0], domloarr[1], domloarr[2]};
   GpuArray<int, AMREX_SPACEDIM> hi = {domhiarr[0], domhiarr[1], domhiarr[2]};
@@ -248,28 +250,29 @@ void initialise_shape_function_indices(iMultiFab &shapefunctionindex,
 }
 
 void nodal_bcs(const amrex::Geometry geom, MultiFab &nodaldata,
-               int bcloarr[AMREX_SPACEDIM], int bchiarr[AMREX_SPACEDIM],
-               Real wall_mu_loarr[AMREX_SPACEDIM],
-               Real wall_mu_hiarr[AMREX_SPACEDIM],
+               int /*bcloarr[AMREX_SPACEDIM]*/, int /*bchiarr[AMREX_SPACEDIM]*/,
+               Real /*wall_mu_loarr[AMREX_SPACEDIM]*/,
+               Real /*wall_mu_hiarr[AMREX_SPACEDIM]*/,
                Real wall_vel_loarr[AMREX_SPACEDIM * AMREX_SPACEDIM],
                Real wall_vel_hiarr[AMREX_SPACEDIM * AMREX_SPACEDIM],
-               const amrex::Real &dt) {
+               const amrex::Real & /*dt*/) {
 
   const int *domloarr = geom.Domain().loVect();
   const int *domhiarr = geom.Domain().hiVect();
 
-  int periodic[AMREX_SPACEDIM] = {geom.isPeriodic(XDIR), geom.isPeriodic(YDIR),
-                                  geom.isPeriodic(ZDIR)};
+  // int periodic[AMREX_SPACEDIM] = {geom.isPeriodic(XDIR),
+  // geom.isPeriodic(YDIR),
+  //                                 geom.isPeriodic(ZDIR)};
 
   // gpu capture stuff
   GpuArray<int, AMREX_SPACEDIM> domlo = {domloarr[0], domloarr[1], domloarr[2]};
   GpuArray<int, AMREX_SPACEDIM> domhi = {domhiarr[0], domhiarr[1], domhiarr[2]};
 
-  int bclo[] = {bcloarr[0], bcloarr[1], bcloarr[2]};
-  int bchi[] = {bchiarr[0], bchiarr[1], bchiarr[2]};
+  // int bclo[] = {bcloarr[0], bcloarr[1], bcloarr[2]};
+  // int bchi[] = {bchiarr[0], bchiarr[1], bchiarr[2]};
 
-  Real wall_mu_lo[] = {wall_mu_loarr[0], wall_mu_loarr[1], wall_mu_loarr[2]};
-  Real wall_mu_hi[] = {wall_mu_hiarr[0], wall_mu_hiarr[1], wall_mu_hiarr[2]};
+  // Real wall_mu_lo[] = {wall_mu_loarr[0], wall_mu_loarr[1], wall_mu_loarr[2]};
+  // Real wall_mu_hi[] = {wall_mu_hiarr[0], wall_mu_hiarr[1], wall_mu_hiarr[2]};
 
   GpuArray<Real, AMREX_SPACEDIM * AMREX_SPACEDIM> wall_vel_lo;
   GpuArray<Real, AMREX_SPACEDIM * AMREX_SPACEDIM> wall_vel_hi;
@@ -303,10 +306,10 @@ void nodal_bcs(const amrex::Geometry geom, MultiFab &nodaldata,
               relvel_in[d] -= wallvel[d];
             }
 
-            Real normaldir[AMREX_SPACEDIM] = {1.0, 0.0, 0.0};
-            int tmp = applybc(relvel_in, relvel_out, wall_mu_lo[XDIR],
-                              normaldir, bclo[XDIR]);
-            // amrex::Print()<<"\nVelx 0 = "<<relvel_out[0];*/
+            // Real normaldir[AMREX_SPACEDIM] = {1.0, 0.0, 0.0};
+            // int tmp = applybc(relvel_in, relvel_out, wall_mu_lo[XDIR],
+            //                   normaldir, bclo[XDIR]);
+            //  amrex::Print()<<"\nVelx 0 = "<<relvel_out[0];*/
 
           } else if (nodeid[XDIR] == (domhi[XDIR] + 1)) {
             int dir = XDIR;
@@ -315,11 +318,11 @@ void nodal_bcs(const amrex::Geometry geom, MultiFab &nodaldata,
               relvel_in[d] -= wallvel[d];
             }
 
-            Real normaldir[AMREX_SPACEDIM] = {-1.0, 0.0, 0.0};
-            int tmp = applybc(relvel_in, relvel_out, wall_mu_hi[XDIR],
-                              normaldir, bchi[XDIR]);
-            // relvel_out[0]=0.0;
-            // amrex::Print()<<"\nVelx 1 = "<<relvel_out[0];
+            // Real normaldir[AMREX_SPACEDIM] = {-1.0, 0.0, 0.0};
+            // int tmp = applybc(relvel_in, relvel_out, wall_mu_hi[XDIR],
+            //                   normaldir, bchi[XDIR]);
+            //  relvel_out[0]=0.0;
+            //  amrex::Print()<<"\nVelx 1 = "<<relvel_out[0];
           } else if (nodeid[YDIR] == domlo[YDIR]) {
             int dir = YDIR;
             for (int d = 0; d < AMREX_SPACEDIM; d++) {
@@ -327,10 +330,10 @@ void nodal_bcs(const amrex::Geometry geom, MultiFab &nodaldata,
               relvel_in[d] -= wallvel[d];
             }
 
-            Real normaldir[AMREX_SPACEDIM] = {0.0, 1.0, 0.0};
-            int tmp = applybc(relvel_in, relvel_out, wall_mu_lo[YDIR],
-                              normaldir, bclo[YDIR]);
-            // relvel_out[1]=0.0;
+            // Real normaldir[AMREX_SPACEDIM] = {0.0, 1.0, 0.0};
+            // int tmp = applybc(relvel_in, relvel_out, wall_mu_lo[YDIR],
+            //                   normaldir, bclo[YDIR]);
+            //  relvel_out[1]=0.0;
           } else if (nodeid[YDIR] == (domhi[YDIR] + 1)) {
             int dir = YDIR;
             for (int d = 0; d < AMREX_SPACEDIM; d++) {
@@ -338,10 +341,10 @@ void nodal_bcs(const amrex::Geometry geom, MultiFab &nodaldata,
               relvel_in[d] -= wallvel[d];
             }
 
-            Real normaldir[AMREX_SPACEDIM] = {0.0, -1.0, 0.0};
-            int tmp = applybc(relvel_in, relvel_out, wall_mu_hi[YDIR],
-                              normaldir, bchi[YDIR]);
-            // relvel_out[1]=0.0;
+            // Real normaldir[AMREX_SPACEDIM] = {0.0, -1.0, 0.0};
+            // int tmp = applybc(relvel_in, relvel_out, wall_mu_hi[YDIR],
+            //                   normaldir, bchi[YDIR]);
+            //  relvel_out[1]=0.0;
           } else if (nodeid[ZDIR] == domlo[ZDIR]) {
             int dir = ZDIR;
             for (int d = 0; d < AMREX_SPACEDIM; d++) {
@@ -349,10 +352,10 @@ void nodal_bcs(const amrex::Geometry geom, MultiFab &nodaldata,
               relvel_in[d] -= wallvel[d];
             }
 
-            Real normaldir[AMREX_SPACEDIM] = {0.0, 0.0, 1.0};
-            int tmp = applybc(relvel_in, relvel_out, wall_mu_lo[ZDIR],
-                              normaldir, bclo[ZDIR]);
-            // relvel_out[2]=0.0;
+            // Real normaldir[AMREX_SPACEDIM] = {0.0, 0.0, 1.0};
+            // int tmp = applybc(relvel_in, relvel_out, wall_mu_lo[ZDIR],
+            //                   normaldir, bclo[ZDIR]);
+            //  relvel_out[2]=0.0;
           } else if (nodeid[ZDIR] == (domhi[ZDIR] + 1)) {
             int dir = ZDIR;
             for (int d = 0; d < AMREX_SPACEDIM; d++) {
@@ -360,10 +363,10 @@ void nodal_bcs(const amrex::Geometry geom, MultiFab &nodaldata,
               relvel_in[d] -= wallvel[d];
             }
 
-            Real normaldir[AMREX_SPACEDIM] = {0.0, 0.0, -1.0};
-            int tmp = applybc(relvel_in, relvel_out, wall_mu_hi[ZDIR],
-                              normaldir, bchi[ZDIR]);
-            // relvel_out[2]=0.0;
+            // Real normaldir[AMREX_SPACEDIM] = {0.0, 0.0, -1.0};
+            // int tmp = applybc(relvel_in, relvel_out, wall_mu_hi[ZDIR],
+            //                   normaldir, bchi[ZDIR]);
+            //  relvel_out[2]=0.0;
           } else // nothing to do
           {
           }
@@ -376,7 +379,7 @@ void nodal_bcs(const amrex::Geometry geom, MultiFab &nodaldata,
   }
 }
 
-void CalculateSurfaceIntegralOnBG(const amrex::Geometry geom,
+void CalculateSurfaceIntegralOnBG(const amrex::Geometry /*geom*/,
                                   amrex::MultiFab &nodaldata,
                                   int nodaldataindex,
                                   amrex::Real &integral_value) {
@@ -390,11 +393,14 @@ void CalculateSurfaceIntegralOnBG(const amrex::Geometry geom,
 
     Array4<Real> nodal_data_arr = nodaldata.array(mfi);
 
-    // amrex::ParallelFor(nodalbox,[=,&integral_value]AMREX_GPU_DEVICE (int
-    // i,int j,int k) noexcept
-    //{
-    //	integral_value+=(nodal_data_arr(i,j,k,nodaldataindex)+nodal_data_arr(i+1,j,k,nodaldataindex)+nodal_data_arr(i,j,k+1,nodaldataindex)+nodal_data_arr(i+1,j,k+1,nodaldataindex))/4.0*dx[0]*dx[2];
-    //	});
+    amrex::ParallelFor(nodalbox, [=, &integral_value] AMREX_GPU_DEVICE(
+                                     int i, int j, int k) noexcept {
+      integral_value += (nodal_data_arr(i, j, k, nodaldataindex) +
+                         nodal_data_arr(i + 1, j, k, nodaldataindex) +
+                         nodal_data_arr(i, j, k + 1, nodaldataindex) +
+                         nodal_data_arr(i + 1, j, k + 1, nodaldataindex)) /
+                        4.0 * dx[0] * dx[2];
+    });
   }
 #ifdef BL_USE_MPI
   ParallelDescriptor::ReduceRealSum(integral_value);
@@ -405,7 +411,7 @@ void CalculateInterpolationError(const amrex::Geometry geom,
                                  amrex::MultiFab &nodaldata,
                                  int nodaldataindex) {
   const int *domloarr = geom.Domain().loVect();
-  const int *domhiarr = geom.Domain().hiVect();
+  // const int *domhiarr = geom.Domain().hiVect();
   const auto dx = geom.CellSizeArray();
   const auto Pi = 4.0 * atan(1.0);
 

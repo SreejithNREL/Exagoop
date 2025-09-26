@@ -193,7 +193,7 @@ void MPMParticleContainer::WriteHeader(const std::string &name,
                                        int nstep, int EB_generate_max_level,
                                        int output_it) const {
   if (ParallelDescriptor::IOProcessor()) {
-    const int finest_level = 0;
+
     std::string HeaderFileName(name + "/Header");
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
     std::ofstream HeaderFile;
@@ -297,11 +297,6 @@ void MPMParticleContainer::readCheckpointFile(std::string &restart_chkfile,
 
   amrex::Print() << "Restarting from checkpoint " << restart_chkfile << "\n";
 
-  Real prob_lo[AMREX_SPACEDIM];
-  Real prob_hi[AMREX_SPACEDIM];
-  const int max_level = 0;
-  const int finest_level = 0;
-
   /***************************************************************************
    ** Load header: set up problem domain (including BoxArray)                 *
    **              allocate PeleLM memory (PeleLM::AllocateArrays)            *
@@ -323,9 +318,6 @@ void MPMParticleContainer::readCheckpointFile(std::string &restart_chkfile,
 
   // Title line
   std::getline(is, line);
-
-  // Finest level
-  int chk_finest_level = 0;
 
   // Step count
   is >> nstep;

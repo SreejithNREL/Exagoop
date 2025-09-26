@@ -56,12 +56,12 @@ get_levelset_value(amrex::Array4<amrex::Real> phi,
   ls_dx[YDIR] = dx[YDIR] / lsref;
   ls_dx[ZDIR] = dx[ZDIR] / lsref;
 
-  int i =
-      amrex::Math::floor((ptxyz[XDIR] - problo[XDIR] + TINYVAL) / ls_dx[XDIR]);
-  int j =
-      amrex::Math::floor((ptxyz[YDIR] - problo[YDIR] + TINYVAL) / ls_dx[YDIR]);
-  int k =
-      amrex::Math::floor((ptxyz[ZDIR] - problo[ZDIR] + TINYVAL) / ls_dx[ZDIR]);
+  int i = static_cast<int>(
+      amrex::Math::floor((ptxyz[XDIR] - problo[XDIR] + TINYVAL) / ls_dx[XDIR]));
+  int j = static_cast<int>(
+      amrex::Math::floor((ptxyz[YDIR] - problo[YDIR] + TINYVAL) / ls_dx[YDIR]));
+  int k = static_cast<int>(
+      amrex::Math::floor((ptxyz[ZDIR] - problo[ZDIR] + TINYVAL) / ls_dx[ZDIR]));
 
   amrex::Real lsval = 0.0;
   for (int n = 0; n < 2; n++) {
@@ -99,12 +99,12 @@ void get_levelset_grad(
   ls_dx[YDIR] = dx[YDIR] / lsref;
   ls_dx[ZDIR] = dx[ZDIR] / lsref;
 
-  int i =
-      amrex::Math::floor((ptxyz[XDIR] - problo[XDIR] + TINYVAL) / ls_dx[XDIR]);
-  int j =
-      amrex::Math::floor((ptxyz[YDIR] - problo[YDIR] + TINYVAL) / ls_dx[YDIR]);
-  int k =
-      amrex::Math::floor((ptxyz[ZDIR] - problo[ZDIR] + TINYVAL) / ls_dx[ZDIR]);
+  int i = static_cast<int>(
+      amrex::Math::floor((ptxyz[XDIR] - problo[XDIR] + TINYVAL) / ls_dx[XDIR]));
+  int j = static_cast<int>(
+      amrex::Math::floor((ptxyz[YDIR] - problo[YDIR] + TINYVAL) / ls_dx[YDIR]));
+  int k = static_cast<int>(
+      amrex::Math::floor((ptxyz[ZDIR] - problo[ZDIR] + TINYVAL) / ls_dx[ZDIR]));
 
   lsgrad[XDIR] = 0.0;
   lsgrad[YDIR] = 0.0;

@@ -383,9 +383,9 @@ void MPMParticleContainer::deposit_onto_grid(
     const amrex::Box &box = mfi.tilebox();
     Box nodalbox = convert(box, {1, 1, 1});
 
-    int gid = mfi.index();
-    int tid = mfi.LocalTileIndex();
-    auto index = std::make_pair(gid, tid);
+    // int gid = mfi.index();
+    // int tid = mfi.LocalTileIndex();
+    // auto index = std::make_pair(gid, tid);
 
     Array4<Real> nodal_data_arr = nodaldata.array(mfi);
 
@@ -582,9 +582,9 @@ void MPMParticleContainer::deposit_onto_grid_rigidnodesonly(
     const amrex::Box &box = mfi.tilebox();
     Box nodalbox = convert(box, {1, 1, 1});
 
-    int gid = mfi.index();
-    int tid = mfi.LocalTileIndex();
-    auto index = std::make_pair(gid, tid);
+    // int gid = mfi.index();
+    // int tid = mfi.LocalTileIndex();
+    // auto index = std::make_pair(gid, tid);
 
     Array4<Real> nodal_data_arr = nodaldata.array(mfi);
 
@@ -630,7 +630,7 @@ void MPMParticleContainer::interpolate_from_grid(
   nodaldata.FillBoundary(geom.periodicity());
 
   for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
-    const amrex::Box &box = mfi.tilebox();
+    // const amrex::Box &box = mfi.tilebox();
     int gid = mfi.index();
     int tid = mfi.LocalTileIndex();
     auto index = std::make_pair(gid, tid);
@@ -650,7 +650,7 @@ void MPMParticleContainer::interpolate_from_grid(
       if (p.idata(intData::phase) == 0) {
 
         amrex::Real xp[AMREX_SPACEDIM];
-        amrex::Real gradvp[AMREX_SPACEDIM][AMREX_SPACEDIM] = {0.0};
+        amrex::Real gradvp[AMREX_SPACEDIM][AMREX_SPACEDIM] = {{0.0}};
 
         xp[XDIR] = p.pos(XDIR);
         xp[YDIR] = p.pos(YDIR);
@@ -1001,14 +1001,14 @@ void MPMParticleContainer::calculate_nodal_normal(
     const amrex::Box &box = mfi.tilebox();
     Box nodalbox = convert(box, {1, 1, 1});
 
-    int gid = mfi.index();
-    int tid = mfi.LocalTileIndex();
-    auto index = std::make_pair(gid, tid);
+    // int gid = mfi.index();
+    // int tid = mfi.LocalTileIndex();
+    // auto index = std::make_pair(gid, tid);
 
-    auto &ptile = plev[index];
-    auto &aos = ptile.GetArrayOfStructs();
-    int np = aos.numRealParticles();
-    int ng = aos.numNeighborParticles();
+    // auto &ptile = plev[index];
+    // auto &aos = ptile.GetArrayOfStructs();
+    // int np = aos.numRealParticles();
+    // int ng = aos.numNeighborParticles();
 
     Array4<Real> nodal_data_arr = nodaldata.array(mfi);
 

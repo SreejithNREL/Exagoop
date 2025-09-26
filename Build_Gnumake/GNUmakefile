@@ -3,7 +3,7 @@ MPM_HOME ?= ../
 
 EBASE = ExaGOOP
 
-DEBUG	= FALSE
+DEBUG	= TRUE
 
 DIM	= 3
 

@@ -4,14 +4,6 @@
 // clang-format on
 
 void MPMParticleContainer::CalculateEnergies(Real &TKE, Real &TSE) {
-  const int lev = 0;
-  const Geometry &geom = Geom(lev);
-  auto &plev = GetParticles(lev);
-  const auto dxi = geom.InvCellSizeArray();
-  const auto dx = geom.CellSizeArray();
-  const auto plo = geom.ProbLoArray();
-  const auto domain = geom.Domain();
-
   TKE = 0.0;
   TSE = 0.0;
 
@@ -57,13 +49,6 @@ MPMParticleContainer::CalculateExactVelocity(int modenumber, amrex::Real E,
 }
 
 void MPMParticleContainer::CalculateVelocity(Real &Vcm) {
-  const int lev = 0;
-  const Geometry &geom = Geom(lev);
-  auto &plev = GetParticles(lev);
-  const auto dxi = geom.InvCellSizeArray();
-  const auto dx = geom.CellSizeArray();
-  const auto plo = geom.ProbLoArray();
-  const auto domain = geom.Domain();
 
   Real Vcmx = 0.0;
   Real mass_tot = 0.0;
@@ -94,8 +79,6 @@ void MPMParticleContainer::WriteDeflectionCantilever() {
   auto &plev = GetParticles(lev);
 
   for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
-    const amrex::Box &box = mfi.tilebox();
-    Box nodalbox = convert(box, {1, 1, 1});
 
     int gid = mfi.index();
     int tid = mfi.LocalTileIndex();
@@ -120,13 +103,7 @@ void MPMParticleContainer::WriteDeflectionCantilever() {
 }
 
 void MPMParticleContainer::CalculateVelocityCantilever(Real &Vcm) {
-  const int lev = 0;
-  const Geometry &geom = Geom(lev);
-  auto &plev = GetParticles(lev);
-  const auto dxi = geom.InvCellSizeArray();
-  const auto dx = geom.CellSizeArray();
-  const auto plo = geom.ProbLoArray();
-  const auto domain = geom.Domain();
+  // const int lev = 0;
 
   Real Vcmx = 0.0;
   Real mass_tot = 0.0;
@@ -152,13 +129,7 @@ void MPMParticleContainer::CalculateVelocityCantilever(Real &Vcm) {
 
 void MPMParticleContainer::CalculateSurfaceIntegralTop(
     Array<Real, AMREX_SPACEDIM> gravity, Real &Fy_top, Real &Fy_bottom) {
-  const int lev = 0;
-  const Geometry &geom = Geom(lev);
-  auto &plev = GetParticles(lev);
-  const auto dxi = geom.InvCellSizeArray();
-  const auto dx = geom.CellSizeArray();
-  const auto plo = geom.ProbLoArray();
-  const auto domain = geom.Domain();
+  // const int lev = 0;
 
   Real Mvy = 0.0;
   Real Fg = 0.0;
@@ -184,16 +155,9 @@ void MPMParticleContainer::CalculateSurfaceIntegralTop(
 }
 
 void MPMParticleContainer::FindWaterFront(Real &Xwf) {
-  const int lev = 0;
-  const Geometry &geom = Geom(lev);
-  auto &plev = GetParticles(lev);
-  const auto dxi = geom.InvCellSizeArray();
-  const auto dx = geom.CellSizeArray();
-  const auto plo = geom.ProbLoArray();
-  const auto domain = geom.Domain();
+  // const int lev = 0;
 
   Real wf_x = 0.0;
-  Real mass_tot = 0.0;
 
   using PType = typename MPMParticleContainer::SuperParticleType;
   wf_x = amrex::ReduceMax(*this,
@@ -208,31 +172,31 @@ void MPMParticleContainer::FindWaterFront(Real &Xwf) {
   Xwf = wf_x;
 }
 
-void MPMParticleContainer::CalculateErrorTVB(Real tvb_E, Real tvb_v0,
-                                             Real tvb_L, Real tvb_rho,
-                                             Real err) {
-  const Real pi = atan(1.0) * 4.0;
-  Real c = sqrt(tvb_E / tvb_rho);
-  Real w0 = c * pi / tvb_L;
+void MPMParticleContainer::CalculateErrorTVB(Real /*tvb_E*/, Real /*tvb_v0*/,
+                                             Real /*tvb_L*/, Real /*tvb_rho*/,
+                                             Real /*err*/) {
+  // const Real pi = atan(1.0) * 4.0;
+  // Real c = sqrt(tvb_E / tvb_rho);
+  // Real w0 = c * pi / tvb_L;
 }
 
 void MPMParticleContainer::CalculateErrorP2G(MultiFab &nodaldata,
-                                             amrex::Real p2g_L,
-                                             amrex::Real p2g_f, int ncell) {
+                                             amrex::Real /*p2g_L*/,
+                                             amrex::Real /*p2g_f*/, int ncell) {
   const int lev = 0;
   const Geometry &geom = Geom(lev);
   auto &plev = GetParticles(lev);
-  const auto dxi = geom.InvCellSizeArray();
+  // const auto dxi = geom.InvCellSizeArray();
   const auto dx = geom.CellSizeArray();
-  const auto plo = geom.ProbLoArray();
+  // const auto plo = geom.ProbLoArray();
   const auto domain = geom.Domain();
   std::string outputfile;
 
   const int *loarr = domain.loVect();
-  const int *hiarr = domain.hiVect();
+  // const int *hiarr = domain.hiVect();
 
   int lo[] = {loarr[0], loarr[1], loarr[2]};
-  int hi[] = {hiarr[0], hiarr[1], hiarr[2]};
+  // int hi[] = {hiarr[0], hiarr[1], hiarr[2]};
 
   outputfile = amrex::Concatenate("P2GTest1", ncell, 3);
 
@@ -248,7 +212,7 @@ void MPMParticleContainer::CalculateErrorP2G(MultiFab &nodaldata,
                          x = lo[0] + i * dx[0];
                          v = nodal_data_arr(i, 0, 0, VELY_INDEX);
                          if (j == 0 and k == 0) {
-                           // PrintToFile(outputfile)<<x<<"\t"<<v<<"\n";
+                           PrintToFile(outputfile) << x << "\t" << v << "\n";
                          }
                        });
   }
@@ -270,7 +234,7 @@ void MPMParticleContainer::CalculateErrorP2G(MultiFab &nodaldata,
 
   for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
     const amrex::Box &box = mfi.tilebox();
-    Box nodalbox = convert(box, {1, 1, 1});
+    // Box nodalbox = convert(box, {1, 1, 1});
 
     int gid = mfi.index();
     int tid = mfi.LocalTileIndex();
@@ -284,7 +248,7 @@ void MPMParticleContainer::CalculateErrorP2G(MultiFab &nodaldata,
     ParticleType *pstruct = aos().dataPtr();
     amrex::ParallelFor(nt, [=] AMREX_GPU_DEVICE(int i) noexcept {
       ParticleType &p = pstruct[i];
-      Real y_exact;
+      // Real y_exact;
 
       amrex::Real xp[AMREX_SPACEDIM];
 
@@ -316,7 +280,7 @@ void MPMParticleContainer::WriteDeflectionTVB(Real tvb_E, Real tvb_v0,
 
   for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
     const amrex::Box &box = mfi.tilebox();
-    Box nodalbox = convert(box, {1, 1, 1});
+    // Box nodalbox = convert(box, {1, 1, 1});
 
     int gid = mfi.index();
     int tid = mfi.LocalTileIndex();
@@ -330,7 +294,7 @@ void MPMParticleContainer::WriteDeflectionTVB(Real tvb_E, Real tvb_v0,
     ParticleType *pstruct = aos().dataPtr();
     amrex::ParallelFor(nt, [=] AMREX_GPU_DEVICE(int i) noexcept {
       ParticleType &p = pstruct[i];
-      Real y_exact;
+      // Real y_exact;
 
       amrex::Real xp[AMREX_SPACEDIM];
 
@@ -346,13 +310,13 @@ amrex::Real
 MPMParticleContainer::CalculateEffectiveSpringConstant(amrex::Real Area,
                                                        amrex::Real L0) {
   // First calculate the total strain energy
-  const int lev = 0;
-  const Geometry &geom = Geom(lev);
-  auto &plev = GetParticles(lev);
+  // const int lev = 0;
+  // const Geometry &geom = Geom(lev);
+  /*auto &plev = GetParticles(lev);
   const auto dxi = geom.InvCellSizeArray();
   const auto dx = geom.CellSizeArray();
   const auto plo = geom.ProbLoArray();
-  const auto domain = geom.Domain();
+  const auto domain = geom.Domain();*/
 
   amrex::Real TSE = 0.0;
   amrex::Real Total_vol = 0.0;
