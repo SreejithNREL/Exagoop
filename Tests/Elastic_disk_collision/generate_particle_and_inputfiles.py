@@ -30,7 +30,6 @@ print(range(nparticle_per_cells_eachdir))
 
 print('Number of particles = ',npart)
 outfile=open("mpm_particles.dat","w")
-outfile.write("%d\n"%(npart));
 
 factor=[0.125,0.375,0.625,0.875]
 
@@ -47,6 +46,30 @@ vol_cell=dx[0]*dx[1]*dx[2]
 vol_particle=vol_cell/(nparticle_per_cells_eachdir*nparticle_per_cells_eachdir*nparticle_per_cells_eachdir)
 rad=(3.0/4.0*vol_particle/3.1416)**(1.0/3.0)
 npart=0
+
+for k in range(ncells[2]):
+    for j in range(ncells[1]):
+        for i in range(ncells[0]):
+            c_cx=blo[0]+(i)*dx[0]
+            c_cy=blo[1]+(j)*dx[1]
+            c_cz=blo[2]+(k)*dx[2]
+            if(c_cx>=xmin and c_cx<xmax and c_cy>=ymin and c_cy<ymax and c_cz>=zmin and c_cz<zmax):
+                for ii in range(nparticle_per_cells_eachdir):
+                    for jj in range(nparticle_per_cells_eachdir):
+                        for kk in range(nparticle_per_cells_eachdir):
+                            
+                            #cell_cx=c_cx+(2*ii+1)*dx[0]/(2.0*nparticle_per_cells_eachdir)
+                            cell_cx=c_cx+factor[ii]*dx[0]
+                            #cell_cy=c_cy+(2*jj+1)*dx[1]/(2.0*nparticle_per_cells_eachdir)
+                            cell_cy=c_cy+factor[jj]*dx[1]
+                            #cell_cz=c_cz+(2*kk+1)*dx[2]/(2.0*nparticle_per_cells_eachdir)
+                            cell_cz=c_cz+factor[kk]*dx[2]
+                            
+                            if(((cell_cx-xc)*(cell_cx-xc)+(cell_cy-yc)*(cell_cy-yc))**0.5<=0.2):
+                                npart=npart+1                                
+xc=0.8
+yc=0.8
+zc=0.7
 for k in range(ncells[2]):
     for j in range(ncells[1]):
         for i in range(ncells[0]):
@@ -67,6 +90,38 @@ for k in range(ncells[2]):
                             
                             if(((cell_cx-xc)*(cell_cx-xc)+(cell_cy-yc)*(cell_cy-yc))**0.5<=0.2):
                                 npart=npart+1
+                                
+
+outfile.write("%d\n"%(npart));
+
+xc=0.2
+yc=0.2
+zc=0.7
+vol_cell=dx[0]*dx[1]*dx[2]
+vol_particle=vol_cell/(nparticle_per_cells_eachdir*nparticle_per_cells_eachdir*nparticle_per_cells_eachdir)
+rad=(3.0/4.0*vol_particle/3.1416)**(1.0/3.0)
+npart=0
+
+for k in range(ncells[2]):
+    for j in range(ncells[1]):
+        for i in range(ncells[0]):
+            c_cx=blo[0]+(i)*dx[0]
+            c_cy=blo[1]+(j)*dx[1]
+            c_cz=blo[2]+(k)*dx[2]
+            if(c_cx>=xmin and c_cx<xmax and c_cy>=ymin and c_cy<ymax and c_cz>=zmin and c_cz<zmax):
+                for ii in range(nparticle_per_cells_eachdir):
+                    for jj in range(nparticle_per_cells_eachdir):
+                        for kk in range(nparticle_per_cells_eachdir):
+                            
+                            #cell_cx=c_cx+(2*ii+1)*dx[0]/(2.0*nparticle_per_cells_eachdir)
+                            cell_cx=c_cx+factor[ii]*dx[0]
+                            #cell_cy=c_cy+(2*jj+1)*dx[1]/(2.0*nparticle_per_cells_eachdir)
+                            cell_cy=c_cy+factor[jj]*dx[1]
+                            #cell_cz=c_cz+(2*kk+1)*dx[2]/(2.0*nparticle_per_cells_eachdir)
+                            cell_cz=c_cz+factor[kk]*dx[2]
+                            
+                            if(((cell_cx-xc)*(cell_cx-xc)+(cell_cy-yc)*(cell_cy-yc))**0.5<=0.2):
+                                
                                 velx=0.1;
                                 vely=0.1;
                                 velz=0.0;
@@ -97,7 +152,7 @@ for k in range(ncells[2]):
                             cell_cz=c_cz+factor[kk]*dx[2]
                             
                             if(((cell_cx-xc)*(cell_cx-xc)+(cell_cy-yc)*(cell_cy-yc))**0.5<=0.2):
-                                npart=npart+1
+                                
                                 velx=-0.1;
                                 vely=-0.1;
                                 velz=0.0;
