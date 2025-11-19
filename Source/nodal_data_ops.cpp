@@ -38,6 +38,24 @@ void backup_current_velocity(MultiFab &nodaldata) {
   }
 }
 
+void backup_current_temperature(MultiFab &nodaldata)
+{
+	for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
+	{
+		const Box &bx = mfi.validbox();
+		Box nodalbox = convert(bx, {1, 1, 1});
+
+		Array4<Real> nodal_data_arr = nodaldata.array(mfi);
+		amrex::ParallelFor(nodalbox,[=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+		{
+			if (nodal_data_arr(i, j, k, MASS_SPHEAT) > zero)
+			{
+				nodal_data_arr(i, j, k, DELTA_TEMPERATURE) = nodal_data_arr(i, j, k, TEMPERATURE );
+			}
+		});
+	}
+}
+
 void nodal_levelset_bcs(MultiFab &nodaldata, const Geometry geom,
                         amrex::Real &dt, int lsetbc, amrex::Real lset_wall_mu) {
   // need something more sophisticated
@@ -119,6 +137,25 @@ void store_delta_velocity(MultiFab &nodaldata) {
   }
 }
 
+void store_delta_temperature(MultiFab &nodaldata)
+{
+	for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
+	{
+		const Box &bx = mfi.validbox();
+		Box nodalbox = convert(bx, {1, 1, 1});
+
+		Array4<Real> nodal_data_arr = nodaldata.array(mfi);
+
+		amrex::ParallelFor(nodalbox,[=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+		{
+			if (nodal_data_arr(i, j, k, MASS_SPHEAT) > zero)
+			{
+				nodal_data_arr(i, j, k, DELTA_TEMPERATURE) = nodal_data_arr(i, j, k, TEMPERATURE) - nodal_data_arr(i, j, k, DELTA_TEMPERATURE);
+			}
+		});
+	}
+}
+
 void nodal_update(MultiFab &nodaldata, const amrex::Real &dt,
                   const amrex::Real &mass_tolerance) {
   for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi) {
@@ -141,6 +178,30 @@ void nodal_update(MultiFab &nodaldata, const amrex::Real &dt,
             nodal_data_arr(i, j, k, VELZ_INDEX) = 0.0;
           }
         });
+  }
+}
+
+void nodal_update_temperature(	MultiFab &nodaldata,
+					const amrex::Real &dt,
+					const amrex::Real &mass_tolerance)
+{
+  for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi) {
+    const Box &bx = mfi.validbox();
+    Box nodalbox = convert(bx, {1, 1, 1});
+
+    Array4<Real> nodal_data_arr = nodaldata.array(mfi);
+
+    amrex::ParallelFor(nodalbox, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+    {
+    	if (nodal_data_arr(i, j, k, MASS_SPHEAT) >= mass_tolerance)
+    	{
+    		nodal_data_arr(i, j, k, TEMPERATURE) += nodal_data_arr(i, j, k, SOURCE_TEMP_INDEX) / nodal_data_arr(i, j, k, MASS_SPHEAT) * dt;
+    	}
+    	else
+    	{
+    		nodal_data_arr(i, j, k, TEMPERATURE) = 0.0;
+    	}
+    });
   }
 }
 
@@ -372,6 +433,86 @@ void nodal_bcs(const amrex::Geometry geom, MultiFab &nodaldata,
             nodal_data_arr(nodeid, VELX_INDEX + d) = relvel_out[d] + wallvel[d];
           }
           // amrex::Print()<<"\nX = Vel "<<nodal_data_arr(nodeid,0);
+        });
+  }
+}
+
+void nodal_bcs_temperature(
+							const amrex::Geometry geom,
+							MultiFab &nodaldata,
+							int bcloarr[AMREX_SPACEDIM],
+							int bchiarr[AMREX_SPACEDIM],
+							Real dirichlet_temperature_lo[AMREX_SPACEDIM],
+							Real dirichlet_temperature_hi[AMREX_SPACEDIM],
+							const amrex::Real &dt)
+{
+
+  const int *domloarr = geom.Domain().loVect();
+  const int *domhiarr = geom.Domain().hiVect();
+
+  int periodic[AMREX_SPACEDIM] = {geom.isPeriodic(XDIR), geom.isPeriodic(YDIR),
+                                  geom.isPeriodic(ZDIR)};
+
+  // gpu capture stuff
+  GpuArray<int, AMREX_SPACEDIM> domlo = {domloarr[0], domloarr[1], domloarr[2]};
+  GpuArray<int, AMREX_SPACEDIM> domhi = {domhiarr[0], domhiarr[1], domhiarr[2]};
+
+  int bclo[] = {bcloarr[0], bcloarr[1], bcloarr[2]};
+  int bchi[] = {bchiarr[0], bchiarr[1], bchiarr[2]};
+
+
+  GpuArray<Real, AMREX_SPACEDIM > wall_temp_lo;
+  GpuArray<Real, AMREX_SPACEDIM > wall_temp_hi;
+
+  for (int d = 0; d < AMREX_SPACEDIM * AMREX_SPACEDIM; d++) {
+	  wall_temp_lo[d] = dirichlet_temperature_lo[d];
+	  wall_temp_hi[d] = dirichlet_temperature_hi[d];
+  }
+
+  for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
+  {
+	  const Box &bx = mfi.validbox();
+	  Box nodalbox = convert(bx, {1, 1, 1});
+
+	  Array4<Real> nodal_data_arr = nodaldata.array(mfi);
+
+	  amrex::ParallelFor(nodalbox, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+	  {
+		  IntVect nodeid(i, j, k);
+
+          if (nodeid[XDIR] == domlo[XDIR])
+          {
+        	  int dir = XDIR;
+        	  nodal_data_arr(nodeid, TEMPERATURE) = dirichlet_temperature_lo[XDIR];
+          }
+          else if (nodeid[XDIR] == (domhi[XDIR] + 1))
+          {
+        	  int dir = XDIR;
+        	  nodal_data_arr(nodeid, TEMPERATURE) = dirichlet_temperature_hi[XDIR];
+          }
+
+          if (nodeid[YDIR] == domlo[YDIR])
+          {
+        	  int dir = YDIR;
+        	  nodal_data_arr(nodeid, TEMPERATURE) = dirichlet_temperature_lo[YDIR];
+          }
+          else if (nodeid[YDIR] == (domhi[YDIR] + 1))
+          {
+        	  int dir = YDIR;
+			  nodal_data_arr(nodeid, TEMPERATURE) = dirichlet_temperature_hi[YDIR];
+          }
+
+          if (nodeid[ZDIR] == domlo[ZDIR])
+          {
+        	  int dir = ZDIR;
+        	  nodal_data_arr(nodeid, TEMPERATURE) = dirichlet_temperature_lo[ZDIR];
+          }
+          else if (nodeid[ZDIR] == (domhi[ZDIR] + 1))
+          {
+        	  int dir = ZDIR;
+        	  nodal_data_arr(nodeid, TEMPERATURE) = dirichlet_temperature_hi[ZDIR];
+          }
+
         });
   }
 }

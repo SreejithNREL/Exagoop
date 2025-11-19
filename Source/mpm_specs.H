@@ -37,6 +37,13 @@ struct realData {
         45, // 45	This is for storing the acceleration of each particle in
             // the y-direction. This variable is not generic and used only for
             // the spring-mass and membrane simulations only
+#ifdef USE_TEMP
+	temperature = 46,
+	specific_heat = 47,			// specific heat used in temperature equation
+	thermal_conductivity = 48,	// For now, treated as a scalar
+	heat_source = 49,			// Used in the temperature equation
+	heat_flux = 50,				// AMREX_SPACEDIM size
+#endif
     count
   };
 };
@@ -167,6 +174,11 @@ public:
 
   Vector<int> bclo;
   Vector<int> bchi;
+
+#ifdef USE_TEMP
+  Vector<int> bclo_temp;
+  Vector<int> bchi_temp;
+#endif
 
   GpuArray<int, AMREX_SPACEDIM> order_scheme_directional{AMREX_D_DECL(1, 1, 1)};
 

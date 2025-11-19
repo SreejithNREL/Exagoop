@@ -1,7 +1,8 @@
 #ifndef _CONSTANTS_H_
 #define _CONSTANTS_H_
 
-#define numrigidbodies 2
+#define numrigidbodies 0
+#define USE_TEMP 1
 
 #define XDIR 0
 #define YDIR 1
@@ -46,6 +47,11 @@
 #define NORMALX 17
 #define NORMALY 18
 #define NORMALZ 19
+#define MASS_SPHEAT 20			// \sigma m_p c_p N_I(x_p)
+#define MASS_SPHEAT_TEMP 21		// \sigma m_p c_p N_I(x_p)
+#define TEMPERATURE 22			// T_I
+#define SOURCE_TEMP_INDEX 23		// Source terms in temperature equation
+#define DELTA_TEMPERATURE 22			// T_I
 
 #define XX 0
 #define XY 1

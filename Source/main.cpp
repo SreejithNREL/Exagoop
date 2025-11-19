@@ -316,6 +316,17 @@ int main(int argc, char *argv[]) {
     }
     PrintMessage(msg, print_length, false);
 
+#ifdef USE_TEMP
+    msg = "\n Calculating initial strainrates and stresses";
+    PrintMessage(msg, print_length, true);
+
+    mpm_pc.deposit_onto_grid_temperature(nodaldata, true, true, specs.mass_tolerance, specs.order_scheme_directional, specs.periodic);
+
+    // Calculate strainrate at each material point
+    mpm_pc.interpolate_from_grid(nodaldata, true, true, specs.order_scheme_directional, specs.periodic, 1.0, dt);
+
+#endif
+
     msg = "\n Initialising diagnostics";
     PrintMessage(msg, print_length, true);
 
@@ -553,6 +564,7 @@ int main(int argc, char *argv[]) {
 
       nodaldata.setVal(zero, ng_cells_nodaldata);
 
+      //Momentum steps start
       // update_massvel=1, update_forces=0
       mpm_pc.deposit_onto_grid(
           nodaldata, specs.gravity, specs.external_loads_present,
@@ -569,8 +581,23 @@ int main(int argc, char *argv[]) {
           specs.force_slab_lo, specs.force_slab_hi, specs.extforce, 0, 1,
           specs.mass_tolerance, specs.order_scheme_directional, specs.periodic);
 
+      //Momentum steps end
+
+
+#ifdef USE_TEMP
+      //Temperature steps start
+      mpm_pc.deposit_onto_grid_temperature(nodaldata, true, true, specs.mass_tolerance, specs.order_scheme_directional, specs.periodic);
+      backup_current_temperature(nodaldata);
+      mpm_pc.interpolate_from_grid(nodaldata, true, true, specs.order_scheme_directional, specs.periodic, 1.0, dt);
+      //Temperature steps end
+#endif
+
       // update velocity on nodes
       nodal_update(nodaldata, dt, specs.mass_tolerance);
+
+#ifdef USE_TEMP
+      nodal_update_temperature(nodaldata, dt, specs.mass_tolerance);
+#endif
 
       // Performing rigid body operations
       if (specs.ifrigidnodespresent == 1) {
@@ -629,6 +656,13 @@ int main(int argc, char *argv[]) {
                 specs.wall_mu_lo.data(), specs.wall_mu_hi.data(),
                 specs.wall_vel_lo.data(), specs.wall_vel_hi.data(), dt);
 
+#ifdef USE_TEMP
+      Array<Real, AMREX_SPACEDIM> temp_lo{AMREX_D_DECL(0.0, 0.0, 0.0)};
+      Array<Real, AMREX_SPACEDIM> temp_hi{AMREX_D_DECL(1.0, 0.0, 0.0)};
+
+      nodal_bcs_temperature(geom,nodaldata,specs.bclo.data(),specs.bchi.data(),temp_lo.data(),temp_hi.data(),dt);
+#endif
+
       if (mpm_ebtools::using_levelset_geometry) {
         nodal_levelset_bcs(nodaldata, geom, dt, specs.levelset_bc,
                            specs.levelset_wall_mu);
@@ -637,11 +671,19 @@ int main(int argc, char *argv[]) {
       // Calculate velocity diff
       store_delta_velocity(nodaldata);
 
+#ifdef USE_TEMP
+      store_delta_temperature(nodaldata);
+#endif
+
       // Update particle velocity at time t+dt
       mpm_pc.updateNeighbors();
       mpm_pc.interpolate_from_grid(nodaldata, 1, 0,
                                    specs.order_scheme_directional,
                                    specs.periodic, specs.alpha_pic_flip, dt);
+
+#ifdef USE_TEMP
+      mpm_pc.interpolate_from_grid(nodaldata, true, true, specs.order_scheme_directional, specs.periodic, 1.0, dt);
+#endif
       mpm_pc.updateNeighbors();
 
       // Update particle position at t+dt
@@ -674,6 +716,9 @@ int main(int argc, char *argv[]) {
       mpm_pc.interpolate_from_grid(nodaldata, 0, 1,
                                    specs.order_scheme_directional,
                                    specs.periodic, specs.alpha_pic_flip, dt);
+#ifdef USE_TEMP
+      mpm_pc.interpolate_from_grid(nodaldata, true, true, specs.order_scheme_directional, specs.periodic, 1.0, dt);
+#endif
       mpm_pc.updateNeighbors();
 
       // mpm_pc.move_particles_from_nodevel(nodaldata,dt,

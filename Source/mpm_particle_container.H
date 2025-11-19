@@ -70,6 +70,14 @@ public:
                          GpuArray<int, AMREX_SPACEDIM> order_scheme_directional,
                          GpuArray<int, AMREX_SPACEDIM> periodic);
 
+  void deposit_onto_grid_temperature(
+      MultiFab &nodaldata,
+	  bool update_mass_temp,
+	  	bool update_source,
+      amrex::Real mass_tolerance,
+      GpuArray<int, AMREX_SPACEDIM> order_scheme_directional,
+      GpuArray<int, AMREX_SPACEDIM> periodic);
+
   void
   calculate_nodal_normal(MultiFab &nodaldata, amrex::Real mass_tolerance,
                          GpuArray<int, AMREX_SPACEDIM> order_scheme_directional,
@@ -97,6 +105,16 @@ public:
                         GpuArray<int, AMREX_SPACEDIM> order_scheme_directional,
                         GpuArray<int, AMREX_SPACEDIM> periodic,
                         amrex::Real alpha_pic_flip, amrex::Real dt);
+
+  void
+    interpolate_from_grid_temperature(
+    		MultiFab &nodaldata,
+    		bool update_temperature,
+    		bool update_heatflux,
+    		GpuArray<int, AMREX_SPACEDIM> order_scheme_directional,
+    		GpuArray<int, AMREX_SPACEDIM> periodic,
+    		amrex::Real alpha_pic_flip,
+    		amrex::Real dt);
 
   void move_particles_from_nodevel(MultiFab &nodaldata, const amrex::Real &dt,
                                    int bclo[AMREX_SPACEDIM],

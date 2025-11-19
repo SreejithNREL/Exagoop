@@ -105,9 +105,21 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
         ifs >> p.rdata(realData::Gama_pressure);
         ifs >> p.rdata(realData::Dynamic_viscosity);
       } else {
+
         amrex::Abort("\n\tIncorrect constitutive model. Please check your "
                      "particle file");
       }
+
+#ifdef USE_TEMP
+      ifs >> p.rdata(realData::temperature);
+      ifs >> p.rdata(realData::specific_heat);
+      ifs >> p.rdata(realData::thermal_conductivity);
+      ifs >> p.rdata(realData::heat_source);
+      p.rdata(realData::heat_flux+0) = 0.0;
+      p.rdata(realData::heat_flux+1) = 0.0;
+      p.rdata(realData::heat_flux+2) = 0.0;
+#endif
+
 
       // Set other particle properties
       p.rdata(realData::volume) =
@@ -119,6 +131,8 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
       p.rdata(realData::mass) =
           p.rdata(realData::density) * p.rdata(realData::volume);
 
+      amrex::Print()<<"\n Mass =  "<<p.rdata(realData::mass);
+
       if (p.idata(intData::phase) == 0) {
         total_mass += p.rdata(realData::mass);
         total_vol += p.rdata(realData::volume);
@@ -126,6 +140,8 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
                  p.idata(intData::rigid_body_id) == 0) {
         total_rigid_mass += p.rdata(realData::mass);
       }
+
+      amrex::Print()<<"\n Total mass = "<<total_mass;
 
       p.rdata(realData::jacobian) = 1.0;
       p.rdata(realData::vol_init) = p.rdata(realData::volume);
