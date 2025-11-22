@@ -149,6 +149,8 @@ int main(int argc, char *argv[]) {
                            specs.no_of_rigidbodies_present,
                            specs.ifrigidnodespresent);
       PrintMessage(msg, print_length, false);
+      mpm_pc.RedistributeLocal();
+         mpm_pc.fillNeighbors();
 
       if (specs.no_of_rigidbodies_present != numrigidbodies) {
         amrex::Print() << "\n specs.no_of_rigidbodies_present= "
@@ -316,8 +318,8 @@ int main(int argc, char *argv[]) {
     }
     PrintMessage(msg, print_length, false);
 
-#ifdef USE_TEMP
-    msg = "\n Calculating initial strainrates and stresses";
+#if USE_TEMP
+    msg = "\n Calculating initial heat flux";
     PrintMessage(msg, print_length, true);
 
     mpm_pc.deposit_onto_grid_temperature(nodaldata, true, true, specs.mass_tolerance, specs.order_scheme_directional, specs.periodic);
@@ -468,6 +470,7 @@ int main(int argc, char *argv[]) {
     nodaldata_names.push_back("NX");
     nodaldata_names.push_back("NY");
     nodaldata_names.push_back("NZ");
+    nodaldata_names.push_back("NZ");
     PrintMessage(msg, print_length, false);
 
     if (specs.restart_checkfile == "") {
@@ -584,7 +587,7 @@ int main(int argc, char *argv[]) {
       //Momentum steps end
 
 
-#ifdef USE_TEMP
+#if USE_TEMP
       //Temperature steps start
       mpm_pc.deposit_onto_grid_temperature(nodaldata, true, true, specs.mass_tolerance, specs.order_scheme_directional, specs.periodic);
       backup_current_temperature(nodaldata);
@@ -595,7 +598,7 @@ int main(int argc, char *argv[]) {
       // update velocity on nodes
       nodal_update(nodaldata, dt, specs.mass_tolerance);
 
-#ifdef USE_TEMP
+#if USE_TEMP
       nodal_update_temperature(nodaldata, dt, specs.mass_tolerance);
 #endif
 
@@ -656,7 +659,7 @@ int main(int argc, char *argv[]) {
                 specs.wall_mu_lo.data(), specs.wall_mu_hi.data(),
                 specs.wall_vel_lo.data(), specs.wall_vel_hi.data(), dt);
 
-#ifdef USE_TEMP
+#if USE_TEMP
       Array<Real, AMREX_SPACEDIM> temp_lo{AMREX_D_DECL(0.0, 0.0, 0.0)};
       Array<Real, AMREX_SPACEDIM> temp_hi{AMREX_D_DECL(1.0, 0.0, 0.0)};
 
@@ -671,7 +674,7 @@ int main(int argc, char *argv[]) {
       // Calculate velocity diff
       store_delta_velocity(nodaldata);
 
-#ifdef USE_TEMP
+#if USE_TEMP
       store_delta_temperature(nodaldata);
 #endif
 
@@ -681,7 +684,7 @@ int main(int argc, char *argv[]) {
                                    specs.order_scheme_directional,
                                    specs.periodic, specs.alpha_pic_flip, dt);
 
-#ifdef USE_TEMP
+#if USE_TEMP
       mpm_pc.interpolate_from_grid(nodaldata, true, true, specs.order_scheme_directional, specs.periodic, 1.0, dt);
 #endif
       mpm_pc.updateNeighbors();
@@ -716,7 +719,7 @@ int main(int argc, char *argv[]) {
       mpm_pc.interpolate_from_grid(nodaldata, 0, 1,
                                    specs.order_scheme_directional,
                                    specs.periodic, specs.alpha_pic_flip, dt);
-#ifdef USE_TEMP
+#if USE_TEMP
       mpm_pc.interpolate_from_grid(nodaldata, true, true, specs.order_scheme_directional, specs.periodic, 1.0, dt);
 #endif
       mpm_pc.updateNeighbors();

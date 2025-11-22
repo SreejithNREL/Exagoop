@@ -110,7 +110,7 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
                      "particle file");
       }
 
-#ifdef USE_TEMP
+#if USE_TEMP
       ifs >> p.rdata(realData::temperature);
       ifs >> p.rdata(realData::specific_heat);
       ifs >> p.rdata(realData::thermal_conductivity);
@@ -131,7 +131,7 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
       p.rdata(realData::mass) =
           p.rdata(realData::density) * p.rdata(realData::volume);
 
-      amrex::Print()<<"\n Mass =  "<<p.rdata(realData::mass);
+      //amrex::Print()<<"\n Mass =  "<<p.rdata(realData::mass)<<" "<<p.rdata(realData::temperature);
 
       if (p.idata(intData::phase) == 0) {
         total_mass += p.rdata(realData::mass);
@@ -140,8 +140,6 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
                  p.idata(intData::rigid_body_id) == 0) {
         total_rigid_mass += p.rdata(realData::mass);
       }
-
-      amrex::Print()<<"\n Total mass = "<<total_mass;
 
       p.rdata(realData::jacobian) = 1.0;
       p.rdata(realData::vol_init) = p.rdata(realData::volume);

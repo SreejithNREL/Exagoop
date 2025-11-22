@@ -34,3 +34,5 @@
 *.log     -text
 *.out     -text
 *.aux     -text
+
+*.gitignore text eol=lf

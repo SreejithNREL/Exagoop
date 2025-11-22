@@ -161,18 +161,15 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
   real_data_names.push_back("Gama_pressure");
   real_data_names.push_back("Dynamic_viscosity");
   real_data_names.push_back("yacceleration");
+#if USE_TEMP
   real_data_names.push_back("temperature");
   real_data_names.push_back("specific_heat");
   real_data_names.push_back("thermal_conductivity");
   real_data_names.push_back("heat_source");
-  real_data_names.push_back("heat_flux");
-
-  /*
-  temperature = 46,
-  	specific_heat = 47,			// specific heat used in temperature equation
-  	thermal_conductivity = 48,	// For now, treated as a scalar
-  	heat_source = 49,			// Used in the temperature equation
-  	heat_flux = 50,			*/
+  for (int i = 0; i < AMREX_SPACEDIM; i++) {
+      real_data_names.push_back(amrex::Concatenate("heat_flux", i, 1));
+    }
+#endif
 
   int_data_names.push_back("phase");
   int_data_names.push_back("rigid_body_id");
@@ -195,11 +192,15 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
   writeflags_real[realData::Bulk_modulus] = 0;
   writeflags_real[realData::Gama_pressure] = 0;
   writeflags_real[realData::Dynamic_viscosity] = 0;
+#if USE_TEMP
   writeflags_real[realData::temperature] = 1;
   writeflags_real[realData::specific_heat] = 0;
   writeflags_real[realData::thermal_conductivity] = 0;
   writeflags_real[realData::heat_source] = 0;
-  writeflags_real[realData::heat_flux] = 0;
+  for (int i = 0; i < AMREX_SPACEDIM; i++) {
+  writeflags_real[realData::heat_flux+i] = 0;
+  }
+#endif
 
   WritePlotFile(pltfile, "particles", writeflags_real, writeflags_int,
                 real_data_names, int_data_names);
@@ -292,11 +293,13 @@ void MPMParticleContainer::writeCheckpointFile(
   real_data_names.push_back("Gama_pressure");
   real_data_names.push_back("Dynamic_viscosity");
   real_data_names.push_back("yacceleration");
+#if USE_TEMP
   real_data_names.push_back("temperature");
   real_data_names.push_back("specific_heat");
   real_data_names.push_back("thermal_conductivity");
   real_data_names.push_back("heat_source");
   real_data_names.push_back("heat_flux");
+#endif
 
   amrex::Vector<std::string> int_data_names;
   int_data_names.push_back("phase");

@@ -1,0 +1,8 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+AlignAfterOpenBracket: Align
+BinPackParameters: false
+AllowShortFunctionsOnASingleLine: Inline
+AttributeMacros: ['AMREX_GPU_DEVICE', 'AMREX_FORCE_INLINE']
+BreakBeforeBraces: Allman
+

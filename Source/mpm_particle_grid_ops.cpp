@@ -449,7 +449,7 @@ std::pair<int,int> compute_bounds(
     return {bmin, bmax};
 }
 
-
+#if USE_TEMP
 void MPMParticleContainer::deposit_onto_grid_temperature(
     MultiFab &nodaldata,
 	bool update_mass_temp,
@@ -619,6 +619,8 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
     });
   }
 }
+
+#endif
 
 void MPMParticleContainer::deposit_onto_grid_rigidnodesonly(
     MultiFab &nodaldata, Array<Real, AMREX_SPACEDIM> /*gravity*/,
@@ -1051,7 +1053,7 @@ void MPMParticleContainer::interpolate_from_grid(
   }
 }
 
-
+#if USE_TEMP
 void MPMParticleContainer::interpolate_from_grid_temperature(
 		MultiFab &nodaldata,
 		bool update_temperature,
@@ -1161,6 +1163,7 @@ void MPMParticleContainer::interpolate_from_grid_temperature(
     });
   }
 }
+#endif
 
 void MPMParticleContainer::calculate_nodal_normal(
     MultiFab &nodaldata, amrex::Real mass_tolerance,
