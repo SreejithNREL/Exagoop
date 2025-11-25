@@ -1,0 +1,20 @@
+BasedOnStyle: Microsoft
+IndentWidth: 4
+ColumnLimit: 200
+UseTab: Never
+BreakBeforeBraces: Allman
+PointerAlignment: Left
+
+# --- Function argument formatting ---
+# Always put each argument on its own line in definitions
+AllowAllArgumentsOnNextLine: false
+AllowShortFunctionsOnASingleLine: None
+BinPackParameters: false
+BinPackArguments: false
+# Force breaking after each parameter/argument
+AlwaysBreakAfterReturnType: None
+AlwaysBreakAfterDefinitionReturnType: None
+PenaltyBreakBeforeFirstCallParameter: 0
+PenaltyBreakBeforeFirstParameter: 0
+
+

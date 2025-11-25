@@ -2,7 +2,7 @@
 #define _CONSTANTS_H_
 
 #define numrigidbodies 0
-#define USE_TEMP 1
+#define USE_TEMP 0
 
 #define XDIR 0
 #define YDIR 1
@@ -25,7 +25,12 @@
 #define NCOMP_TENSOR 6
 #define NCOMP_FULLTENSOR 9
 
+#if USE_TEMP
+#define NUM_STATES 25
+#else
 #define NUM_STATES 20
+#endif
+
 #define MASS_INDEX 0
 #define VELX_INDEX 1
 #define VELY_INDEX 2
@@ -34,6 +39,7 @@
 #define FRCY_INDEX 5
 #define FRCZ_INDEX 6
 // Difference in velocity between two successive time steps Vx(t+dt)-Vx(t)
+
 #define DELTA_VELX_INDEX 7
 #define DELTA_VELY_INDEX 8
 #define DELTA_VELZ_INDEX 9
@@ -47,11 +53,14 @@
 #define NORMALX 17
 #define NORMALY 18
 #define NORMALZ 19
-#define MASS_SPHEAT 20			// \sigma m_p c_p N_I(x_p)
-#define MASS_SPHEAT_TEMP 21		// \sigma m_p c_p N_I(x_p)
-#define TEMPERATURE 22			// T_I
-#define SOURCE_TEMP_INDEX 23		// Source terms in temperature equation
-#define DELTA_TEMPERATURE 22			// T_I
+
+#if USE_TEMP
+#define MASS_SPHEAT 20       // \sigma m_p c_p N_I(x_p)
+#define MASS_SPHEAT_TEMP 21  // \sigma m_p c_p N_I(x_p)
+#define TEMPERATURE 22       // T_I
+#define SOURCE_TEMP_INDEX 23 // Source terms in temperature equation
+#define DELTA_TEMPERATURE 24 // T_I
+#endif
 
 #define XX 0
 #define XY 1
@@ -67,5 +76,7 @@
 #define BC_OUTFLOW 4
 
 #define ACCG 9.81
+
+const int print_length = 60;
 
 #endif
