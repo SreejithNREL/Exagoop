@@ -26,7 +26,7 @@ void Write_Particle_Grid_Levset_Output(
     mpm_pc.Redistribute();
     mpm_pc.fillNeighbors();
     BL_PROFILE_VAR("OUTPUT_TIME", outputs);
-    Print() << "\nWriting outputs at step, time:" << steps << ", " << time;
+    Print() << "\nWriting outputs at step, time:" << steps << ", " << time<<"\n";
 
     std::string msg;
     std::string pltfile = amrex::Concatenate(

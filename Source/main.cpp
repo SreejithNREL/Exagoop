@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
         std::string pltfile;
         Real output_time = zero;
         Real output_timePrint = zero;
-        GpuArray<int, AMREX_SPACEDIM> order_surface_integral = {3, 3, 3};
+        GpuArray<int, AMREX_SPACEDIM> order_surface_integral = {AMREX_D_DECL(3, 3, 3)};
         std::string msg;
 
         int ng_cells;
