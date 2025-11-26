@@ -21,44 +21,5 @@ void Write_Particle_Grid_Levset_Output(
     Real time,
     int steps,
     int output_it,
-    bool rewrite_checkpoint)
-{
-    mpm_pc.Redistribute();
-    mpm_pc.fillNeighbors();
-    BL_PROFILE_VAR("OUTPUT_TIME", outputs);
-    Print() << "\nWriting outputs at step, time:" << steps << ", " << time<<"\n";
-
-    std::string msg;
-    std::string pltfile = amrex::Concatenate(
-        specs.prefix_gridfilename, output_it, specs.num_of_digits_in_filenames);
-
-    mpm_pc.writeParticles(specs.particle_output_folder +
-                              specs.prefix_particlefilename,
-                          specs.num_of_digits_in_filenames, steps);
-
-    pltfile = amrex::Concatenate(specs.prefix_gridfilename, steps,
-                                 specs.num_of_digits_in_filenames);
-    write_grid_file(specs.grid_output_folder + pltfile, nodaldata,
-                    nodaldata_names, geom, ba, dm, time);
-
-    if (specs.levset_output)
-    {
-        pltfile = amrex::Concatenate(specs.levset_output_folder +
-                                         specs.prefix_densityfilename,
-                                     steps, specs.num_of_digits_in_filenames);
-        WriteSingleLevelPlotfile(pltfile, levset_data, {"levset"}, geom_levset,
-                                 time, 0);
-    }
-
-
-    if (rewrite_checkpoint)
-    {
-        mpm_pc.writeCheckpointFile(
-            specs.checkpoint_output_folder + specs.prefix_checkpointfilename,
-            specs.num_of_digits_in_filenames, time, steps, output_it);
-    }
-
-    BL_PROFILE_VAR_STOP(outputs);
-}
-
+    bool rewrite_checkpoint);
 #endif
