@@ -12,18 +12,18 @@ void MPMParticleContainer::apply_constitutive_model(
     const int lev = 0;
     const Geometry &geom = Geom(lev);
     auto &plev = GetParticles(lev);
-    const auto dxi = geom.InvCellSizeArray();
+    /*const auto dxi = geom.InvCellSizeArray();
     const auto dx = geom.CellSizeArray();
     const auto plo = geom.ProbLoArray();
-    const auto domain = geom.Domain();
+    const auto domain = geom.Domain();*/
 
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
-        const amrex::Box &box = mfi.tilebox();
+        //const amrex::Box &box = mfi.tilebox();
         int gid = mfi.index();
         int tid = mfi.LocalTileIndex();
         auto index = std::make_pair(gid, tid);
-        Real pinf = 0.0;
+        //Real pinf = 0.0;
 
         auto &ptile = plev[index];
         auto &aos = ptile.GetArrayOfStructs();
@@ -43,7 +43,7 @@ void MPMParticleContainer::apply_constitutive_model(
 
                 if (p.idata(intData::phase) == 0)
                 {
-                    amrex::Real xp[AMREX_SPACEDIM];
+                    //amrex::Real xp[AMREX_SPACEDIM];
                     amrex::Real strainrate[NCOMP_TENSOR];
                     amrex::Real strain[NCOMP_TENSOR];
                     amrex::Real stress[NCOMP_TENSOR];
@@ -100,18 +100,18 @@ void MPMParticleContainer::apply_constitutive_model_delta(
     const int lev = 0;
     const Geometry &geom = Geom(lev);
     auto &plev = GetParticles(lev);
-    const auto dxi = geom.InvCellSizeArray();
+    /*const auto dxi = geom.InvCellSizeArray();
     const auto dx = geom.CellSizeArray();
     const auto plo = geom.ProbLoArray();
-    const auto domain = geom.Domain();
+    const auto domain = geom.Domain();*/
 
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
-        const amrex::Box &box = mfi.tilebox();
+        //const amrex::Box &box = mfi.tilebox();
         int gid = mfi.index();
         int tid = mfi.LocalTileIndex();
         auto index = std::make_pair(gid, tid);
-        Real pinf = 0.0;
+        //Real pinf = 0.0;
 
         auto &ptile = plev[index];
         auto &aos = ptile.GetArrayOfStructs();
@@ -126,13 +126,13 @@ void MPMParticleContainer::apply_constitutive_model_delta(
             nt,
             [=] AMREX_GPU_DEVICE(int i) noexcept
             {
-                Real p_inf = 0.0;
+                //Real p_inf = 0.0;
                 ParticleType &p = pstruct[i];
 
                 if (p.idata(intData::phase) == 0)
                 {
-                    amrex::Real xp[AMREX_SPACEDIM];
-                    amrex::Real strainrate[NCOMP_TENSOR];
+                    /*amrex::Real xp[AMREX_SPACEDIM];
+                    amrex::Real strainrate[NCOMP_TENSOR];*/
                     amrex::Real delta_strain[NCOMP_TENSOR];
                     amrex::Real delta_stress[NCOMP_TENSOR];
 

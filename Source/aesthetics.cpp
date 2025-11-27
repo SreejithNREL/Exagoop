@@ -17,11 +17,11 @@ void PrintWelcomeMessage()
     amrex::Print() << " ===============================================\n";
 }
 
-void PrintMessage(std::string msg, int print_length, bool begin)
+void PrintMessage(std::string msg, int print_len, bool begin)
 {
     if (begin == true)
     {
-        msg.append(print_length - msg.length(), '-');
+        msg.append(print_len - msg.length(), '-');
         msg.append(1, '>');
         amrex::Print() << msg;
     }
@@ -32,11 +32,11 @@ void PrintMessage(std::string msg, int print_length, bool begin)
     }
 }
 
-void PrintMessage(std::string msg, int print_length, bool begin, char c)
+void PrintMessage(std::string msg, int print_len, bool begin, char c)
 {
     if (begin == true)
     {
-        msg.append(print_length - msg.length(), c);
+        msg.append(print_len - msg.length(), c);
         amrex::Print() << msg;
     }
     else
@@ -49,7 +49,6 @@ void PrintMessage(std::string msg, int print_length, bool begin, char c)
 void PrintSimParams(MPMParticleContainer *mpm_pc, MPMspecs *specs)
 {
 
-    int print_length = 60;
     std::string msg = "";
     int tmpi;
     amrex::Real tmpr;

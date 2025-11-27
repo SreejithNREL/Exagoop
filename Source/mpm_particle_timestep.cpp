@@ -16,7 +16,6 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
     }
     const int lev = 0;
     const Geometry &geom = Geom(lev);
-    auto &plev = GetParticles(lev);
     const auto dx = geom.CellSizeArray();
     amrex::Real dt = std::numeric_limits<amrex::Real>::max();
 
@@ -73,20 +72,13 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
     return (dt);
 }
 
-void MPMParticleContainer::updateVolume(const amrex::Real &dt)
+void MPMParticleContainer::updateVolume()
 {
     BL_PROFILE("MPMParticleContainer::updateVolume");
 
     const int lev = 0;
-    const Geometry &geom = Geom(lev);
-    const auto plo = Geom(lev).ProbLoArray();
-    const auto phi = Geom(lev).ProbHiArray();
-    const auto dx = Geom(lev).CellSizeArray();
     auto &plev = GetParticles(lev);
 
-    int periodic[AMREX_SPACEDIM] = {Geom(lev).isPeriodic(XDIR),
-                                    Geom(lev).isPeriodic(YDIR),
-                                    Geom(lev).isPeriodic(ZDIR)};
 
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
@@ -146,7 +138,6 @@ void MPMParticleContainer::moveParticles(
     BL_PROFILE("MPMParticleContainer::moveParticles");
 
     const int lev = 0;
-    const Geometry &geom = Geom(lev);
     const auto plo = Geom(lev).ProbLoArray();
     const auto phi = Geom(lev).ProbHiArray();
     const auto dx = Geom(lev).CellSizeArray();
@@ -183,9 +174,7 @@ void MPMParticleContainer::moveParticles(
         wall_mu_hi_arr[d] = wall_mu_hi[d];
     }
 
-    int periodic[AMREX_SPACEDIM] = {Geom(lev).isPeriodic(XDIR),
-                                    Geom(lev).isPeriodic(YDIR),
-                                    Geom(lev).isPeriodic(ZDIR)};
+
 
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
@@ -235,7 +224,6 @@ void MPMParticleContainer::moveParticles(
 
                     if (using_levsets)
                     {
-                        amrex::Real eps = 0.00001;
                         amrex::Real xp[AMREX_SPACEDIM] = {
                             p.pos(XDIR), p.pos(YDIR), p.pos(ZDIR)};
                         amrex::Real dist =
@@ -428,12 +416,12 @@ void MPMParticleContainer::moveParticles(
 
 amrex::Real MPMParticleContainer::GetPosSpring()
 {
-    const int lev = 0;
-    const Geometry &geom = Geom(lev);
+    //const int lev = 0;
+    /*const Geometry &geom = Geom(lev);
     const auto plo = Geom(lev).ProbLoArray();
     const auto phi = Geom(lev).ProbHiArray();
     const auto dx = Geom(lev).CellSizeArray();
-    auto &plev = GetParticles(lev);
+    auto &plev = GetParticles(lev);*/
     amrex::Real ymin = 0.0;
 
     using PType = typename MPMParticleContainer::SuperParticleType;
@@ -449,12 +437,12 @@ amrex::Real MPMParticleContainer::GetPosSpring()
 
 amrex::Real MPMParticleContainer::GetPosPiston()
 {
-    const int lev = 0;
-    const Geometry &geom = Geom(lev);
+    //const int lev = 0;
+    /*const Geometry &geom = Geom(lev);
     const auto plo = Geom(lev).ProbLoArray();
     const auto phi = Geom(lev).ProbHiArray();
     const auto dx = Geom(lev).CellSizeArray();
-    auto &plev = GetParticles(lev);
+    auto &plev = GetParticles(lev);*/
     amrex::Real ymin = std::numeric_limits<amrex::Real>::max();
 
     using PType = typename MPMParticleContainer::SuperParticleType;
@@ -483,10 +471,10 @@ void MPMParticleContainer::UpdateRigidParticleVelocities(
     BL_PROFILE("MPMParticleContainer::GetVelPiston");
 
     const int lev = 0;
-    const Geometry &geom = Geom(lev);
+    /*const Geometry &geom = Geom(lev);
     const auto plo = Geom(lev).ProbLoArray();
     const auto phi = Geom(lev).ProbHiArray();
-    const auto dx = Geom(lev).CellSizeArray();
+    const auto dx = Geom(lev).CellSizeArray();*/
     auto &plev = GetParticles(lev);
 
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)

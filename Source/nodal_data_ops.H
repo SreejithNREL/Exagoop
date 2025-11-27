@@ -22,7 +22,7 @@ void backup_current_velocity(amrex::MultiFab &nodaldata);
 void backup_current_temperature(amrex::MultiFab &nodaldata);
 void store_delta_velocity(amrex::MultiFab &nodaldata);
 void store_delta_temperature(amrex::MultiFab &nodaldata);
-void nodal_update(amrex::MultiFab &nodaldata,
+void Nodal_Time_Update_Momentum(amrex::MultiFab &nodaldata,
                   const amrex::Real &dt,
                   const amrex::Real &mass_tolerance);
 void nodal_update_temperature(amrex::MultiFab &nodaldata,

@@ -178,9 +178,8 @@ void Create_Output_Directories(MPMspecs &specs)
 void Initialise_Internal_Forces(MPMspecs &specs,
                                 MPMParticleContainer &mpm_pc,
                                 amrex::MultiFab &nodaldata,
-                                amrex::MultiFab &levset_data,
-                                Geometry &geom,
-                                Geometry &geom_levset)
+                                amrex::MultiFab &levset_data
+                                )
 {
     amrex::Real dt;
     dt = mpm_pc.Calculate_time_step(specs);
@@ -356,8 +355,6 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
         for (int i = 0; i < np; i++)
         {
             ParticleType p;
-            int ph;
-            amrex::Real junk;
 
             // Set id and cpu for this particle
             p.id() = ParticleType::NextID();
@@ -690,16 +687,14 @@ void MPMParticleContainer::removeParticlesInsideEB()
     const int lev = 0;
     const Geometry &geom = Geom(lev);
     auto &plev = GetParticles(lev);
-    const auto dxi = geom.InvCellSizeArray();
     const auto dx = geom.CellSizeArray();
     const auto plo = geom.ProbLoArray();
-    const auto domain = geom.Domain();
+
 
     int lsref = mpm_ebtools::ls_refinement;
 
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
-        const amrex::Box &box = mfi.tilebox();
         int gid = mfi.index();
         int tid = mfi.LocalTileIndex();
         auto index = std::make_pair(gid, tid);

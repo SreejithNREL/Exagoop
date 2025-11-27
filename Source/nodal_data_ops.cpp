@@ -79,7 +79,7 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
     //
     int lsref = mpm_ebtools::ls_refinement;
     const auto plo = geom.ProbLoArray();
-    const auto phi = geom.ProbHiArray();
+    //const auto phi = geom.ProbHiArray();
     const auto dx = geom.CellSizeArray();
 
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
@@ -108,7 +108,7 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
                         relvel_out[d] = relvel_in[d];
                     }
 
-                    amrex::Real eps = 0.00001;
+                    //amrex::Real eps = 0.00001;
                     amrex::Real xp[AMREX_SPACEDIM] = {plo[XDIR] + i * dx[XDIR],
                                                       plo[YDIR] + j * dx[YDIR],
                                                       plo[ZDIR] + k * dx[ZDIR]};
@@ -129,8 +129,8 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
                     normaldir[YDIR] = normaldir[YDIR] / (gradmag + TINYVAL);
                     normaldir[ZDIR] = normaldir[ZDIR] / (gradmag + TINYVAL);
 
-                    int modify_pos = applybc(relvel_in, relvel_out,
-                                             lset_wall_mu, normaldir, lsetbc);
+                    /*int modify_pos = applybc(relvel_in, relvel_out,
+                                             lset_wall_mu, normaldir, lsetbc);*/
 
                     nodal_data_arr(nodeid, VELX_INDEX + XDIR) =
                         relvel_out[XDIR];
@@ -194,7 +194,7 @@ void store_delta_temperature(MultiFab &nodaldata)
 #endif
 }
 
-void nodal_update(MultiFab &nodaldata,
+void Nodal_Time_Update_Momentum(MultiFab &nodaldata,
                   const amrex::Real &dt,
                   const amrex::Real &mass_tolerance)
 {
@@ -326,8 +326,8 @@ void initialise_shape_function_indices(iMultiFab &shapefunctionindex,
     const int *domloarr = geom.Domain().loVect();
     const int *domhiarr = geom.Domain().hiVect();
 
-    int periodic[AMREX_SPACEDIM] = {
-        geom.isPeriodic(XDIR), geom.isPeriodic(YDIR), geom.isPeriodic(ZDIR)};
+    /*int periodic[AMREX_SPACEDIM] = {
+        geom.isPeriodic(XDIR), geom.isPeriodic(YDIR), geom.isPeriodic(ZDIR)};*/
 
     GpuArray<int, AMREX_SPACEDIM> lo = {domloarr[0], domloarr[1], domloarr[2]};
     GpuArray<int, AMREX_SPACEDIM> hi = {domhiarr[0], domhiarr[1], domhiarr[2]};

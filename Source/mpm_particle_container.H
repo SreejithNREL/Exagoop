@@ -53,7 +53,7 @@ class MPMParticleContainer
                        amrex::Real wall_vel_hi[AMREX_SPACEDIM * AMREX_SPACEDIM],
                        amrex::Real lset_wall_mu);
 
-    void updateVolume(const amrex::Real &dt);
+    void updateVolume();
     amrex::Real CalculateExactVelocity(int modenumber,
                                        amrex::Real E,
                                        amrex::Real rho,
@@ -131,10 +131,6 @@ class MPMParticleContainer
     void
     UpdateRigidParticleVelocities(int rigid_body_id,
                                   Array<amrex::Real, AMREX_SPACEDIM> velocity);
-    void CalculateErrorP2G(MultiFab &nodaldata,
-                           amrex::Real p2g_L,
-                           amrex::Real p2g_f,
-                           int ncell);
 
     void interpolate_from_grid(
         MultiFab &nodaldata,
@@ -160,7 +156,9 @@ class MPMParticleContainer
                                      int bchi[AMREX_SPACEDIM],
                                      int order_scheme);
 
-    void CalculateEnergies(Real &TKE, Real &TSE);
+    void Calculate_Total_Energies(Real &TKE, Real &TSE);
+    void Calculate_MWA_VelocityComponents(amrex::GpuArray<Real, AMREX_SPACEDIM> &Vcm);
+    void Calculate_MWA_VelocityMagnitude(amrex::Real &Vcm);
     amrex::Real CalculateEffectiveSpringConstant(amrex::Real Area,
                                                  amrex::Real L0);
     void CalculateVelocity(Real &Vcm);
@@ -169,14 +167,7 @@ class MPMParticleContainer
     void Calculate_Total_Number_of_MaterialParticles(int &total_num);
     void Calculate_Total_Mass_MaterialPoints(Real &total_mass);
     void Calculate_Total_Vol_MaterialPoints(Real &total_vol);
-    void CalculateErrorTVB(
-        Real tvb_E, Real tvb_v0, Real tvb_L, Real tvb_rho, Real err);
-    void WriteDeflectionTVB(Real tvb_E,
-                            Real tvb_v0,
-                            Real tvb_L,
-                            Real tvb_rho,
-                            Real time,
-                            int output_it);
+
     void WriteDeflectionCantilever();
     void FindWaterFront(Real &Xwf);
 

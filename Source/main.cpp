@@ -25,19 +25,19 @@ int main(int argc, char *argv[])
 
         // Initializing and reading input file for the simulation
         MPMspecs specs;
-        Rigid_Bodies *Rb;
+        //Rigid_Bodies *Rb=nullptr;
         specs.read_mpm_specs();
 
         // Declaring solver variables
         int steps = 0;
         Real dt;
         Real time = 0.0;
-        int num_of_rigid_bodies = 0;
+        //int num_of_rigid_bodies = 0;
         int output_it = 0;
         std::string pltfile;
         Real output_time = zero;
         Real output_timePrint = zero;
-        GpuArray<int, AMREX_SPACEDIM> order_surface_integral = {AMREX_D_DECL(3, 3, 3)};
+        //GpuArray<int, AMREX_SPACEDIM> order_surface_integral = {AMREX_D_DECL(3, 3, 3)};
         std::string msg;
 
         int ng_cells;
@@ -62,157 +62,52 @@ int main(int argc, char *argv[])
 
         Create_Output_Directories(specs);
 
-        Initialise_Internal_Forces(specs, mpm_pc, nodaldata, levset_data, geom,
-                                   geom_levset);
+        Initialise_Internal_Forces(specs, mpm_pc, nodaldata, levset_data);
 
         amrex::Print() << "\n\nTimestepping begins\n\n";
 
         while ((steps < specs.maxsteps) and (time < specs.final_time))
         {
+        	steps++;
             auto iter_time_start = amrex::second();
 
             dt = mpm_pc.Calculate_time_step(specs);
 
-            time += dt;
-            output_time += dt;
-            output_timePrint += dt;
-            steps++;
+            Reset_Nodaldata_to_Zero(nodaldata, ng_cells_nodaldata);
+
+            P2G_Momentum(specs,mpm_pc,nodaldata,1,1);
+
+            Nodal_Time_Update_Momentum(nodaldata, dt, specs.mass_tolerance);
+
+            Apply_Nodal_BCs(geom,nodaldata,specs,dt);
+            
+            G2P_Momentum(specs, mpm_pc, nodaldata, 1,0,dt);
+
+            Update_MP_Positions(specs, mpm_pc, dt);
 
             if (steps % specs.num_redist == 0)
-            {
-                mpm_pc.RedistributeLocal();
-                mpm_pc.fillNeighbors();
-                mpm_pc.buildNeighborList(CheckPair());
-            }
-            else
-            {
-                mpm_pc.updateNeighbors();
-            }
-
-            Reset_Nodaldata_to_Zero(nodaldata, ng_cells_nodaldata);            
-            
-            mpm_pc.deposit_onto_grid_momentum( nodaldata, specs.gravity, specs.external_loads_present, specs.force_slab_lo, specs.force_slab_hi, specs.extforce, 1, 1, specs.mass_tolerance, specs.order_scheme_directional, specs.periodic);            
-			
-            nodal_update(nodaldata, dt, specs.mass_tolerance);
-
-			// impose bcs at nodes
-            nodal_bcs(geom, nodaldata, specs.bclo.data(), specs.bchi.data(),
-                      specs.wall_mu_lo.data(), specs.wall_mu_hi.data(),
-                      specs.wall_vel_lo.data(), specs.wall_vel_hi.data(), dt);
-
-			if (mpm_ebtools::using_levelset_geometry)
-            {
-                nodal_levelset_bcs(nodaldata, geom, dt, specs.levelset_bc,
-                                   specs.levelset_wall_mu);
-            }
-
-			// Calculate velocity diff
-            store_delta_velocity(nodaldata);
-
-            
-
-#if USE_TEMP
-            // Temperature steps start
-            mpm_pc.deposit_onto_grid_temperature(
-                nodaldata, true, true, specs.mass_tolerance,
-                specs.order_scheme_directional, specs.periodic);
-            backup_current_temperature(nodaldata);
-            mpm_pc.interpolate_from_grid_temperature(
-                nodaldata, true, true, specs.order_scheme_directional,
-                specs.periodic, 1.0, dt);
-            // Temperature steps end
-            nodal_update_temperature(nodaldata, dt, specs.mass_tolerance);
-
-            Array<Real, AMREX_SPACEDIM> temp_lo{AMREX_D_DECL(0.0, 0.0, 0.0)};
-            Array<Real, AMREX_SPACEDIM> temp_hi{AMREX_D_DECL(1.0, 0.0, 0.0)};
-
-            nodal_bcs_temperature(geom, nodaldata, specs.bclo.data(),
-                                  specs.bchi.data(), temp_lo.data(),
-                                  temp_hi.data(), dt);
-            store_delta_temperature(nodaldata);
-#endif
-            
-            
-            mpm_pc.interpolate_from_grid(
-                nodaldata, 1, 0, specs.order_scheme_directional, specs.periodic,
-                specs.alpha_pic_flip, dt);
-
-#if USE_TEMP
-            mpm_pc.interpolate_from_grid_temperature(
-                nodaldata, true, true, specs.order_scheme_directional,
-                specs.periodic, 1.0, dt);
-#endif            
-
-            // Update particle position at t+dt
-            mpm_pc.moveParticles(
-                dt, specs.bclo.data(), specs.bchi.data(), specs.levelset_bc,
-                specs.wall_mu_lo.data(), specs.wall_mu_hi.data(),
-                specs.wall_vel_lo.data(), specs.wall_vel_hi.data(),
-                specs.levelset_wall_mu);
+                        {
+                            mpm_pc.RedistributeLocal();
+                            mpm_pc.fillNeighbors();
+                            mpm_pc.buildNeighborList(CheckPair());
+                        }
+                        else
+                        {
+                            mpm_pc.updateNeighbors();
+                        }
 
             if (specs.stress_update_scheme == 1)
             {
-                // MUSL scheme
-                //  Calculate velocity on nodes
-                mpm_pc.deposit_onto_grid_momentum(
-                    nodaldata, specs.gravity, specs.external_loads_present,
-                    specs.force_slab_lo, specs.force_slab_hi, specs.extforce, 1,
-                    0, specs.mass_tolerance, specs.order_scheme_directional,
-                    specs.periodic);
+            	P2G_Momentum(specs,mpm_pc,nodaldata,0,1);
 
-                nodal_bcs(geom, nodaldata, specs.bclo.data(), specs.bchi.data(),
-                          specs.wall_mu_lo.data(), specs.wall_mu_hi.data(),
-                          specs.wall_vel_lo.data(), specs.wall_vel_hi.data(),
-                          dt);
-                // nodal_bcs(	geom, nodaldata, dt);
-
-                if (mpm_ebtools::using_levelset_geometry)
-                {
-                    nodal_levelset_bcs(nodaldata, geom, dt, specs.levelset_bc,
-                                       specs.levelset_wall_mu);
-                }
+            	Apply_Nodal_BCs(geom,nodaldata,specs,dt);
             }
 
-            // find strainrate at material points at time t+dt
-            mpm_pc.interpolate_from_grid(
-                nodaldata, 0, 1, specs.order_scheme_directional, specs.periodic,
-                specs.alpha_pic_flip, dt);
-#if USE_TEMP
-            mpm_pc.interpolate_from_grid_temperature(
-                nodaldata, true, true, specs.order_scheme_directional,
-                specs.periodic, 1.0, dt);
-#endif
-            mpm_pc.updateNeighbors();
+            G2P_Momentum(specs, mpm_pc, nodaldata, 0,1,dt);
 
-            // mpm_pc.move_particles_from_nodevel(nodaldata,dt,
-            // specs.bclo.data(),specs.bchi.data(),1);
-            mpm_pc.updateVolume(dt);
+            Update_MP_Volume(mpm_pc);
 
-            // update stress at material pointsat time t+dt
-            if (time < specs.applied_strainrate_time)
-            {
-                if (specs.calculate_strain_based_on_delta == 1)
-                {
-                    mpm_pc.apply_constitutive_model_delta(
-                        dt, specs.applied_strainrate);
-                }
-                else
-                {
-                    mpm_pc.apply_constitutive_model(dt,
-                                                    specs.applied_strainrate);
-                }
-            }
-            else
-            {
-                if (specs.calculate_strain_based_on_delta == 1)
-                {
-                    mpm_pc.apply_constitutive_model_delta(dt, 0.0);
-                }
-                else
-                {
-                    mpm_pc.apply_constitutive_model(dt, 0.0);
-                }
-            }
+            Calculate_MP_Stress_Strain(specs,mpm_pc,time, dt);
 
             if (specs.levset_output)
             {
@@ -229,6 +124,10 @@ int main(int argc, char *argv[])
                 output_time = zero;
                 BL_PROFILE_VAR_STOP(outputs);
             }
+
+            time += dt;
+            output_time += dt;
+            output_timePrint += dt;
 
             auto time_per_iter = amrex::second() - iter_time_start;
             if (output_timePrint >= specs.screen_output_time)

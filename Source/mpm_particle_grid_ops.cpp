@@ -229,21 +229,21 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
 			if (update_massvel)
 			{
 				nodal_data_arr(i, j, k, MASS_INDEX) = zero;
-                                   nodal_data_arr(i, j, k, VELX_INDEX) = zero;
-                                   nodal_data_arr(i, j, k, VELY_INDEX) = zero;
-                                   nodal_data_arr(i, j, k, VELZ_INDEX) = zero;
-                               }
-                               if (update_forces)
-                               {
-                                   nodal_data_arr(i, j, k, FRCX_INDEX) = zero;
-                                   nodal_data_arr(i, j, k, FRCY_INDEX) = zero;
-                                   nodal_data_arr(i, j, k, FRCZ_INDEX) = zero;
-                               }
-                               if (update_forces == 2)
-                               {
-                                   nodal_data_arr(i, j, k, STRESS_INDEX) = zero;
-                               }
-                           });
+				nodal_data_arr(i, j, k, VELX_INDEX) = zero;
+				nodal_data_arr(i, j, k, VELY_INDEX) = zero;
+				nodal_data_arr(i, j, k, VELZ_INDEX) = zero;
+			}
+			if (update_forces)
+			{
+				nodal_data_arr(i, j, k, FRCX_INDEX) = zero;
+				nodal_data_arr(i, j, k, FRCY_INDEX) = zero;
+				nodal_data_arr(i, j, k, FRCZ_INDEX) = zero;
+			}
+			if (update_forces == 2)
+			{
+				nodal_data_arr(i, j, k, STRESS_INDEX) = zero;
+			}
+		});
     }
 
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
@@ -487,10 +487,6 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
         const amrex::Box &box = mfi.tilebox();
         Box nodalbox = convert(box, {1, 1, 1});
 
-        int gid = mfi.index();
-        int tid = mfi.LocalTileIndex();
-        auto index = std::make_pair(gid, tid);
-
         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
 
         amrex::ParallelFor(
@@ -541,9 +537,7 @@ for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
         const amrex::Box &box = mfi.tilebox();
         Box nodalbox = convert(box, {1, 1, 1});
 
-        int gid = mfi.index();
-        int tid = mfi.LocalTileIndex();
-        auto index = std::make_pair(gid, tid);
+
 
         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
 
@@ -1064,10 +1058,6 @@ void MPMParticleContainer::deposit_onto_grid_rigidnodesonly(
         const amrex::Box &box = mfi.tilebox();
         Box nodalbox = convert(box, {1, 1, 1});
 
-        int gid = mfi.index();
-        int tid = mfi.LocalTileIndex();
-        auto index = std::make_pair(gid, tid);
-
         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
 
         amrex::ParallelFor(
@@ -1129,7 +1119,6 @@ void MPMParticleContainer::interpolate_from_grid(
 
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
-        const amrex::Box &box = mfi.tilebox();
         int gid = mfi.index();
         int tid = mfi.LocalTileIndex();
         auto index = std::make_pair(gid, tid);
@@ -1153,7 +1142,7 @@ void MPMParticleContainer::interpolate_from_grid(
                 {
 
                     amrex::Real xp[AMREX_SPACEDIM];
-                    amrex::Real gradvp[AMREX_SPACEDIM][AMREX_SPACEDIM] = {0.0};
+                    amrex::Real gradvp[AMREX_SPACEDIM][AMREX_SPACEDIM] = {};
 
                     xp[XDIR] = p.pos(XDIR);
                     xp[YDIR] = p.pos(YDIR);
@@ -1225,12 +1214,12 @@ void MPMParticleContainer::interpolate_from_grid(
                         {
 
                             p.rdata(realData::xvel_prime) = bilin_interp(
-                                xp, iv[XDIR], iv[YDIR], iv[ZDIR], plo, dx,
+                                xp, iv, plo, dx,
                                 nodal_data_arr, VELX_INDEX);
                             p.rdata(realData::xvel) =
                                 (alpha_pic_flip)*p.rdata(realData::xvel) +
                                 (alpha_pic_flip)*bilin_interp(
-                                    xp, iv[XDIR], iv[YDIR], iv[ZDIR], plo, dx,
+                                    xp, iv, plo, dx,
                                     nodal_data_arr, DELTA_VELX_INDEX) +
                                 (1 - alpha_pic_flip) *
                                     p.rdata(realData::xvel_prime);
@@ -1256,12 +1245,12 @@ void MPMParticleContainer::interpolate_from_grid(
                             p.rdata(realData::yacceleration) =
                                 p.rdata(realData::yvel);
                             p.rdata(realData::yvel_prime) = bilin_interp(
-                                xp, iv[XDIR], iv[YDIR], iv[ZDIR], plo, dx,
+                                xp, iv, plo, dx,
                                 nodal_data_arr, VELY_INDEX);
                             p.rdata(realData::yvel) =
                                 (alpha_pic_flip)*p.rdata(realData::yvel) +
                                 (alpha_pic_flip)*bilin_interp(
-                                    xp, iv[XDIR], iv[YDIR], iv[ZDIR], plo, dx,
+                                    xp, iv, plo, dx,
                                     nodal_data_arr, DELTA_VELY_INDEX) +
                                 (1 - alpha_pic_flip) *
                                     p.rdata(realData::yvel_prime);
@@ -1295,12 +1284,12 @@ void MPMParticleContainer::interpolate_from_grid(
                         if (order_scheme_directional[2] == 1)
                         {
                             p.rdata(realData::zvel_prime) = bilin_interp(
-                                xp, iv[XDIR], iv[YDIR], iv[ZDIR], plo, dx,
+                                xp, iv, plo, dx,
                                 nodal_data_arr, VELZ_INDEX);
                             p.rdata(realData::zvel) =
                                 (alpha_pic_flip)*p.rdata(realData::zvel) +
                                 (alpha_pic_flip)*bilin_interp(
-                                    xp, iv[XDIR], iv[YDIR], iv[ZDIR], plo, dx,
+                                    xp, iv, plo, dx,
                                     nodal_data_arr, DELTA_VELZ_INDEX) +
                                 (1 - alpha_pic_flip) *
                                     p.rdata(realData::zvel_prime);
@@ -1791,14 +1780,6 @@ void MPMParticleContainer::calculate_nodal_normal(
         const amrex::Box &box = mfi.tilebox();
         Box nodalbox = convert(box, {1, 1, 1});
 
-        int gid = mfi.index();
-        int tid = mfi.LocalTileIndex();
-        auto index = std::make_pair(gid, tid);
-
-        auto &ptile = plev[index];
-        auto &aos = ptile.GetArrayOfStructs();
-        int np = aos.numRealParticles();
-        int ng = aos.numNeighborParticles();
 
         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
 
