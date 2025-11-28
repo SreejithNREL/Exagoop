@@ -130,39 +130,6 @@ hatND(amrex::Real xi[AMREX_SPACEDIM],
     return funcval;
 }
 
-/*
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
-bilin_interp(amrex::Real xp[AMREX_SPACEDIM],
-             amrex::IntVect iv,
-             const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> plo,
-             const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> dx,
-             amrex::Array4<amrex::Real> nodaldata,
-             int comp)
-{
-
-    amrex::Real alpha, beta, gama;
-    amrex::Real value = zero;
-    int i=iv[XDIR];
-    int j=iv[YDIR];
-    int k=iv[ZDIR];
-
-    alpha = (xp[XDIR] - (plo[XDIR] + i * dx[XDIR])) / dx[XDIR];
-    beta = (xp[YDIR] - (plo[YDIR] + j * dx[YDIR])) / dx[YDIR];
-    gama = (xp[ZDIR] - (plo[ZDIR] + k * dx[ZDIR])) / dx[ZDIR];
-
-    value += (1.0 - alpha) * (1 - beta) * (1 - gama) * nodaldata(i, j, k, comp);
-    value += alpha * (1 - beta) * (1 - gama) * nodaldata(i + 1, j, k, comp);
-    value += (1.0 - alpha) * beta * (1 - gama) * nodaldata(i, j + 1, k, comp);
-    value += alpha * beta * (1 - gama) * nodaldata(i + 1, j + 1, k, comp);
-
-    value += (1.0 - alpha) * (1 - beta) * gama * nodaldata(i, j, k + 1, comp);
-    value += alpha * (1 - beta) * gama * nodaldata(i + 1, j, k + 1, comp);
-    value += (1.0 - alpha) * beta * gama * nodaldata(i, j + 1, k + 1, comp);
-    value += alpha * beta * gama * nodaldata(i + 1, j + 1, k + 1, comp);
-
-    return (value);
-}*/
-
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 bilin_interp(amrex::Real xp[AMREX_SPACEDIM],
 		 amrex::IntVect iv,
@@ -594,267 +561,137 @@ cubic_interp(amrex::Real xp[AMREX_SPACEDIM],
 */
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
-basisval(int l,
-         int m,
-         int n,
-         int i,
-         int j,
-         int k,
-         amrex::Real xp[AMREX_SPACEDIM],
-         const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> plo,
-         const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> dx,
-         GpuArray<int, AMREX_SPACEDIM> order_scheme_directional,
-         GpuArray<int, AMREX_SPACEDIM> periodic,
-         const int *lo,
-         const int *hi)
+basisval(const IntVect stencil,
+         const IntVect cell,
+         const amrex::Real xp[AMREX_SPACEDIM],
+         const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM>& plo,
+         const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM>& dx,
+         const GpuArray<int, AMREX_SPACEDIM>& order_scheme_directional,
+         const GpuArray<int, AMREX_SPACEDIM>& periodic,
+         const int* lo,
+         const int* hi)
 {
-    amrex::Real lval, mval, nval;
-    amrex::Real rx, ry, rz;
+    amrex::Real contrib[AMREX_SPACEDIM];
+    // Directional indices assumed to be 0,1,2 for XDIR,YDIR,ZDIR
+    // and consistent with IntVect indexing.
 
-    int order_scheme_dir[] = {AMREX_D_DECL(order_scheme_directional[XDIR],
-                                           order_scheme_directional[YDIR],
-                                           order_scheme_directional[ZDIR])};
-
-    lval = 0.0;
-    mval = 0.0;
-    nval = 0.0;
-
-    int shapefunctype;
-
-    rx = (xp[XDIR] - (plo[XDIR] + i * dx[XDIR])) / dx[XDIR];
-    ry = (xp[YDIR] - (plo[YDIR] + j * dx[YDIR])) / dx[YDIR];
-    rz = (xp[ZDIR] - (plo[ZDIR] + k * dx[ZDIR])) / dx[ZDIR];
-
-    if (order_scheme_dir[0] == 1)
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
     {
-        lval = (l == 0) ? (one - rx) : rx;
-    }
-    else
-    {
-        if (periodic[0] == 0)
-        {
-            shapefunctype = ((i + l) == lo[XDIR] || (i + l) == hi[XDIR] + 1)
-                                ? 1
-                                : ((i + l == lo[XDIR] + 1) ? 2
-                                   : ((i + l == hi[XDIR])) ? 4
-                                                           : 3);
-            rx = (xp[XDIR] - (plo[XDIR] + (i + l) * dx[XDIR])) / dx[XDIR];
-            lval = cubicspline_1d(shapefunctype, rx, 0);
-        }
-        else
-        {
-            shapefunctype = 3;
-            rx = (xp[XDIR] - (plo[XDIR] + (i + l) * dx[XDIR])) / dx[XDIR];
-            lval = cubicspline_1d(shapefunctype, rx, 0);
-        }
-    }
+        const int i  = cell[d];
+        const int l  = stencil[d];
+        const int od = order_scheme_directional[d];
 
-    if (order_scheme_dir[1] == 1)
-    {
-        mval = (m == 0) ? (one - ry) : ry;
-    }
-    else
-    {
-        if (periodic[1] == 0)
-        {
-            shapefunctype = ((j + m) == lo[YDIR] || (j + m) == hi[YDIR] + 1)
-                                ? 1
-                                : ((j + m == lo[YDIR] + 1) ? 2
-                                   : ((j + m == hi[YDIR])) ? 4
-                                                           : 3);
-            ry = (xp[YDIR] - (plo[YDIR] + (j + m) * dx[YDIR])) / dx[YDIR];
-            mval = cubicspline_1d(shapefunctype, ry, 1);
-        }
-        else
-        {
-            shapefunctype = 3;
-            ry = (xp[YDIR] - (plo[YDIR] + (j + m) * dx[YDIR])) / dx[YDIR];
-            mval = cubicspline_1d(shapefunctype, ry, 1);
+        // Local coordinate in cell i along dimension d
+        amrex::Real r = (xp[d] - (plo[d] + i * dx[d])) / dx[d];
+
+        if (od == 1) {
+            // Linear shape in this direction: choose left/right half
+            // l==0 refers to the "left" node, l==1 the "right" node
+            contrib[d] = (l == 0) ? (one - r) : r;
+        } else {
+            // Higher-order (cubic spline) shape; compute type based on boundary/periodicity.
+            int shapefunctype = 3; // interior default
+            const int idx = i + l;
+
+            if (periodic[d] == 0) {
+                // Non-periodic: classify boundary shape
+                // Types: 1 (ghost just outside lo/hi+1), 2 (near lo+1), 4 (near hi), 3 (interior)
+                if (idx == lo[d] || idx == hi[d] + 1) {
+                    shapefunctype = 1;
+                } else if (idx == lo[d] + 1) {
+                    shapefunctype = 2;
+                } else if (idx == hi[d]) {
+                    shapefunctype = 4;
+                } else {
+                    shapefunctype = 3;
+                }
+            } else {
+                shapefunctype = 3; // periodic → interior shape
+            }
+
+            // Re-center r at the stencil location (i+l)
+            r = (xp[d] - (plo[d] + (i + l) * dx[d])) / dx[d];
+            contrib[d] = cubicspline_1d(shapefunctype, r, d);
         }
     }
 
-    if (order_scheme_dir[2] == 1)
-    {
-        nval = (n == 0) ? (one - rz) : rz;
+    // Product over dimensions
+    amrex::Real val = one;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        val *= contrib[d];
     }
-    else
-    {
-        if (periodic[2] == 0)
-        {
-            shapefunctype = ((k + n) == lo[ZDIR] || (k + n) == hi[ZDIR] + 1)
-                                ? 1
-                                : ((k + n == lo[ZDIR] + 1) ? 2
-                                   : ((k + n == hi[ZDIR])) ? 4
-                                                           : 3);
-            rz = (xp[ZDIR] - (plo[ZDIR] + (k + n) * dx[ZDIR])) / dx[ZDIR];
-            nval = cubicspline_1d(shapefunctype, rz, 2);
-        }
-        else
-        {
-            shapefunctype = 3;
-            rz = (xp[ZDIR] - (plo[ZDIR] + (k + n) * dx[ZDIR])) / dx[ZDIR];
-            nval = cubicspline_1d(shapefunctype, rz, 2);
-        }
-    }
-    return (lval * mval * nval);
+    return val;
 }
+
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
-basisvalder(int dir,
-            int l,
-            int m,
-            int n,
-            int i,
-            int j,
-            int k,
-            amrex::Real xp[AMREX_SPACEDIM],
-            const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> plo,
-            const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> dx,
-            GpuArray<int, AMREX_SPACEDIM> order_scheme_directional,
-            GpuArray<int, AMREX_SPACEDIM> periodic,
-            const int *lo,
-            const int *hi)
+basisvalder(const int dir,
+            const IntVect stencil,
+            const IntVect cell,
+            const amrex::Real xp[AMREX_SPACEDIM],
+            const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM>& plo,
+            const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM>& dx,
+            const GpuArray<int, AMREX_SPACEDIM>& order_scheme_directional,
+            const GpuArray<int, AMREX_SPACEDIM>& periodic,
+            const int* lo,
+            const int* hi)
 {
-    amrex::Real lval = 0.0, mval = 0.0, nval = 0.0;
-    amrex::Real rx, ry, rz;
     amrex::Real dxinv[AMREX_SPACEDIM];
-
-    int shapefunctype;
-
-    dxinv[XDIR] = one / dx[XDIR];
-    dxinv[YDIR] = one / dx[YDIR];
-    dxinv[ZDIR] = one / dx[ZDIR];
-
-    rx = (xp[XDIR] - (plo[XDIR] + i * dx[XDIR])) / dx[XDIR];
-    ry = (xp[YDIR] - (plo[YDIR] + j * dx[YDIR])) / dx[YDIR];
-    rz = (xp[ZDIR] - (plo[ZDIR] + k * dx[ZDIR])) / dx[ZDIR];
-
-    if (order_scheme_directional[0] == 1)
-    {
-        lval = (l == 0) ? (one - rx) : rx;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        dxinv[d] = one / dx[d];
     }
-    else if (order_scheme_directional[0] == 3)
+
+    // Product accumulator; we will multiply per-dimension contributions,
+    // using the derivative in 'dir' and value factors in all other dims.
+    amrex::Real prod = one;
+
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
     {
-        if (periodic[0] == 0)
+        const int i  = cell[d];
+        const int l  = stencil[d];
+        const int od = order_scheme_directional[d];
+
+        // Default: interior cubic shape
+        int shapefunctype = 3;
+
+        // Local coordinate r: for linear, centered at cell i; for cubic, at stencil (i+l)
+        amrex::Real r;
+
+        amrex::Real val_d = 0.0; // value contribution in dimension d
+        amrex::Real der_d = 0.0; // derivative contribution in dimension d
+
+        if (od == 1)
         {
-            shapefunctype = ((i + l) == lo[XDIR] || (i + l) == hi[XDIR] + 1)
-                                ? 1
-                                : ((i + l == lo[XDIR] + 1) ? 2
-                                   : ((i + l == hi[XDIR])) ? 4
-                                                           : 3);
-            rx = (xp[XDIR] - (plo[XDIR] + (i + l) * dx[XDIR])) / dx[XDIR];
-            lval = cubicspline_1d(shapefunctype, rx, 0);
+            // Linear shape
+            r = (xp[d] - (plo[d] + i * dx[d])) / dx[d];
+            val_d = (l == 0) ? (one - r) : r;
+            der_d = (l == 0) ? -dxinv[d] : dxinv[d];
         }
         else
         {
-            shapefunctype = 3;
-            rx = (xp[XDIR] - (plo[XDIR] + (i + l) * dx[XDIR])) / dx[XDIR];
-            lval = cubicspline_1d(shapefunctype, rx, 0);
+            // Cubic spline shape (order 3): classify boundary/periodic type
+            const int idx = i + l;
+            if (periodic[d] == 0) {
+                if      (idx == lo[d]         || idx == hi[d] + 1) shapefunctype = 1;
+                else if (idx == lo[d] + 1)                            shapefunctype = 2;
+                else if (idx == hi[d])                                shapefunctype = 4;
+                else                                                   shapefunctype = 3;
+            } else {
+                shapefunctype = 3; // periodic → interior
+            }
+
+            r = (xp[d] - (plo[d] + (i + l) * dx[d])) / dx[d];
+            val_d = cubicspline_1d(shapefunctype, r, d);
+            der_d = cubicspline_1d_der(shapefunctype, r) * dxinv[d];
         }
+
+        // Multiply derivative in the requested direction; value otherwise
+        prod *= (d == dir) ? der_d : val_d;
     }
 
-    if (order_scheme_directional[1] == 1)
-    {
-        mval = (m == 0) ? (one - ry) : ry;
-    }
-    else if (order_scheme_directional[1] == 3)
-    {
-        if (periodic[1] == 0)
-        {
-            shapefunctype = ((j + m) == lo[YDIR] || (j + m) == hi[YDIR] + 1)
-                                ? 1
-                                : ((j + m == lo[YDIR] + 1) ? 2
-                                   : ((j + m == hi[YDIR])) ? 4
-                                                           : 3);
-            ry = (xp[YDIR] - (plo[YDIR] + (j + m) * dx[YDIR])) / dx[YDIR];
-            mval = cubicspline_1d(shapefunctype, ry, 1);
-        }
-        else
-        {
-            shapefunctype = 3;
-            ry = (xp[YDIR] - (plo[YDIR] + (j + m) * dx[YDIR])) / dx[YDIR];
-            mval = cubicspline_1d(shapefunctype, ry, 1);
-        }
-    }
-
-    if (order_scheme_directional[2] == 1)
-    {
-        nval = (n == 0) ? (one - rz) : rz;
-    }
-    else if (order_scheme_directional[2] == 3)
-    {
-        if (periodic[2] == 0)
-        {
-            shapefunctype = ((k + n) == lo[ZDIR] || (k + n) == hi[ZDIR] + 1)
-                                ? 1
-                                : ((k + n == lo[ZDIR] + 1) ? 2
-                                   : ((k + n == hi[ZDIR])) ? 4
-                                                           : 3);
-            rz = (xp[ZDIR] - (plo[ZDIR] + (k + n) * dx[ZDIR])) / dx[ZDIR];
-            nval = cubicspline_1d(shapefunctype, rz, 2);
-        }
-        else
-        {
-            shapefunctype = 3;
-            rz = (xp[ZDIR] - (plo[ZDIR] + (k + n) * dx[ZDIR])) / dx[ZDIR];
-            nval = cubicspline_1d(shapefunctype, rz, 2);
-        }
-    }
-
-    if (dir == 0)
-    {
-        if (order_scheme_directional[0] == 1)
-        {
-            lval = (l == 0) ? -dxinv[XDIR] : dxinv[XDIR];
-        }
-        else
-        {
-            shapefunctype = ((i + l) == lo[XDIR] || (i + l) == hi[XDIR] + 1)
-                                ? 1
-                                : ((i + l == lo[XDIR] + 1) ? 2
-                                   : ((i + l == hi[XDIR])) ? 4
-                                                           : 3);
-            rx = (xp[XDIR] - (plo[XDIR] + (i + l) * dx[XDIR])) / dx[XDIR];
-            lval = cubicspline_1d_der(shapefunctype, rx) * dxinv[XDIR];
-        }
-    }
-    else if (dir == 1)
-    {
-        if (order_scheme_directional[1] == 1)
-        {
-            mval = (m == 0) ? -dxinv[YDIR] : dxinv[YDIR];
-        }
-        else
-        {
-            shapefunctype = ((j + m) == lo[YDIR] || (j + m) == hi[YDIR] + 1)
-                                ? 1
-                                : ((j + m == lo[YDIR] + 1) ? 2
-                                   : ((j + m == hi[YDIR])) ? 4
-                                                           : 3);
-            ry = (xp[YDIR] - (plo[YDIR] + (j + m) * dx[YDIR])) / dx[YDIR];
-            mval = cubicspline_1d_der(shapefunctype, ry) * dxinv[YDIR];
-        }
-    }
-    else if (dir == 2)
-    {
-        if (order_scheme_directional[2] == 1)
-        {
-            nval = (n == 0) ? -dxinv[ZDIR] : dxinv[ZDIR];
-        }
-        else
-        {
-            shapefunctype = ((k + n) == lo[ZDIR] || (k + n) == hi[ZDIR] + 1)
-                                ? 1
-                                : ((k + n == lo[ZDIR] + 1) ? 2
-                                   : ((k + n == hi[ZDIR])) ? 4
-                                                           : 3);
-            rz = (xp[ZDIR] - (plo[ZDIR] + (k + n) * dx[ZDIR])) / dx[ZDIR];
-            nval = cubicspline_1d_der(shapefunctype, rz) * dxinv[ZDIR];
-        }
-    }
-
-    return (lval * mval * nval);
+    return prod;
 }
+
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 get_tensor(MPMParticleContainer::ParticleType &p,

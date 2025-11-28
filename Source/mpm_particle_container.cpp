@@ -98,7 +98,6 @@ void MPMParticleContainer::apply_constitutive_model(
     }
 }
 
-
 void MPMParticleContainer::apply_constitutive_model_delta(
     const amrex::Real &dt, amrex::Real applied_strainrate /*= 0.0*/)
 {

@@ -25,19 +25,20 @@ int main(int argc, char *argv[])
 
         // Initializing and reading input file for the simulation
         MPMspecs specs;
-        //Rigid_Bodies *Rb=nullptr;
+        // Rigid_Bodies *Rb=nullptr;
         specs.read_mpm_specs();
 
         // Declaring solver variables
         int steps = 0;
         Real dt;
         Real time = 0.0;
-        //int num_of_rigid_bodies = 0;
+        // int num_of_rigid_bodies = 0;
         int output_it = 0;
         std::string pltfile;
         Real output_time = zero;
         Real output_timePrint = zero;
-        //GpuArray<int, AMREX_SPACEDIM> order_surface_integral = {AMREX_D_DECL(3, 3, 3)};
+        // GpuArray<int, AMREX_SPACEDIM> order_surface_integral =
+        // {AMREX_D_DECL(3, 3, 3)};
         std::string msg;
 
         int ng_cells;
@@ -68,46 +69,46 @@ int main(int argc, char *argv[])
 
         while ((steps < specs.maxsteps) and (time < specs.final_time))
         {
-        	steps++;
+            steps++;
             auto iter_time_start = amrex::second();
 
             dt = mpm_pc.Calculate_time_step(specs);
 
             Reset_Nodaldata_to_Zero(nodaldata, ng_cells_nodaldata);
 
-            P2G_Momentum(specs,mpm_pc,nodaldata,1,1);
+            P2G_Momentum(specs, mpm_pc, nodaldata, 1, 1);
 
             Nodal_Time_Update_Momentum(nodaldata, dt, specs.mass_tolerance);
 
-            Apply_Nodal_BCs(geom,nodaldata,specs,dt);
-            
-            G2P_Momentum(specs, mpm_pc, nodaldata, 1,0,dt);
+            Apply_Nodal_BCs(geom, nodaldata, specs, dt);
+
+            G2P_Momentum(specs, mpm_pc, nodaldata, 1, 0, dt);
 
             Update_MP_Positions(specs, mpm_pc, dt);
 
             if (steps % specs.num_redist == 0)
-                        {
-                            mpm_pc.RedistributeLocal();
-                            mpm_pc.fillNeighbors();
-                            mpm_pc.buildNeighborList(CheckPair());
-                        }
-                        else
-                        {
-                            mpm_pc.updateNeighbors();
-                        }
+            {
+                mpm_pc.RedistributeLocal();
+                mpm_pc.fillNeighbors();
+                mpm_pc.buildNeighborList(CheckPair());
+            }
+            else
+            {
+                mpm_pc.updateNeighbors();
+            }
 
             if (specs.stress_update_scheme == 1)
             {
-            	P2G_Momentum(specs,mpm_pc,nodaldata,0,1);
+                P2G_Momentum(specs, mpm_pc, nodaldata, 0, 1);
 
-            	Apply_Nodal_BCs(geom,nodaldata,specs,dt);
+                Apply_Nodal_BCs(geom, nodaldata, specs, dt);
             }
 
-            G2P_Momentum(specs, mpm_pc, nodaldata, 0,1,dt);
+            G2P_Momentum(specs, mpm_pc, nodaldata, 0, 1, dt);
 
             Update_MP_Volume(mpm_pc);
 
-            Calculate_MP_Stress_Strain(specs,mpm_pc,time, dt);
+            Calculate_MP_Stress_Strain(specs, mpm_pc, time, dt);
 
             if (specs.levset_output)
             {

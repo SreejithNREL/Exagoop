@@ -5,7 +5,7 @@ EBASE = ExaGOOP
 
 DEBUG	= FALSE
 
-DIM	= 3
+DIM	= 2
 
 COMP    = gnu
 

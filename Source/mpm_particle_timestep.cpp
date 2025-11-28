@@ -72,7 +72,6 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
     return dt;
 }
 
-
 void MPMParticleContainer::updateVolume()
 {
     BL_PROFILE("MPMParticleContainer::updateVolume");
@@ -125,7 +124,6 @@ void MPMParticleContainer::updateVolume()
             });
     }
 }
-
 
 void MPMParticleContainer::moveParticles(
     const amrex::Real &dt,
@@ -301,10 +299,9 @@ void MPMParticleContainer::moveParticles(
     }
 }
 
-
 amrex::Real MPMParticleContainer::GetPosSpring()
 {
-    //const int lev = 0;
+    // const int lev = 0;
     /*const Geometry &geom = Geom(lev);
     const auto plo = Geom(lev).ProbLoArray();
     const auto phi = Geom(lev).ProbHiArray();
@@ -325,7 +322,7 @@ amrex::Real MPMParticleContainer::GetPosSpring()
 
 amrex::Real MPMParticleContainer::GetPosPiston()
 {
-    //const int lev = 0;
+    // const int lev = 0;
     /*const Geometry &geom = Geom(lev);
     const auto plo = Geom(lev).ProbLoArray();
     const auto phi = Geom(lev).ProbHiArray();

@@ -185,7 +185,6 @@ void Initialise_Domain(MPMspecs &specs,
     PrintMessage("", print_length, false);
 }
 
-
 void Create_Output_Directories(MPMspecs &specs)
 {
 
@@ -304,7 +303,6 @@ void Initialise_Internal_Forces(MPMspecs &specs,
 #endif
 }
 
-
 void Initialise_Material_Points(MPMspecs &specs,
                                 MPMParticleContainer &mpm_pc,
                                 int &steps,
@@ -371,7 +369,6 @@ void Initialise_Material_Points(MPMspecs &specs,
     mpm_pc.RedistributeLocal();
     mpm_pc.fillNeighbors();
 }
-
 
 void MPMParticleContainer::InitParticles(const std::string &filename,
                                          amrex::Real &total_mass,
@@ -561,7 +558,6 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
     Redistribute();
 }
 
-
 void MPMParticleContainer::InitParticles(amrex::Real mincoords[AMREX_SPACEDIM],
                                          amrex::Real maxcoords[AMREX_SPACEDIM],
                                          amrex::Real vel[AMREX_SPACEDIM],
@@ -684,7 +680,6 @@ void MPMParticleContainer::InitParticles(amrex::Real mincoords[AMREX_SPACEDIM],
     Redistribute();
 }
 
-
 MPMParticleContainer::ParticleType
 MPMParticleContainer::generate_particle(amrex::Real coords[AMREX_SPACEDIM],
                                         amrex::Real vel[AMREX_SPACEDIM],
@@ -743,7 +738,6 @@ MPMParticleContainer::generate_particle(amrex::Real coords[AMREX_SPACEDIM],
 
     return p;
 }
-
 
 void MPMParticleContainer::removeParticlesInsideEB()
 {

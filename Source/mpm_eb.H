@@ -61,7 +61,7 @@ get_levelset_value(amrex::Array4<amrex::Real> phi,
     }
 
     // compute cell indices in each dimension
-    int idx[AMREX_SPACEDIM];
+    IntVect idx;
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
     {
         idx[d] = static_cast<int>(
@@ -75,7 +75,7 @@ get_levelset_value(amrex::Array4<amrex::Real> phi,
     int cornerCount = 1 << AMREX_SPACEDIM; // 2^dim
     for (int corner = 0; corner < cornerCount; ++corner)
     {
-        int offset[AMREX_SPACEDIM];
+    	IntVect offset;
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
         {
             offset[d] = (corner >> d) & 1; // 0 or 1
@@ -87,9 +87,7 @@ get_levelset_value(amrex::Array4<amrex::Real> phi,
         int kk = (AMREX_SPACEDIM > 2) ? idx[2] + offset[2] : 0;
 
         lsval += phi(ii, jj, kk) *
-                 basisval(offset[0], (AMREX_SPACEDIM > 1 ? offset[1] : 0),
-                          (AMREX_SPACEDIM > 2 ? offset[2] : 0), idx[0], idx[1],
-                          idx[2], ptxyz, problo, ls_dx, order_scheme_pseudo,
+                 basisval(offset, idx, ptxyz, problo, ls_dx, order_scheme_pseudo,
                           periodic_pseudo, lo, hi);
     }
 
@@ -120,7 +118,7 @@ get_levelset_grad(amrex::Array4<amrex::Real> phi,
     }
 
     // compute cell indices
-    int idx[AMREX_SPACEDIM];
+    IntVect idx;
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
     {
         idx[d] = static_cast<int>(
@@ -137,7 +135,7 @@ get_levelset_grad(amrex::Array4<amrex::Real> phi,
     int cornerCount = 1 << AMREX_SPACEDIM;
     for (int corner = 0; corner < cornerCount; ++corner)
     {
-        int offset[AMREX_SPACEDIM];
+        IntVect offset;
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
         {
             offset[d] = (corner >> d) & 1; // 0 or 1
@@ -153,9 +151,7 @@ get_levelset_grad(amrex::Array4<amrex::Real> phi,
         {
             lsgrad[d] +=
                 phi(ii, jj, kk) *
-                basisvalder(d, offset[0], (AMREX_SPACEDIM > 1 ? offset[1] : 0),
-                            (AMREX_SPACEDIM > 2 ? offset[2] : 0), idx[0],
-                            idx[1], idx[2], ptxyz, problo, ls_dx,
+                basisvalder(d, offset, idx, ptxyz, problo, ls_dx,
                             order_scheme_pseudo, periodic_pseudo, lo, hi);
         }
     }

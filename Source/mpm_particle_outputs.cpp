@@ -145,7 +145,6 @@ void MPMParticleContainer::update_phase_field(MultiFab &phasedata,
     // phasedata.SumBoundary(geom.periodicity());
 }
 
-
 void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
                                           int num_of_digits_in_filenames,
                                           const int n)
@@ -265,7 +264,6 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
                   real_data_names, int_data_names);
 }
 
-
 void MPMParticleContainer::WriteHeader(const std::string &name,
                                        bool is_checkpoint,
                                        amrex::Real cur_time,
@@ -300,7 +298,6 @@ void MPMParticleContainer::WriteHeader(const std::string &name,
         HeaderFile << cur_time << "\n";
     }
 }
-
 
 void MPMParticleContainer::writeCheckpointFile(
     std::string prefix_particlefilename,
@@ -387,7 +384,6 @@ void MPMParticleContainer::writeCheckpointFile(
     Checkpoint(checkpointname, "particles", /*is_checkpoint=*/true,
                real_data_names, int_data_names);
 }
-
 
 void GotoNextLine(std::istream &is)
 {

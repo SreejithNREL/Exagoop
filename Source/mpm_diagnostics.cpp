@@ -3,9 +3,9 @@
 #include <interpolants.H>
 // clang-format on
 
-
 /**
- * @brief Calculates the total kinetic and strain energies of all material points in the domain at a given time
+ * @brief Calculates the total kinetic and strain energies of all material
+ * points in the domain at a given time
  *
  * Performs a reduction over all particles to compute:
  * - TKE = 0.5 * m * v²
@@ -14,7 +14,8 @@
  * @param[out] TKE Total kinetic energy of all particles (units: Joules).
  * @param[out] TSE Total strain energy of all particles (units: Joules).
  *
- * @note This function loops over all particles and performs a parallel reduction.
+ * @note This function loops over all particles and performs a parallel
+ * reduction.
  */
 
 void MPMParticleContainer::Calculate_Total_Energies(Real &TKE, Real &TSE)
@@ -24,26 +25,26 @@ void MPMParticleContainer::Calculate_Total_Energies(Real &TKE, Real &TSE)
 
     using PType = typename MPMParticleContainer::SuperParticleType;
 
-    TKE = amrex::ReduceSum(
-        *this,
-        [] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
-        {
-            Real v2 = 0.0;
-            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-                v2 += p.rdata(realData::xvel + d) * p.rdata(realData::xvel + d);
-            }
-            return 0.5 * p.rdata(realData::mass) * v2;
-        });
+    TKE = amrex::ReduceSum(*this,
+                           [] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
+                           {
+                               Real v2 = 0.0;
+                               for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                               {
+                                   v2 += p.rdata(realData::xvel + d) *
+                                         p.rdata(realData::xvel + d);
+                               }
+                               return 0.5 * p.rdata(realData::mass) * v2;
+                           });
 
-
-    TSE = amrex::ReduceSum(
-        *this,
-        [] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
-        {
-            Real se = 0.0;
+    TSE = amrex::ReduceSum(*this,
+                           [] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
+                           {
+                               Real se = 0.0;
 
 #if (AMREX_SPACEDIM == 1)
-            se = p.rdata(realData::stress + XX) * p.rdata(realData::strain + XX);
+                               se = p.rdata(realData::stress + XX) *
+                                    p.rdata(realData::strain + XX);
 
 #elif (AMREX_SPACEDIM == 2)
             se = p.rdata(realData::stress + XX) * p.rdata(realData::strain + XX)
@@ -59,8 +60,8 @@ void MPMParticleContainer::Calculate_Total_Energies(Real &TKE, Real &TSE)
                       + p.rdata(realData::stress + XZ) * p.rdata(realData::strain + XZ));
 #endif
 
-            return 0.5 * p.rdata(realData::volume) * se;
-        });
+                               return 0.5 * p.rdata(realData::volume) * se;
+                           });
 }
 
 /**
@@ -70,107 +71,106 @@ void MPMParticleContainer::Calculate_Total_Energies(Real &TKE, Real &TSE)
  * - momentum_tot = the total momentum in dimension d
  * - mass_tot = total mass of material points
  *
- * @param[out] Vcm Vector of mass weighted averaged (MWA) material point velocities
+ * @param[out] Vcm Vector of mass weighted averaged (MWA) material point
+ * velocities
  *
- * @note This function loops over all particles and performs a parallel reduction.
+ * @note This function loops over all particles and performs a parallel
+ * reduction.
  */
 
-void MPMParticleContainer::Calculate_MWA_VelocityComponents(amrex::GpuArray<Real, AMREX_SPACEDIM> &Vcm)
+void MPMParticleContainer::Calculate_MWA_VelocityComponents(
+    amrex::GpuArray<Real, AMREX_SPACEDIM> &Vcm)
 {
     using PType = typename MPMParticleContainer::SuperParticleType;
 
     amrex::GpuArray<Real, AMREX_SPACEDIM> momentum_tot;
-    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
         momentum_tot[d] = 0.0;
     }
     Real mass_tot = 0.0;
 
-    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
         momentum_tot[d] = amrex::ReduceSum(
-            *this,
-            [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
-            {
-                return p.rdata(realData::mass) * p.rdata(realData::xvel + d);
-            });
+            *this, [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
+            { return p.rdata(realData::mass) * p.rdata(realData::xvel + d); });
     }
 
-    mass_tot = amrex::ReduceSum(
-        *this,
-        [] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
-        {
-            return p.rdata(realData::mass);
-        });
+    mass_tot =
+        amrex::ReduceSum(*this, [] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
+                         { return p.rdata(realData::mass); });
 
 #ifdef BL_USE_MPI
-    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
         ParallelDescriptor::ReduceRealSum(momentum_tot[d]);
     }
     ParallelDescriptor::ReduceRealSum(mass_tot);
 #endif
 
     // Mass-weighted average velocity components
-    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
         Vcm[d] = momentum_tot[d] / mass_tot;
     }
 }
 
-
 /**
- * @brief Calculates the mass weighted average of velocity magnitude of material points
+ * @brief Calculates the mass weighted average of velocity magnitude of material
+ * points
  *
  * Performs a reduction over all particles to compute:
  * - massvelmag = the total momentum magnitude of mps
  * - mass_tot = total mass of material points
  *
- * @param[out] Vcm scalar value of mass weighted averaged (MWA) material point velocity magnitude
+ * @param[out] Vcm scalar value of mass weighted averaged (MWA) material point
+ * velocity magnitude
  *
- * @note This function loops over all particles and performs a parallel reduction.
+ * @note This function loops over all particles and performs a parallel
+ * reduction.
  */
 
 void MPMParticleContainer::Calculate_MWA_VelocityMagnitude(amrex::Real &Vcm)
 {
     using PType = typename MPMParticleContainer::SuperParticleType;
 
-    Real massvelmag=0.0;
+    Real massvelmag = 0.0;
     Real mass_tot = 0.0;
 
-    massvelmag = amrex::ReduceSum(
-            *this,
-            [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
-            {
-    	Real vmag = 0.0;
-    	for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-    		vmag+= p.rdata(realData::xvel + d)*p.rdata(realData::xvel + d);
-    	}
-                return p.rdata(realData::mass) * sqrt(vmag);
-            });
+    massvelmag =
+        amrex::ReduceSum(*this,
+                         [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
+                         {
+                             Real vmag = 0.0;
+                             for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                             {
+                                 vmag += p.rdata(realData::xvel + d) *
+                                         p.rdata(realData::xvel + d);
+                             }
+                             return p.rdata(realData::mass) * sqrt(vmag);
+                         });
 
-
-    mass_tot = amrex::ReduceSum(
-        *this,
-        [] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
-        {
-            return p.rdata(realData::mass);
-        });
+    mass_tot =
+        amrex::ReduceSum(*this, [] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
+                         { return p.rdata(realData::mass); });
 
 #ifdef BL_USE_MPI
-    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
         ParallelDescriptor::ReduceRealSum(massvelmag);
     }
     ParallelDescriptor::ReduceRealSum(mass_tot);
 #endif
 
-
     Vcm = massvelmag / mass_tot;
-
 }
-
 
 void MPMParticleContainer::CalculateSurfaceIntegralTop(
     Array<Real, AMREX_SPACEDIM> gravity, Real &Fy_top, Real &Fy_bottom)
 {
-    //const int lev = 0;
-    //const Geometry &geom = Geom(lev);
+    // const int lev = 0;
+    // const Geometry &geom = Geom(lev);
     /*auto &plev = GetParticles(lev);
     const auto dxi = geom.InvCellSizeArray();
     const auto dx = geom.CellSizeArray();
