@@ -94,8 +94,8 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
             nodalbox,
             [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
             {
-                IntVect nodeid(i, j, k);
-                IntVect refined_nodeid(i * lsref, j * lsref, k * lsref);
+                IntVect nodeid (AMREX_D_DECL(i, j, k));
+                IntVect refined_nodeid(AMREX_D_DECL(i * lsref, j * lsref, k * lsref));
 
                 if (lsarr(refined_nodeid) < TINYVAL &&
                     nodal_data_arr(nodeid, MASS_INDEX) > zero)
@@ -109,15 +109,15 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
                     }
 
                     // amrex::Real eps = 0.00001;
-                    amrex::Real xp[AMREX_SPACEDIM] = {plo[XDIR] + i * dx[XDIR],
+                    amrex::Real xp[AMREX_SPACEDIM] = {AMREX_D_DECL(plo[XDIR] + i * dx[XDIR],
                                                       plo[YDIR] + j * dx[YDIR],
-                                                      plo[ZDIR] + k * dx[ZDIR]};
+                                                      plo[ZDIR] + k * dx[ZDIR])};
 
                     // amrex::Real
                     // dist=get_levelset_value(lsarr,plo,dx,xp,lsref);
                     // dist=amrex::Math::abs(dist);
 
-                    amrex::Real normaldir[AMREX_SPACEDIM] = {1.0, 0.0, 0.0};
+                    amrex::Real normaldir[AMREX_SPACEDIM] = {AMREX_D_DECL(1.0, 0.0, 0.0)};
 
                     get_levelset_grad(lsarr, plo, dx, xp, lsref, normaldir);
                     amrex::Real gradmag =
@@ -341,8 +341,8 @@ void initialise_shape_function_indices(iMultiFab &shapefunctionindex,
     /*int periodic[AMREX_SPACEDIM] = {
         geom.isPeriodic(XDIR), geom.isPeriodic(YDIR), geom.isPeriodic(ZDIR)};*/
 
-    GpuArray<int, AMREX_SPACEDIM> lo = {domloarr[0], domloarr[1], domloarr[2]};
-    GpuArray<int, AMREX_SPACEDIM> hi = {domhiarr[0], domhiarr[1], domhiarr[2]};
+    GpuArray<int, AMREX_SPACEDIM> lo = {AMREX_D_DECL(domloarr[0], domloarr[1], domloarr[2])};
+    GpuArray<int, AMREX_SPACEDIM> hi = {AMREX_D_DECL(domhiarr[0], domhiarr[1], domhiarr[2])};
 
     for (MFIter mfi(shapefunctionindex); mfi.isValid(); ++mfi)
     {
@@ -641,7 +641,7 @@ void CalculateInterpolationError(const amrex::Geometry geom,
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
         const Box &bx = mfi.validbox();
-        Box nodalbox = convert(bx, {1, 1, 1});
+        Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
 
         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
 
