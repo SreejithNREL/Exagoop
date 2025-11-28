@@ -430,8 +430,5 @@ class MPMspecs
     }
 };
 
-// void MPMspecs::PrintSimulationParams()
-//{
-// amrex::Print()<<"\n\tBackground grid physical extents: ["<<plo[0]<<","<<"]";
-//}
+
 #endif

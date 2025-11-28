@@ -46,42 +46,56 @@ get_levelset_value(amrex::Array4<amrex::Real> phi,
                    amrex::Real ptxyz[AMREX_SPACEDIM],
                    amrex::Real lsref)
 {
-    // assuming a redistribute was done and no
-    // particle is outside of the tilebox
-    //
     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> ls_dx;
     const int lo[AMREX_SPACEDIM] = {0};
     const int hi[AMREX_SPACEDIM] = {0};
-    const GpuArray<int, AMREX_SPACEDIM> order_scheme_pseudo = {1, 1, 1};
-    const GpuArray<int, AMREX_SPACEDIM> periodic_pseudo = {1, 1, 1};
+    const amrex::GpuArray<int, AMREX_SPACEDIM> order_scheme_pseudo = {
+        AMREX_D_DECL(1, 1, 1)};
+    const amrex::GpuArray<int, AMREX_SPACEDIM> periodic_pseudo = {
+        AMREX_D_DECL(1, 1, 1)};
 
-    ls_dx[XDIR] = dx[XDIR] / lsref;
-    ls_dx[YDIR] = dx[YDIR] / lsref;
-    ls_dx[ZDIR] = dx[ZDIR] / lsref;
-
-    int i = static_cast<int>(amrex::Math::floor((ptxyz[XDIR] - problo[XDIR] + TINYVAL) /
-                               ls_dx[XDIR]));
-    int j = static_cast<int>(amrex::Math::floor((ptxyz[YDIR] - problo[YDIR] + TINYVAL) /
-                               ls_dx[YDIR]));
-    int k = static_cast<int>(amrex::Math::floor((ptxyz[ZDIR] - problo[ZDIR] + TINYVAL) /
-                               ls_dx[ZDIR]));
-
-    amrex::Real lsval = 0.0;
-    for (int n = 0; n < 2; n++)
+    // scale dx by lsref
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
     {
-        for (int m = 0; m < 2; m++)
-        {
-            for (int l = 0; l < 2; l++)
-            {
-                lsval += phi(i + l, j + m, k + n) *
-                         basisval(l, m, n, i, j, k, ptxyz, problo, ls_dx,
-                                  order_scheme_pseudo, periodic_pseudo, lo, hi);
-            }
-        }
+        ls_dx[d] = dx[d] / lsref;
     }
 
-    return (lsval);
+    // compute cell indices in each dimension
+    int idx[AMREX_SPACEDIM];
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        idx[d] = static_cast<int>(
+            amrex::Math::floor((ptxyz[d] - problo[d] + TINYVAL) / ls_dx[d]));
+    }
+
+    amrex::Real lsval = 0.0;
+
+    // nested loops over dimensions (generalized)
+    // we use recursion or iterative product to cover 2^AMREX_SPACEDIM corners
+    int cornerCount = 1 << AMREX_SPACEDIM; // 2^dim
+    for (int corner = 0; corner < cornerCount; ++corner)
+    {
+        int offset[AMREX_SPACEDIM];
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        {
+            offset[d] = (corner >> d) & 1; // 0 or 1
+        }
+
+        // gather indices
+        int ii = idx[0] + offset[0];
+        int jj = (AMREX_SPACEDIM > 1) ? idx[1] + offset[1] : 0;
+        int kk = (AMREX_SPACEDIM > 2) ? idx[2] + offset[2] : 0;
+
+        lsval += phi(ii, jj, kk) *
+                 basisval(offset[0], (AMREX_SPACEDIM > 1 ? offset[1] : 0),
+                          (AMREX_SPACEDIM > 2 ? offset[2] : 0), idx[0], idx[1],
+                          idx[2], ptxyz, problo, ls_dx, order_scheme_pseudo,
+                          periodic_pseudo, lo, hi);
+    }
+
+    return lsval;
 }
+
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 get_levelset_grad(amrex::Array4<amrex::Real> phi,
@@ -91,50 +105,60 @@ get_levelset_grad(amrex::Array4<amrex::Real> phi,
                   amrex::Real lsref,
                   amrex::Real lsgrad[AMREX_SPACEDIM])
 {
-    // assuming a redistribute was done and no
-    // particle is outside of the tilebox
-    //
     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> ls_dx;
-    const int lo[AMREX_SPACEDIM] = {0};
-    const int hi[AMREX_SPACEDIM] = {0};
+    const int lo[AMREX_SPACEDIM] = {AMREX_D_DECL(0, 0, 0)};
+    const int hi[AMREX_SPACEDIM] = {AMREX_D_DECL(0, 0, 0)};
+    const amrex::GpuArray<int, AMREX_SPACEDIM> order_scheme_pseudo = {
+        AMREX_D_DECL(1, 1, 1)};
+    const amrex::GpuArray<int, AMREX_SPACEDIM> periodic_pseudo = {
+        AMREX_D_DECL(1, 1, 1)};
 
-    const GpuArray<int, AMREX_SPACEDIM> order_scheme_pseudo = {1, 1, 1};
-    const GpuArray<int, AMREX_SPACEDIM> periodic_pseudo = {1, 1, 1};
-
-    ls_dx[XDIR] = dx[XDIR] / lsref;
-    ls_dx[YDIR] = dx[YDIR] / lsref;
-    ls_dx[ZDIR] = dx[ZDIR] / lsref;
-
-    int i = static_cast<int>(amrex::Math::floor((ptxyz[XDIR] - problo[XDIR] + TINYVAL) /
-                               ls_dx[XDIR]));
-    int j = static_cast<int>(amrex::Math::floor((ptxyz[YDIR] - problo[YDIR] + TINYVAL) /
-                               ls_dx[YDIR]));
-    int k = static_cast<int>(amrex::Math::floor((ptxyz[ZDIR] - problo[ZDIR] + TINYVAL) /
-                               ls_dx[ZDIR]));
-
-    lsgrad[XDIR] = 0.0;
-    lsgrad[YDIR] = 0.0;
-    lsgrad[ZDIR] = 0.0;
-    for (int n = 0; n < 2; n++)
+    // scale dx by lsref
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
     {
-        for (int m = 0; m < 2; m++)
+        ls_dx[d] = dx[d] / lsref;
+    }
+
+    // compute cell indices
+    int idx[AMREX_SPACEDIM];
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        idx[d] = static_cast<int>(
+            amrex::Math::floor((ptxyz[d] - problo[d] + TINYVAL) / ls_dx[d]));
+    }
+
+    // initialize gradient
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        lsgrad[d] = 0.0;
+    }
+
+    // loop over 2^dim corners
+    int cornerCount = 1 << AMREX_SPACEDIM;
+    for (int corner = 0; corner < cornerCount; ++corner)
+    {
+        int offset[AMREX_SPACEDIM];
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
         {
-            for (int l = 0; l < 2; l++)
-            {
-                lsgrad[XDIR] +=
-                    phi(i + l, j + m, k + n) *
-                    basisvalder(XDIR, l, m, n, i, j, k, ptxyz, problo, ls_dx,
-                                order_scheme_pseudo, periodic_pseudo, lo, hi);
-                lsgrad[YDIR] +=
-                    phi(i + l, j + m, k + n) *
-                    basisvalder(YDIR, l, m, n, i, j, k, ptxyz, problo, ls_dx,
-                                order_scheme_pseudo, periodic_pseudo, lo, hi);
-                lsgrad[ZDIR] +=
-                    phi(i + l, j + m, k + n) *
-                    basisvalder(ZDIR, l, m, n, i, j, k, ptxyz, problo, ls_dx,
-                                order_scheme_pseudo, periodic_pseudo, lo, hi);
-            }
+            offset[d] = (corner >> d) & 1; // 0 or 1
+        }
+
+        // gather indices (safe for lower dims)
+        int ii = idx[0] + offset[0];
+        int jj = (AMREX_SPACEDIM > 1) ? idx[1] + offset[1] : 0;
+        int kk = (AMREX_SPACEDIM > 2) ? idx[2] + offset[2] : 0;
+
+        // accumulate gradient contributions for each dimension
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        {
+            lsgrad[d] +=
+                phi(ii, jj, kk) *
+                basisvalder(d, offset[0], (AMREX_SPACEDIM > 1 ? offset[1] : 0),
+                            (AMREX_SPACEDIM > 2 ? offset[2] : 0), idx[0],
+                            idx[1], idx[2], ptxyz, problo, ls_dx,
+                            order_scheme_pseudo, periodic_pseudo, lo, hi);
         }
     }
 }
+
 #endif

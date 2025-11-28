@@ -188,17 +188,15 @@ class MPMParticleContainer
     void removeParticlesInsideEB();
 
   private:
-    ParticleType generate_particle(Real x,
-                                   Real y,
-                                   Real z,
-                                   Real vel[AMREX_SPACEDIM],
-                                   Real dens,
-                                   Real vol,
+    ParticleType generate_particle(amrex::Real coords[AMREX_SPACEDIM],
+                                   amrex::Real vel[AMREX_SPACEDIM],
+                                   amrex::Real dens,
+                                   amrex::Real vol,
                                    int constmodel,
-                                   Real E,
-                                   Real nu,
-                                   Real bulkmod,
-                                   Real Gama_pres,
-                                   Real visc);
+                                   amrex::Real E,
+                                   amrex::Real nu,
+                                   amrex::Real bulkmod,
+                                   amrex::Real Gama_pres,
+                                   amrex::Real visc);
 };
 #endif
