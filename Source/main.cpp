@@ -65,6 +65,12 @@ int main(int argc, char *argv[])
 
         Initialise_Internal_Forces(specs, mpm_pc, nodaldata, levset_data);
 
+        Write_Particle_Grid_Levset_Output(
+                            specs, mpm_pc, nodaldata, levset_data, nodaldata_names,
+                            geom, geom_levset, ba, dm, time, steps, output_it, true);
+
+        //exit(0);
+
         amrex::Print() << "\n\nTimestepping begins\n\n";
 
         while ((steps < specs.maxsteps) and (time < specs.final_time))
@@ -73,6 +79,7 @@ int main(int argc, char *argv[])
             auto iter_time_start = amrex::second();
 
             dt = mpm_pc.Calculate_time_step(specs);
+
 
             Reset_Nodaldata_to_Zero(nodaldata, ng_cells_nodaldata);
 

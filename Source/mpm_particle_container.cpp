@@ -83,6 +83,8 @@ void MPMParticleContainer::apply_constitutive_model(
                                  1.0) +
                             p_inf;
 
+
+
                         Newtonian_Fluid(strainrate, stress,
                                         p.rdata(realData::Dynamic_viscosity),
                                         p.rdata(realData::pressure));

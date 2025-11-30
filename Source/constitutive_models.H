@@ -96,7 +96,7 @@ Newtonian_Fluid(amrex::Real epsdot[NCOMP_TENSOR],
     // 2D Newtonian fluid
     amrex::Real trace_epsdot = epsdot[XX] + epsdot[YY];
     amrex::Real one_by_two = 0.5;  // average for 2D trace
-
+	
     sigma[XX] = 2.0 * dyn_visc * (epsdot[XX] - one_by_two * trace_epsdot) - pressure;
     sigma[YY] = 2.0 * dyn_visc * (epsdot[YY] - one_by_two * trace_epsdot) - pressure;
     sigma[ZZ] = 0.0;

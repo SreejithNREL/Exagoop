@@ -31,6 +31,8 @@
 #define NUM_STATES 20
 #endif
 
+#define testing 0
+
 #define MASS_INDEX 0
 #define VELX_INDEX 1
 #define VELY_INDEX 2

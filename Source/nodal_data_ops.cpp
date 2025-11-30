@@ -145,6 +145,7 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
 
 void store_delta_velocity(MultiFab &nodaldata)
 {
+//amrex::Print() << "Storing delta velocity\n";
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
         const Box &bx = mfi.validbox();
@@ -225,7 +226,25 @@ void Nodal_Time_Update_Momentum(MultiFab &nodaldata,
                     nodal_data_arr(i, j, k, VELZ_INDEX) = 0.0;
                 }
             });
-    }
+}
+
+for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
+        {
+            Box nodalbox = convert(mfi.tilebox(), {AMREX_D_DECL(1, 1, 1)});
+            auto nodal_data_arr = nodaldata.array(mfi);
+            amrex::ParallelFor(
+                nodalbox,
+                [=] AMREX_GPU_DEVICE(AMREX_D_DECL(int i, int j, int k)) noexcept
+                {
+
+                        /*amrex::Print()<<"\n Nodal data in time update at node "<<i<<" "<<j<<" "
+<< " mass= "<<nodal_data_arr(AMREX_D_DECL(i, j, k), MASS_INDEX)
+<< " velx= "<<nodal_data_arr(AMREX_D_DECL(i, j, k), VELX_INDEX)
+<< " vely= "<<nodal_data_arr(AMREX_D_DECL(i, j, k), VELY_INDEX);*/
+
+                });
+}
+
 }
 
 void nodal_update_temperature(MultiFab &nodaldata,
@@ -658,5 +677,6 @@ void CalculateInterpolationError(const amrex::Geometry geom,
 
 void Reset_Nodaldata_to_Zero(amrex::MultiFab &nodaldata, int ng_cells_nodaldata)
 {
+	if(testing==1) amrex::Print()<<"\n Reseting Nodal Data to Zero \n";
     nodaldata.setVal(zero, ng_cells_nodaldata);
 }

@@ -154,10 +154,20 @@ bilin_interp(amrex::Real xp[AMREX_SPACEDIM],
     amrex::Real alpha = (xp[0] - (plo[0] + i * dx[0])) / dx[0];
     amrex::Real beta  = (xp[1] - (plo[1] + j * dx[1])) / dx[1];
 
+  /*  amrex::Print()<<"\n Comp = "<<comp;
+    amrex::Print()<<"\n Nodaldata values in bilin_interp: "<<i<<" "<<j<<" "<<nodaldata(i,     j,   0,   comp);
+    amrex::Print()<<"\n Nodaldata values in bilin_interp: "<<i+1<<" "<<j<<" "<<nodaldata(i+1,     j,   0,   comp);
+    amrex::Print()<<"\n Nodaldata values in bilin_interp: "<<i<<" "<<j+1<<" "<<nodaldata(i,     j+1,   0,   comp);
+    amrex::Print()<<"\n Nodaldata values in bilin_interp: "<<i+1<<" "<<j+1<<" "<<nodaldata(i+1,     j+1,   0,   comp);*/
+
+
     value  = (1.0 - alpha) * (1.0 - beta) * nodaldata(i,     j,     0, comp);
     value += alpha         * (1.0 - beta) * nodaldata(i + 1, j,     0, comp);
     value += (1.0 - alpha) * beta         * nodaldata(i,     j + 1, 0, comp);
     value += alpha         * beta         * nodaldata(i + 1, j + 1, 0, comp);
+
+//amrex::Print()<<"\n Value values in bilin_interp: "<<value;
+
 
 #elif (AMREX_SPACEDIM == 3)
     // Trilinear interpolation in 3D (your original code)
@@ -664,8 +674,15 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void get_deformation_gradient_tensor(
             }
         }
     }
-
+#if (AMREX_SPACEDIM == 1)
+	Fp[0][0] = p.rdata(start_index + 0);
+#elif (AMREX_SPACEDIM == 2)
     Fp[0][0] = p.rdata(start_index + 0);
+    Fp[0][1] = p.rdata(start_index + 1);
+    Fp[1][0] = p.rdata(start_index + 2);
+    Fp[1][1] = p.rdata(start_index + 3);
+#elif (AMREX_SPACEDIM == 3)
+	Fp[0][0] = p.rdata(start_index + 0);
     Fp[0][1] = p.rdata(start_index + 1);
     Fp[0][2] = p.rdata(start_index + 2);
     Fp[1][0] = p.rdata(start_index + 3);
@@ -674,9 +691,22 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void get_deformation_gradient_tensor(
     Fp[2][0] = p.rdata(start_index + 6);
     Fp[2][1] = p.rdata(start_index + 7);
     Fp[2][2] = p.rdata(start_index + 8);
+#endif
 
     // Lp * Fp
-    p.rdata(start_index + 0) =
+#if (AMREX_SPACEDIM == 1)
+    p.rdata(start_index + 0) = Lp[0][0] * Fp[0][0];
+#elif (AMREX_SPACEDIM == 2)
+	p.rdata(start_index + 0) =
+        Lp[0][0] * Fp[0][0] + Lp[0][1] * Fp[1][0];
+    p.rdata(start_index + 1) =
+        Lp[0][0] * Fp[0][1] + Lp[0][1] * Fp[1][1];
+    p.rdata(start_index + 2) =
+        Lp[1][0] * Fp[0][0] + Lp[1][1] * Fp[1][0];
+    p.rdata(start_index + 3) =
+        Lp[1][0] * Fp[0][1] + Lp[1][1] * Fp[1][1];   
+#elif (AMREX_SPACEDIM == 3)
+	p.rdata(start_index + 0) =
         Lp[0][0] * Fp[0][0] + Lp[0][1] * Fp[1][0] + Lp[0][2] * Fp[2][0];
     p.rdata(start_index + 1) =
         Lp[0][0] * Fp[0][1] + Lp[0][1] * Fp[1][1] + Lp[0][2] * Fp[2][1];
@@ -694,6 +724,8 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void get_deformation_gradient_tensor(
         Lp[2][0] * Fp[0][1] + Lp[2][1] * Fp[1][1] + Lp[2][2] * Fp[2][1];
     p.rdata(start_index + 8) =
         Lp[2][0] * Fp[0][2] + Lp[2][1] * Fp[1][2] + Lp[2][2] * Fp[2][2];
+#endif
+    
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void

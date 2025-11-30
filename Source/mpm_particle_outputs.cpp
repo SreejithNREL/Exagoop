@@ -162,12 +162,17 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
     // Always include radius
     real_data_names.push_back("radius");
 
-    // Dimension‑aware velocity components
-    for (int d = 0; d < AMREX_SPACEDIM; ++d)
-    {
-        real_data_names.push_back(amrex::Concatenate("vel_", d, 1));
-        real_data_names.push_back(amrex::Concatenate("vel_prime_", d, 1));
-    }
+    real_data_names.push_back("xvel");
+    real_data_names.push_back("xvel_prime");
+
+#if (AMREX_SPACEDIM >= 2)
+    real_data_names.push_back("yvel");
+    real_data_names.push_back("yvel_prime");
+#endif
+#if (AMREX_SPACEDIM == 2)
+    real_data_names.push_back("zvel");
+    real_data_names.push_back("zvel_prime");
+#endif
 
     // Strainrate, strain, stress tensors (NCOMP_TENSOR entries)
     for (int c = 0; c < NCOMP_TENSOR; ++c)
@@ -232,7 +237,7 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
 #if (AMREX_SPACEDIM >= 2)
     writeflags_real[realData::yvel] = 1;
 #endif
-#if (AMREX_SPACEDIM >= 3)
+#if (AMREX_SPACEDIM >= 2)
     writeflags_real[realData::zvel] = 1;
 #endif
 
@@ -324,11 +329,13 @@ void MPMParticleContainer::writeCheckpointFile(
     real_data_names.push_back("radius");
 
     // Dimension‑aware velocities
-    for (int d = 0; d < AMREX_SPACEDIM; ++d)
-    {
-        real_data_names.push_back(amrex::Concatenate("vel_", d, 1));
-        real_data_names.push_back(amrex::Concatenate("vel_prime_", d, 1));
-    }
+    real_data_names.push_back("radius");
+      real_data_names.push_back("xvel");
+      real_data_names.push_back("yvel");
+      real_data_names.push_back("zvel");
+      real_data_names.push_back("xvel_prime");
+      real_data_names.push_back("yvel_prime");
+      real_data_names.push_back("zvel_prime");
 
     // Strainrate, strain, stress tensors
     for (int c = 0; c < NCOMP_TENSOR; ++c)

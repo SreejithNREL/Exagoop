@@ -68,11 +68,13 @@ void P2G_Momentum(MPMspecs &specs,
                   int update_massvel,
                   int update_forces)
 {
+	if(testing==1) amrex::Print()<<"\n Doing P2G \n";
     mpm_pc.deposit_onto_grid_momentum(
         nodaldata, specs.gravity, specs.external_loads_present,
         specs.force_slab_lo, specs.force_slab_hi, specs.extforce,
         update_massvel, update_forces, specs.mass_tolerance,
         specs.order_scheme_directional, specs.periodic);
+
 }
 
 void Apply_Nodal_BCs(amrex::Geometry &geom,
@@ -102,6 +104,7 @@ void G2P_Momentum(MPMspecs &specs,
                   int update_strainrate,
                   amrex::Real dt)
 {
+	if(testing==1) amrex::Print()<<"\n Doing G2P \n";
     mpm_pc.interpolate_from_grid(nodaldata, update_vel, update_strainrate,
                                  specs.order_scheme_directional, specs.periodic,
                                  specs.alpha_pic_flip, dt);

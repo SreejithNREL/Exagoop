@@ -213,8 +213,10 @@ void Initialise_Internal_Forces(MPMspecs &specs,
             nodaldata, specs.gravity, specs.external_loads_present,
             specs.force_slab_lo, specs.force_slab_hi, specs.extforce,
             /*do_reset=*/1,
-            /*do_average=*/0, specs.mass_tolerance,
+            /*do_average=*/1, specs.mass_tolerance,
             specs.order_scheme_directional, specs.periodic);
+
+	    
 
         // Interpolate grid -> particles
         mpm_pc.interpolate_from_grid(nodaldata,
@@ -446,6 +448,10 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
                 ifs >> coord;
                 p.pos(d) = coord;
             }
+            // radius & density
+                        ifs >> p.rdata(realData::radius);
+                        ifs >> p.rdata(realData::density);
+
             // velocities (dimension‑aware)
             for (int d = 0; d < AMREX_SPACEDIM; ++d)
             {
@@ -454,9 +460,7 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
                 p.rdata(realData::xvel + d) = v;
             }
 
-            // radius & density
-            ifs >> p.rdata(realData::radius);
-            ifs >> p.rdata(realData::density);
+
 
             // constitutive model
             ifs >> p.idata(intData::constitutive_model);
@@ -502,6 +506,9 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
             p.rdata(realData::mass) =
                 p.rdata(realData::density) * p.rdata(realData::volume);
 
+
+
+
             if (p.idata(intData::phase) == 0)
             {
                 total_mass += p.rdata(realData::mass);
@@ -528,7 +535,7 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
             for (int d = 0; d < AMREX_SPACEDIM; ++d)
             {
                 // indices for 3x3: (0,0)=0, (1,1)=4, (2,2)=8
-                const int diag_idx = d * 3 + d;
+                const int diag_idx = d * AMREX_SPACEDIM + d;
                 p.rdata(realData::deformation_gradient + diag_idx) = 1.0;
             }
 
@@ -538,6 +545,28 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
                 p.rdata(realData::strain + comp) = zero;
                 p.rdata(realData::stress + comp) = zero;
             }
+
+            /*amrex::Print()<<"\n Particle "<<p.rdata(realData::radius)<<" "
+						  <<p.rdata(realData::density)<<" "
+						  <<p.rdata(realData::xvel)<<" "
+						  <<p.rdata(realData::yvel)<<" "
+						  <<p.rdata(realData::zvel)<<" "
+						  <<p.idata(intData::constitutive_model)<<" "
+						  <<p.rdata(realData::E)<<" "
+						  <<p.rdata(realData::nu)<<" "
+						  <<p.rdata(realData::volume)<<" "
+						  <<p.rdata(realData::mass)<<" "
+						  <<p.rdata(realData::deformation_gradient+0)<<" "
+						  <<p.rdata(realData::deformation_gradient+1)<<" "
+						  <<p.rdata(realData::deformation_gradient+2)<<" "
+						  <<p.rdata(realData::deformation_gradient+3)<<" "
+						  <<p.rdata(realData::deformation_gradient+4)<<" "
+						  <<p.rdata(realData::deformation_gradient+5)<<" "
+						  <<p.rdata(realData::deformation_gradient+6)<<" "
+						  <<p.rdata(realData::deformation_gradient+7)<<" "
+						  <<p.rdata(realData::deformation_gradient+8)<<" ";*/
+
+
 
             host_particles.push_back(p);
 

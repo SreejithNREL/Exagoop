@@ -361,13 +361,15 @@ class MPMspecs
 
         // by default it is periodic
         bclo[0] = BC_SLIPWALL;
-        bclo[1] = BC_SLIPWALL;
-        bclo[2] = BC_SLIPWALL;
-
         bchi[0] = BC_SLIPWALL;
+#if (AMREX_SPACEDIM >= 2)
+        bclo[1] = BC_SLIPWALL;
         bchi[1] = BC_SLIPWALL;
+#endif
+#if (AMREX_SPACEDIM == 3)
+        bclo[2] = BC_SLIPWALL;
         bchi[2] = BC_SLIPWALL;
-
+#endif
         pp.queryarr("bc_lower", bclo);
         pp.queryarr("bc_upper", bchi);
 
