@@ -80,6 +80,16 @@ int main(int argc, char *argv[])
 
             dt = mpm_pc.Calculate_time_step(specs);
 
+            if (steps % specs.num_redist == 0)
+                        {
+                            mpm_pc.RedistributeLocal();
+                            mpm_pc.fillNeighbors();
+                            mpm_pc.buildNeighborList(CheckPair());
+                        }
+                        else
+                        {
+                            mpm_pc.updateNeighbors();
+                        }
 
             Reset_Nodaldata_to_Zero(nodaldata, ng_cells_nodaldata);
 
@@ -89,20 +99,24 @@ int main(int argc, char *argv[])
 
             Apply_Nodal_BCs(geom, nodaldata, specs, dt);
 
+            if (steps % specs.num_redist == 0)
+                        {
+                            mpm_pc.RedistributeLocal();
+                            mpm_pc.fillNeighbors();
+                            mpm_pc.buildNeighborList(CheckPair());
+                        }
+                        else
+                        {
+                            mpm_pc.updateNeighbors();
+                        }
+
             G2P_Momentum(specs, mpm_pc, nodaldata, 1, 0, dt);
+
+            mpm_pc.updateNeighbors();
 
             Update_MP_Positions(specs, mpm_pc, dt);
 
-            if (steps % specs.num_redist == 0)
-            {
-                mpm_pc.RedistributeLocal();
-                mpm_pc.fillNeighbors();
-                mpm_pc.buildNeighborList(CheckPair());
-            }
-            else
-            {
-                mpm_pc.updateNeighbors();
-            }
+
 
             if (specs.stress_update_scheme == 1)
             {
@@ -112,6 +126,8 @@ int main(int argc, char *argv[])
             }
 
             G2P_Momentum(specs, mpm_pc, nodaldata, 0, 1, dt);
+
+            mpm_pc.updateNeighbors();
 
             Update_MP_Volume(mpm_pc);
 

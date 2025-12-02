@@ -396,8 +396,6 @@ cubic_interp(amrex::Real xp[AMREX_SPACEDIM],
     amrex::Real value = zero;
 
 
-
-
 #if (AMREX_SPACEDIM == 1)
 
 				 int i = iv[XDIR];
@@ -421,7 +419,7 @@ cubic_interp(amrex::Real xp[AMREX_SPACEDIM],
     int i = iv[XDIR];
     int lmin = min_index[XDIR];
     int lmax = max_index[XDIR];
-    int j = iv[XDIR];
+    int j = iv[YDIR];
     int mmin = min_index[YDIR];
     int mmax = max_index[YDIR];
 
@@ -552,6 +550,12 @@ basisval(const IntVect stencil,
 
             // Re-center r at the stencil location (i+l)
             r = (xp[d] - (plo[d] + (i + l) * dx[d])) / dx[d];
+            if(r<-2.0 || r>2.0)
+            {
+            	amrex::Print()<<"\n Inside basisval "<<r<<" "<<shapefunctype;
+            	exit(0);
+            }
+
             contrib[d] = cubicspline_1d(shapefunctype, r, d);
         }
     }
@@ -580,6 +584,7 @@ basisvalder(const int dir,
     amrex::Real dxinv[AMREX_SPACEDIM];
     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
         dxinv[d] = one / dx[d];
+        //amrex::Print()<<"\n dxinv dx = "<<dxinv[d]<<" "<<dx[d];
     }
 
     // Product accumulator; we will multiply per-dimension contributions,
@@ -674,57 +679,25 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void get_deformation_gradient_tensor(
             }
         }
     }
-#if (AMREX_SPACEDIM == 1)
-	Fp[0][0] = p.rdata(start_index + 0);
-#elif (AMREX_SPACEDIM == 2)
-    Fp[0][0] = p.rdata(start_index + 0);
-    Fp[0][1] = p.rdata(start_index + 1);
-    Fp[1][0] = p.rdata(start_index + 2);
-    Fp[1][1] = p.rdata(start_index + 3);
-#elif (AMREX_SPACEDIM == 3)
-	Fp[0][0] = p.rdata(start_index + 0);
-    Fp[0][1] = p.rdata(start_index + 1);
-    Fp[0][2] = p.rdata(start_index + 2);
-    Fp[1][0] = p.rdata(start_index + 3);
-    Fp[1][1] = p.rdata(start_index + 4);
-    Fp[1][2] = p.rdata(start_index + 5);
-    Fp[2][0] = p.rdata(start_index + 6);
-    Fp[2][1] = p.rdata(start_index + 7);
-    Fp[2][2] = p.rdata(start_index + 8);
-#endif
 
-    // Lp * Fp
-#if (AMREX_SPACEDIM == 1)
-    p.rdata(start_index + 0) = Lp[0][0] * Fp[0][0];
-#elif (AMREX_SPACEDIM == 2)
-	p.rdata(start_index + 0) =
-        Lp[0][0] * Fp[0][0] + Lp[0][1] * Fp[1][0];
-    p.rdata(start_index + 1) =
-        Lp[0][0] * Fp[0][1] + Lp[0][1] * Fp[1][1];
-    p.rdata(start_index + 2) =
-        Lp[1][0] * Fp[0][0] + Lp[1][1] * Fp[1][0];
-    p.rdata(start_index + 3) =
-        Lp[1][0] * Fp[0][1] + Lp[1][1] * Fp[1][1];   
-#elif (AMREX_SPACEDIM == 3)
-	p.rdata(start_index + 0) =
-        Lp[0][0] * Fp[0][0] + Lp[0][1] * Fp[1][0] + Lp[0][2] * Fp[2][0];
-    p.rdata(start_index + 1) =
-        Lp[0][0] * Fp[0][1] + Lp[0][1] * Fp[1][1] + Lp[0][2] * Fp[2][1];
-    p.rdata(start_index + 2) =
-        Lp[0][0] * Fp[0][2] + Lp[0][1] * Fp[1][2] + Lp[0][2] * Fp[2][2];
-    p.rdata(start_index + 3) =
-        Lp[1][0] * Fp[0][0] + Lp[1][1] * Fp[1][0] + Lp[1][2] * Fp[2][0];
-    p.rdata(start_index + 4) =
-        Lp[1][0] * Fp[0][1] + Lp[1][1] * Fp[1][1] + Lp[1][2] * Fp[2][1];
-    p.rdata(start_index + 5) =
-        Lp[1][0] * Fp[0][2] + Lp[1][1] * Fp[1][2] + Lp[1][2] * Fp[2][2];
-    p.rdata(start_index + 6) =
-        Lp[2][0] * Fp[0][0] + Lp[2][1] * Fp[1][0] + Lp[2][2] * Fp[2][0];
-    p.rdata(start_index + 7) =
-        Lp[2][0] * Fp[0][1] + Lp[2][1] * Fp[1][1] + Lp[2][2] * Fp[2][1];
-    p.rdata(start_index + 8) =
-        Lp[2][0] * Fp[0][2] + Lp[2][1] * Fp[1][2] + Lp[2][2] * Fp[2][2];
-#endif
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
+        {
+            for (int j = 0; j < AMREX_SPACEDIM; j++)
+            {
+            	Fp[i][j] = p.rdata(start_index + AMREX_SPACEDIM*i+j);
+
+            }
+        }
+
+    // Perform matrix multiplication: Result = Lp * Fp
+    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
+        for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+        	p.rdata(start_index + i*AMREX_SPACEDIM+j)=0.0;
+            for (int k = 0; k < AMREX_SPACEDIM; ++k) {
+            	p.rdata(start_index + i*AMREX_SPACEDIM+j) += Lp[i][k] * Fp[k][j];
+            }
+        }
+    }
     
 }
 

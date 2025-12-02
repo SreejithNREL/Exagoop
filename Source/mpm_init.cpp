@@ -208,6 +208,7 @@ void Initialise_Internal_Forces(MPMspecs &specs,
     {
         std::string msg = "\n Calculating initial strainrates and stresses";
         PrintMessage(msg, print_length, true);
+        amrex::Print()<<"\n Printing..";
 
         mpm_pc.deposit_onto_grid_momentum(
             nodaldata, specs.gravity, specs.external_loads_present,
@@ -215,6 +216,8 @@ void Initialise_Internal_Forces(MPMspecs &specs,
             /*do_reset=*/1,
             /*do_average=*/1, specs.mass_tolerance,
             specs.order_scheme_directional, specs.periodic);
+
+        amrex::Print()<<"\n P2G done";
 
 	    
 
@@ -525,6 +528,8 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
             p.rdata(realData::vol_init) = p.rdata(realData::volume);
             p.rdata(realData::pressure) = 0.0;
 
+
+
             // deformation gradient (identity in active dims)
             for (int comp = 0; comp < NCOMP_FULLTENSOR; ++comp)
             {
@@ -546,7 +551,9 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
                 p.rdata(realData::stress + comp) = zero;
             }
 
-            /*amrex::Print()<<"\n Particle "<<p.rdata(realData::radius)<<" "
+            if(testing==1)
+            {
+            amrex::Print()<<"\n Particle "<<p.rdata(realData::radius)<<" "
 						  <<p.rdata(realData::density)<<" "
 						  <<p.rdata(realData::xvel)<<" "
 						  <<p.rdata(realData::yvel)<<" "
@@ -564,7 +571,8 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
 						  <<p.rdata(realData::deformation_gradient+5)<<" "
 						  <<p.rdata(realData::deformation_gradient+6)<<" "
 						  <<p.rdata(realData::deformation_gradient+7)<<" "
-						  <<p.rdata(realData::deformation_gradient+8)<<" ";*/
+						  <<p.rdata(realData::deformation_gradient+8)<<" ";
+            }
 
 
 

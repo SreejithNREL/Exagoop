@@ -19,6 +19,8 @@ dx = (bhi-blo)/ncells;
 if(dx[0]!=dx[1] or dx[0]!=dx[2] or dx[1]!=dx[2]):
     print("Error! mesh sizes are not same in all directions",dx[0],dx[1],dx[2])
 nparticle_per_cells_eachdir=4
+
+dim = 2
 xmin=0.0
 xmax=L
 ymin=0.0
@@ -125,11 +127,16 @@ for k in range(ncells[2]):
                                 velx=0.1;
                                 vely=0.1;
                                 velz=0.0;
-                                
-                                outfile.write("%d\t%e\t%e\t%e\t"%(phase,cell_cx,cell_cy,cell_cz));
+
+                                outfile.write("%d\t%e\t%e\t"%(phase,cell_cx,cell_cy));
+                                if(dim==3):
+                                   outfile.write("%e\t"%(cell_cz))
                                 outfile.write("%e\t%e\t"%(rad,dens));
-                                outfile.write("%e\t%e\t%e\t"%(velx,vely,velz));                                
-                                outfile.write("%d\t%e\t%e\n"%(0,E,nu));
+                                outfile.write("%e\t%e\t"%(velx,vely));
+                                if(dim==3):
+                                   outfile.write("%e\t"%(velz))
+                                outfile.write("%d\t%e\t%e\n"%(0,E,nu));                                
+
 xc=0.8
 yc=0.8
 zc=0.7
@@ -157,9 +164,13 @@ for k in range(ncells[2]):
                                 vely=-0.1;
                                 velz=0.0;
                                 
-                                outfile.write("%d\t%e\t%e\t%e\t"%(phase,cell_cx,cell_cy,cell_cz));
+                                outfile.write("%d\t%e\t%e\t"%(phase,cell_cx,cell_cy));
+                                if(dim==3):
+                                   outfile.write("%e\t"%(cell_cz))
                                 outfile.write("%e\t%e\t"%(rad,dens));
-                                outfile.write("%e\t%e\t%e\t"%(velx,vely,velz));                                
+                                outfile.write("%e\t%e\t"%(velx,vely));                                
+                                if(dim==3):
+                                   outfile.write("%e\t"%(velz))
                                 outfile.write("%d\t%e\t%e\n"%(0,E,nu));
 
 print(npart)

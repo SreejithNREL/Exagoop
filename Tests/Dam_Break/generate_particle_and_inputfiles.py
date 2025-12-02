@@ -34,7 +34,7 @@ for k in range(ncells[2]):
 print('Number of particles = ',npart)
 outfile=open("mpm_particles.dat","w")
 outfile.write("%d\n"%(npart));
-
+dim = 2
 dens=997.5
 phase=0
 rad=0.025
@@ -43,9 +43,15 @@ Gama_Pressure=7.0
 Dyn_visc=0.001
 
 #Volume in each cell
-vol_cell=dx[0]*dx[1]*dx[2]
-vol_particle=vol_cell/(nparticle_per_cells_eachdir*nparticle_per_cells_eachdir*nparticle_per_cells_eachdir)
-rad=(3.0/4.0*vol_particle/3.1416)**(1.0/3.0)
+if(dim==3):
+ vol_cell=dx[0]*dx[1]*dx[2]
+ vol_particle=vol_cell/(nparticle_per_cells_eachdir*nparticle_per_cells_eachdir*nparticle_per_cells_eachdir)
+ rad=(3.0/4.0*vol_particle/3.1416)**(1.0/3.0)
+elif(dim==2):
+ vol_cell=dx[0]*dx[1]
+ vol_particle=vol_cell/(nparticle_per_cells_eachdir*nparticle_per_cells_eachdir)
+ rad=(4.0*vol_particle/3.1416)**(1.0/2.0)
+
 for k in range(ncells[2]):
     for j in range(ncells[1]):
         for i in range(ncells[0]):
@@ -64,9 +70,13 @@ for k in range(ncells[2]):
                             vely=0.0;
                             velz=0.0;
     
-                            outfile.write("%d\t%e\t%e\t%e\t"%(phase,cell_cx,cell_cy,cell_cz));
+                            outfile.write("%d\t%e\t%e\t"%(phase,cell_cx,cell_cy));
+                            if(dim==3):
+                              outfile.write("%e\t"%(cell_cz))
                             outfile.write("%e\t%e\t"%(rad,dens));
-                            outfile.write("%e\t%e\t%e\t"%(velx,vely,velz));
+                            outfile.write("%e\t%e\t"%(velx,vely));
+                            if(dim==3):
+                              outfile.write("%e\t"%(velz))
                             outfile.write("%d\t%e\t%e\t%e\n"%(1,K_BM,Gama_Pressure,Dyn_visc));
 
 outfile.close()

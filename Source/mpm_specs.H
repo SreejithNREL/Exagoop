@@ -20,9 +20,11 @@ struct realData
         xvel_prime = 4, // For position update. Check the review paper page 34
         yvel_prime = 5,
         zvel_prime = 6,
+		//For stress, strain and strainrate variables, we have 6 components irrespective of AMREX_SPACEDIM. in 1D we use only the first component, in 2D we use only the first 3 components etc.
         strainrate = 7,            // 4
         strain = 13,               // 10
         stress = 19,               // 16
+		//for deformation gradient we have 9 components irrespective of AMREX_SPACEDIM
         deformation_gradient = 25, // 22
         volume = 34,               // 31
         mass = 35,                 // 32

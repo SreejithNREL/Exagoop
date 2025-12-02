@@ -62,12 +62,21 @@
 #define DELTA_TEMPERATURE 24 // T_I
 #endif
 
+#if(AMREX_SPACEDIM==2)
+#define XX 0
+#define XY 1
+#define YY 2
+#define XZ 3
+#define YZ 4
+#define ZZ 5
+#elif(AMREX_SPACEDIM==3)
 #define XX 0
 #define XY 1
 #define XZ 2
 #define YY 3
 #define YZ 4
 #define ZZ 5
+#endif
 
 #define BC_PERIODIC 0
 #define BC_NOSLIPWALL 1

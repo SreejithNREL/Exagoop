@@ -54,7 +54,7 @@ void MPMParticleContainer::apply_constitutive_model(
 #if (AMREX_SPACEDIM >= 2)
                     p.rdata(realData::strain + YY) += dt * applied_strainrate;
 #endif
-#if (AMREX_SPACEDIM >= 3)
+#if (AMREX_SPACEDIM == 3)
                     p.rdata(realData::strain + ZZ) += dt * applied_strainrate;
 #endif
 

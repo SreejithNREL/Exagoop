@@ -165,14 +165,12 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
     real_data_names.push_back("xvel");
     real_data_names.push_back("xvel_prime");
 
-#if (AMREX_SPACEDIM >= 2)
     real_data_names.push_back("yvel");
     real_data_names.push_back("yvel_prime");
-#endif
-#if (AMREX_SPACEDIM == 2)
+
     real_data_names.push_back("zvel");
     real_data_names.push_back("zvel_prime");
-#endif
+
 
     // Strainrate, strain, stress tensors (NCOMP_TENSOR entries)
     for (int c = 0; c < NCOMP_TENSOR; ++c)
