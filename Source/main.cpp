@@ -78,18 +78,9 @@ int main(int argc, char *argv[])
             steps++;
             auto iter_time_start = amrex::second();
 
-            dt = mpm_pc.Calculate_time_step(specs);
+            Redistribute_Fill_Update(specs,mpm_pc,steps);
 
-            if (steps % specs.num_redist == 0)
-                        {
-                            mpm_pc.RedistributeLocal();
-                            mpm_pc.fillNeighbors();
-                            mpm_pc.buildNeighborList(CheckPair());
-                        }
-                        else
-                        {
-                            mpm_pc.updateNeighbors();
-                        }
+            dt = mpm_pc.Calculate_time_step(specs);
 
             Reset_Nodaldata_to_Zero(nodaldata, ng_cells_nodaldata);
 
@@ -99,35 +90,26 @@ int main(int argc, char *argv[])
 
             Apply_Nodal_BCs(geom, nodaldata, specs, dt);
 
-            if (steps % specs.num_redist == 0)
-                        {
-                            mpm_pc.RedistributeLocal();
-                            mpm_pc.fillNeighbors();
-                            mpm_pc.buildNeighborList(CheckPair());
-                        }
-                        else
-                        {
-                            mpm_pc.updateNeighbors();
-                        }
+            //mpm_pc.updateNeighbors();
 
             G2P_Momentum(specs, mpm_pc, nodaldata, 1, 0, dt);
 
-            mpm_pc.updateNeighbors();
+            //mpm_pc.updateNeighbors();
 
             Update_MP_Positions(specs, mpm_pc, dt);
 
-
+            Redistribute_Fill_Update(specs,mpm_pc,steps);
 
             if (specs.stress_update_scheme == 1)
             {
-                P2G_Momentum(specs, mpm_pc, nodaldata, 0, 1);
+                P2G_Momentum(specs, mpm_pc, nodaldata, 1, 0);
 
                 Apply_Nodal_BCs(geom, nodaldata, specs, dt);
             }
 
             G2P_Momentum(specs, mpm_pc, nodaldata, 0, 1, dt);
 
-            mpm_pc.updateNeighbors();
+            //mpm_pc.updateNeighbors();
 
             Update_MP_Volume(mpm_pc);
 

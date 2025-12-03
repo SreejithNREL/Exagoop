@@ -7,6 +7,7 @@
 #include <mpm_init.H>
 #include <mpm_particle_container.H>
 #include <nodal_data_ops.H>
+#include <mpm_check_pair.H>
 
 void Write_Particle_Grid_Levset_Output(
     MPMspecs &specs,
@@ -30,3 +31,4 @@ void G2P_Momentum(MPMspecs &specs, MPMParticleContainer &mpm_pc, amrex::MultiFab
 void Update_MP_Positions(MPMspecs &specs, MPMParticleContainer &mpm_pc, amrex::Real dt);
 void Update_MP_Volume(MPMParticleContainer &mpm_pc);
 void Calculate_MP_Stress_Strain(MPMspecs &specs,MPMParticleContainer &mpm_pc,amrex::Real time, amrex::Real dt);
+void Redistribute_Fill_Update(MPMspecs &specs,MPMParticleContainer &mpm_pc, int steps);

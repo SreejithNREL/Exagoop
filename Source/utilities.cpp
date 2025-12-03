@@ -6,6 +6,7 @@
 #include <iostream> // optional, if you use std::cout
 #include <mpm_eb.H>
 #include <nodal_data_ops.H>
+#include <mpm_check_pair.H>
 #include <sstream> // optional, if you later use string streams
 #include <string>  // for std::string
 
@@ -152,4 +153,19 @@ void Calculate_MP_Stress_Strain(MPMspecs &specs,
             mpm_pc.apply_constitutive_model(dt, 0.0);
         }
     }
+}
+
+
+void Redistribute_Fill_Update(MPMspecs &specs,MPMParticleContainer &mpm_pc, int steps)
+{
+	if (steps % specs.num_redist == 0)
+	{
+		mpm_pc.RedistributeLocal();
+		mpm_pc.fillNeighbors();
+		mpm_pc.buildNeighborList(CheckPair());
+	}
+	else
+	{
+		mpm_pc.updateNeighbors();
+	}
 }

@@ -1,9 +1,9 @@
 #Geometry parameters
 mpm.prob_lo = 0.0 0.0 0.0			#Lower corner of physical domain
 mpm.prob_hi = 1.0 1.0 0.05			#Upper corner of physical domain
-mpm.ncells  = 20 20 1				#number of cells in each direction
-mpm.max_grid_size = 21				#Max grid size
-mpm.is_it_periodic = 0  0  0			#Periodicity
+mpm.ncells  = 40 40 1				#number of cells in each direction
+mpm.max_grid_size = 41				#Max grid size
+mpm.is_it_periodic = 1  1  0			#Periodicity
 
 #AMR Parameters
 #restart_checkfile = ""				#Name of the restart file
@@ -24,15 +24,15 @@ mpm.multi_part_per_cell_autogen=1		#Number of particles per cell
 mpm.particle_file="mpm_particles.dat"		#Particle filename
 
 #File output parameters
-mpm.prefix_particlefilename="./Solution/plt"		#Particle filename prefix
-mpm.prefix_gridfilename="./Solution/nplt"			#Background grid filename prefix
-mpm.prefix_densityfilename="./Solution/dens"		#Density filename prefix
-mpm.prefix_checkpointfilename="./Solution/chk"		#Checkpoint filename prefix
+#mpm.prefix_particlefilename="./Solution/plt"		#Particle filename prefix
+#mpm.prefix_gridfilename="./Solution/nplt"			#Background grid filename prefix
+#mpm.prefix_densityfilename="./Solution/dens"		#Density filename prefix
+#mpm.prefix_checkpointfilename="./Solution/chk"		#Checkpoint filename prefix
 mpm.num_of_digits_in_filenames=6		#Number of digits in the filename
 
 #Simulation run parameters
 mpm.final_time=3.0				#Maximum simulation time 
-mpm.max_steps=5000000				#Maximum number of iterations for the simulation
+mpm.max_steps=1				#Maximum number of iterations for the simulation
 mpm.screen_output_time = 0.0001			#How frequently to output iteration msgs
 mpm.write_output_time=0.05			#How frequently to write output files
 mpm.num_redist = 1				#How frequently to redistribute
@@ -45,8 +45,8 @@ mpm.dt_min_limit=1e-12				#The minimum value of timestep. Throw a warning if low
 mpm.dt_max_limit=1e-0				#The maximum value of timestep. if(dt>dt_max_limit) dt=dt_max_limit
 
 #Numerical schemes
-mpm.order_scheme=1				#1->Linear shape func. 3->Spline shape function
-mpm.alpha_pic_flip = 0.95			#1.0->Pure FLIP scheme. 0.0->Pure PIC scheme. Recommended:(0.95-0.99)
+mpm.order_scheme=3				#1->Linear shape func. 3->Spline shape function
+mpm.alpha_pic_flip = 0.99			#1.0->Pure FLIP scheme. 0.0->Pure PIC scheme. Recommended:(0.95-0.99)
 mpm.stress_update_scheme= 1			#1->MUSL,0->USL
 mpm.mass_tolerance = 1e-18			#Stability parameters to avoid zero mass on nodes. Recommended: 1e-18
 mpm.mpm.calculate_strain_based_on_delta=1	#Stress calculation based on delta epsilon if this flag =1
@@ -71,5 +71,5 @@ mpm.axial_bar_modenumber= 1			#Axial bar parameter
 mpm.axial_bar_v0= 0.1				#Axial bar parameter
 
 #Boundary conditions
-mpm.bc_lower=2 2 2				#0->Periodic 1->Noslipwall 2->Slipwall 3->Outflow
-mpm.bc_upper=2 2 2				#0->Periodic 1->Noslipwall 2->Slipwall 3->Outflow
+mpm.bc_lower=0 0 0				#0->Periodic 1->Noslipwall 2->Slipwall 3->Outflow
+mpm.bc_upper=0 0 0				#0->Periodic 1->Noslipwall 2->Slipwall 3->Outflow

@@ -214,8 +214,8 @@ compute_bounds(int ivd, int lod, int hid, int scheme, bool is_periodic)
             }
         	else if (ivd == hid)
         	{
-        		bmin = -2;
-        		bmax = 1; // one-sided at hi
+        		bmin = -1;
+        		bmax = bmin+3; // one-sided at hi
         	}
         	else
         	{
@@ -255,14 +255,10 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
     const auto plo = geom.ProbLoArray();
     const auto domain = geom.Domain();
 
-    int extloads = external_loads_present;
-
     const int *loarr = domain.loVect();
     const int *hiarr = domain.hiVect();
 
     Real grav[] = {AMREX_D_DECL(gravity[XDIR], gravity[YDIR], gravity[ZDIR])};
-    Real extpforce[] = {
-        AMREX_D_DECL(extforce[XDIR], extforce[YDIR], extforce[ZDIR])};
 
     int lo[] = {AMREX_D_DECL(loarr[0], loarr[1], loarr[2])};
     int hi[] = {AMREX_D_DECL(hiarr[0], hiarr[1], hiarr[2])};
@@ -281,12 +277,16 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
                 {
                     nodal_data_arr(AMREX_D_DECL(i, j, k), MASS_INDEX) = 0.0;
                     for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                        nodal_data_arr(AMREX_D_DECL(i, j, k), VELX_INDEX + d) = 0.0;
+                    {
+                    	nodal_data_arr(AMREX_D_DECL(i, j, k), VELX_INDEX + d) = 0.0;
+                    }
                 }
                 if (update_forces)
                 {
                     for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                        nodal_data_arr(AMREX_D_DECL(i, j, k), FRCX_INDEX + d) = 0.0;
+                    {
+                    	nodal_data_arr(AMREX_D_DECL(i, j, k), FRCX_INDEX + d) = 0.0;
+                    }
                 }
                 if (update_forces == 2)
                 {
@@ -321,6 +321,7 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
                 auto iv = getParticleCell(p, plo, dxi, domain);
 
                 // Compute stencil extents per dimension
+
                 int min_idx[AMREX_SPACEDIM], max_idx[AMREX_SPACEDIM];
 
                 for (int d = 0; d < AMREX_SPACEDIM; ++d)
@@ -330,27 +331,30 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
                 	max_idx[d] = bounds.second;
                 }
 
+
                 // Nested loops over stencil (specialized per dimension)
                 amrex::Real basisvalue = 0.0;
                 amrex::Real basisval_grad[AMREX_SPACEDIM] = {AMREX_D_DECL(0.0, 0.0, 0.0)};
                 IntVect ivlocal = {AMREX_D_DECL(0, 0, 0)};
 
 #if (AMREX_SPACEDIM == 3)
-                for (int n = min_idx[2]; n < max_idx[2]; ++n)
+                for (int n = min_idx[2]; n < max_idx[2]; n++)
                 {
 #endif
 #if (AMREX_SPACEDIM >= 2)
-                    for (int m = min_idx[1]; m < max_idx[1]; ++m)
+                    for (int m = min_idx[1]; m < max_idx[1]; m++)
                     {
 #endif
-                        for (int l = min_idx[0]; l < max_idx[0]; ++l)
+                        for (int l = min_idx[0]; l < max_idx[0]; l++)
                         {
                             ivlocal = {AMREX_D_DECL(iv[0] + l, iv[1] + m, iv[2] + n)};
                             IntVect stencil(AMREX_D_DECL(l, m, n));
-                            if (!nodalbox.contains(ivlocal))
-                                continue;
+                            if (nodalbox.contains(ivlocal))
+                            {
+
+                            //amrex::Print()<<"\n Inisde P2G "<<xp[0]<<" "<<xp[1]<<" "<<iv[0]<<" "<<iv[1]<<" "<<stencil[0]<<" "<<stencil[1];
                             basisvalue = basisval(stencil, iv, xp, plo, dx,order_scheme_directional,periodic, lo, hi);
-							//amrex::Print()<<"\n Basis value at "<<stencil<<" is "<<basisvalue;
+
 
                             if (update_massvel)
                             {
@@ -391,6 +395,7 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
                                 {
                                     amrex::Gpu::Atomic::AddNoRet( &nodal_data_arr(AMREX_D_DECL(iv[XDIR] + l, iv[YDIR] + m, iv[ZDIR] + n), FRCX_INDEX + dim), bforce_contrib[dim] + intforce_contrib[dim]);
                                 }
+                            }
                             }
                         }
 #if (AMREX_SPACEDIM >= 2)

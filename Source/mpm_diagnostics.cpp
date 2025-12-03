@@ -207,7 +207,7 @@ MPMParticleContainer::CalculateEffectiveSpringConstant(amrex::Real Area,
 {
     // First calculate the total strain energy
     const int lev = 0;
-    const Geometry &geom = Geom(lev);
+    //const Geometry &geom = Geom(lev);
     /*auto &plev = GetParticles(lev);
     const auto dxi = geom.InvCellSizeArray();
     const auto dx = geom.CellSizeArray();

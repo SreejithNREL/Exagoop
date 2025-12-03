@@ -20,6 +20,7 @@ struct CheckPair
         amrex::Real search_radius =
             0.5 * (p1.rdata(realData::radius) + p2.rdata(realData::radius));
 
+
         return (dsquared <= 9.0 * search_radius * search_radius);
     }
 };

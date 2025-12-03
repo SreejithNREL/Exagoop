@@ -23,7 +23,7 @@ void MPMParticleContainer::apply_constitutive_model(
 
         int np = aos.numRealParticles();
         int ng = aos.numNeighborParticles();
-        int nt = np + ng;
+        int nt = np ;//+ ng;
 
         ParticleType *pstruct = aos().dataPtr();
 

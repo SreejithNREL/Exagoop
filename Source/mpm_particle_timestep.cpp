@@ -123,6 +123,7 @@ void MPMParticleContainer::updateVolume()
                 }
             });
     }
+
 }
 
 void MPMParticleContainer::moveParticles(

@@ -442,6 +442,18 @@ cubic_interp(amrex::Real xp[AMREX_SPACEDIM],
             amrex::Real rx = (xp[0] - (plo[0] + (i + l) * dx[0])) / dx[0];
             amrex::Real ry = (xp[1] - (plo[1] + (j + m) * dx[1])) / dx[1];
 
+
+                        if(rx<-2.0 || rx>2.0)
+                        {
+                        	amrex::Print()<<"\n Inside cubic interp rx "<<rx<<" "<<xp[0];
+                        	exit(0);
+                        }
+                        if(ry<-2.0 || ry>2.0)
+                                                {
+                                                	amrex::Print()<<"\n Inside cubic interp ry "<<ry<<" "<<xp[1];
+                                                	exit(0);
+                                                }
+
             amrex::Real lval = cubicspline_1d(shapetypex, rx, 0);
             amrex::Real mval = cubicspline_1d(shapetypey, ry, 1);
 
@@ -552,7 +564,7 @@ basisval(const IntVect stencil,
             r = (xp[d] - (plo[d] + (i + l) * dx[d])) / dx[d];
             if(r<-2.0 || r>2.0)
             {
-            	amrex::Print()<<"\n Inside basisval "<<r<<" "<<shapefunctype;
+            	amrex::Print()<<"\n Inside basisval "<<r<<" "<<xp[d]<<" "<<i<<" "<<l<<" "<<plo[d];
             	exit(0);
             }
 
