@@ -84,7 +84,11 @@ int main(int argc, char *argv[])
 
             Reset_Nodaldata_to_Zero(nodaldata, ng_cells_nodaldata);
 
-            P2G_Momentum(specs, mpm_pc, nodaldata, 1, 1);
+            P2G_Momentum(specs, mpm_pc, nodaldata, 1, 0);
+
+            backup_current_velocity(nodaldata);
+
+			P2G_Momentum(specs, mpm_pc, nodaldata, 0, 1);
 
             Nodal_Time_Update_Momentum(nodaldata, dt, specs.mass_tolerance);
 

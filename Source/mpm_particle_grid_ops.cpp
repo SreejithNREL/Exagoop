@@ -245,7 +245,7 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
     amrex::GpuArray<int, AMREX_SPACEDIM> order_scheme_directional,
     amrex::GpuArray<int, AMREX_SPACEDIM> periodic)
 {
-	if(testing==1) amrex::Print()<<"\n Entered deposit_onto_grid_momentum";
+	//if(testing==1) amrex::Print()<<"\n Entered deposit_onto_grid_momentum";
 
     const int lev = 0;
     const Geometry &geom = Geom(lev);
@@ -273,24 +273,25 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
             nodalbox,
             [=] AMREX_GPU_DEVICE(AMREX_D_DECL(int i, int j, int k)) noexcept
             {
+				IntVect nodeindex(AMREX_D_DECL(i, j, k));
                 if (update_massvel)
                 {
-                    nodal_data_arr(AMREX_D_DECL(i, j, k), MASS_INDEX) = 0.0;
+                    nodal_data_arr(nodeindex, MASS_INDEX) = 0.0;
                     for (int d = 0; d < AMREX_SPACEDIM; ++d)
                     {
-                    	nodal_data_arr(AMREX_D_DECL(i, j, k), VELX_INDEX + d) = 0.0;
+                    	nodal_data_arr(nodeindex, VELX_INDEX + d) = 0.0;
                     }
                 }
                 if (update_forces)
                 {
                     for (int d = 0; d < AMREX_SPACEDIM; ++d)
                     {
-                    	nodal_data_arr(AMREX_D_DECL(i, j, k), FRCX_INDEX + d) = 0.0;
+                    	nodal_data_arr(nodeindex, FRCX_INDEX + d) = 0.0;
                     }
                 }
                 if (update_forces == 2)
                 {
-                    nodal_data_arr(AMREX_D_DECL(i, j, k), STRESS_INDEX) = 0.0;
+                    nodal_data_arr(nodeindex, STRESS_INDEX) = 0.0;
                 }
             });
     }
@@ -393,7 +394,8 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
 
                                 for (int dim = 0; dim < AMREX_SPACEDIM; dim++)
                                 {
-                                    amrex::Gpu::Atomic::AddNoRet( &nodal_data_arr(AMREX_D_DECL(iv[XDIR] + l, iv[YDIR] + m, iv[ZDIR] + n), FRCX_INDEX + dim), bforce_contrib[dim] + intforce_contrib[dim]);
+									IntVect nodeindex(AMREX_D_DECL(iv[0] + l, iv[1] + m, iv[2] + n));	
+                                    amrex::Gpu::Atomic::AddNoRet( &nodal_data_arr(nodeindex, FRCX_INDEX + dim), bforce_contrib[dim] + intforce_contrib[dim]);
                                 }
                             }
                             }
@@ -417,35 +419,36 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
             nodalbox,
             [=] AMREX_GPU_DEVICE(AMREX_D_DECL(int i, int j, int k)) noexcept
             {
-        	//if(testing==1)	amrex::Print()<<"\n Normalizing nodal data at node "<<i<<" "<<j<<" "<<nodal_data_arr(AMREX_D_DECL(i, j, k), MASS_INDEX);
-                if (update_massvel && nodal_data_arr(AMREX_D_DECL(i, j, k), MASS_INDEX) > 0.0)
+IntVect nodeindex(AMREX_D_DECL(i, j, k));
+        	//if(testing==1)	amrex::Print()<<"\n Normalizing nodal data at node "<<i<<" "<<j<<" "<<nodal_data_arr(nodeindex, MASS_INDEX);
+                if (update_massvel && nodal_data_arr(nodeindex, MASS_INDEX) > 0.0)
                 {
                 	for (int d = 0; d < AMREX_SPACEDIM; ++d)
                     {
-                        if (nodal_data_arr(AMREX_D_DECL(i, j, k), MASS_INDEX) >= mass_tolerance)
+                        if (nodal_data_arr(nodeindex, MASS_INDEX) >= mass_tolerance)
                         {
-                        	nodal_data_arr(AMREX_D_DECL(i, j, k), VELX_INDEX + d) /= nodal_data_arr(AMREX_D_DECL(i, j, k), MASS_INDEX);
+                        	nodal_data_arr(nodeindex, VELX_INDEX + d) /= nodal_data_arr(nodeindex, MASS_INDEX);
                         }
 
                         else
-                        	nodal_data_arr(AMREX_D_DECL(i, j, k), VELX_INDEX + d) = 0.0;
+                        	nodal_data_arr(nodeindex, VELX_INDEX + d) = 0.0;
                     }
                 }
                 if (update_forces == 2 &&
-                    nodal_data_arr(AMREX_D_DECL(i, j, k), MASS_INDEX) > 0.0)
+                    nodal_data_arr(nodeindex, MASS_INDEX) > 0.0)
                 {
-                    if (nodal_data_arr(AMREX_D_DECL(i, j, k), MASS_INDEX) >=
+                    if (nodal_data_arr(nodeindex, MASS_INDEX) >=
                         mass_tolerance)
-                        nodal_data_arr(AMREX_D_DECL(i, j, k), STRESS_INDEX) /=
-                            nodal_data_arr(AMREX_D_DECL(i, j, k), MASS_INDEX);
+                        nodal_data_arr(nodeindex, STRESS_INDEX) /=
+                            nodal_data_arr(nodeindex, MASS_INDEX);
                     else
-                        nodal_data_arr(AMREX_D_DECL(i, j, k), STRESS_INDEX) =
-                            0.0;
+                        nodal_data_arr(nodeindex, STRESS_INDEX) = 0.0;
                 }
             });
     }
 
     // Backup current velocity to nodal data
+/*
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         const amrex::Box &box = mfi.tilebox();
@@ -454,23 +457,23 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
 
         amrex::ParallelFor(nodalbox, [=] AMREX_GPU_DEVICE(AMREX_D_DECL(int i, int j, int k)) noexcept
-        {
+        {IntVect nodeindex(AMREX_D_DECL(i, j, k));
         	if (update_massvel)
         	{
-        		if (nodal_data_arr(AMREX_D_DECL(i, j, k), MASS_INDEX) > 0.0)
+        		if (nodal_data_arr(nodeindex, MASS_INDEX) > zero)
         		{
         			// Backup mass
-        			nodal_data_arr(AMREX_D_DECL(i, j, k), MASS_OLD_INDEX) = nodal_data_arr(AMREX_D_DECL(i, j, k), MASS_INDEX);
+        			nodal_data_arr(nodeindex, MASS_OLD_INDEX) = nodal_data_arr(nodeindex, MASS_INDEX);
 
         			// Backup velocity components
         			for (int d = 0; d < AMREX_SPACEDIM; ++d)
         			{
-        				nodal_data_arr(AMREX_D_DECL(i, j, k), DELTA_VELX_INDEX + d) = nodal_data_arr(AMREX_D_DECL(i, j, k), VELX_INDEX + d);
+        				nodal_data_arr(nodeindex, DELTA_VELX_INDEX + d) = nodal_data_arr(nodeindex, VELX_INDEX + d);
         			}
         		}
         	}
         });
-    }
+    }*/
 
 }
 
@@ -1064,8 +1067,16 @@ void MPMParticleContainer::interpolate_from_grid(
                 				{
                 					for (int d2 = 0; d2 < AMREX_SPACEDIM; ++d2)
                 					{
+										IntVect nodeindex(AMREX_D_DECL(iv[0]+l, iv[1]+m, iv[2]+n));  
+										if(iv[0]+l>200)
+{
+amrex::Print()<<"\n Node index = "<<nodeindex<<" "<<iv<<" "<<l<<" "<<m<<" ";
+amrex::Print()<<"\n Particle pos = "<<p.pos(0)<<" "<<p.pos(1);
+}
+            
+																
                 						gradvp[d1][d2] +=
-                								nodal_data_arr(AMREX_D_DECL(iv[0]+l, iv[1]+m, iv[2]+n), VELX_INDEX+d1) * basisval_grad[d2];
+                								nodal_data_arr(nodeindex, VELX_INDEX+d1) * basisval_grad[d2];
                 					}
                 				}
                 			}

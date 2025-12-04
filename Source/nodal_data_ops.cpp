@@ -15,6 +15,7 @@ void write_grid_file(std::string fname,
                      Real time)
 {
     MultiFab plotmf(ba, dm, nodaldata.nComp(), 0);
+amrex::Print()<<"\n nodaldata ncomp = "<<nodaldata.nComp()<<" "<<fieldnames.size();
     average_node_to_cellcenter(plotmf, 0, nodaldata, 0, nodaldata.nComp());
     WriteSingleLevelPlotfile(fname, plotmf, fieldnames, geom, time, 0);
 }

@@ -114,8 +114,8 @@ void MPMParticleContainer::update_phase_field(MultiFab &phasedata,
                     {
                         for (int l = -hw; l <= hw; ++l)
                         {
-                            const IntVect ivlocal(iv[0] + l, iv[1] + m,
-                                                  iv[2] + n);
+                            const IntVect ivlocal(AMREX_D_DECL(iv[0] + l, iv[1] + m,
+                                                  iv[2] + n));
                             if (refboxgrow.contains(ivlocal))
                             {
                                 amrex::Real xp[3] = {p.pos(0), p.pos(1),

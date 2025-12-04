@@ -561,12 +561,8 @@ basisval(const IntVect stencil,
             }
 
             // Re-center r at the stencil location (i+l)
-            r = (xp[d] - (plo[d] + (i + l) * dx[d])) / dx[d];
-            if(r<-2.0 || r>2.0)
-            {
-            	amrex::Print()<<"\n Inside basisval "<<r<<" "<<xp[d]<<" "<<i<<" "<<l<<" "<<plo[d];
-            	exit(0);
-            }
+           r = (xp[d] - (plo[d] + (i + l) * dx[d])) / dx[d];
+           
 
             contrib[d] = cubicspline_1d(shapefunctype, r, d);
         }

@@ -289,13 +289,11 @@ void MPMParticleContainer::moveParticles(
                             p.pos(dir) = 2.0 * phi[dir] - p.pos(dir);
                         }
                     }
+					p.rdata(realData::xvel + dir) = relvel_out[dir] + wallvel[dir];
                 }
 
-                // Update velocities with BC corrections
-                for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                {
-                    p.rdata(realData::xvel + d) = relvel_out[d] + wallvel[d];
-                }
+                
+                
             });
     }
 }

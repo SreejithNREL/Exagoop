@@ -27,8 +27,7 @@ void Name_Nodaldata_Variables(amrex::Vector<std::string> &nodaldata_names)
     nodaldata_names.push_back("RIGID_BODY_ID");
     nodaldata_names.push_back("NX");
     nodaldata_names.push_back("NY");
-    nodaldata_names.push_back("NZ");
-    nodaldata_names.push_back("NZ");
+    nodaldata_names.push_back("NZ");    
 #if USE_TEMP
     nodaldata_names.push_back("MASS_SPHEAT");
     nodaldata_names.push_back("MASS_SPHEAT_TEMP");
