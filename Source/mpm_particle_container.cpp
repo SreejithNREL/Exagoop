@@ -23,7 +23,7 @@ void MPMParticleContainer::apply_constitutive_model(
 
         int np = aos.numRealParticles();
         int ng = aos.numNeighborParticles();
-        int nt = np ;//+ ng;
+        int nt = np + ng;
 
         ParticleType *pstruct = aos().dataPtr();
 
@@ -68,7 +68,7 @@ void MPMParticleContainer::apply_constitutive_model(
                     if (p.idata(intData::constitutive_model) == 0)
                     {
                         // Elastic solid
-                        linear_elastic(strain, strainrate, stress,
+                        linear_elastic(strain,  stress,
                                        p.rdata(realData::E),
                                        p.rdata(realData::nu));
                     }
@@ -172,7 +172,7 @@ void MPMParticleContainer::apply_constitutive_model_delta(
                     if (p.idata(intData::constitutive_model) == 0)
                     {
                         // Elastic solid: linear operator on delta_strain
-                        linear_elastic(delta_strain, delta_stress,
+                        linear_elastic_delta(delta_strain, delta_stress,
                                        p.rdata(realData::E),
                                        p.rdata(realData::nu));
                     }

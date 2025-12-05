@@ -46,9 +46,10 @@ void backup_current_velocity(MultiFab &nodaldata)
     }
 }
 
+#if USE_TEMP
 void backup_current_temperature(MultiFab &nodaldata)
 {
-#if USE_TEMP
+
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
         const Box &bx = mfi.validbox();
@@ -65,14 +66,15 @@ void backup_current_temperature(MultiFab &nodaldata)
                                }
                            });
     }
-#endif
+
 }
+#endif
 
 void nodal_levelset_bcs(MultiFab &nodaldata,
                         const Geometry geom,
-                        amrex::Real &dt,
-                        int lsetbc,
-                        amrex::Real lset_wall_mu)
+                        amrex::Real &/*dt*/,
+                        int /*lsetbc*/,
+                        amrex::Real /*lset_wall_mu*/)
 {
     // need something more sophisticated
     // but lets get it working!
@@ -92,7 +94,7 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
 
         amrex::ParallelFor(
             nodalbox,
-            [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+            [=] AMREX_GPU_DEVICE(AMREX_D_DECL(int i, int j, int k)) noexcept
             {
                 IntVect nodeid (AMREX_D_DECL(i, j, k));
                 IntVect refined_nodeid(AMREX_D_DECL(i * lsref, j * lsref, k * lsref));
@@ -171,9 +173,10 @@ void store_delta_velocity(MultiFab &nodaldata)
     }
 }
 
+#if USE_TEMP
 void store_delta_temperature(MultiFab &nodaldata)
 {
-#if USE_TEMP
+
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
         const Box &bx = mfi.validbox();
@@ -193,8 +196,9 @@ void store_delta_temperature(MultiFab &nodaldata)
                                }
                            });
     }
-#endif
+
 }
+#endif
 
 void Nodal_Time_Update_Momentum(MultiFab &nodaldata,
                                 const amrex::Real &dt,
@@ -229,30 +233,14 @@ void Nodal_Time_Update_Momentum(MultiFab &nodaldata,
             });
 }
 
-for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
-        {
-            Box nodalbox = convert(mfi.tilebox(), {AMREX_D_DECL(1, 1, 1)});
-            auto nodal_data_arr = nodaldata.array(mfi);
-            amrex::ParallelFor(
-                nodalbox,
-                [=] AMREX_GPU_DEVICE(AMREX_D_DECL(int i, int j, int k)) noexcept
-                {
-
-                        /*amrex::Print()<<"\n Nodal data in time update at node "<<i<<" "<<j<<" "
-<< " mass= "<<nodal_data_arr(AMREX_D_DECL(i, j, k), MASS_INDEX)
-<< " velx= "<<nodal_data_arr(AMREX_D_DECL(i, j, k), VELX_INDEX)
-<< " vely= "<<nodal_data_arr(AMREX_D_DECL(i, j, k), VELY_INDEX);*/
-
-                });
 }
 
-}
-
+#if USE_TEMP
 void nodal_update_temperature(MultiFab &nodaldata,
                               const amrex::Real &dt,
                               const amrex::Real &mass_tolerance)
 {
-#if USE_TEMP
+
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
         const Box &bx = mfi.validbox();
@@ -276,12 +264,12 @@ void nodal_update_temperature(MultiFab &nodaldata,
                 }
             });
     }
-#endif
 }
+#endif
 
 void nodal_detect_contact(
     MultiFab &nodaldata,
-    const Geometry geom,
+    const Geometry /*geom*/,
     amrex::Real &contact_tolerance,
     amrex::GpuArray<amrex::GpuArray<amrex::Real, AMREX_SPACEDIM>,
                     numrigidbodies> velocity)
@@ -448,7 +436,7 @@ void nodal_bcs(const amrex::Geometry geom,
                amrex::Real wall_mu_hiarr[AMREX_SPACEDIM],
                amrex::Real wall_vel_loarr[AMREX_SPACEDIM * AMREX_SPACEDIM],
                amrex::Real wall_vel_hiarr[AMREX_SPACEDIM * AMREX_SPACEDIM],
-               const amrex::Real &dt)
+               const amrex::Real &/*dt*/)
 {
     const int *domloarr = geom.Domain().loVect();
     const int *domhiarr = geom.Domain().hiVect();
@@ -492,7 +480,7 @@ void nodal_bcs(const amrex::Geometry geom,
 
         Array4<amrex::Real> nodal_data_arr = nodaldata.array(mfi);
 
-        amrex::ParallelFor(nodalbox,[=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+        amrex::ParallelFor(nodalbox,[=] AMREX_GPU_DEVICE(AMREX_D_DECL(int i, int j, int k)) noexcept
         {
         	IntVect nodeid(AMREX_D_DECL(i, j, k));
 
@@ -543,6 +531,7 @@ void nodal_bcs(const amrex::Geometry geom,
     }
 }
 
+#if USE_TEMP
 void nodal_bcs_temperature(const amrex::Geometry geom,
                            MultiFab &nodaldata,
                            int bcloarr[AMREX_SPACEDIM],
@@ -551,7 +540,7 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
                            amrex::Real dirichlet_temperature_hi[AMREX_SPACEDIM],
                            const amrex::Real &dt)
 {
-#if USE_TEMP
+
     const int *domloarr = geom.Domain().loVect();
     const int *domhiarr = geom.Domain().hiVect();
 
@@ -609,10 +598,11 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
                                }
                            });
     }
-#endif
-}
 
-void CalculateSurfaceIntegralOnBG(const amrex::Geometry geom,
+}
+#endif
+
+/*void CalculateSurfaceIntegralOnBG(const amrex::Geometry geom,
                                   amrex::MultiFab &nodaldata,
                                   int nodaldataindex,
                                   amrex::Real &integral_value)
@@ -637,14 +627,14 @@ void CalculateSurfaceIntegralOnBG(const amrex::Geometry geom,
 #ifdef BL_USE_MPI
     ParallelDescriptor::ReduceRealSum(integral_value);
 #endif
-}
+}*/
 
 void CalculateInterpolationError(const amrex::Geometry geom,
                                  amrex::MultiFab &nodaldata,
                                  int nodaldataindex)
 {
     const int *domloarr = geom.Domain().loVect();
-    const int *domhiarr = geom.Domain().hiVect();
+    //const int *domhiarr = geom.Domain().hiVect();
     const auto dx = geom.CellSizeArray();
     const auto Pi = 4.0 * atan(1.0);
 

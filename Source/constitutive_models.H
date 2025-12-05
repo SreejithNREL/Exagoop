@@ -6,7 +6,6 @@
 // clang-format on
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 linear_elastic(amrex::Real eps[NCOMP_TENSOR],
-               amrex::Real epsdot[NCOMP_TENSOR],
                amrex::Real sigma[NCOMP_TENSOR],
                amrex::Real E,
                amrex::Real v)
@@ -42,7 +41,7 @@ linear_elastic(amrex::Real eps[NCOMP_TENSOR],
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-linear_elastic(amrex::Real delta_eps[NCOMP_TENSOR],
+linear_elastic_delta(amrex::Real delta_eps[NCOMP_TENSOR],
                amrex::Real delta_sigma[NCOMP_TENSOR],
                amrex::Real E,
                amrex::Real v)

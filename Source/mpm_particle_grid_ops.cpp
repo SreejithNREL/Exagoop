@@ -762,17 +762,17 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
 #endif
 
 void MPMParticleContainer::deposit_onto_grid_rigidnodesonly(
-    MultiFab &nodaldata,
+    MultiFab &/*nodaldata*/,
     Array<Real, AMREX_SPACEDIM> /*gravity*/,
     int /*external_loads_present*/,
     Array<Real, AMREX_SPACEDIM> /*force_slab_lo*/,
     Array<Real, AMREX_SPACEDIM> /*force_slab_hi*/,
     Array<Real, AMREX_SPACEDIM> /*extforce*/,
-    int update_massvel,
+    int /*update_massvel*/,
     int /*update_forces*/,
-    amrex::Real mass_tolerance,
-    GpuArray<int, AMREX_SPACEDIM> order_scheme_directional,
-    GpuArray<int, AMREX_SPACEDIM> periodic)
+    amrex::Real /*mass_tolerance*/,
+    GpuArray<int, AMREX_SPACEDIM> /*order_scheme_directional*/,
+    GpuArray<int, AMREX_SPACEDIM> /*periodic*/)
 { /*
      const int lev = 0;
      const Geometry &geom = Geom(lev);
@@ -1321,10 +1321,10 @@ void MPMParticleContainer::interpolate_from_grid_temperature(
 #endif
 
 void MPMParticleContainer::calculate_nodal_normal(
-    MultiFab &nodaldata,
-    amrex::Real mass_tolerance,
-    GpuArray<int, AMREX_SPACEDIM> order_scheme_directional,
-    GpuArray<int, AMREX_SPACEDIM> periodic)
+    MultiFab &/*nodaldata*/,
+    amrex::Real /*mass_tolerance*/,
+    GpuArray<int, AMREX_SPACEDIM> /*order_scheme_directional*/,
+    GpuArray<int, AMREX_SPACEDIM> /*periodic*/)
 {/*
     const int lev = 0;
     const Geometry &geom = Geom(lev);
