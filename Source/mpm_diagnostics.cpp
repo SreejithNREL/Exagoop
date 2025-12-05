@@ -18,6 +18,8 @@
  * reduction.
  */
 
+
+
 void MPMParticleContainer::Calculate_Total_Energies(Real &TKE, Real &TSE)
 {
     TKE = 0.0;
@@ -62,6 +64,42 @@ void MPMParticleContainer::Calculate_Total_Energies(Real &TKE, Real &TSE)
 
                                return 0.5 * p.rdata(realData::volume) * se;
                            });
+/*
+    tmpExtremasFile.open(
+            tempFileName.c_str(),
+            std::ios::out | std::ios::app | std::ios_base::binary);
+          tmpExtremasFile.precision(12);
+          tmpExtremasFile << "iter,time";
+    std::ofstream tmpExtremasFile;
+
+    tmpStateFile << m_nstep << "," << m_cur_time << "," << m_dt // Time
+                   << "," << kinenergy_int                        // Kinetic energy
+                   << "," << enstrophy_int                        // Enstrophy
+                   << "," << m_pNew             // Thermo. pressure
+                   << "," << fuelConsumptionInt // Integ fuel burning rate
+                   << "," << heatReleaseRateInt // Integ heat release rate
+                   << "\n";
+      tmpStateFile.flush();
+
+      // Get min/max for state components
+      auto stateMax =
+        (m_incompressible) != 0
+          ? MLmax(GetVecOfConstPtrs(getStateVect(AmrNewTime)), 0, AMREX_SPACEDIM)
+          : MLmax(GetVecOfConstPtrs(getStateVect(AmrNewTime)), 0, NVAR);
+      auto stateMin =
+        (m_incompressible) != 0
+          ? MLmin(GetVecOfConstPtrs(getStateVect(AmrNewTime)), 0, AMREX_SPACEDIM)
+          : MLmin(GetVecOfConstPtrs(getStateVect(AmrNewTime)), 0, NVAR);
+
+      tmpExtremasFile << m_nstep << "," << m_cur_time; // Time
+      for (int n = 0; n < stateMax.size();
+           ++n) { // Min & max of each state variable
+        tmpExtremasFile << "," << stateMin[n] << "," << stateMax[n];
+      }
+      tmpExtremasFile << "\n";
+      tmpExtremasFile.flush();
+      tmpExtremasFile.flush();
+      tmpExtremasFile.close();*/
 }
 
 /**

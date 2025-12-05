@@ -32,3 +32,6 @@ void Update_MP_Positions(MPMspecs &specs, MPMParticleContainer &mpm_pc, amrex::R
 void Update_MP_Volume(MPMParticleContainer &mpm_pc);
 void Calculate_MP_Stress_Strain(MPMspecs &specs,MPMParticleContainer &mpm_pc,amrex::Real time, amrex::Real dt);
 void Redistribute_Fill_Update(MPMspecs &specs,MPMParticleContainer &mpm_pc, int steps);
+void Initialise_Diagnostic_Streams(MPMspecs &specs);
+void Do_All_Diagnostics(MPMspecs &specs, MPMParticleContainer &mpm_pc,int steps, amrex::Real current_time);
+void Close_Diagnostic_Streams(MPMspecs &specs);

@@ -194,6 +194,10 @@ void Create_Output_Directories(MPMspecs &specs)
     {
         amrex::UtilCreateDirectory(specs.levset_output_folder, 0755);
     }
+    if(specs.print_diagnostics)
+    {
+    	amrex::UtilCreateDirectory(specs.diagnostic_output_folder, 0755);
+    }
 }
 
 void Initialise_Internal_Forces(MPMspecs &specs,
@@ -208,6 +212,7 @@ void Initialise_Internal_Forces(MPMspecs &specs,
         std::string msg = "\n Calculating initial strainrates and stresses";
         PrintMessage(msg, print_length, true);
         amrex::Print()<<"\n Printing..";
+        amrex::Real dt = 0.0;
 
         mpm_pc.deposit_onto_grid_momentum(
             nodaldata, specs.gravity, specs.external_loads_present,
@@ -218,11 +223,15 @@ void Initialise_Internal_Forces(MPMspecs &specs,
 
         amrex::Print()<<"\n P2G done";
 
-	    
+        backup_current_velocity(nodaldata);
+
+        //Nodal_Time_Update_Momentum(nodaldata, dt, specs.mass_tolerance);
+
+        //Apply_Nodal_BCs(geom, nodaldata, specs, dt);
 
         // Interpolate grid -> particles
         mpm_pc.interpolate_from_grid(nodaldata,
-                                     /*momentum_comp=*/0,
+                                     /*momentum_comp=*/1,
                                      /*mass_comp=*/1,
                                      specs.order_scheme_directional,
                                      specs.periodic, specs.alpha_pic_flip, dt);

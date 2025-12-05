@@ -100,7 +100,8 @@ class MPMspecs
     int num_redist = 10;
     int max_grid_size = 8;
     Real final_time;
-    Real write_output_time;
+    Real write_output_time=1e200;
+    Real write_diag_output_time=1e200;
     Real screen_output_time;
     int maxsteps = 1;
     std::string particlefilename;
@@ -116,6 +117,21 @@ class MPMspecs
     std::string grid_output_folder = "./Solution/grid_files/";
     std::string checkpoint_output_folder = "./Solution/checkpoint_files/";
     std::string levset_output_folder = "./Solution/levset_files/";
+    std::string diagnostic_output_folder = "./Diagnostics/";
+
+    //Diagnostic output filenames
+    std::string file_tke_tse = "Total_Energies.dat";
+    std::string file_mwa_velcomp = "VelComponents.dat";
+    std::string file_mwa_velmag = "VelMagnitudes.dat";
+
+    bool do_calculate_tke_tse=false;
+    bool do_calculate_mwa_velcomp=false;
+    bool do_calculate_mwa_velmag=false;
+
+
+    std::ofstream tmp_tke_tse;
+    std::ofstream tmp_mwa_velcomp;
+    std::ofstream tmp_mwa_velmag;
 
     int num_of_digits_in_filenames = 6;
 
@@ -360,6 +376,13 @@ class MPMspecs
             pp.get("extforce", extforce);
         }
         pp.query("print_diagnostics", print_diagnostics);
+        if(print_diagnostics!=0)
+        {
+        	pp.query("do_calculate_tke_tse", do_calculate_tke_tse);
+        	pp.query("do_calculate_mwa_velcomp", do_calculate_mwa_velcomp);
+        	pp.query("do_calculate_mwa_velmag", do_calculate_mwa_velmag);
+        	pp.query("write_diag_output_time", write_diag_output_time);
+        }
 
         // by default it is periodic
         bclo[0] = BC_SLIPWALL;

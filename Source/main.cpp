@@ -37,6 +37,7 @@ int main(int argc, char *argv[])
         std::string pltfile;
         Real output_time = zero;
         Real output_timePrint = zero;
+        Real diag_timePrint = zero;
         // GpuArray<int, AMREX_SPACEDIM> order_surface_integral =
         // {AMREX_D_DECL(3, 3, 3)};
         std::string msg;
@@ -62,6 +63,8 @@ int main(int argc, char *argv[])
         Initialise_Material_Points(specs, mpm_pc, steps, time, output_it);
 
         Create_Output_Directories(specs);
+
+        Initialise_Diagnostic_Streams(specs);
 
         Initialise_Internal_Forces(specs, mpm_pc, nodaldata, levset_data);
 
@@ -125,6 +128,13 @@ int main(int argc, char *argv[])
                                           specs.levset_smoothfactor);
             }
 
+            if (diag_timePrint >= specs.write_diag_output_time)
+            {
+            	//amrex::Print()<<"\n Writing diagnostic files..";
+            	Do_All_Diagnostics(specs,mpm_pc,steps,time);
+            	diag_timePrint = zero;
+            }
+
             if (fabs(output_time - specs.write_output_time) < dt * 0.5)
             {
                 output_it++;
@@ -138,6 +148,7 @@ int main(int argc, char *argv[])
             time += dt;
             output_time += dt;
             output_timePrint += dt;
+            diag_timePrint +=dt;
 
             auto time_per_iter = amrex::second() - iter_time_start;
             if (output_timePrint >= specs.screen_output_time)
@@ -155,6 +166,7 @@ int main(int argc, char *argv[])
         Write_Particle_Grid_Levset_Output(specs, mpm_pc, nodaldata, levset_data,
                                           nodaldata_names, geom, geom_levset,
                                           ba, dm, time, steps, output_it, true);
+        Close_Diagnostic_Streams(specs);
     }
 
     amrex::Finalize();

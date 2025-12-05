@@ -130,6 +130,7 @@ hatND(amrex::Real xi[AMREX_SPACEDIM],
     return funcval;
 }
 
+/*
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 bilin_interp(amrex::Real xp[AMREX_SPACEDIM],
 		 amrex::IntVect iv,
@@ -153,13 +154,6 @@ bilin_interp(amrex::Real xp[AMREX_SPACEDIM],
     int j=iv[YDIR];
     amrex::Real alpha = (xp[0] - (plo[0] + i * dx[0])) / dx[0];
     amrex::Real beta  = (xp[1] - (plo[1] + j * dx[1])) / dx[1];
-
-  /*  amrex::Print()<<"\n Comp = "<<comp;
-    amrex::Print()<<"\n Nodaldata values in bilin_interp: "<<i<<" "<<j<<" "<<nodaldata(i,     j,   0,   comp);
-    amrex::Print()<<"\n Nodaldata values in bilin_interp: "<<i+1<<" "<<j<<" "<<nodaldata(i+1,     j,   0,   comp);
-    amrex::Print()<<"\n Nodaldata values in bilin_interp: "<<i<<" "<<j+1<<" "<<nodaldata(i,     j+1,   0,   comp);
-    amrex::Print()<<"\n Nodaldata values in bilin_interp: "<<i+1<<" "<<j+1<<" "<<nodaldata(i+1,     j+1,   0,   comp);*/
-
 
     value  = (1.0 - alpha) * (1.0 - beta) * nodaldata(i,     j,     0, comp);
     value += alpha         * (1.0 - beta) * nodaldata(i + 1, j,     0, comp);
@@ -191,6 +185,38 @@ bilin_interp(amrex::Real xp[AMREX_SPACEDIM],
 #endif
 
     return value;
+}
+*/
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+bilin_interp(amrex::Real xp[AMREX_SPACEDIM], amrex::IntVect iv,
+             const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> plo,
+             const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> dx,
+             amrex::Array4<amrex::Real> nodaldata, int comp) {
+	int i,j,k;
+	i=iv[0];
+	j=iv[1];
+	k=iv[2];
+
+
+  amrex::Real alpha, beta, gama;
+  amrex::Real value = zero;
+
+  alpha = (xp[XDIR] - (plo[XDIR] + i * dx[XDIR])) / dx[XDIR];
+  beta = (xp[YDIR] - (plo[YDIR] + j * dx[YDIR])) / dx[YDIR];
+  gama = (xp[ZDIR] - (plo[ZDIR] + k * dx[ZDIR])) / dx[ZDIR];
+
+  value += (1.0 - alpha) * (1 - beta) * (1 - gama) * nodaldata(i, j, k, comp);
+  value += alpha * (1 - beta) * (1 - gama) * nodaldata(i + 1, j, k, comp);
+  value += (1.0 - alpha) * beta * (1 - gama) * nodaldata(i, j + 1, k, comp);
+  value += alpha * beta * (1 - gama) * nodaldata(i + 1, j + 1, k, comp);
+
+  value += (1.0 - alpha) * (1 - beta) * gama * nodaldata(i, j, k + 1, comp);
+  value += alpha * (1 - beta) * gama * nodaldata(i + 1, j, k + 1, comp);
+  value += (1.0 - alpha) * beta * gama * nodaldata(i, j + 1, k + 1, comp);
+  value += alpha * beta * gama * nodaldata(i + 1, j + 1, k + 1, comp);
+
+  return (value);
 }
 
 

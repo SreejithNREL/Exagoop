@@ -1067,13 +1067,7 @@ void MPMParticleContainer::interpolate_from_grid(
                 				{
                 					for (int d2 = 0; d2 < AMREX_SPACEDIM; ++d2)
                 					{
-										IntVect nodeindex(AMREX_D_DECL(iv[0]+l, iv[1]+m, iv[2]+n));  
-										if(iv[0]+l>200)
-{
-amrex::Print()<<"\n Node index = "<<nodeindex<<" "<<iv<<" "<<l<<" "<<m<<" ";
-amrex::Print()<<"\n Particle pos = "<<p.pos(0)<<" "<<p.pos(1);
-}
-            
+										IntVect nodeindex(AMREX_D_DECL(iv[0]+l, iv[1]+m, iv[2]+n));
 																
                 						gradvp[d1][d2] +=
                 								nodal_data_arr(nodeindex, VELX_INDEX+d1) * basisval_grad[d2];

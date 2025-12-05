@@ -169,3 +169,112 @@ void Redistribute_Fill_Update(MPMspecs &specs,MPMParticleContainer &mpm_pc, int 
 		mpm_pc.updateNeighbors();
 	}
 }
+
+
+void Initialise_Diagnostic_Streams(MPMspecs &specs)
+{
+	if(specs.print_diagnostics==0) return;
+	if(specs.do_calculate_tke_tse)
+	{
+		std::string fullfilename=specs.diagnostic_output_folder+"/"+specs.file_tke_tse;
+				specs.tmp_tke_tse.open(fullfilename.c_str(),
+		            std::ios::out | std::ios::app | std::ios_base::binary);
+		specs.tmp_tke_tse.precision(12);
+		specs.tmp_tke_tse << "iter,time,TKE,TSE,TE\n";
+		specs.tmp_tke_tse.flush();
+
+	}
+
+	if(specs.do_calculate_mwa_velcomp)
+		{
+			std::string fullfilename=specs.diagnostic_output_folder+"/"+specs.file_mwa_velcomp;
+					specs.tmp_mwa_velcomp.open(fullfilename.c_str(),
+			            std::ios::out | std::ios::app | std::ios_base::binary);
+			specs.tmp_mwa_velcomp.precision(12);
+			specs.tmp_mwa_velcomp << "iter,time,xvel";
+#if (AMREX_SPACEDIM>=2)
+			specs.tmp_mwa_velcomp << ",yvel";
+#endif
+#if (AMREX_SPACEDIM==3)
+			specs.tmp_mwa_velcomp << ",zvel";
+#endif
+			specs.tmp_mwa_velcomp << "\n";
+			specs.tmp_mwa_velcomp.flush();
+
+
+		}
+
+	if(specs.do_calculate_mwa_velmag)
+			{
+				std::string fullfilename=specs.diagnostic_output_folder+"/"+specs.file_mwa_velmag;
+						specs.tmp_mwa_velmag.open(fullfilename.c_str(),
+				            std::ios::out | std::ios::app | std::ios_base::binary);
+				specs.tmp_mwa_velmag.precision(12);
+				specs.tmp_mwa_velmag << "iter,time,velmag\n";
+				specs.tmp_mwa_velmag.flush();
+
+			}
+
+
+}
+
+void Do_All_Diagnostics(MPMspecs &specs, MPMParticleContainer &mpm_pc,int steps, amrex::Real current_time)
+{
+	if(specs.do_calculate_tke_tse)
+	{
+		amrex::Real tke=0.0,tse=0.0;
+		mpm_pc.Calculate_Total_Energies(tke,tse);
+		specs.tmp_tke_tse<<steps<<" "<<current_time<<" "<<tke<<" "<<tse<<" "<<tke+tse<<"\n";
+		specs.tmp_tke_tse.flush();
+	}
+
+	if(specs.do_calculate_mwa_velcomp)
+		{
+
+
+			amrex::GpuArray<Real, AMREX_SPACEDIM> Vcm;
+			mpm_pc.Calculate_MWA_VelocityComponents(Vcm);
+			specs.tmp_mwa_velcomp<<steps<<" "<<current_time;
+			for(int dim=0;dim<AMREX_SPACEDIM;dim++)
+			{
+				specs.tmp_mwa_velcomp<<" "<<Vcm[dim];
+			}
+			specs.tmp_mwa_velcomp<<"\n";
+
+		}
+	if(specs.do_calculate_mwa_velmag)
+			{
+
+				amrex::Real Vmag;
+				mpm_pc.Calculate_MWA_VelocityMagnitude(Vmag);
+				specs.tmp_mwa_velcomp<<steps<<" "<<current_time<<" "<<Vmag<<"\n";
+
+
+			}
+
+}
+
+void Close_Diagnostic_Streams(MPMspecs &specs)
+{
+	if(specs.do_calculate_tke_tse)
+	{
+		specs.tmp_tke_tse.flush();
+		specs.tmp_tke_tse.close();
+	}
+
+	if(specs.do_calculate_mwa_velcomp)
+		{
+		specs.tmp_mwa_velcomp.flush();
+				specs.tmp_mwa_velcomp.close();
+
+
+		}
+
+	if(specs.do_calculate_mwa_velmag)
+			{
+		specs.tmp_mwa_velmag.flush();
+						specs.tmp_mwa_velmag.close();
+			}
+
+
+}

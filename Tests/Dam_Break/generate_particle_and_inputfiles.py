@@ -3,8 +3,8 @@ from sys import argv
 
 # Use the same parameters as in input file
 blo    = np.array([float(0.0),float(0.0),float(0.0)])
-bhi    = np.array([float(0.4),float(0.4),float(0.02)])
-ncells = np.array([100,100,5])
+bhi    = np.array([float(0.4),float(0.4),float(0.004)])
+ncells = np.array([100,100,1])
 npart  = 0 
 dx = (bhi-blo)/ncells;
 if(dx[0]!=dx[1] or dx[0]!=dx[2] or dx[1]!=dx[2]):

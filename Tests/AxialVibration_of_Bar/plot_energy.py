@@ -2,14 +2,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sys import argv
 
-data=np.loadtxt('AxialBarEnergy.out.0')
+data=np.loadtxt('./Diagnostics/Total_Energies.dat',skiprows=1)
 fig = plt.figure(1)
 ax = fig.add_subplot(111)
 ax.grid('on')
 
-plt.plot(data[:,0],data[:,1],label='TKE',color='r')
-plt.plot(data[:,0],data[:,2],label='TSE',color='blue')
-plt.plot(data[:,0],data[:,3],label='TE',color='black')
+plt.plot(data[:,1],data[:,2],label='TKE',color='r')
+plt.plot(data[:,1],data[:,3],label='TSE',color='blue')
+plt.plot(data[:,1],data[:,4],label='TE',color='black')
 plt.xlabel("Time ")
 plt.ylabel("Energy ")
 lgd = ax.legend()  
