@@ -204,8 +204,7 @@ void Initialise_Internal_Forces(MPMspecs &specs,
                                 MPMParticleContainer &mpm_pc,
                                 amrex::MultiFab &nodaldata,
                                 amrex::MultiFab &levset_data)
-{
-    amrex::Real dt = mpm_pc.Calculate_time_step(specs);
+{    
 
     // Momentum deposition and initial stress/strainrate
     {
@@ -219,15 +218,9 @@ void Initialise_Internal_Forces(MPMspecs &specs,
             specs.force_slab_lo, specs.force_slab_hi, specs.extforce,
             /*do_reset=*/1,
             /*do_average=*/1, specs.mass_tolerance,
-            specs.order_scheme_directional, specs.periodic);
+            specs.order_scheme_directional, specs.periodic);        
 
-        amrex::Print()<<"\n P2G done";
-
-        backup_current_velocity(nodaldata);
-
-        //Nodal_Time_Update_Momentum(nodaldata, dt, specs.mass_tolerance);
-
-        //Apply_Nodal_BCs(geom, nodaldata, specs, dt);
+        backup_current_velocity(nodaldata);        
 
         // Interpolate grid -> particles
         mpm_pc.interpolate_from_grid(nodaldata,
@@ -795,12 +788,8 @@ MPMParticleContainer::generate_particle(amrex::Real coords[AMREX_SPACEDIM],
 
 void MPMParticleContainer::PrintParticleData()
 {
-    const int lev = 0;
-    const Geometry &geom = Geom(lev);
-    auto &plev = GetParticles(lev);
-    const auto dx = geom.CellSizeArray();
-    const auto plo = geom.ProbLoArray();
-    
+    const int lev = 0;    
+    auto &plev = GetParticles(lev);    
 
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {

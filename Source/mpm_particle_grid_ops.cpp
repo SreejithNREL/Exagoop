@@ -259,9 +259,13 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
     const int *hiarr = domain.hiVect();
 
     Real grav[] = {AMREX_D_DECL(gravity[XDIR], gravity[YDIR], gravity[ZDIR])};
+Real extpforce[] = {
+      AMREX_D_DECL(extforce[XDIR], extforce[YDIR], extforce[ZDIR])};
 
     int lo[] = {AMREX_D_DECL(loarr[0], loarr[1], loarr[2])};
     int hi[] = {AMREX_D_DECL(hiarr[0], hiarr[1], hiarr[2])};
+
+	int extloads = external_loads_present;
 
     // Zero out nodal data
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
@@ -384,6 +388,28 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
                                 amrex::Real bforce_contrib[AMREX_SPACEDIM] = { AMREX_D_DECL(p.rdata(realData::mass) * grav[XDIR] * basisvalue,
                                 															p.rdata(realData::mass) * grav[YDIR] * basisvalue,
 																							p.rdata(realData::mass) * grav[ZDIR] * basisvalue)};
+
+							if (extloads && 
+						xp[XDIR] > force_slab_lo[XDIR] &&
+                      	xp[XDIR] < force_slab_hi[XDIR] 
+#if (AMREX_SPACEDIM>=2)
+						&&
+                      	xp[YDIR] > force_slab_lo[YDIR] &&
+                      	xp[YDIR] < force_slab_hi[YDIR] 
+#endif
+#if (AMREX_SPACEDIM==3)
+						&&
+                      	xp[ZDIR] > force_slab_lo[ZDIR] &&
+                      	xp[ZDIR] < force_slab_hi[ZDIR]
+#endif 
+)
+{
+for(int dim=0;dim<AMREX_SPACEDIM;dim++)
+{
+bforce_contrib[dim] += extpforce[dim] * basisvalue;
+}                    
+                    
+                  }
 
                                 amrex::Real tensvect[AMREX_SPACEDIM];
                                 tensor_vector_pdt(stress_tens, basisval_grad, tensvect);
