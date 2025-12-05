@@ -12,11 +12,13 @@ MultiFab *lsphi = NULL;
 int ls_refinement = 1;
 bool using_levelset_geometry = false;
 
+
+#if (AMREX_SPACEDIM == 3)
 void make_wedge_hopper_levelset(const Geometry &geom,
                                 const BoxArray &ba,
                                 const DistributionMapping &dm)
 {
-#if (AMREX_SPACEDIM == 3)
+
     int ls_ref = ls_refinement;
     // Define nGrow of level-set and EB
     int nghost = 1;
@@ -110,12 +112,12 @@ void make_wedge_hopper_levelset(const Geometry &geom,
     lsphi = new MultiFab;
     lsphi->define(ls_ba, dm, 1, nghost);
     amrex::FillSignedDistance(*lsphi, lslev, *ebfactory, ls_ref);
-#else
-    amrex::Abort("Wedge hopper geometry is only implemented in 3D");
-#endif
+
+
 
 
 }
+#endif
 
 void init_eb(const Geometry &geom,
              const BoxArray &ba,
@@ -132,8 +134,12 @@ void init_eb(const Geometry &geom,
     {
         if (geom_type == "wedge_hopper")
         {
+#if (AMREX_SPACEDIM==3)
             using_levelset_geometry = true;
             make_wedge_hopper_levelset(geom, ba, dm);
+#else
+			amrex::Abort("Wedge hopper geometry is only implemented in 3D");
+#endif
         }
         else
         {
