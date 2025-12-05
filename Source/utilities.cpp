@@ -66,14 +66,15 @@ void Write_Particle_Grid_Levset_Output(
 void P2G_Momentum(MPMspecs &specs,
                   MPMParticleContainer &mpm_pc,
                   amrex::MultiFab &nodaldata,
-                  int update_massvel,
+				  int update_mass,
+                  int update_vel,
                   int update_forces)
 {
 	if(testing==1) amrex::Print()<<"\n Doing P2G \n";
     mpm_pc.deposit_onto_grid_momentum(
         nodaldata, specs.gravity, specs.external_loads_present,
-        specs.force_slab_lo, specs.force_slab_hi, specs.extforce,
-        update_massvel, update_forces, specs.mass_tolerance,
+        specs.force_slab_lo, specs.force_slab_hi, specs.extforce,update_mass,
+        update_vel, update_forces, specs.mass_tolerance,
         specs.order_scheme_directional, specs.periodic);
 
 }

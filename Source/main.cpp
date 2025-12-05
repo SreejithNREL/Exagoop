@@ -87,34 +87,37 @@ int main(int argc, char *argv[])
 
             Reset_Nodaldata_to_Zero(nodaldata, ng_cells_nodaldata);
 
-            P2G_Momentum(specs, mpm_pc, nodaldata, 1, 0);
+            P2G_Momentum(specs, mpm_pc, nodaldata, 1, 1, 1);
 
-            backup_current_velocity(nodaldata);
-
-			P2G_Momentum(specs, mpm_pc, nodaldata, 0, 1);
+            backup_current_velocity(nodaldata);			
 
             Nodal_Time_Update_Momentum(nodaldata, dt, specs.mass_tolerance);
 
-            Apply_Nodal_BCs(geom, nodaldata, specs, dt);
+ 	        Apply_Nodal_BCs(geom, nodaldata, specs, dt);
 
-            //mpm_pc.updateNeighbors();
+			if(specs.stress_update_scheme == 0)
+			{
+				//Algo 1, step 18, 20, 21, 23 Vacoeboil;s paper
+				G2P_Momentum(specs, mpm_pc, nodaldata, 1, 1, dt);				
+				Update_MP_Positions(specs, mpm_pc, dt); //step 19	
+			}            
 
-            G2P_Momentum(specs, mpm_pc, nodaldata, 1, 0, dt);
-
-            //mpm_pc.updateNeighbors();
-
-            Update_MP_Positions(specs, mpm_pc, dt);
-
-            Redistribute_Fill_Update(specs,mpm_pc,steps);
+            //mpm_pc.updateNeighbors();			            
 
             if (specs.stress_update_scheme == 1)
             {
-                P2G_Momentum(specs, mpm_pc, nodaldata, 1, 0);
-
+				//Algo 2, 19
+				G2P_Momentum(specs, mpm_pc, nodaldata, 1, 0, dt);
+				//20
+                P2G_Momentum(specs, mpm_pc, nodaldata, 0, 1, 0);
+				//21
                 Apply_Nodal_BCs(geom, nodaldata, specs, dt);
-            }
+				//25
+				G2P_Momentum(specs, mpm_pc, nodaldata, 0, 1, dt);
+				Update_MP_Positions(specs, mpm_pc, dt); //step 18
+            }						
 
-            G2P_Momentum(specs, mpm_pc, nodaldata, 0, 1, dt);
+            Redistribute_Fill_Update(specs,mpm_pc,steps);         
 
             //mpm_pc.updateNeighbors();
 

@@ -239,7 +239,8 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
     amrex::Array<Real, AMREX_SPACEDIM> force_slab_lo,
     amrex::Array<Real, AMREX_SPACEDIM> force_slab_hi,
     amrex::Array<Real, AMREX_SPACEDIM> extforce,
-    int update_massvel,
+    int update_mass,
+    int update_vel,
     int update_forces,
     amrex::Real mass_tolerance,
     amrex::GpuArray<int, AMREX_SPACEDIM> order_scheme_directional,
@@ -278,9 +279,13 @@ Real extpforce[] = {
             [=] AMREX_GPU_DEVICE(AMREX_D_DECL(int i, int j, int k)) noexcept
             {
 				IntVect nodeindex(AMREX_D_DECL(i, j, k));
-                if (update_massvel)
+ 				if(update_mass)
+				{
+nodal_data_arr(nodeindex, MASS_INDEX) = 0.0;
+				}
+                if (update_vel)
                 {
-                    nodal_data_arr(nodeindex, MASS_INDEX) = 0.0;
+                    
                     for (int d = 0; d < AMREX_SPACEDIM; ++d)
                     {
                     	nodal_data_arr(nodeindex, VELX_INDEX + d) = 0.0;
@@ -361,13 +366,19 @@ Real extpforce[] = {
                             basisvalue = basisval(stencil, iv, xp, plo, dx,order_scheme_directional,periodic, lo, hi);
 
 
-                            if (update_massvel)
+if(update_mass)
+{
+amrex::Real mass_contrib = p.rdata(realData::mass) * basisvalue;
+amrex::Gpu::Atomic::AddNoRet(&nodal_data_arr(ivlocal, MASS_INDEX), mass_contrib);
+
+}
+                            if (update_vel)
                             {
-                                amrex::Real mass_contrib = p.rdata(realData::mass) * basisvalue;
+                                
                                 amrex::Real p_contrib[AMREX_SPACEDIM] = { AMREX_D_DECL(	p.rdata(realData::mass) * p.rdata(realData::xvel) * basisvalue,
                                 														p.rdata(realData::mass) * p.rdata(realData::yvel) * basisvalue,
 																						p.rdata(realData::mass) * p.rdata(realData::zvel) * basisvalue)};
-                                amrex::Gpu::Atomic::AddNoRet(&nodal_data_arr(ivlocal, MASS_INDEX), mass_contrib);
+                                
 
                                 for (int dim = 0; dim < AMREX_SPACEDIM; dim++)
                                 {
@@ -447,7 +458,7 @@ bforce_contrib[dim] += extpforce[dim] * basisvalue;
             {
 IntVect nodeindex(AMREX_D_DECL(i, j, k));
         	//if(testing==1)	amrex::Print()<<"\n Normalizing nodal data at node "<<i<<" "<<j<<" "<<nodal_data_arr(nodeindex, MASS_INDEX);
-                if (update_massvel && nodal_data_arr(nodeindex, MASS_INDEX) > 0.0)
+                if (update_vel && nodal_data_arr(nodeindex, MASS_INDEX) > 0.0)
                 {
                 	for (int d = 0; d < AMREX_SPACEDIM; ++d)
                     {
@@ -1108,7 +1119,10 @@ void MPMParticleContainer::interpolate_from_grid(
                 	}
 #endif
 
+					//Calculate deformation gradient tensor. F_p^{t+dt} at time t+dt
                 	get_deformation_gradient_tensor(p, realData::deformation_gradient, gradvp, dt);
+
+					//Calculate strain rate tensor. D_p^{t+dt} at time t+dt
                 	int ind = 0;
                 	for (int d1 = 0; d1 < AMREX_SPACEDIM; ++d1) {
                 		for (int d2 = d1; d2 < AMREX_SPACEDIM; ++d2) {

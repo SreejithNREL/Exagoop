@@ -37,6 +37,7 @@ void Name_Nodaldata_Variables(amrex::Vector<std::string> &nodaldata_names)
 #endif
 }
 
+
 void Initialise_Domain(MPMspecs &specs,
                        Geometry &geom,
                        Geometry &geom_levset,
@@ -216,6 +217,7 @@ void Initialise_Internal_Forces(MPMspecs &specs,
         mpm_pc.deposit_onto_grid_momentum(
             nodaldata, specs.gravity, specs.external_loads_present,
             specs.force_slab_lo, specs.force_slab_hi, specs.extforce,
+			/*update mass*/1,
             /*do_reset=*/1,
             /*do_average=*/1, specs.mass_tolerance,
             specs.order_scheme_directional, specs.periodic);        

@@ -25,7 +25,7 @@ void Write_Particle_Grid_Levset_Output(
     bool rewrite_checkpoint);
 #endif
 
-void P2G_Momentum(MPMspecs &specs, MPMParticleContainer &mpm_pc, amrex::MultiFab &nodaldata,int update_massvel, int update_forces);
+void P2G_Momentum(MPMspecs &specs, MPMParticleContainer &mpm_pc, amrex::MultiFab &nodaldata,int update_mass,int update_vel, int update_forces);
 void Apply_Nodal_BCs(amrex::Geometry &geom,amrex::MultiFab &nodaldata,MPMspecs &specs,amrex::Real dt);
 void G2P_Momentum(MPMspecs &specs, MPMParticleContainer &mpm_pc, amrex::MultiFab &nodaldata, int update_vel, int update_strainrate, amrex::Real dt);
 void Update_MP_Positions(MPMspecs &specs, MPMParticleContainer &mpm_pc, amrex::Real dt);
