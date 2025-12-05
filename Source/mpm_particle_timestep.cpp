@@ -193,6 +193,7 @@ void MPMParticleContainer::moveParticles(
                 for (int d = 0; d < AMREX_SPACEDIM; ++d)
                 {
                     p.pos(d) += p.rdata(realData::xvel_prime + d) * dt;
+					//amrex::Print()<<"\n Position and vel = "<<d<<" "<<p.pos(d)<<" "<<p.rdata(realData::xvel_prime + d);
                 }
 
                 // Build relvel arrays

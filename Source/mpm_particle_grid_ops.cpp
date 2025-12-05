@@ -1023,6 +1023,7 @@ void MPMParticleContainer::interpolate_from_grid(
                 		if (order_scheme_directional[dim] == 1)
                 		{
                 			p.rdata(realData::xvel_prime+dim) = bilin_interp(xp, iv, plo, dx, nodal_data_arr, VELX_INDEX+dim);
+							//amrex::Print()<<"\n Xvel prime inside ifg = "<<dim<<" "<<p.rdata(realData::xvel_prime+dim);
                 			p.rdata(realData::xvel+dim) = alpha_pic_flip * p.rdata(realData::xvel+dim) +
                 					alpha_pic_flip * bilin_interp(xp, iv, plo, dx, nodal_data_arr, DELTA_VELX_INDEX+dim) +
 									(1 - alpha_pic_flip) * p.rdata(realData::xvel_prime+dim);

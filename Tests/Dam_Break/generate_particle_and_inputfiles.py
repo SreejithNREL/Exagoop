@@ -34,7 +34,7 @@ for k in range(ncells[2]):
 print('Number of particles = ',npart)
 outfile=open("mpm_particles.dat","w")
 outfile.write("%d\n"%(npart));
-dim = 2
+dim = 3
 dens=997.5
 phase=0
 rad=0.025

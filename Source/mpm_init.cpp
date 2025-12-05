@@ -231,7 +231,7 @@ void Initialise_Internal_Forces(MPMspecs &specs,
 
         // Interpolate grid -> particles
         mpm_pc.interpolate_from_grid(nodaldata,
-                                     /*momentum_comp=*/1,
+                                     /*momentum_comp=*/0,
                                      /*mass_comp=*/1,
                                      specs.order_scheme_directional,
                                      specs.periodic, specs.alpha_pic_flip, dt);
@@ -453,6 +453,10 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
             }
 
             // positions (dimension‑aware)
+			for (int d = 0; d < 3; ++d)
+            {                
+                p.pos(d) = 0.0;
+            }
             for (int d = 0; d < AMREX_SPACEDIM; ++d)
             {
                 amrex::Real coord;
@@ -464,14 +468,19 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
                         ifs >> p.rdata(realData::density);
 
             // velocities (dimension‑aware)
+            for (int d = 0; d < 3; ++d)
+            {   
+             
+                p.rdata(realData::xvel + d) = 0.0;
+				p.rdata(realData::xvel_prime + d) = 0.0;
+            }
+
             for (int d = 0; d < AMREX_SPACEDIM; ++d)
             {
                 amrex::Real v;
                 ifs >> v;
-                p.rdata(realData::xvel + d) = v;
+                p.rdata(realData::xvel + d) = v;				
             }
-
-
 
             // constitutive model
             ifs >> p.idata(intData::constitutive_model);
@@ -559,7 +568,7 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
                 p.rdata(realData::stress + comp) = zero;
             }
 
-            if(testing==1)
+            if(testing==0)
             {
             amrex::Print()<<"\n Particle "<<p.rdata(realData::radius)<<" "
 						  <<p.rdata(realData::density)<<" "
@@ -782,6 +791,36 @@ MPMParticleContainer::generate_particle(amrex::Real coords[AMREX_SPACEDIM],
     }
 
     return p;
+}
+
+void MPMParticleContainer::PrintParticleData()
+{
+    const int lev = 0;
+    const Geometry &geom = Geom(lev);
+    auto &plev = GetParticles(lev);
+    const auto dx = geom.CellSizeArray();
+    const auto plo = geom.ProbLoArray();
+    
+
+    for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        int gid = mfi.index();
+        int tid = mfi.LocalTileIndex();
+        auto index = std::make_pair(gid, tid);
+
+        auto &ptile = plev[index];
+        auto &aos = ptile.GetArrayOfStructs();
+
+        int np = aos.numRealParticles();
+        ParticleType *pstruct = aos().dataPtr();       
+
+        amrex::ParallelFor(np,
+                           [=] AMREX_GPU_DEVICE(int i) noexcept
+                           {
+                               ParticleType &p = pstruct[i];
+							   amrex::Print()<<"\n Vel at particle "<<i<<" "<<p.rdata(realData::xvel)<<" "<<p.rdata(realData::yvel)<<" "<<p.rdata(realData::zvel);                               
+                           });
+    }    
 }
 
 void MPMParticleContainer::removeParticlesInsideEB()

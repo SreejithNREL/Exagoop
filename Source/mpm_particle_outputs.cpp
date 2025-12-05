@@ -150,6 +150,8 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
                                           const int n)
 {
     BL_PROFILE("MPMParticleContainer::writeParticles");
+
+
     const std::string &pltfile = amrex::Concatenate(prefix_particlefilename, n,
                                                     num_of_digits_in_filenames);
 
@@ -163,14 +165,12 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
     real_data_names.push_back("radius");
 
     real_data_names.push_back("xvel");
-    real_data_names.push_back("xvel_prime");
-
     real_data_names.push_back("yvel");
-    real_data_names.push_back("yvel_prime");
-
     real_data_names.push_back("zvel");
-    real_data_names.push_back("zvel_prime");
 
+	real_data_names.push_back("xvel_prime");
+	real_data_names.push_back("yvel_prime");
+	real_data_names.push_back("zvel_prime");
 
     // Strainrate, strain, stress tensors (NCOMP_TENSOR entries)
     for (int c = 0; c < NCOMP_TENSOR; ++c)
@@ -232,12 +232,8 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
     writeflags_real[realData::radius] = 1;
     // Dimension‑aware velocity flags
     writeflags_real[realData::xvel] = 1;
-#if (AMREX_SPACEDIM >= 2)
     writeflags_real[realData::yvel] = 1;
-#endif
-#if (AMREX_SPACEDIM >= 2)
     writeflags_real[realData::zvel] = 1;
-#endif
 
     writeflags_real[realData::mass] = 1;
     writeflags_real[realData::jacobian] = 1;

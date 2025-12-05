@@ -20,7 +20,7 @@ if(dx[0]!=dx[1] or dx[0]!=dx[2] or dx[1]!=dx[2]):
     print("Error! mesh sizes are not same in all directions",dx[0],dx[1],dx[2])
 nparticle_per_cells_eachdir=4
 
-dim = 2
+dim = 3
 xmin=0.0
 xmax=L
 ymin=0.0

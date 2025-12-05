@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
                             specs, mpm_pc, nodaldata, levset_data, nodaldata_names,
                             geom, geom_levset, ba, dm, time, steps, output_it, true);
 
-        //exit(0);
+        
 
         amrex::Print() << "\n\nTimestepping begins\n\n";
 

@@ -54,6 +54,7 @@ class MPMParticleContainer
                        amrex::Real lset_wall_mu);
 
     void updateVolume();
+void PrintParticleData();
     amrex::Real CalculateExactVelocity(int modenumber,
                                        amrex::Real E,
                                        amrex::Real rho,

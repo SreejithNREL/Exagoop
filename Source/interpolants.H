@@ -130,7 +130,7 @@ hatND(amrex::Real xi[AMREX_SPACEDIM],
     return funcval;
 }
 
-/*
+
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 bilin_interp(amrex::Real xp[AMREX_SPACEDIM],
 		 amrex::IntVect iv,
@@ -186,8 +186,8 @@ bilin_interp(amrex::Real xp[AMREX_SPACEDIM],
 
     return value;
 }
-*/
 
+/*
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 bilin_interp(amrex::Real xp[AMREX_SPACEDIM], amrex::IntVect iv,
              const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> plo,
@@ -205,6 +205,7 @@ bilin_interp(amrex::Real xp[AMREX_SPACEDIM], amrex::IntVect iv,
   alpha = (xp[XDIR] - (plo[XDIR] + i * dx[XDIR])) / dx[XDIR];
   beta = (xp[YDIR] - (plo[YDIR] + j * dx[YDIR])) / dx[YDIR];
   gama = (xp[ZDIR] - (plo[ZDIR] + k * dx[ZDIR])) / dx[ZDIR];
+  gama=0.0;
 
   value += (1.0 - alpha) * (1 - beta) * (1 - gama) * nodaldata(i, j, k, comp);
   value += alpha * (1 - beta) * (1 - gama) * nodaldata(i + 1, j, k, comp);
@@ -218,6 +219,7 @@ bilin_interp(amrex::Real xp[AMREX_SPACEDIM], amrex::IntVect iv,
 
   return (value);
 }
+*/
 
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
