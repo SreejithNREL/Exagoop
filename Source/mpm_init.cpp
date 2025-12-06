@@ -654,7 +654,7 @@ void MPMParticleContainer::InitParticles(amrex::Real mincoords[AMREX_SPACEDIM],
                 amrex::Real coords[AMREX_SPACEDIM];
                 for (int d = 0; d < AMREX_SPACEDIM; ++d)
                 {
-                    coords[d] = ploA[d] + (iv[d] + half) * dxA[d];
+                    coords[d] = ploA[d] + (iv[d] + HALF_CONST) * dxA[d];
                 }
 
                 // Inside user box?
@@ -693,7 +693,7 @@ void MPMParticleContainer::InitParticles(amrex::Real mincoords[AMREX_SPACEDIM],
                     for (int d = 0; d < AMREX_SPACEDIM; ++d)
                     {
                         int bit = (c >> d) & 1; // 0 or 1 per dimension
-                        amrex::Real offset = (bit + half) * half * dxA[d];
+                        amrex::Real offset = (bit + HALF_CONST) * HALF_CONST * dxA[d];
                         coords[d] = base[d] + offset;
                     }
 
@@ -809,7 +809,6 @@ void MPMParticleContainer::PrintParticleData()
                            [=] AMREX_GPU_DEVICE(int i) noexcept
                            {
                                ParticleType &p = pstruct[i];
-							   amrex::Print()<<"\n Vel at particle "<<i<<" "<<p.rdata(realData::xvel)<<" "<<p.rdata(realData::yvel)<<" "<<p.rdata(realData::zvel);                               
                            });
     }    
 }

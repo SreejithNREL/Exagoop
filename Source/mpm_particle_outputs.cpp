@@ -77,7 +77,7 @@ void MPMParticleContainer::update_phase_field(MultiFab &phasedata,
                     {
                         amrex::Real xp[1] = {p.pos(0)};
                         amrex::Real xi[1] = {plo[0] +
-                                             (ivlocal[0] + half) * dx[0]};
+                                             (ivlocal[0] + HALF_CONST) * dx[0]};
 
                         amrex::Real dist = levelset(
                             xi, xp, smoothfactor * p.rdata(realData::radius),
@@ -95,8 +95,8 @@ void MPMParticleContainer::update_phase_field(MultiFab &phasedata,
                         {
                             amrex::Real xp[2] = {p.pos(0), p.pos(1)};
                             amrex::Real xi[2] = {
-                                plo[0] + (ivlocal[0] + half) * dx[0],
-                                plo[1] + (ivlocal[1] + half) * dx[1]};
+                                plo[0] + (ivlocal[0] + HALF_CONST) * dx[0],
+                                plo[1] + (ivlocal[1] + HALF_CONST) * dx[1]};
 
                             amrex::Real dist = levelset(
                                 xi, xp,
@@ -121,9 +121,9 @@ void MPMParticleContainer::update_phase_field(MultiFab &phasedata,
                                 amrex::Real xp[3] = {p.pos(0), p.pos(1),
                                                      p.pos(2)};
                                 amrex::Real xi[3] = {
-                                    plo[0] + (ivlocal[0] + half) * dx[0],
-                                    plo[1] + (ivlocal[1] + half) * dx[1],
-                                    plo[2] + (ivlocal[2] + half) * dx[2]};
+                                    plo[0] + (ivlocal[0] + HALF_CONST) * dx[0],
+                                    plo[1] + (ivlocal[1] + HALF_CONST) * dx[1],
+                                    plo[2] + (ivlocal[2] + HALF_CONST) * dx[2]};
 
                                 amrex::Real dist = levelset(
                                     xi, xp,

@@ -88,7 +88,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 hat1d(amrex::Real xi, amrex::Real xp, amrex::Real hatsize)
 {
     amrex::Real zeta = xi - xp;
-    amrex::Real halfhatsize = hatsize * half;
+    amrex::Real halfhatsize = hatsize * HALF_CONST;
     amrex::Real funcval = zero;
     amrex::Real maxval = one / halfhatsize;
     amrex::Real slope = four / (hatsize * hatsize);
@@ -469,18 +469,6 @@ cubic_interp(amrex::Real xp[AMREX_SPACEDIM],
 
             amrex::Real rx = (xp[0] - (plo[0] + (i + l) * dx[0])) / dx[0];
             amrex::Real ry = (xp[1] - (plo[1] + (j + m) * dx[1])) / dx[1];
-
-
-                        if(rx<-2.0 || rx>2.0)
-                        {
-                        	amrex::Print()<<"\n Inside cubic interp rx "<<rx<<" "<<xp[0];
-                        	exit(0);
-                        }
-                        if(ry<-2.0 || ry>2.0)
-                                                {
-                                                	amrex::Print()<<"\n Inside cubic interp ry "<<ry<<" "<<xp[1];
-                                                	exit(0);
-                                                }
 
             amrex::Real lval = cubicspline_1d(shapetypex, rx, 0);
             amrex::Real mval = cubicspline_1d(shapetypey, ry, 1);

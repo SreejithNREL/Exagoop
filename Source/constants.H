@@ -9,7 +9,7 @@
 #define ZDIR 2
 
 #define fourbythree 1.3333333333
-#define half 0.5
+#define HALF_CONST 0.5
 #define PI 3.141592654
 #define three 3.0
 #define two 2.0
