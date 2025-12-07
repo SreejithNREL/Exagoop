@@ -10,8 +10,8 @@ linear_elastic(amrex::Real eps[NCOMP_TENSOR],
                amrex::Real E,
                amrex::Real v)
 {
-    amrex::Real const1 = E / (one + v) / (one - two * v);
-    amrex::Real const2 = E / (one + v);
+    amrex::Real const1 = E / (eka + v) / (eka - two * v);
+    amrex::Real const2 = E / (eka + v);
 
 #if (AMREX_SPACEDIM == 1)
     // 1D case: only XX component matters
@@ -46,8 +46,8 @@ linear_elastic_delta(amrex::Real delta_eps[NCOMP_TENSOR],
                amrex::Real E,
                amrex::Real v)
 {
-    amrex::Real const1 = E / (one + v) / (one - two * v);
-    amrex::Real const2 = E / (one + v);
+    amrex::Real const1 = E / (eka + v) / (eka - two * v);
+    amrex::Real const2 = E / (eka + v);
 
 #if (AMREX_SPACEDIM == 1)
     // 1D elasticity: only XX component

@@ -32,7 +32,7 @@ void backup_current_velocity(MultiFab &nodaldata)
             nodalbox,
             [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
             {
-                if (nodal_data_arr(i, j, k, MASS_INDEX) > zero)
+                if (nodal_data_arr(i, j, k, MASS_INDEX) > shunya)
                 {
                     nodal_data_arr(i, j, k, MASS_OLD_INDEX) =
                         nodal_data_arr(i, j, k, MASS_INDEX);
@@ -59,7 +59,7 @@ void backup_current_temperature(MultiFab &nodaldata)
         amrex::ParallelFor(nodalbox,
                            [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
                            {
-                               if (nodal_data_arr(i, j, k, MASS_SPHEAT) > zero)
+                               if (nodal_data_arr(i, j, k, MASS_SPHEAT) > shunya)
                                {
                                    nodal_data_arr(i, j, k, DELTA_TEMPERATURE) =
                                        nodal_data_arr(i, j, k, TEMPERATURE);
@@ -100,7 +100,7 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
                 IntVect refined_nodeid(AMREX_D_DECL(i * lsref, j * lsref, k * lsref));
 
                 if (lsarr(refined_nodeid) < TINYVAL &&
-                    nodal_data_arr(nodeid, MASS_INDEX) > zero)
+                    nodal_data_arr(nodeid, MASS_INDEX) > shunya)
                 {
                     Real relvel_in[AMREX_SPACEDIM];
                     Real relvel_out[AMREX_SPACEDIM];
@@ -160,7 +160,7 @@ void store_delta_velocity(MultiFab &nodaldata)
             nodalbox,
             [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
             {
-                if (nodal_data_arr(i, j, k, MASS_INDEX) > zero)
+                if (nodal_data_arr(i, j, k, MASS_INDEX) > shunya)
                 {
                     for (int d = 0; d < AMREX_SPACEDIM; d++)
                     {
@@ -187,7 +187,7 @@ void store_delta_temperature(MultiFab &nodaldata)
         amrex::ParallelFor(nodalbox,
                            [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
                            {
-                               if (nodal_data_arr(i, j, k, MASS_SPHEAT) > zero)
+                               if (nodal_data_arr(i, j, k, MASS_SPHEAT) > shunya)
                                {
                                    nodal_data_arr(i, j, k, DELTA_TEMPERATURE) =
                                        nodal_data_arr(i, j, k, TEMPERATURE) -
@@ -658,6 +658,6 @@ void CalculateInterpolationError(const amrex::Geometry geom,
 
 void Reset_Nodaldata_to_Zero(amrex::MultiFab &nodaldata, int ng_cells_nodaldata)
 {
-	if(testing==1) amrex::Print()<<"\n Reseting Nodal Data to Zero \n";
-    nodaldata.setVal(zero, ng_cells_nodaldata);
+	if(testing==1) amrex::Print()<<"\n Reseting Nodal Data to shunya \n";
+    nodaldata.setVal(shunya, ng_cells_nodaldata);
 }

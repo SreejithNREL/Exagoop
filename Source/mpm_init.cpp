@@ -558,9 +558,9 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
 
             for (int comp = 0; comp < NCOMP_TENSOR; ++comp)
             {
-                p.rdata(realData::strainrate + comp) = zero;
-                p.rdata(realData::strain + comp) = zero;
-                p.rdata(realData::stress + comp) = zero;
+                p.rdata(realData::strainrate + comp) = shunya;
+                p.rdata(realData::strain + comp) = shunya;
+                p.rdata(realData::stress + comp) = shunya;
             }
 
             if(testing==0)
@@ -780,9 +780,9 @@ MPMParticleContainer::generate_particle(amrex::Real coords[AMREX_SPACEDIM],
     // Initialize tensor components
     for (int comp = 0; comp < NCOMP_TENSOR; ++comp)
     {
-        p.rdata(realData::strainrate + comp) = zero;
-        p.rdata(realData::strain + comp) = zero;
-        p.rdata(realData::stress + comp) = zero;
+        p.rdata(realData::strainrate + comp) = shunya;
+        p.rdata(realData::strain + comp) = shunya;
+        p.rdata(realData::stress + comp) = shunya;
     }
 
     return p;

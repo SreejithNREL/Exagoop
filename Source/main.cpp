@@ -35,9 +35,9 @@ int main(int argc, char *argv[])
         // int num_of_rigid_bodies = 0;
         int output_it = 0;
         std::string pltfile;
-        Real output_time = zero;
-        Real output_timePrint = zero;
-        Real diag_timePrint = zero;
+        Real output_time = shunya;
+        Real output_timePrint = shunya;
+        Real diag_timePrint = shunya;
         // GpuArray<int, AMREX_SPACEDIM> order_surface_integral =
         // {AMREX_D_DECL(3, 3, 3)};
         std::string msg;
@@ -135,7 +135,7 @@ int main(int argc, char *argv[])
             {
             	//amrex::Print()<<"\n Writing diagnostic files..";
             	Do_All_Diagnostics(specs,mpm_pc,steps,time);
-            	diag_timePrint = zero;
+            	diag_timePrint = shunya;
             }
 
             if (fabs(output_time - specs.write_output_time) < dt * 0.5)
@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
                 Write_Particle_Grid_Levset_Output(
                     specs, mpm_pc, nodaldata, levset_data, nodaldata_names,
                     geom, geom_levset, ba, dm, time, steps, output_it, true);
-                output_time = zero;
+                output_time = shunya;
                 BL_PROFILE_VAR_STOP(outputs);
             }
 
@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
                         << std::setprecision(5) << dt << std::fixed
                         << std::setprecision(10)
                         << ",\t Time/Iter = " << time_per_iter << "\n";
-                output_timePrint = zero;
+                output_timePrint = shunya;
             }
         }
 

@@ -89,8 +89,8 @@ hat1d(amrex::Real xi, amrex::Real xp, amrex::Real hatsize)
 {
     amrex::Real zeta = xi - xp;
     amrex::Real halfhatsize = hatsize * HALF_CONST;
-    amrex::Real funcval = zero;
-    amrex::Real maxval = one / halfhatsize;
+    amrex::Real funcval = shunya;
+    amrex::Real maxval = eka / halfhatsize;
     amrex::Real slope = four / (hatsize * hatsize);
 
     if (amrex::Math::abs(zeta) < halfhatsize)
@@ -112,7 +112,7 @@ hatND(amrex::Real xi[AMREX_SPACEDIM],
       amrex::Real xp[AMREX_SPACEDIM],
       amrex::Real hatsize[AMREX_SPACEDIM])
 {
-    amrex::Real funcval = one;
+    amrex::Real funcval = eka;
 
 #if (AMREX_SPACEDIM == 1)
     funcval *= hat1d(xi[0], xp[0], hatsize[0]);
@@ -139,7 +139,7 @@ bilin_interp(amrex::Real xp[AMREX_SPACEDIM],
          amrex::Array4<amrex::Real> nodaldata,
          int comp)
 {
-    amrex::Real value = zero;
+    amrex::Real value = shunya;
 
 #if (AMREX_SPACEDIM == 1)
     // Linear interpolation in 1D
@@ -200,7 +200,7 @@ bilin_interp(amrex::Real xp[AMREX_SPACEDIM], amrex::IntVect iv,
 
 
   amrex::Real alpha, beta, gama;
-  amrex::Real value = zero;
+  amrex::Real value = shunya;
 
   alpha = (xp[XDIR] - (plo[XDIR] + i * dx[XDIR])) / dx[XDIR];
   beta = (xp[YDIR] - (plo[YDIR] + j * dx[YDIR])) / dx[YDIR];
@@ -421,7 +421,7 @@ cubic_interp(amrex::Real xp[AMREX_SPACEDIM],
              const int *lo,
              const int *hi)
 {
-    amrex::Real value = zero;
+    amrex::Real value = shunya;
 
 
 #if (AMREX_SPACEDIM == 1)
@@ -554,7 +554,7 @@ basisval(const IntVect stencil,
         if (od == 1) {
             // Linear shape in this direction: choose left/right half
             // l==0 refers to the "left" node, l==1 the "right" node
-            contrib[d] = (l == 0) ? (one - r) : r;
+            contrib[d] = (l == 0) ? (eka - r) : r;
         } else {
             // Higher-order (cubic spline) shape; compute type based on boundary/periodicity.
             int shapefunctype = 3; // interior default
@@ -585,7 +585,7 @@ basisval(const IntVect stencil,
     }
 
     // Product over dimensions
-    amrex::Real val = one;
+    amrex::Real val = eka;
     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
         val *= contrib[d];
     }
@@ -607,13 +607,13 @@ basisvalder(const int dir,
 {
     amrex::Real dxinv[AMREX_SPACEDIM];
     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-        dxinv[d] = one / dx[d];
+        dxinv[d] = eka / dx[d];
         //amrex::Print()<<"\n dxinv dx = "<<dxinv[d]<<" "<<dx[d];
     }
 
     // Product accumulator; we will multiply per-dimension contributions,
     // using the derivative in 'dir' and value factors in all other dims.
-    amrex::Real prod = one;
+    amrex::Real prod = eka;
 
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
     {
@@ -634,7 +634,7 @@ basisvalder(const int dir,
         {
             // Linear shape
             r = (xp[d] - (plo[d] + i * dx[d])) / dx[d];
-            val_d = (l == 0) ? (one - r) : r;
+            val_d = (l == 0) ? (eka - r) : r;
             der_d = (l == 0) ? -dxinv[d] : dxinv[d];
         }
         else
@@ -732,7 +732,7 @@ tensor_vector_pdt(amrex::Real tens[AMREX_SPACEDIM * AMREX_SPACEDIM],
 {
     for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
-        tensvect[i] = zero;
+        tensvect[i] = shunya;
         for (int j = 0; j < AMREX_SPACEDIM; j++)
         {
             tensvect[i] += tens[i * AMREX_SPACEDIM + j] * vect[j];

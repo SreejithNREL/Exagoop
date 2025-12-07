@@ -497,7 +497,7 @@ IntVect nodeindex(AMREX_D_DECL(i, j, k));
         {IntVect nodeindex(AMREX_D_DECL(i, j, k));
         	if (update_massvel)
         	{
-        		if (nodal_data_arr(nodeindex, MASS_INDEX) > zero)
+        		if (nodal_data_arr(nodeindex, MASS_INDEX) > shunya)
         		{
         			// Backup mass
         			nodal_data_arr(nodeindex, MASS_OLD_INDEX) = nodal_data_arr(nodeindex, MASS_INDEX);
@@ -546,9 +546,9 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
         amrex::ParallelFor(nodalbox,
                            [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
                            {
-                               nodal_data_arr(i, j, k, MASS_SPHEAT) = zero;
-                               nodal_data_arr(i, j, k, MASS_SPHEAT_TEMP) = zero;
-                               nodal_data_arr(i, j, k, TEMPERATURE) = zero;
+                               nodal_data_arr(i, j, k, MASS_SPHEAT) = shunya;
+                               nodal_data_arr(i, j, k, MASS_SPHEAT_TEMP) = shunya;
+                               nodal_data_arr(i, j, k, TEMPERATURE) = shunya;
                            });
     }
 
@@ -1363,9 +1363,9 @@ void MPMParticleContainer::calculate_nodal_normal(
         amrex::ParallelFor(nodalbox,
                            [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
                            {
-                               nodal_data_arr(i, j, k, NORMALX) = zero;
-                               nodal_data_arr(i, j, k, NORMALY) = zero;
-                               nodal_data_arr(i, j, k, NORMALZ) = zero;
+                               nodal_data_arr(i, j, k, NORMALX) = shunya;
+                               nodal_data_arr(i, j, k, NORMALY) = shunya;
+                               nodal_data_arr(i, j, k, NORMALZ) = shunya;
                            });
     }
 

@@ -13,12 +13,12 @@
 #define PI 3.141592654
 #define three 3.0
 #define two 2.0
-#define one 1.0
+#define eka 1.0					//eka in sanskrit
 #define four 4.0
 #define twobyfive 0.4
 #define fourth 0.25
 #define eighth 0.125
-#define zero 0.0
+#define shunya 0.0				//shunya
 #define TINYVAL 1e-20
 #define BIGVAL 1e20
 

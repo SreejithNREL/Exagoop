@@ -52,7 +52,7 @@ applybc(amrex::Real relvel_in[AMREX_SPACEDIM],
         modify_pos = true;
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
         {
-            relvel_out[d] = zero;
+            relvel_out[d] = shunya;
         }
     }
     else if (bc == BC_SLIPWALL)
@@ -65,14 +65,14 @@ applybc(amrex::Real relvel_in[AMREX_SPACEDIM],
     }
     else if (bc == BC_PARTIALSLIPWALL)
     {
-        if (veln <= zero)
+        if (veln <= shunya)
         {
             modify_pos = true;
             if (veltmag <= -wall_mu * veln)
             {
                 for (int d = 0; d < AMREX_SPACEDIM; ++d)
                 {
-                    relvel_out[d] = zero;
+                    relvel_out[d] = shunya;
                 }
             }
             else
