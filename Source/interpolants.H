@@ -296,6 +296,7 @@ cubicspline_1d(int shapefunctiontype, amrex::Real zi, int dir)
 {
     amrex::Real value = 0.0;
     amrex::Real zi_cubed = zi * zi * zi;
+    amrex::Real zi_squared = zi*zi;
     if (shapefunctiontype == 1) // Boundary node
     {
         if (zi >= -2 && zi <= -1)
@@ -364,7 +365,7 @@ cubicspline_1d(int shapefunctiontype, amrex::Real zi, int dir)
         else
         {
 #ifndef AMREX_USE_GPU
-            amrex::Print() << "\n Error in shape func 3: " << zi;
+            amrex::Print() << "\n Error in shape func 3: " << zi<<" in cubic b spline";
 #endif
         }
     }
@@ -499,7 +500,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 quadraticspline_1d(int shapefunctiontype, amrex::Real zi)
 {
     amrex::Real value = 0.0;
-    amrex::Real zi_squared = zi_squared;
+    amrex::Real zi_squared = zi*zi;
     if (shapefunctiontype == 1) // Boundary node, low end and high end
     {
         if (zi >= -1.5 && zi <= -0.5)
@@ -589,15 +590,9 @@ quadraticspline_1d(int shapefunctiontype, amrex::Real zi)
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 quadratic_interp(amrex::Real xp[AMREX_SPACEDIM],
-                 int i,
-                 int j,
-                 int k,
-                 int lmin,
-                 int mmin,
-                 int nmin,
-                 int lmax,
-                 int mmax,
-                 int nmax,
+                 IntVect iv,
+                 IntVect min_index,
+                 IntVect max_index,
                  const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> plo,
                  const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> dx,
                  amrex::Array4<amrex::Real> nodaldata,
@@ -636,6 +631,7 @@ quadratic_interp(amrex::Real xp[AMREX_SPACEDIM],
     int i = iv[XDIR];
     int lmin = min_index[XDIR];
     int lmax = max_index[XDIR];
+
     int j = iv[YDIR];
     int mmin = min_index[YDIR];
     int mmax = max_index[YDIR];
@@ -917,7 +913,7 @@ basisval(const IntVect stencil,
             // l==0 refers to the "left" node, l==1 the "right" node
             contrib[d] = (l == 0) ? (eka - r) : r;
         }
-        else
+        else if(od==2)
         {
             // Higher-order (cubic spline) shape; compute type based on
             // boundary/periodicity.
@@ -954,8 +950,47 @@ basisval(const IntVect stencil,
             // Re-center r at the stencil location (i+l)
             r = (xp[d] - (plo[d] + (i + l) * dx[d])) / dx[d];
 
-            contrib[d] = cubicspline_1d(shapefunctype, r, d);
+            contrib[d] = quadraticspline_1d(shapefunctype, r);
         }
+        else if(od==3)
+                {
+                    // Higher-order (cubic spline) shape; compute type based on
+                    // boundary/periodicity.
+                    int shapefunctype = 3; // interior default
+                    const int idx = i + l;
+
+                    if (periodic[d] == 0)
+                    {
+                        // Non-periodic: classify boundary shape
+                        // Types: 1 (ghost just outside lo/hi+1), 2 (near lo+1), 4 (near
+                        // hi), 3 (interior)
+                        if (idx == lo[d] || idx == hi[d] + 1)
+                        {
+                            shapefunctype = 1;
+                        }
+                        else if (idx == lo[d] + 1)
+                        {
+                            shapefunctype = 2;
+                        }
+                        else if (idx == hi[d])
+                        {
+                            shapefunctype = 4;
+                        }
+                        else
+                        {
+                            shapefunctype = 3;
+                        }
+                    }
+                    else
+                    {
+                        shapefunctype = 3; // periodic → interior shape
+                    }
+
+                    // Re-center r at the stencil location (i+l)
+                    r = (xp[d] - (plo[d] + (i + l) * dx[d])) / dx[d];
+
+                    contrib[d] = cubicspline_1d(shapefunctype, r, d);
+                }
     }
 
     // Product over dimensions
@@ -1013,7 +1048,7 @@ basisvalder(const int dir,
             val_d = (l == 0) ? (eka - r) : r;
             der_d = (l == 0) ? -dxinv[d] : dxinv[d];
         }
-        else
+        else if(od==2)
         {
             // Cubic spline shape (order 3): classify boundary/periodic type
             const int idx = i + l;
@@ -1034,9 +1069,33 @@ basisvalder(const int dir,
             }
 
             r = (xp[d] - (plo[d] + (i + l) * dx[d])) / dx[d];
-            val_d = cubicspline_1d(shapefunctype, r, d);
-            der_d = cubicspline_1d_der(shapefunctype, r) * dxinv[d];
+            val_d = quadraticspline_1d(shapefunctype, r);
+            der_d = quadraticspline_1d_der(shapefunctype, r) * dxinv[d];
         }
+        else
+                {
+                    // Cubic spline shape (order 3): classify boundary/periodic type
+                    const int idx = i + l;
+                    if (periodic[d] == 0)
+                    {
+                        if (idx == lo[d] || idx == hi[d] + 1)
+                            shapefunctype = 1;
+                        else if (idx == lo[d] + 1)
+                            shapefunctype = 2;
+                        else if (idx == hi[d])
+                            shapefunctype = 4;
+                        else
+                            shapefunctype = 3;
+                    }
+                    else
+                    {
+                        shapefunctype = 3; // periodic → interior
+                    }
+
+                    r = (xp[d] - (plo[d] + (i + l) * dx[d])) / dx[d];
+                    val_d = cubicspline_1d(shapefunctype, r, d);
+                    der_d = cubicspline_1d_der(shapefunctype, r) * dxinv[d];
+                }
 
         // Multiply derivative in the requested direction; value otherwise
         prod *= (d == dir) ? der_d : val_d;

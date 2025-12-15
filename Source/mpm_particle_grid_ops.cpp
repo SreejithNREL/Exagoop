@@ -198,7 +198,7 @@ compute_bounds(int ivd, int lod, int hid, int scheme, bool is_periodic)
         bmin = 0;
         bmax = 2;
     }
-    else if (scheme == 3)
+    else if (scheme == 3 or scheme==2)
     {
         if (is_periodic)
         {
@@ -1101,28 +1101,23 @@ void MPMParticleContainer::interpolate_from_grid(
 
                 if (update_vel)
                 {
-                    // amrex::Print()<<"\n Particle mass after interp = "<<"
-                    // "<<p.rdata(realData::mass);
                     for (int dim = 0; dim < AMREX_SPACEDIM; dim++)
                     {
 
                         if (order_scheme_directional[dim] == 1)
                         {
-                            p.rdata(realData::xvel_prime + dim) =
-                                bilin_interp(xp, iv, plo, dx, nodal_data_arr,
-                                             VELX_INDEX + dim);
-                            // amrex::Print()<<"\n Xvel prime inside ifg =
-                            // "<<dim<<" "<<p.rdata(realData::xvel_prime+dim);
-                            p.rdata(realData::xvel + dim) =
-                                alpha_pic_flip * p.rdata(realData::xvel + dim) +
-                                alpha_pic_flip *
-                                    bilin_interp(xp, iv, plo, dx,
-                                                 nodal_data_arr,
-                                                 DELTA_VELX_INDEX + dim) +
+                            p.rdata(realData::xvel_prime + dim) =  bilin_interp(xp, iv, plo, dx, nodal_data_arr, VELX_INDEX + dim);
+                            p.rdata(realData::xvel + dim) = alpha_pic_flip * p.rdata(realData::xvel + dim) +
+                        				    alpha_pic_flip * bilin_interp(xp, iv, plo, dx, nodal_data_arr, DELTA_VELX_INDEX + dim) +
+							    (1 - alpha_pic_flip) * p.rdata(realData::xvel_prime + dim);
+                        }
+                        else if (order_scheme_directional[dim] == 2)
+                        {
+                            p.rdata(realData::xvel_prime + dim) = quadratic_interp(xp, iv, min_index, max_index, plo, dx, nodal_data_arr, VELX_INDEX + dim, lo, hi);
+                            p.rdata(realData::xvel + dim) = alpha_pic_flip * p.rdata(realData::xvel + dim) +
+                        				    alpha_pic_flip * quadratic_interp( xp, iv, min_index, max_index, plo, dx, nodal_data_arr, DELTA_VELX_INDEX + dim, lo, hi) +
                                 (1 - alpha_pic_flip) *
                                     p.rdata(realData::xvel_prime + dim);
-                            // amrex::Print()<<"\n Particle vel after interp =
-                            // "<<dim<<" "<<p.rdata(realData::xvel+dim);
                         }
                         else if (order_scheme_directional[dim] == 3)
                         {
@@ -1162,7 +1157,6 @@ void MPMParticleContainer::interpolate_from_grid(
                                     IntVect stencil(AMREX_D_DECL(l, m, n));
                                     IntVect celliv(
                                         AMREX_D_DECL(iv[0], iv[1], iv[2]));
-
                                     basisval_grad[d] = basisvalder(
                                         d, stencil, celliv, xp, plo, dx,
                                         order_scheme_directional, periodic, lo,
@@ -1174,7 +1168,6 @@ void MPMParticleContainer::interpolate_from_grid(
                                     {
                                         IntVect nodeindex(AMREX_D_DECL(
                                             iv[0] + l, iv[1] + m, iv[2] + n));
-
                                         gradvp[d1][d2] +=
                                             nodal_data_arr(nodeindex,
                                                            VELX_INDEX + d1) *
@@ -1576,10 +1569,8 @@ void MPMParticleContainer::calculate_nodal_normal(
              [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
              {
                  amrex::Real nmag = pow((nodal_data_arr(i, j, k, NORMALX) *
-                                             nodal_data_arr(i, j, k, NORMALX) +
-                                         nodal_data_arr(i, j, k, NORMALY) *
-                                             nodal_data_arr(i, j, k, NORMALY) +
-                                         nodal_data_arr(i, j, k, NORMALZ) *
+     nodal_data_arr(i, j, k, NORMALX) + nodal_data_arr(i, j, k, NORMALY) *
+     nodal_data_arr(i, j, k, NORMALY) + nodal_data_arr(i, j, k, NORMALZ) *
                                              nodal_data_arr(i, j, k, NORMALZ)),
                                         0.5);
 
