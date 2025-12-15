@@ -17,20 +17,17 @@ spherical_gaussian(amrex::Real xi[AMREX_SPACEDIM],
     return std::exp(-r2 / (r0 * r0)) * std::pow(PI, -0.5) * std::pow(r0, -1.0);
 
 #elif (AMREX_SPACEDIM == 2)
-    r2 = (xi[0] - xp[0]) * (xi[0] - xp[0]) +
-         (xi[1] - xp[1]) * (xi[1] - xp[1]);
+    r2 = (xi[0] - xp[0]) * (xi[0] - xp[0]) + (xi[1] - xp[1]) * (xi[1] - xp[1]);
     // Normalization factor in 2D: (π^(-1)) * r0^(-2)
     return std::exp(-r2 / (r0 * r0)) * std::pow(PI, -1.0) * std::pow(r0, -2.0);
 
 #elif (AMREX_SPACEDIM == 3)
-    r2 = (xi[0] - xp[0]) * (xi[0] - xp[0]) +
-         (xi[1] - xp[1]) * (xi[1] - xp[1]) +
+    r2 = (xi[0] - xp[0]) * (xi[0] - xp[0]) + (xi[1] - xp[1]) * (xi[1] - xp[1]) +
          (xi[2] - xp[2]) * (xi[2] - xp[2]);
     // Normalization factor in 3D: (π^(-1.5)) * r0^(-3)
     return std::exp(-r2 / (r0 * r0)) * std::pow(PI, -1.5) * std::pow(r0, -3.0);
 #endif
 }
-
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 box_kernel(amrex::Real xi[AMREX_SPACEDIM],
@@ -42,18 +39,15 @@ box_kernel(amrex::Real xi[AMREX_SPACEDIM],
     r2 = (xi[0] - xp[0]) * (xi[0] - xp[0]);
 
 #elif (AMREX_SPACEDIM == 2)
-    r2 = (xi[0] - xp[0]) * (xi[0] - xp[0]) +
-         (xi[1] - xp[1]) * (xi[1] - xp[1]);
+    r2 = (xi[0] - xp[0]) * (xi[0] - xp[0]) + (xi[1] - xp[1]) * (xi[1] - xp[1]);
 
 #elif (AMREX_SPACEDIM == 3)
-    r2 = (xi[0] - xp[0]) * (xi[0] - xp[0]) +
-         (xi[1] - xp[1]) * (xi[1] - xp[1]) +
+    r2 = (xi[0] - xp[0]) * (xi[0] - xp[0]) + (xi[1] - xp[1]) * (xi[1] - xp[1]) +
          (xi[2] - xp[2]) * (xi[2] - xp[2]);
 #endif
 
     return (r2 < r0 * r0) ? 1.0 : 0.0;
 }
-
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 levelset(amrex::Real xi[AMREX_SPACEDIM],
@@ -68,12 +62,10 @@ levelset(amrex::Real xi[AMREX_SPACEDIM],
     r2 = (xi[0] - xp[0]) * (xi[0] - xp[0]);
 
 #elif (AMREX_SPACEDIM == 2)
-    r2 = (xi[0] - xp[0]) * (xi[0] - xp[0]) +
-         (xi[1] - xp[1]) * (xi[1] - xp[1]);
+    r2 = (xi[0] - xp[0]) * (xi[0] - xp[0]) + (xi[1] - xp[1]) * (xi[1] - xp[1]);
 
 #elif (AMREX_SPACEDIM == 3)
-    r2 = (xi[0] - xp[0]) * (xi[0] - xp[0]) +
-         (xi[1] - xp[1]) * (xi[1] - xp[1]) +
+    r2 = (xi[0] - xp[0]) * (xi[0] - xp[0]) + (xi[1] - xp[1]) * (xi[1] - xp[1]) +
          (xi[2] - xp[2]) * (xi[2] - xp[2]);
 #endif
 
@@ -82,7 +74,6 @@ levelset(amrex::Real xi[AMREX_SPACEDIM],
 
     return f2;
 }
-
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 hat1d(amrex::Real xi, amrex::Real xp, amrex::Real hatsize)
@@ -130,58 +121,57 @@ hatND(amrex::Real xi[AMREX_SPACEDIM],
     return funcval;
 }
 
-
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 bilin_interp(amrex::Real xp[AMREX_SPACEDIM],
-		 amrex::IntVect iv,
-         const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> plo,
-         const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> dx,
-         amrex::Array4<amrex::Real> nodaldata,
-         int comp)
+             amrex::IntVect iv,
+             const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> plo,
+             const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> dx,
+             amrex::Array4<amrex::Real> nodaldata,
+             int comp)
 {
     amrex::Real value = shunya;
 
 #if (AMREX_SPACEDIM == 1)
     // Linear interpolation in 1D
-    int i=iv[XDIR];
+    int i = iv[XDIR];
     amrex::Real alpha = (xp[0] - (plo[0] + i * dx[0])) / dx[0];
-    value = (1.0 - alpha) * nodaldata(i, 0, 0, comp)
-          + alpha * nodaldata(i + 1, 0, 0, comp);
+    value = (1.0 - alpha) * nodaldata(i, 0, 0, comp) +
+            alpha * nodaldata(i + 1, 0, 0, comp);
 
 #elif (AMREX_SPACEDIM == 2)
     // Bilinear interpolation in 2D
-    int i=iv[XDIR];
-    int j=iv[YDIR];
+    int i = iv[XDIR];
+    int j = iv[YDIR];
     amrex::Real alpha = (xp[0] - (plo[0] + i * dx[0])) / dx[0];
-    amrex::Real beta  = (xp[1] - (plo[1] + j * dx[1])) / dx[1];
+    amrex::Real beta = (xp[1] - (plo[1] + j * dx[1])) / dx[1];
 
-    value  = (1.0 - alpha) * (1.0 - beta) * nodaldata(i,     j,     0, comp);
-    value += alpha         * (1.0 - beta) * nodaldata(i + 1, j,     0, comp);
-    value += (1.0 - alpha) * beta         * nodaldata(i,     j + 1, 0, comp);
-    value += alpha         * beta         * nodaldata(i + 1, j + 1, 0, comp);
+    value = (1.0 - alpha) * (1.0 - beta) * nodaldata(i, j, 0, comp);
+    value += alpha * (1.0 - beta) * nodaldata(i + 1, j, 0, comp);
+    value += (1.0 - alpha) * beta * nodaldata(i, j + 1, 0, comp);
+    value += alpha * beta * nodaldata(i + 1, j + 1, 0, comp);
 
-//amrex::Print()<<"\n Value values in bilin_interp: "<<value;
-
+    // amrex::Print()<<"\n Value values in bilin_interp: "<<value;
 
 #elif (AMREX_SPACEDIM == 3)
     // Trilinear interpolation in 3D (your original code)
-    int i=iv[XDIR];
-    int j=iv[YDIR];
-    int k=iv[ZDIR];
+    int i = iv[XDIR];
+    int j = iv[YDIR];
+    int k = iv[ZDIR];
 
     amrex::Real alpha = (xp[0] - (plo[0] + i * dx[0])) / dx[0];
-    amrex::Real beta  = (xp[1] - (plo[1] + j * dx[1])) / dx[1];
-    amrex::Real gama  = (xp[2] - (plo[2] + k * dx[2])) / dx[2];
+    amrex::Real beta = (xp[1] - (plo[1] + j * dx[1])) / dx[1];
+    amrex::Real gama = (xp[2] - (plo[2] + k * dx[2])) / dx[2];
 
-    value  = (1.0 - alpha) * (1.0 - beta) * (1.0 - gama) * nodaldata(i,     j,     k,     comp);
-    value += alpha         * (1.0 - beta) * (1.0 - gama) * nodaldata(i + 1, j,     k,     comp);
-    value += (1.0 - alpha) * beta         * (1.0 - gama) * nodaldata(i,     j + 1, k,     comp);
-    value += alpha         * beta         * (1.0 - gama) * nodaldata(i + 1, j + 1, k,     comp);
+    value =
+        (1.0 - alpha) * (1.0 - beta) * (1.0 - gama) * nodaldata(i, j, k, comp);
+    value += alpha * (1.0 - beta) * (1.0 - gama) * nodaldata(i + 1, j, k, comp);
+    value += (1.0 - alpha) * beta * (1.0 - gama) * nodaldata(i, j + 1, k, comp);
+    value += alpha * beta * (1.0 - gama) * nodaldata(i + 1, j + 1, k, comp);
 
-    value += (1.0 - alpha) * (1.0 - beta) * gama         * nodaldata(i,     j,     k + 1, comp);
-    value += alpha         * (1.0 - beta) * gama         * nodaldata(i + 1, j,     k + 1, comp);
-    value += (1.0 - alpha) * beta         * gama         * nodaldata(i,     j + 1, k + 1, comp);
-    value += alpha         * beta         * gama         * nodaldata(i + 1, j + 1, k + 1, comp);
+    value += (1.0 - alpha) * (1.0 - beta) * gama * nodaldata(i, j, k + 1, comp);
+    value += alpha * (1.0 - beta) * gama * nodaldata(i + 1, j, k + 1, comp);
+    value += (1.0 - alpha) * beta * gama * nodaldata(i, j + 1, k + 1, comp);
+    value += alpha * beta * gama * nodaldata(i + 1, j + 1, k + 1, comp);
 #endif
 
     return value;
@@ -193,10 +183,10 @@ bilin_interp(amrex::Real xp[AMREX_SPACEDIM], amrex::IntVect iv,
              const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> plo,
              const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> dx,
              amrex::Array4<amrex::Real> nodaldata, int comp) {
-	int i,j,k;
-	i=iv[0];
-	j=iv[1];
-	k=iv[2];
+        int i,j,k;
+        i=iv[0];
+        j=iv[1];
+        k=iv[2];
 
 
   amrex::Real alpha, beta, gama;
@@ -221,82 +211,82 @@ bilin_interp(amrex::Real xp[AMREX_SPACEDIM], amrex::IntVect iv,
 }
 */
 
-
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 cubicspline_1d_der(int shapefunctiontype, amrex::Real zi)
 {
     amrex::Real value = 0.0;
+    amrex::Real zi_squared = zi * zi;
     if (shapefunctiontype == 1) // Boundary node
     {
         if (zi >= -2 && zi <= -1)
         {
-            value = zi * zi / 2.0 + 2 * zi + 2.0;
+            value = zi_squared / 2.0 + 2 * zi + 2.0;
         }
         else if (zi >= -1 && zi <= 0)
         {
-            value = -zi * zi / 2.0 + 1.0;
+            value = -zi_squared * 0.5 + 1.0;
         }
         else if (zi >= 0 && zi <= 1)
         {
-            value = zi * zi / 2.0 - 1.0;
+            value = zi_squared * 0.5 - 1.0;
         }
         else if (zi >= 1 && zi <= 2.0)
         {
-            value = -zi * zi / 2.0 + 2 * zi - 2.0;
+            value = -zi_squared * 0.5 + 2 * zi - 2.0;
         }
     }
     else if (shapefunctiontype == 2) // Near Boundary node
     {
         if (zi >= -1 && zi <= 0)
         {
-            value = -zi * zi - 2.0 * zi;
+            value = -zi_squared - 2.0 * zi;
         }
         else if (zi >= 0 && zi <= 1)
         {
-            value = 3.0 * zi * zi / 2.0 - 2.0 * zi;
+            value = 1.5 * zi_squared - 2.0 * zi;
         }
         else if (zi >= 1 && zi <= 2.0)
         {
-            value = -zi * zi / 2.0 + 2 * zi - 2.0;
+            value = -zi_squared * 0.5 + 2 * zi - 2.0;
         }
     }
     else if (shapefunctiontype == 3) // Interior node
     {
         if (zi >= -2 && zi <= -1)
         {
-            value = zi * zi / 2.0 + 2 * zi + 2.0;
+            value = zi_squared * 0.5 + 2 * zi + 2.0;
         }
         else if (zi >= -1 && zi <= 0)
         {
-            value = -3.0 * zi * zi / 2.0 - 2.0 * zi;
+            value = -1.5 * zi_squared - 2.0 * zi;
         }
         else if (zi >= 0 && zi <= 1)
         {
-            value = 3.0 * zi * zi / 2.0 - 2.0 * zi;
+            value = 1.5 * zi_squared - 2.0 * zi;
         }
         else if (zi >= 1 && zi <= 2.0)
         {
-            value = -zi * zi / 2.0 + 2 * zi - 2.0;
+            value = -zi_squared * 0.5 + 2 * zi - 2.0;
         }
     }
     else if (shapefunctiontype == 4) // Interior node
     {
         if (zi >= -2 && zi <= -1)
         {
-            value = zi * zi / 2.0 + 2 * zi + 2.0;
+            value = zi_squared * 0.5 + 2 * zi + 2.0;
         }
         else if (zi >= -1 && zi <= 0)
         {
-            value = -3.0 * zi * zi / 2.0 - 2.0 * zi;
+            value = -1.5 * zi_squared - 2.0 * zi;
         }
         else if (zi >= 0 && zi <= 1)
         {
-            value = zi * zi - 2.0 * zi;
+            value = zi_squared - 2.0 * zi;
         }
     }
     else
     {
-    	amrex::Abort("\n Incorrect shape function type in cubicspline_1d_der");
+        amrex::Abort("\n Incorrect shape function type in cubicspline_1d_der");
     }
     return value;
 }
@@ -305,23 +295,24 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 cubicspline_1d(int shapefunctiontype, amrex::Real zi, int dir)
 {
     amrex::Real value = 0.0;
+    amrex::Real zi_cubed = zi * zi * zi;
     if (shapefunctiontype == 1) // Boundary node
     {
         if (zi >= -2 && zi <= -1)
         {
-            value = zi * zi * zi / 6.0 + zi * zi + 2.0 * zi + 4.0 / 3.0;
+            value = zi_cubed * onebysix + zi_squared + 2.0 * zi + fourbythree;
         }
         else if (zi >= -1 && zi <= 0)
         {
-            value = -zi * zi * zi / 6.0 + zi + 1.0;
+            value = -zi_cubed * onebysix + zi + 1.0;
         }
         else if (zi >= 0 && zi <= 1)
         {
-            value = zi * zi * zi / 6.0 - zi + 1.0;
+            value = zi_cubed * onebysix - zi + 1.0;
         }
         else if (zi >= 1 && zi <= 2.0)
         {
-            value = -zi * zi * zi / 6.0 + zi * zi - 2.0 * zi + 4.0 / 3.0;
+            value = -zi_cubed * onebysix + zi_squared - 2.0 * zi + fourbythree;
         }
         else
         {
@@ -334,15 +325,15 @@ cubicspline_1d(int shapefunctiontype, amrex::Real zi, int dir)
     {
         if (zi >= -1 && zi <= 0)
         {
-            value = -zi * zi * zi / 3.0 - zi * zi + 2.0 / 3.0;
+            value = -zi_cubed * onebythree - zi_squared + twobythree;
         }
         else if (zi >= 0 && zi <= 1)
         {
-            value = zi * zi * zi / 2.0 - zi * zi + 2.0 / 3.0;
+            value = zi_cubed * 0.5 - zi_squared + twobythree;
         }
         else if (zi >= 1 && zi <= 2.0)
         {
-            value = -zi * zi * zi / 6.0 + zi * zi - 2.0 * zi + 4.0 / 3.0;
+            value = -zi_cubed * onebysix + zi_squared - 2.0 * zi + fourbythree;
         }
         else
         {
@@ -356,19 +347,19 @@ cubicspline_1d(int shapefunctiontype, amrex::Real zi, int dir)
     {
         if (zi >= -2 && zi <= -1)
         {
-            value = zi * zi * zi / 6.0 + zi * zi + 2.0 * zi + 4.0 / 3.0;
+            value = zi_cubed * onebysix + zi_squared + 2.0 * zi + fourbythree;
         }
         else if (zi >= -1 && zi <= 0)
         {
-            value = -zi * zi * zi / 2.0 - zi * zi + 2.0 / 3.0;
+            value = -zi_cubed * 0.5 - zi_squared + twobythree;
         }
         else if (zi >= 0 && zi <= 1)
         {
-            value = zi * zi * zi / 2.0 - zi * zi + 2.0 / 3.0;
+            value = zi_cubed * 0.5 - zi_squared + twobythree;
         }
         else if (zi >= 1 && zi <= 2.0)
         {
-            value = -zi * zi * zi / 6.0 + zi * zi - 2.0 * zi + 4.0 / 3.0;
+            value = -zi_cubed * onebysix + zi_squared - 2.0 * zi + fourbythree;
         }
         else
         {
@@ -381,15 +372,15 @@ cubicspline_1d(int shapefunctiontype, amrex::Real zi, int dir)
     {
         if (zi >= -2 && zi <= -1)
         {
-            value = zi * zi * zi / 6.0 + zi * zi + 2.0 * zi + 4.0 / 3.0;
+            value = zi_cubed * onebysix + zi_squared + 2.0 * zi + fourbythree;
         }
         else if (zi >= -1 && zi <= 0)
         {
-            value = -zi * zi * zi / 2.0 - zi * zi + 2.0 / 3.0;
+            value = -zi_cubed * 0.5 - zi_squared + twobythree;
         }
         else if (zi >= 0 && zi <= 1)
         {
-            value = zi * zi * zi / 3.0 - zi * zi + 2.0 / 3.0;
+            value = zi_cubed * onebythree - zi_squared + twobythree;
         }
         else
         {
@@ -410,10 +401,343 @@ cubicspline_1d(int shapefunctiontype, amrex::Real zi, int dir)
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+quadraticspline_1d_der(int shapefunctiontype, amrex::Real zi)
+{
+    amrex::Real value = 0.0;
+    if (shapefunctiontype == 1) // Boundary node
+    {
+        if (zi >= -1.5 && zi <= -0.5)
+        {
+            value = 4.0 * zi / 3.0 + 2.0;
+        }
+        else if (zi >= -0.5 && zi <= 0)
+        {
+            value = -8.0 * zi / 3.0;
+        }
+        else if (zi >= 0 && zi <= 0.5)
+        {
+            value = -8.0 * zi / 3.0;
+        }
+        else if (zi >= 0.5 && zi <= 1.5)
+        {
+            value = 4.0 * zi / 3.0 - 2.0;
+        }
+        else
+        {
+            // value=0.0;
+        }
+    }
+    else if (shapefunctiontype == 2) // Near Boundary node
+    {
+        if (zi >= -1.0 && zi <= -0.5)
+        {
+            value = 8.0 * (zi + 1.0) / 3.0;
+        }
+        else if (zi >= -0.5 && zi <= 0.5)
+        {
+            value = 1.0 / 6.0 - 14.0 * zi / 6.0;
+        }
+        else if (zi >= 0.5 && zi <= 1.5)
+        {
+            value = zi - 3.0 / 2.0;
+        }
+        else
+        {
+            // value=0.0;
+        }
+    }
+    else if (shapefunctiontype == 3) // Interior node
+    {
+        if (zi >= -1.5 && zi <= -0.5)
+        {
+            value = (2.0 * zi + 3.0) / 2.0;
+        }
+        else if (zi >= -0.5 && zi <= 0.5)
+        {
+            value = -2.0 * zi;
+        }
+        else if (zi >= 0.5 && zi <= 1.5)
+        {
+            value = (2.0 * zi - 3.0) / 2.0;
+        }
+        else
+        {
+            // value=0.0;
+        }
+    }
+    else if (shapefunctiontype == 4) // Interior node
+    {
+        if (zi >= -1.5 && zi <= -0.5)
+        {
+            value = zi + 6.0 / 4.0;
+        }
+        else if (zi >= -0.5 && zi <= 0.5)
+        {
+            value = -14.0 * zi / 6.0 - 1.0 / 6.0;
+        }
+        else if (zi >= 0.5 && zi <= 1.0)
+        {
+            value = 8.0 * (zi - 1.0) / 3.0;
+        }
+        else
+        {
+            // value=0.0;
+        }
+    }
+    else
+    {
+#ifndef AMREX_USE_GPU
+        amrex::Print() << "\n Shapefunction = " << shapefunctiontype;
+#endif
+        amrex::Abort(
+            "\n Incorrect shape function type in Quadraticspline_1d_der");
+    }
+    return value;
+}
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+quadraticspline_1d(int shapefunctiontype, amrex::Real zi)
+{
+    amrex::Real value = 0.0;
+    amrex::Real zi_squared = zi_squared;
+    if (shapefunctiontype == 1) // Boundary node, low end and high end
+    {
+        if (zi >= -1.5 && zi <= -0.5)
+        {
+            // value = (2.0 * zi / 3.0 + 1.0) * (zi + 3.0 / 2.0);
+            value = twobythree * zi_squared + 2.0 * zi + 1.5;
+        }
+        else if (zi >= -0.5 && zi <= 0)
+        {
+            value = 1 - zi_squared * fourbythree;
+        }
+        else if (zi >= 0 && zi <= 0.5)
+        {
+            value = 1 - zi_squared * fourbythree;
+        }
+        else if (zi >= 0.5 && zi <= 1.5)
+        {
+            value = twobythree * zi_squared - 2.0 * zi + 1.5;
+        }
+        else
+        {
+        }
+    }
+    else if (shapefunctiontype == 2) // Near Boundary node, low end
+    {
+        if (zi >= -1.0 && zi <= -0.5)
+        {
+            value = 4.0 * (zi + 1.0) * (zi + 1.0) / 3.0;
+        }
+        else if (zi >= -0.5 && zi <= 0.5)
+        {
+            value = (zi / 6.0 - 7.0 * zi_squared / 6.0 + 17.0 / 24.0);
+        }
+        else if (zi >= 0.5 && zi <= 1.5)
+        {
+            value = (zi / 2.0 - 3.0 / 4.0) * (zi - 3.0 / 2.0);
+        }
+        else
+        {
+            value = 0.0;
+        }
+    }
+    else if (shapefunctiontype == 3) // Interior node
+    {
+        if (zi >= -1.5 && zi <= -0.5)
+        {
+            value = (2.0 * zi + 3.0) * (2.0 * zi + 3.0) / 8.0;
+        }
+        else if (zi >= -0.5 && zi <= 0.5)
+        {
+            value = (-8.0 * zi_squared + 6.0) / 8.0;
+        }
+        else if (zi >= 0.5 && zi <= 1.5)
+        {
+            value = (2.0 * zi - 3.0) * (2.0 * zi - 3.0) / 8.0;
+        }
+        else
+        {
+            value = 0.0;
+        }
+    }
+    else if (shapefunctiontype == 4) // near boundary node, high end
+    {
+        if (zi >= -1.5 && zi <= -0.5)
+        {
+            value = (zi / 2.0 + 3.0 / 4.0) * (zi + 3.0 / 2.0);
+        }
+        else if (zi >= -0.5 && zi <= 0.5)
+        {
+            value = 17.0 / 24.0 - 7.0 * zi_squared / 6.0 - zi / 6;
+        }
+        else if (zi >= 0.5 && zi <= 1.0)
+        {
+            value = (2.0 * zi - 2.0) * (2.0 * zi / 3.0 - 2.0 / 3.0);
+        }
+        else
+        {
+            value = 0.0;
+        }
+    }
+    else
+    {
+        amrex::Abort("\n Incorrect shape function type in cubicspline_1d");
+    }
+    return value;
+}
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+quadratic_interp(amrex::Real xp[AMREX_SPACEDIM],
+                 int i,
+                 int j,
+                 int k,
+                 int lmin,
+                 int mmin,
+                 int nmin,
+                 int lmax,
+                 int mmax,
+                 int nmax,
+                 const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> plo,
+                 const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> dx,
+                 amrex::Array4<amrex::Real> nodaldata,
+                 int comp,
+                 const int *lo,
+                 const int *hi)
+{
+    amrex::Real rx, ry, rz;
+    amrex::Real lval, mval, nval;
+    amrex::Real value = shunya;
+    int shapetypex, shapetypey, shapetypez;
+
+#if (AMREX_SPACEDIM == 1)
+    int i = iv[XDIR];
+    int lmin = min_index[XDIR];
+    int lmax = max_index[XDIR];
+
+    for (int l = lmin; l < lmax; l++)
+    {
+        if (i + l == lo[0])
+            shapetypex = 1;
+        else if (i + l == lo[0] + 1)
+            shapetypex = 2;
+        else if (i + l == hi[0] + 1)
+            shapetypex = 1;
+        else if (i + l == hi[0])
+            shapetypex = 4;
+        else
+            shapetypex = 3;
+    }
+    rx = (xp[XDIR] - (plo[XDIR] + (i + l) * dx[XDIR])) / dx[XDIR];
+    lval = quadraticspline_1d(shapetypex, rx);
+    value += lval * nodaldata(i + l, 0, 0, comp);
+
+#elif (AMREX_SPACEDIM == 2)
+    int i = iv[XDIR];
+    int lmin = min_index[XDIR];
+    int lmax = max_index[XDIR];
+    int j = iv[YDIR];
+    int mmin = min_index[YDIR];
+    int mmax = max_index[YDIR];
+    for (int m = mmin; m < mmax; m++)
+    {
+        for (int l = lmin; l < lmax; l++)
+        {
+            if (i + l == lo[0])
+                shapetypex = 1;
+            else if (i + l == lo[0] + 1)
+                shapetypex = 2;
+            else if (i + l == hi[0] + 1)
+                shapetypex = 1;
+            else if (i + l == hi[0])
+                shapetypex = 4;
+            else
+                shapetypex = 3;
+
+            if (j + m == lo[1])
+                shapetypey = 1;
+            else if (j + m == lo[1] + 1)
+                shapetypey = 2;
+            else if (j + m == hi[1] + 1)
+                shapetypey = 1;
+            else if (j + m == hi[1])
+                shapetypey = 4;
+            else
+                shapetypey = 3;
+
+            rx = (xp[XDIR] - (plo[XDIR] + (i + l) * dx[XDIR])) / dx[XDIR];
+            ry = (xp[YDIR] - (plo[YDIR] + (j + m) * dx[YDIR])) / dx[YDIR];
+
+            lval = quadraticspline_1d(shapetypex, rx);
+            mval = quadraticspline_1d(shapetypey, ry);
+
+            value += lval * mval * nodaldata(i + l, j + m, 0, comp);
+        }
+    }
+
+#elif (AMREX_SPACEDIM == 3)
+
+    for (int n = nmin; n < nmax; n++)
+    {
+        for (int m = mmin; m < mmax; m++)
+        {
+            for (int l = lmin; l < lmax; l++)
+            {
+                if (i + l == lo[0])
+                    shapetypex = 1;
+                else if (i + l == lo[0] + 1)
+                    shapetypex = 2;
+                else if (i + l == hi[0] + 1)
+                    shapetypex = 1;
+                else if (i + l == hi[0])
+                    shapetypex = 4;
+                else
+                    shapetypex = 3;
+
+                if (j + m == lo[1])
+                    shapetypey = 1;
+                else if (j + m == lo[1] + 1)
+                    shapetypey = 2;
+                else if (j + m == hi[1] + 1)
+                    shapetypey = 1;
+                else if (j + m == hi[1])
+                    shapetypey = 4;
+                else
+                    shapetypey = 3;
+
+                if (k + n == lo[2])
+                    shapetypez = 1;
+                else if (k + n == lo[2] + 1)
+                    shapetypez = 2;
+                else if (k + n == hi[2] + 1)
+                    shapetypez = 1;
+                else if (k + n == hi[2])
+                    shapetypez = 4;
+                else
+                    shapetypez = 3;
+
+                rx = (xp[XDIR] - (plo[XDIR] + (i + l) * dx[XDIR])) / dx[XDIR];
+                ry = (xp[YDIR] - (plo[YDIR] + (j + m) * dx[YDIR])) / dx[YDIR];
+                rz = (xp[ZDIR] - (plo[ZDIR] + (k + n) * dx[ZDIR])) / dx[ZDIR];
+
+                lval = quadraticspline_1d(shapetypex, rx);
+                mval = quadraticspline_1d(shapetypey, ry);
+                nval = quadraticspline_1d(shapetypez, rz);
+                value +=
+                    lval * mval * nval * nodaldata(i + l, j + m, k + n, comp);
+            }
+        }
+    }
+#endif
+
+    return (value);
+}
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 cubic_interp(amrex::Real xp[AMREX_SPACEDIM],
-			 IntVect iv,
-			 IntVect min_index,
-			 IntVect max_index,
+             IntVect iv,
+             IntVect min_index,
+             IntVect max_index,
              const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> plo,
              const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> dx,
              amrex::Array4<amrex::Real> nodaldata,
@@ -423,20 +747,25 @@ cubic_interp(amrex::Real xp[AMREX_SPACEDIM],
 {
     amrex::Real value = shunya;
 
-
 #if (AMREX_SPACEDIM == 1)
 
-				 int i = iv[XDIR];
-                 int lmin = min_index[XDIR];
-                 int lmax = max_index[XDIR];
+    int i = iv[XDIR];
+    int lmin = min_index[XDIR];
+    int lmax = max_index[XDIR];
 
-    for (int l = lmin; l < lmax; ++l) {
+    for (int l = lmin; l < lmax; ++l)
+    {
         int shapetypex;
-        if (i + l == lo[0]) shapetypex = 1;
-        else if (i + l == lo[0] + 1) shapetypex = 2;
-        else if (i + l == hi[0] + 1) shapetypex = 1;
-        else if (i + l == hi[0]) shapetypex = 4;
-        else shapetypex = 3;
+        if (i + l == lo[0])
+            shapetypex = 1;
+        else if (i + l == lo[0] + 1)
+            shapetypex = 2;
+        else if (i + l == hi[0] + 1)
+            shapetypex = 1;
+        else if (i + l == hi[0])
+            shapetypex = 4;
+        else
+            shapetypex = 3;
 
         amrex::Real rx = (xp[0] - (plo[0] + (i + l) * dx[0])) / dx[0];
         amrex::Real lval = cubicspline_1d(shapetypex, rx, 0);
@@ -451,21 +780,33 @@ cubic_interp(amrex::Real xp[AMREX_SPACEDIM],
     int mmin = min_index[YDIR];
     int mmax = max_index[YDIR];
 
-    for (int m = mmin; m < mmax; ++m) {
-        for (int l = lmin; l < lmax; ++l) {
+    for (int m = mmin; m < mmax; ++m)
+    {
+        for (int l = lmin; l < lmax; ++l)
+        {
             int shapetypex, shapetypey;
             // X direction
-            if (i + l == lo[0]) shapetypex = 1;
-            else if (i + l == lo[0] + 1) shapetypex = 2;
-            else if (i + l == hi[0] + 1) shapetypex = 1;
-            else if (i + l == hi[0]) shapetypex = 4;
-            else shapetypex = 3;
+            if (i + l == lo[0])
+                shapetypex = 1;
+            else if (i + l == lo[0] + 1)
+                shapetypex = 2;
+            else if (i + l == hi[0] + 1)
+                shapetypex = 1;
+            else if (i + l == hi[0])
+                shapetypex = 4;
+            else
+                shapetypex = 3;
             // Y direction
-            if (j + m == lo[1]) shapetypey = 1;
-            else if (j + m == lo[1] + 1) shapetypey = 2;
-            else if (j + m == hi[1] + 1) shapetypey = 1;
-            else if (j + m == hi[1]) shapetypey = 4;
-            else shapetypey = 3;
+            if (j + m == lo[1])
+                shapetypey = 1;
+            else if (j + m == lo[1] + 1)
+                shapetypey = 2;
+            else if (j + m == hi[1] + 1)
+                shapetypey = 1;
+            else if (j + m == hi[1])
+                shapetypey = 4;
+            else
+                shapetypey = 3;
 
             amrex::Real rx = (xp[0] - (plo[0] + (i + l) * dx[0])) / dx[0];
             amrex::Real ry = (xp[1] - (plo[1] + (j + m) * dx[1])) / dx[1];
@@ -487,28 +828,46 @@ cubic_interp(amrex::Real xp[AMREX_SPACEDIM],
     int k = iv[ZDIR];
     int nmin = min_index[ZDIR];
     int nmax = max_index[ZDIR];
-    for (int n = nmin; n < nmax; ++n) {
-        for (int m = mmin; m < mmax; ++m) {
-            for (int l = lmin; l < lmax; ++l) {
+    for (int n = nmin; n < nmax; ++n)
+    {
+        for (int m = mmin; m < mmax; ++m)
+        {
+            for (int l = lmin; l < lmax; ++l)
+            {
                 int shapetypex, shapetypey, shapetypez;
                 // X direction
-                if (i + l == lo[0]) shapetypex = 1;
-                else if (i + l == lo[0] + 1) shapetypex = 2;
-                else if (i + l == hi[0] + 1) shapetypex = 1;
-                else if (i + l == hi[0]) shapetypex = 4;
-                else shapetypex = 3;
+                if (i + l == lo[0])
+                    shapetypex = 1;
+                else if (i + l == lo[0] + 1)
+                    shapetypex = 2;
+                else if (i + l == hi[0] + 1)
+                    shapetypex = 1;
+                else if (i + l == hi[0])
+                    shapetypex = 4;
+                else
+                    shapetypex = 3;
                 // Y direction
-                if (j + m == lo[1]) shapetypey = 1;
-                else if (j + m == lo[1] + 1) shapetypey = 2;
-                else if (j + m == hi[1] + 1) shapetypey = 1;
-                else if (j + m == hi[1]) shapetypey = 4;
-                else shapetypey = 3;
+                if (j + m == lo[1])
+                    shapetypey = 1;
+                else if (j + m == lo[1] + 1)
+                    shapetypey = 2;
+                else if (j + m == hi[1] + 1)
+                    shapetypey = 1;
+                else if (j + m == hi[1])
+                    shapetypey = 4;
+                else
+                    shapetypey = 3;
                 // Z direction
-                if (k + n == lo[2]) shapetypez = 1;
-                else if (k + n == lo[2] + 1) shapetypez = 2;
-                else if (k + n == hi[2] + 1) shapetypez = 1;
-                else if (k + n == hi[2]) shapetypez = 4;
-                else shapetypez = 3;
+                if (k + n == lo[2])
+                    shapetypez = 1;
+                else if (k + n == lo[2] + 1)
+                    shapetypez = 2;
+                else if (k + n == hi[2] + 1)
+                    shapetypez = 1;
+                else if (k + n == hi[2])
+                    shapetypez = 4;
+                else
+                    shapetypez = 3;
 
                 amrex::Real rx = (xp[0] - (plo[0] + (i + l) * dx[0])) / dx[0];
                 amrex::Real ry = (xp[1] - (plo[1] + (j + m) * dx[1])) / dx[1];
@@ -518,7 +877,8 @@ cubic_interp(amrex::Real xp[AMREX_SPACEDIM],
                 amrex::Real mval = cubicspline_1d(shapetypey, ry, 1);
                 amrex::Real nval = cubicspline_1d(shapetypez, rz, 2);
 
-                value += lval * mval * nval * nodaldata(i + l, j + m, k + n, comp);
+                value +=
+                    lval * mval * nval * nodaldata(i + l, j + m, k + n, comp);
             }
         }
     }
@@ -531,12 +891,12 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 basisval(const IntVect stencil,
          const IntVect cell,
          const amrex::Real xp[AMREX_SPACEDIM],
-         const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM>& plo,
-         const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM>& dx,
-         const GpuArray<int, AMREX_SPACEDIM>& order_scheme_directional,
-         const GpuArray<int, AMREX_SPACEDIM>& periodic,
-         const int* lo,
-         const int* hi)
+         const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> &plo,
+         const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> &dx,
+         const GpuArray<int, AMREX_SPACEDIM> &order_scheme_directional,
+         const GpuArray<int, AMREX_SPACEDIM> &periodic,
+         const int *lo,
+         const int *hi)
 {
     amrex::Real contrib[AMREX_SPACEDIM];
     // Directional indices assumed to be 0,1,2 for XDIR,YDIR,ZDIR
@@ -544,41 +904,55 @@ basisval(const IntVect stencil,
 
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
     {
-        const int i  = cell[d];
-        const int l  = stencil[d];
+        const int i = cell[d];
+        const int l = stencil[d];
         const int od = order_scheme_directional[d];
 
         // Local coordinate in cell i along dimension d
         amrex::Real r = (xp[d] - (plo[d] + i * dx[d])) / dx[d];
 
-        if (od == 1) {
+        if (od == 1)
+        {
             // Linear shape in this direction: choose left/right half
             // l==0 refers to the "left" node, l==1 the "right" node
             contrib[d] = (l == 0) ? (eka - r) : r;
-        } else {
-            // Higher-order (cubic spline) shape; compute type based on boundary/periodicity.
+        }
+        else
+        {
+            // Higher-order (cubic spline) shape; compute type based on
+            // boundary/periodicity.
             int shapefunctype = 3; // interior default
             const int idx = i + l;
 
-            if (periodic[d] == 0) {
+            if (periodic[d] == 0)
+            {
                 // Non-periodic: classify boundary shape
-                // Types: 1 (ghost just outside lo/hi+1), 2 (near lo+1), 4 (near hi), 3 (interior)
-                if (idx == lo[d] || idx == hi[d] + 1) {
+                // Types: 1 (ghost just outside lo/hi+1), 2 (near lo+1), 4 (near
+                // hi), 3 (interior)
+                if (idx == lo[d] || idx == hi[d] + 1)
+                {
                     shapefunctype = 1;
-                } else if (idx == lo[d] + 1) {
+                }
+                else if (idx == lo[d] + 1)
+                {
                     shapefunctype = 2;
-                } else if (idx == hi[d]) {
+                }
+                else if (idx == hi[d])
+                {
                     shapefunctype = 4;
-                } else {
+                }
+                else
+                {
                     shapefunctype = 3;
                 }
-            } else {
+            }
+            else
+            {
                 shapefunctype = 3; // periodic → interior shape
             }
 
             // Re-center r at the stencil location (i+l)
-           r = (xp[d] - (plo[d] + (i + l) * dx[d])) / dx[d];
-           
+            r = (xp[d] - (plo[d] + (i + l) * dx[d])) / dx[d];
 
             contrib[d] = cubicspline_1d(shapefunctype, r, d);
         }
@@ -586,29 +960,30 @@ basisval(const IntVect stencil,
 
     // Product over dimensions
     amrex::Real val = eka;
-    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
         val *= contrib[d];
     }
     return val;
 }
-
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 basisvalder(const int dir,
             const IntVect stencil,
             const IntVect cell,
             const amrex::Real xp[AMREX_SPACEDIM],
-            const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM>& plo,
-            const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM>& dx,
-            const GpuArray<int, AMREX_SPACEDIM>& order_scheme_directional,
-            const GpuArray<int, AMREX_SPACEDIM>& periodic,
-            const int* lo,
-            const int* hi)
+            const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> &plo,
+            const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> &dx,
+            const GpuArray<int, AMREX_SPACEDIM> &order_scheme_directional,
+            const GpuArray<int, AMREX_SPACEDIM> &periodic,
+            const int *lo,
+            const int *hi)
 {
     amrex::Real dxinv[AMREX_SPACEDIM];
-    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
         dxinv[d] = eka / dx[d];
-        //amrex::Print()<<"\n dxinv dx = "<<dxinv[d]<<" "<<dx[d];
+        // amrex::Print()<<"\n dxinv dx = "<<dxinv[d]<<" "<<dx[d];
     }
 
     // Product accumulator; we will multiply per-dimension contributions,
@@ -617,14 +992,15 @@ basisvalder(const int dir,
 
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
     {
-        const int i  = cell[d];
-        const int l  = stencil[d];
+        const int i = cell[d];
+        const int l = stencil[d];
         const int od = order_scheme_directional[d];
 
         // Default: interior cubic shape
         int shapefunctype = 3;
 
-        // Local coordinate r: for linear, centered at cell i; for cubic, at stencil (i+l)
+        // Local coordinate r: for linear, centered at cell i; for cubic, at
+        // stencil (i+l)
         amrex::Real r;
 
         amrex::Real val_d = 0.0; // value contribution in dimension d
@@ -641,12 +1017,19 @@ basisvalder(const int dir,
         {
             // Cubic spline shape (order 3): classify boundary/periodic type
             const int idx = i + l;
-            if (periodic[d] == 0) {
-                if      (idx == lo[d]         || idx == hi[d] + 1) shapefunctype = 1;
-                else if (idx == lo[d] + 1)                            shapefunctype = 2;
-                else if (idx == hi[d])                                shapefunctype = 4;
-                else                                                   shapefunctype = 3;
-            } else {
+            if (periodic[d] == 0)
+            {
+                if (idx == lo[d] || idx == hi[d] + 1)
+                    shapefunctype = 1;
+                else if (idx == lo[d] + 1)
+                    shapefunctype = 2;
+                else if (idx == hi[d])
+                    shapefunctype = 4;
+                else
+                    shapefunctype = 3;
+            }
+            else
+            {
                 shapefunctype = 3; // periodic → interior
             }
 
@@ -661,7 +1044,6 @@ basisvalder(const int dir,
 
     return prod;
 }
-
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 get_tensor(MPMParticleContainer::ParticleType &p,
@@ -705,24 +1087,26 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void get_deformation_gradient_tensor(
     }
 
     for (int i = 0; i < AMREX_SPACEDIM; i++)
+    {
+        for (int j = 0; j < AMREX_SPACEDIM; j++)
         {
-            for (int j = 0; j < AMREX_SPACEDIM; j++)
-            {
-            	Fp[i][j] = p.rdata(start_index + AMREX_SPACEDIM*i+j);
-
-            }
+            Fp[i][j] = p.rdata(start_index + AMREX_SPACEDIM * i + j);
         }
+    }
 
     // Perform matrix multiplication: Result = Lp * Fp
-    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-        for (int j = 0; j < AMREX_SPACEDIM; ++j) {
-        	p.rdata(start_index + i*AMREX_SPACEDIM+j)=0.0;
-            for (int k = 0; k < AMREX_SPACEDIM; ++k) {
-            	p.rdata(start_index + i*AMREX_SPACEDIM+j) += Lp[i][k] * Fp[k][j];
+    for (int i = 0; i < AMREX_SPACEDIM; ++i)
+    {
+        for (int j = 0; j < AMREX_SPACEDIM; ++j)
+        {
+            p.rdata(start_index + i * AMREX_SPACEDIM + j) = 0.0;
+            for (int k = 0; k < AMREX_SPACEDIM; ++k)
+            {
+                p.rdata(start_index + i * AMREX_SPACEDIM + j) +=
+                    Lp[i][k] * Fp[k][j];
             }
         }
     }
-    
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void

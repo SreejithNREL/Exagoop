@@ -23,8 +23,8 @@ void backup_current_temperature(amrex::MultiFab &nodaldata);
 void store_delta_velocity(amrex::MultiFab &nodaldata);
 void store_delta_temperature(amrex::MultiFab &nodaldata);
 void Nodal_Time_Update_Momentum(amrex::MultiFab &nodaldata,
-                  const amrex::Real &dt,
-                  const amrex::Real &mass_tolerance);
+                                const amrex::Real &dt,
+                                const amrex::Real &mass_tolerance);
 void nodal_update_temperature(amrex::MultiFab &nodaldata,
                               const amrex::Real &dt,
                               const amrex::Real &mass_tolerance);
@@ -71,6 +71,7 @@ void nodal_levelset_bcs(amrex::MultiFab &nodaldata,
                         amrex::Real lset_wall_mu);
 
 void Create_Output_Directories(MPMspecs &specs);
-void Reset_Nodaldata_to_Zero(amrex::MultiFab &nodaldata, int ng_cells_nodaldata);
+void Reset_Nodaldata_to_Zero(amrex::MultiFab &nodaldata,
+                             int ng_cells_nodaldata);
 
 #endif

@@ -27,7 +27,7 @@ void Name_Nodaldata_Variables(amrex::Vector<std::string> &nodaldata_names)
     nodaldata_names.push_back("RIGID_BODY_ID");
     nodaldata_names.push_back("NX");
     nodaldata_names.push_back("NY");
-    nodaldata_names.push_back("NZ");    
+    nodaldata_names.push_back("NZ");
 #if USE_TEMP
     nodaldata_names.push_back("MASS_SPHEAT");
     nodaldata_names.push_back("MASS_SPHEAT_TEMP");
@@ -36,7 +36,6 @@ void Name_Nodaldata_Variables(amrex::Vector<std::string> &nodaldata_names)
     nodaldata_names.push_back("DELTA_TEMPERATURE");
 #endif
 }
-
 
 void Initialise_Domain(MPMspecs &specs,
                        Geometry &geom,
@@ -195,9 +194,9 @@ void Create_Output_Directories(MPMspecs &specs)
     {
         amrex::UtilCreateDirectory(specs.levset_output_folder, 0755);
     }
-    if(specs.print_diagnostics)
+    if (specs.print_diagnostics)
     {
-    	amrex::UtilCreateDirectory(specs.diagnostic_output_folder, 0755);
+        amrex::UtilCreateDirectory(specs.diagnostic_output_folder, 0755);
     }
 }
 
@@ -205,24 +204,24 @@ void Initialise_Internal_Forces(MPMspecs &specs,
                                 MPMParticleContainer &mpm_pc,
                                 amrex::MultiFab &nodaldata,
                                 amrex::MultiFab &levset_data)
-{    
+{
 
     // Momentum deposition and initial stress/strainrate
     {
         std::string msg = "\n Calculating initial strainrates and stresses";
         PrintMessage(msg, print_length, true);
-        amrex::Print()<<"\n Printing..";
+        amrex::Print() << "\n Printing..";
         amrex::Real dt = 0.0;
 
         mpm_pc.deposit_onto_grid_momentum(
             nodaldata, specs.gravity, specs.external_loads_present,
             specs.force_slab_lo, specs.force_slab_hi, specs.extforce,
-			/*update mass*/1,
+            /*update mass*/ 1,
             /*do_reset=*/1,
             /*do_average=*/1, specs.mass_tolerance,
-            specs.order_scheme_directional, specs.periodic);        
+            specs.order_scheme_directional, specs.periodic);
 
-        backup_current_velocity(nodaldata);        
+        backup_current_velocity(nodaldata);
 
         // Interpolate grid -> particles
         mpm_pc.interpolate_from_grid(nodaldata,
@@ -448,8 +447,8 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
             }
 
             // positions (dimension‑aware)
-			for (int d = 0; d < 3; ++d)
-            {                
+            for (int d = 0; d < 3; ++d)
+            {
                 p.pos(d) = 0.0;
             }
             for (int d = 0; d < AMREX_SPACEDIM; ++d)
@@ -459,22 +458,22 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
                 p.pos(d) = coord;
             }
             // radius & density
-                        ifs >> p.rdata(realData::radius);
-                        ifs >> p.rdata(realData::density);
+            ifs >> p.rdata(realData::radius);
+            ifs >> p.rdata(realData::density);
 
             // velocities (dimension‑aware)
             for (int d = 0; d < 3; ++d)
-            {   
-             
+            {
+
                 p.rdata(realData::xvel + d) = 0.0;
-				p.rdata(realData::xvel_prime + d) = 0.0;
+                p.rdata(realData::xvel_prime + d) = 0.0;
             }
 
             for (int d = 0; d < AMREX_SPACEDIM; ++d)
             {
                 amrex::Real v;
                 ifs >> v;
-                p.rdata(realData::xvel + d) = v;				
+                p.rdata(realData::xvel + d) = v;
             }
 
             // constitutive model
@@ -521,9 +520,6 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
             p.rdata(realData::mass) =
                 p.rdata(realData::density) * p.rdata(realData::volume);
 
-
-
-
             if (p.idata(intData::phase) == 0)
             {
                 total_mass += p.rdata(realData::mass);
@@ -539,8 +535,6 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
             p.rdata(realData::jacobian) = 1.0;
             p.rdata(realData::vol_init) = p.rdata(realData::volume);
             p.rdata(realData::pressure) = 0.0;
-
-
 
             // deformation gradient (identity in active dims)
             for (int comp = 0; comp < NCOMP_FULLTENSOR; ++comp)
@@ -563,30 +557,27 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
                 p.rdata(realData::stress + comp) = shunya;
             }
 
-            if(testing==0)
+            if (testing == 0)
             {
-            amrex::Print()<<"\n Particle "<<p.rdata(realData::radius)<<" "
-						  <<p.rdata(realData::density)<<" "
-						  <<p.rdata(realData::xvel)<<" "
-						  <<p.rdata(realData::yvel)<<" "
-						  <<p.rdata(realData::zvel)<<" "
-						  <<p.idata(intData::constitutive_model)<<" "
-						  <<p.rdata(realData::E)<<" "
-						  <<p.rdata(realData::nu)<<" "
-						  <<p.rdata(realData::volume)<<" "
-						  <<p.rdata(realData::mass)<<" "
-						  <<p.rdata(realData::deformation_gradient+0)<<" "
-						  <<p.rdata(realData::deformation_gradient+1)<<" "
-						  <<p.rdata(realData::deformation_gradient+2)<<" "
-						  <<p.rdata(realData::deformation_gradient+3)<<" "
-						  <<p.rdata(realData::deformation_gradient+4)<<" "
-						  <<p.rdata(realData::deformation_gradient+5)<<" "
-						  <<p.rdata(realData::deformation_gradient+6)<<" "
-						  <<p.rdata(realData::deformation_gradient+7)<<" "
-						  <<p.rdata(realData::deformation_gradient+8)<<" ";
+                amrex::Print()
+                    << "\n Particle " << p.rdata(realData::radius) << " "
+                    << p.rdata(realData::density) << " "
+                    << p.rdata(realData::xvel) << " " << p.rdata(realData::yvel)
+                    << " " << p.rdata(realData::zvel) << " "
+                    << p.idata(intData::constitutive_model) << " "
+                    << p.rdata(realData::E) << " " << p.rdata(realData::nu)
+                    << " " << p.rdata(realData::volume) << " "
+                    << p.rdata(realData::mass) << " "
+                    << p.rdata(realData::deformation_gradient + 0) << " "
+                    << p.rdata(realData::deformation_gradient + 1) << " "
+                    << p.rdata(realData::deformation_gradient + 2) << " "
+                    << p.rdata(realData::deformation_gradient + 3) << " "
+                    << p.rdata(realData::deformation_gradient + 4) << " "
+                    << p.rdata(realData::deformation_gradient + 5) << " "
+                    << p.rdata(realData::deformation_gradient + 6) << " "
+                    << p.rdata(realData::deformation_gradient + 7) << " "
+                    << p.rdata(realData::deformation_gradient + 8) << " ";
             }
-
-
 
             host_particles.push_back(p);
 
@@ -693,7 +684,8 @@ void MPMParticleContainer::InitParticles(amrex::Real mincoords[AMREX_SPACEDIM],
                     for (int d = 0; d < AMREX_SPACEDIM; ++d)
                     {
                         int bit = (c >> d) & 1; // 0 or 1 per dimension
-                        amrex::Real offset = (bit + HALF_CONST) * HALF_CONST * dxA[d];
+                        amrex::Real offset =
+                            (bit + HALF_CONST) * HALF_CONST * dxA[d];
                         coords[d] = base[d] + offset;
                     }
 
@@ -790,8 +782,8 @@ MPMParticleContainer::generate_particle(amrex::Real coords[AMREX_SPACEDIM],
 
 void MPMParticleContainer::PrintParticleData()
 {
-    const int lev = 0;    
-    auto &plev = GetParticles(lev);    
+    const int lev = 0;
+    auto &plev = GetParticles(lev);
 
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
@@ -803,14 +795,11 @@ void MPMParticleContainer::PrintParticleData()
         auto &aos = ptile.GetArrayOfStructs();
 
         int np = aos.numRealParticles();
-        ParticleType *pstruct = aos().dataPtr();       
+        ParticleType *pstruct = aos().dataPtr();
 
-        amrex::ParallelFor(np,
-                           [=] AMREX_GPU_DEVICE(int i) noexcept
-                           {
-                               ParticleType &p = pstruct[i];
-                           });
-    }    
+        amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE(int i) noexcept
+                           { ParticleType &p = pstruct[i]; });
+    }
 }
 
 void MPMParticleContainer::removeParticlesInsideEB()

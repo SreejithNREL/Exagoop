@@ -75,7 +75,7 @@ get_levelset_value(amrex::Array4<amrex::Real> phi,
     int cornerCount = 1 << AMREX_SPACEDIM; // 2^dim
     for (int corner = 0; corner < cornerCount; ++corner)
     {
-    	IntVect offset;
+        IntVect offset;
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
         {
             offset[d] = (corner >> d) & 1; // 0 or 1
@@ -86,14 +86,13 @@ get_levelset_value(amrex::Array4<amrex::Real> phi,
         int jj = (AMREX_SPACEDIM > 1) ? idx[1] + offset[1] : 0;
         int kk = (AMREX_SPACEDIM > 2) ? idx[2] + offset[2] : 0;
 
-        lsval += phi(ii, jj, kk) *
-                 basisval(offset, idx, ptxyz, problo, ls_dx, order_scheme_pseudo,
-                          periodic_pseudo, lo, hi);
+        lsval += phi(ii, jj, kk) * basisval(offset, idx, ptxyz, problo, ls_dx,
+                                            order_scheme_pseudo,
+                                            periodic_pseudo, lo, hi);
     }
 
     return lsval;
 }
-
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 get_levelset_grad(amrex::Array4<amrex::Real> phi,
@@ -150,9 +149,9 @@ get_levelset_grad(amrex::Array4<amrex::Real> phi,
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
         {
             lsgrad[d] +=
-                phi(ii, jj, kk) *
-                basisvalder(d, offset, idx, ptxyz, problo, ls_dx,
-                            order_scheme_pseudo, periodic_pseudo, lo, hi);
+                phi(ii, jj, kk) * basisvalder(d, offset, idx, ptxyz, problo,
+                                              ls_dx, order_scheme_pseudo,
+                                              periodic_pseudo, lo, hi);
         }
     }
 }

@@ -7,12 +7,13 @@
 struct CheckPair
 {
     template <class P>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE bool operator()(const P& p1,
-                                                        const P& p2) const
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE bool operator()(const P &p1,
+                                                        const P &p2) const
     {
         amrex::Real dsquared = 0.0;
 
-        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        {
             amrex::Real diff = p1.pos(d) - p2.pos(d);
             dsquared += diff * diff;
         }
@@ -20,10 +21,8 @@ struct CheckPair
         amrex::Real search_radius =
             0.5 * (p1.rdata(realData::radius) + p2.rdata(realData::radius));
 
-
         return (dsquared <= 9.0 * search_radius * search_radius);
     }
 };
-
 
 #endif

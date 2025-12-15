@@ -68,11 +68,9 @@ int main(int argc, char *argv[])
 
         Initialise_Internal_Forces(specs, mpm_pc, nodaldata, levset_data);
 
-        Write_Particle_Grid_Levset_Output(
-                            specs, mpm_pc, nodaldata, levset_data, nodaldata_names,
-                            geom, geom_levset, ba, dm, time, steps, output_it, true);
-
-        
+        Write_Particle_Grid_Levset_Output(specs, mpm_pc, nodaldata, levset_data,
+                                          nodaldata_names, geom, geom_levset,
+                                          ba, dm, time, steps, output_it, true);
 
         amrex::Print() << "\n\nTimestepping begins\n\n";
 
@@ -81,7 +79,7 @@ int main(int argc, char *argv[])
             steps++;
             auto iter_time_start = amrex::second();
 
-            Redistribute_Fill_Update(specs,mpm_pc,steps);
+            Redistribute_Fill_Update(specs, mpm_pc, steps);
 
             dt = mpm_pc.Calculate_time_step(specs);
 
@@ -89,37 +87,37 @@ int main(int argc, char *argv[])
 
             P2G_Momentum(specs, mpm_pc, nodaldata, 1, 1, 1);
 
-            backup_current_velocity(nodaldata);			
+            backup_current_velocity(nodaldata);
 
             Nodal_Time_Update_Momentum(nodaldata, dt, specs.mass_tolerance);
 
- 	        Apply_Nodal_BCs(geom, nodaldata, specs, dt);
+            Apply_Nodal_BCs(geom, nodaldata, specs, dt);
 
-			if(specs.stress_update_scheme == 0)
-			{
-				//Algo 1, step 18, 20, 21, 23 Vacoeboil;s paper
-				G2P_Momentum(specs, mpm_pc, nodaldata, 1, 1, dt);				
-				Update_MP_Positions(specs, mpm_pc, dt); //step 19	
-			}            
+            if (specs.stress_update_scheme == 0)
+            {
+                // Algo 1, step 18, 20, 21, 23 Vacoeboil;s paper
+                G2P_Momentum(specs, mpm_pc, nodaldata, 1, 1, dt);
+                Update_MP_Positions(specs, mpm_pc, dt); // step 19
+            }
 
-            //mpm_pc.updateNeighbors();			            
+            // mpm_pc.updateNeighbors();
 
             if (specs.stress_update_scheme == 1)
             {
-				//Algo 2, 19
-				G2P_Momentum(specs, mpm_pc, nodaldata, 1, 0, dt);
-				//20
+                // Algo 2, 19
+                G2P_Momentum(specs, mpm_pc, nodaldata, 1, 0, dt);
+                // 20
                 P2G_Momentum(specs, mpm_pc, nodaldata, 0, 1, 0);
-				//21
+                // 21
                 Apply_Nodal_BCs(geom, nodaldata, specs, dt);
-				//25
-				G2P_Momentum(specs, mpm_pc, nodaldata, 0, 1, dt);
-				Update_MP_Positions(specs, mpm_pc, dt); //step 18
-            }						
+                // 25
+                G2P_Momentum(specs, mpm_pc, nodaldata, 0, 1, dt);
+                Update_MP_Positions(specs, mpm_pc, dt); // step 18
+            }
 
-            Redistribute_Fill_Update(specs,mpm_pc,steps);         
+            Redistribute_Fill_Update(specs, mpm_pc, steps);
 
-            //mpm_pc.updateNeighbors();
+            // mpm_pc.updateNeighbors();
 
             Update_MP_Volume(mpm_pc);
 
@@ -133,9 +131,9 @@ int main(int argc, char *argv[])
 
             if (diag_timePrint >= specs.write_diag_output_time)
             {
-            	//amrex::Print()<<"\n Writing diagnostic files..";
-            	Do_All_Diagnostics(specs,mpm_pc,steps,time);
-            	diag_timePrint = shunya;
+                // amrex::Print()<<"\n Writing diagnostic files..";
+                Do_All_Diagnostics(specs, mpm_pc, steps, time);
+                diag_timePrint = shunya;
             }
 
             if (fabs(output_time - specs.write_output_time) < dt * 0.5)
@@ -151,7 +149,7 @@ int main(int argc, char *argv[])
             time += dt;
             output_time += dt;
             output_timePrint += dt;
-            diag_timePrint +=dt;
+            diag_timePrint += dt;
 
             auto time_per_iter = amrex::second() - iter_time_start;
             if (output_timePrint >= specs.screen_output_time)

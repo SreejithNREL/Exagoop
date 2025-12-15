@@ -68,8 +68,7 @@ void MPMParticleContainer::apply_constitutive_model(
                     if (p.idata(intData::constitutive_model) == 0)
                     {
                         // Elastic solid
-                        linear_elastic(strain,  stress,
-                                       p.rdata(realData::E),
+                        linear_elastic(strain, stress, p.rdata(realData::E),
                                        p.rdata(realData::nu));
                     }
                     else if (p.idata(intData::constitutive_model) == 1)
@@ -82,8 +81,6 @@ void MPMParticleContainer::apply_constitutive_model(
                                           p.rdata(realData::Gama_pressure)) -
                                  1.0) +
                             p_inf;
-
-
 
                         Newtonian_Fluid(strainrate, stress,
                                         p.rdata(realData::Dynamic_viscosity),
@@ -173,8 +170,8 @@ void MPMParticleContainer::apply_constitutive_model_delta(
                     {
                         // Elastic solid: linear operator on delta_strain
                         linear_elastic_delta(delta_strain, delta_stress,
-                                       p.rdata(realData::E),
-                                       p.rdata(realData::nu));
+                                             p.rdata(realData::E),
+                                             p.rdata(realData::nu));
                     }
                     else if (p.idata(intData::constitutive_model) == 1)
                     {

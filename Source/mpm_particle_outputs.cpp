@@ -114,8 +114,8 @@ void MPMParticleContainer::update_phase_field(MultiFab &phasedata,
                     {
                         for (int l = -hw; l <= hw; ++l)
                         {
-                            const IntVect ivlocal(AMREX_D_DECL(iv[0] + l, iv[1] + m,
-                                                  iv[2] + n));
+                            const IntVect ivlocal(
+                                AMREX_D_DECL(iv[0] + l, iv[1] + m, iv[2] + n));
                             if (refboxgrow.contains(ivlocal))
                             {
                                 amrex::Real xp[3] = {p.pos(0), p.pos(1),
@@ -151,7 +151,6 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
 {
     BL_PROFILE("MPMParticleContainer::writeParticles");
 
-
     const std::string &pltfile = amrex::Concatenate(prefix_particlefilename, n,
                                                     num_of_digits_in_filenames);
 
@@ -168,9 +167,9 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
     real_data_names.push_back("yvel");
     real_data_names.push_back("zvel");
 
-	real_data_names.push_back("xvel_prime");
-	real_data_names.push_back("yvel_prime");
-	real_data_names.push_back("zvel_prime");
+    real_data_names.push_back("xvel_prime");
+    real_data_names.push_back("yvel_prime");
+    real_data_names.push_back("zvel_prime");
 
     // Strainrate, strain, stress tensors (NCOMP_TENSOR entries)
     for (int c = 0; c < NCOMP_TENSOR; ++c)
@@ -324,12 +323,12 @@ void MPMParticleContainer::writeCheckpointFile(
 
     // Dimension‑aware velocities
     real_data_names.push_back("radius");
-      real_data_names.push_back("xvel");
-      real_data_names.push_back("yvel");
-      real_data_names.push_back("zvel");
-      real_data_names.push_back("xvel_prime");
-      real_data_names.push_back("yvel_prime");
-      real_data_names.push_back("zvel_prime");
+    real_data_names.push_back("xvel");
+    real_data_names.push_back("yvel");
+    real_data_names.push_back("zvel");
+    real_data_names.push_back("xvel_prime");
+    real_data_names.push_back("yvel_prime");
+    real_data_names.push_back("zvel_prime");
 
     // Strainrate, strain, stress tensors
     for (int c = 0; c < NCOMP_TENSOR; ++c)

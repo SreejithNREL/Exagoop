@@ -54,7 +54,7 @@ class MPMParticleContainer
                        amrex::Real lset_wall_mu);
 
     void updateVolume();
-void PrintParticleData();
+    void PrintParticleData();
     amrex::Real CalculateExactVelocity(int modenumber,
                                        amrex::Real E,
                                        amrex::Real rho,
@@ -88,19 +88,19 @@ void PrintParticleData();
     void CalculateSurfaceIntegralTop(Array<Real, AMREX_SPACEDIM> gravity,
                                      Real &Fy_top,
                                      Real &Fy_bottom);
-    void
-    deposit_onto_grid_momentum(MultiFab &nodaldata,
-                      Array<Real, AMREX_SPACEDIM> gravity,
-                      int external_loads_present,
-                      Array<Real, AMREX_SPACEDIM> force_slab_lo,
-                      Array<Real, AMREX_SPACEDIM> force_slab_hi,
-                      Array<Real, AMREX_SPACEDIM> extforce,
-					  int update_mass,
-                      int update_vel,
-                      int update_forces,
-                      amrex::Real mass_tolerance,
-                      GpuArray<int, AMREX_SPACEDIM> order_scheme_directional,
-                      GpuArray<int, AMREX_SPACEDIM> periodic);
+    void deposit_onto_grid_momentum(
+        MultiFab &nodaldata,
+        Array<Real, AMREX_SPACEDIM> gravity,
+        int external_loads_present,
+        Array<Real, AMREX_SPACEDIM> force_slab_lo,
+        Array<Real, AMREX_SPACEDIM> force_slab_hi,
+        Array<Real, AMREX_SPACEDIM> extforce,
+        int update_mass,
+        int update_vel,
+        int update_forces,
+        amrex::Real mass_tolerance,
+        GpuArray<int, AMREX_SPACEDIM> order_scheme_directional,
+        GpuArray<int, AMREX_SPACEDIM> periodic);
 
     void deposit_onto_grid_temperature(
         MultiFab &nodaldata,
@@ -159,7 +159,8 @@ void PrintParticleData();
                                      int order_scheme);
 
     void Calculate_Total_Energies(Real &TKE, Real &TSE);
-    void Calculate_MWA_VelocityComponents(amrex::GpuArray<Real, AMREX_SPACEDIM> &Vcm);
+    void Calculate_MWA_VelocityComponents(
+        amrex::GpuArray<Real, AMREX_SPACEDIM> &Vcm);
     void Calculate_MWA_VelocityMagnitude(amrex::Real &Vcm);
     amrex::Real CalculateEffectiveSpringConstant(amrex::Real Area,
                                                  amrex::Real L0);

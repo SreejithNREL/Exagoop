@@ -123,7 +123,6 @@ void MPMParticleContainer::updateVolume()
                 }
             });
     }
-
 }
 
 void MPMParticleContainer::moveParticles(
@@ -193,7 +192,8 @@ void MPMParticleContainer::moveParticles(
                 for (int d = 0; d < AMREX_SPACEDIM; ++d)
                 {
                     p.pos(d) += p.rdata(realData::xvel_prime + d) * dt;
-					//amrex::Print()<<"\n Position and vel = "<<d<<" "<<p.pos(d)<<" "<<p.rdata(realData::xvel_prime + d);
+                    // amrex::Print()<<"\n Position and vel = "<<d<<"
+                    // "<<p.pos(d)<<" "<<p.rdata(realData::xvel_prime + d);
                 }
 
                 // Build relvel arrays
@@ -290,11 +290,9 @@ void MPMParticleContainer::moveParticles(
                             p.pos(dir) = 2.0 * phi[dir] - p.pos(dir);
                         }
                     }
-					p.rdata(realData::xvel + dir) = relvel_out[dir] + wallvel[dir];
+                    p.rdata(realData::xvel + dir) =
+                        relvel_out[dir] + wallvel[dir];
                 }
-
-                
-                
             });
     }
 }

@@ -13,12 +13,17 @@
 #define PI 3.141592654
 #define three 3.0
 #define two 2.0
-#define eka 1.0					//one in sanskrit. naming as 'one' creates problems during cuda compilation
+#define eka                                                                    \
+    1.0 // one in sanskrit. naming as 'one' creates problems during cuda
+        // compilation
 #define four 4.0
+#define onebysix 0.16666666666667
+#define onebythree 0.333333333333
 #define twobyfive 0.4
+#define twobythree 0.6666666666667
 #define fourth 0.25
 #define eighth 0.125
-#define shunya 0.0				//zero in sanskrit.
+#define shunya 0.0 // zero in sanskrit.
 #define TINYVAL 1e-20
 #define BIGVAL 1e20
 
@@ -62,14 +67,14 @@
 #define DELTA_TEMPERATURE 24 // T_I
 #endif
 
-#if(AMREX_SPACEDIM==2)
+#if (AMREX_SPACEDIM == 2)
 #define XX 0
 #define XY 1
 #define YY 2
 #define XZ 3
 #define YZ 4
 #define ZZ 5
-#elif(AMREX_SPACEDIM==3)
+#elif (AMREX_SPACEDIM == 3)
 #define XX 0
 #define XY 1
 #define XZ 2

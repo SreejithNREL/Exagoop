@@ -20,11 +20,14 @@ struct realData
         xvel_prime = 4, // For position update. Check the review paper page 34
         yvel_prime = 5,
         zvel_prime = 6,
-		//For stress, strain and strainrate variables, we have 6 components irrespective of AMREX_SPACEDIM. in 1D we use only the first component, in 2D we use only the first 3 components etc.
-        strainrate = 7,            // 4
-        strain = 13,               // 10
-        stress = 19,               // 16
-		//for deformation gradient we have 9 components irrespective of AMREX_SPACEDIM
+        // For stress, strain and strainrate variables, we have 6 components
+        // irrespective of AMREX_SPACEDIM. in 1D we use only the first
+        // component, in 2D we use only the first 3 components etc.
+        strainrate = 7, // 4
+        strain = 13,    // 10
+        stress = 19,    // 16
+                        // for deformation gradient we have 9 components
+                        // irrespective of AMREX_SPACEDIM
         deformation_gradient = 25, // 22
         volume = 34,               // 31
         mass = 35,                 // 32
@@ -100,8 +103,8 @@ class MPMspecs
     int num_redist = 10;
     int max_grid_size = 8;
     Real final_time;
-    Real write_output_time=1e200;
-    Real write_diag_output_time=1e200;
+    Real write_output_time = 1e200;
+    Real write_diag_output_time = 1e200;
     Real screen_output_time;
     int maxsteps = 1;
     std::string particlefilename;
@@ -119,15 +122,14 @@ class MPMspecs
     std::string levset_output_folder = "./Solution/levset_files/";
     std::string diagnostic_output_folder = "./Diagnostics/";
 
-    //Diagnostic output filenames
+    // Diagnostic output filenames
     std::string file_tke_tse = "Total_Energies.dat";
     std::string file_mwa_velcomp = "VelComponents.dat";
     std::string file_mwa_velmag = "VelMagnitudes.dat";
 
-    bool do_calculate_tke_tse=false;
-    bool do_calculate_mwa_velcomp=false;
-    bool do_calculate_mwa_velmag=false;
-
+    bool do_calculate_tke_tse = false;
+    bool do_calculate_mwa_velcomp = false;
+    bool do_calculate_mwa_velmag = false;
 
     std::ofstream tmp_tke_tse;
     std::ofstream tmp_mwa_velcomp;
@@ -376,12 +378,12 @@ class MPMspecs
             pp.get("extforce", extforce);
         }
         pp.query("print_diagnostics", print_diagnostics);
-        if(print_diagnostics!=0)
+        if (print_diagnostics != 0)
         {
-        	pp.query("do_calculate_tke_tse", do_calculate_tke_tse);
-        	pp.query("do_calculate_mwa_velcomp", do_calculate_mwa_velcomp);
-        	pp.query("do_calculate_mwa_velmag", do_calculate_mwa_velmag);
-        	pp.query("write_diag_output_time", write_diag_output_time);
+            pp.query("do_calculate_tke_tse", do_calculate_tke_tse);
+            pp.query("do_calculate_mwa_velcomp", do_calculate_mwa_velcomp);
+            pp.query("do_calculate_mwa_velmag", do_calculate_mwa_velmag);
+            pp.query("write_diag_output_time", write_diag_output_time);
         }
 
         // by default it is periodic
@@ -456,6 +458,5 @@ class MPMspecs
         }
     }
 };
-
 
 #endif

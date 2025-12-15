@@ -96,5 +96,4 @@ applybc(amrex::Real relvel_in[AMREX_SPACEDIM],
     return modify_pos;
 }
 
-
 #endif
