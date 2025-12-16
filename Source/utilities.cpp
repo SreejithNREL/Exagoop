@@ -181,11 +181,15 @@ void Initialise_Diagnostic_Streams(MPMspecs &specs)
     {
         std::string fullfilename =
             specs.diagnostic_output_folder + "/" + specs.file_tke_tse;
-        specs.tmp_tke_tse.open(fullfilename.c_str(), std::ios::out |
-                                                         std::ios::app |
-                                                         std::ios_base::binary);
-        specs.tmp_tke_tse.precision(12);
-        specs.tmp_tke_tse << "iter,time,TKE,TSE,TE\n";
+        if (amrex::ParallelDescriptor::IOProcessor())
+        {
+            specs.tmp_tke_tse.open(fullfilename.c_str(),
+                                   std::ios::out | std::ios::app |
+                                       std::ios_base::binary);
+
+            specs.tmp_tke_tse.precision(12);
+            specs.tmp_tke_tse << "iter,time,TKE,TSE,TE\n";
+        }
         specs.tmp_tke_tse.flush();
     }
 
@@ -193,18 +197,21 @@ void Initialise_Diagnostic_Streams(MPMspecs &specs)
     {
         std::string fullfilename =
             specs.diagnostic_output_folder + "/" + specs.file_mwa_velcomp;
-        specs.tmp_mwa_velcomp.open(fullfilename.c_str(),
-                                   std::ios::out | std::ios::app |
-                                       std::ios_base::binary);
-        specs.tmp_mwa_velcomp.precision(12);
-        specs.tmp_mwa_velcomp << "iter,time,xvel";
+        if (amrex::ParallelDescriptor::IOProcessor())
+        {
+            specs.tmp_mwa_velcomp.open(fullfilename.c_str(),
+                                       std::ios::out | std::ios::app |
+                                           std::ios_base::binary);
+            specs.tmp_mwa_velcomp.precision(12);
+            specs.tmp_mwa_velcomp << "iter,time,xvel";
 #if (AMREX_SPACEDIM >= 2)
-        specs.tmp_mwa_velcomp << ",yvel";
+            specs.tmp_mwa_velcomp << ",yvel";
 #endif
 #if (AMREX_SPACEDIM == 3)
-        specs.tmp_mwa_velcomp << ",zvel";
+            specs.tmp_mwa_velcomp << ",zvel";
 #endif
-        specs.tmp_mwa_velcomp << "\n";
+            specs.tmp_mwa_velcomp << "\n";
+        }
         specs.tmp_mwa_velcomp.flush();
     }
 
@@ -212,11 +219,14 @@ void Initialise_Diagnostic_Streams(MPMspecs &specs)
     {
         std::string fullfilename =
             specs.diagnostic_output_folder + "/" + specs.file_mwa_velmag;
-        specs.tmp_mwa_velmag.open(fullfilename.c_str(),
-                                  std::ios::out | std::ios::app |
-                                      std::ios_base::binary);
-        specs.tmp_mwa_velmag.precision(12);
-        specs.tmp_mwa_velmag << "iter,time,velmag\n";
+        if (amrex::ParallelDescriptor::IOProcessor())
+        {
+            specs.tmp_mwa_velmag.open(fullfilename.c_str(),
+                                      std::ios::out | std::ios::app |
+                                          std::ios_base::binary);
+            specs.tmp_mwa_velmag.precision(12);
+            specs.tmp_mwa_velmag << "iter,time,velmag\n";
+        }
         specs.tmp_mwa_velmag.flush();
     }
 
@@ -224,17 +234,20 @@ void Initialise_Diagnostic_Streams(MPMspecs &specs)
     {
         std::string fullfilename =
             specs.diagnostic_output_folder + "/" + specs.file_minmaxpos;
-        specs.tmp_minmaxpos.open(fullfilename.c_str(),
-                                 std::ios::out | std::ios::app |
-                                     std::ios_base::binary);
-        specs.tmp_minmaxpos.precision(12);
+        if (amrex::ParallelDescriptor::IOProcessor())
+        {
+            specs.tmp_minmaxpos.open(fullfilename.c_str(),
+                                     std::ios::out | std::ios::app |
+                                         std::ios_base::binary);
+            specs.tmp_minmaxpos.precision(12);
 #if (AMREX_SPACEDIM == 1)
-        specs.tmp_minmaxpos << "iter,time,xmin,xmax\n";
+            specs.tmp_minmaxpos << "iter,time,xmin,xmax\n";
 #elif (AMREX_SPACEDIM == 2)
-        specs.tmp_minmaxpos << "iter,time,xmin,ymin,xmax,ymax\n";
+            specs.tmp_minmaxpos << "iter,time,xmin,ymin,xmax,ymax\n";
 #else
-        specs.tmp_minmaxpos << "iter,time,xmin,ymin,xmax,ymax,zmin,zmax\n";
+            specs.tmp_minmaxpos << "iter,time,xmin,ymin,xmax,ymax,zmin,zmax\n";
 #endif
+        }
 
         specs.tmp_minmaxpos.flush();
     }
@@ -247,10 +260,14 @@ void Do_All_Diagnostics(MPMspecs &specs,
 {
     if (specs.do_calculate_tke_tse)
     {
+
         amrex::Real tke = 0.0, tse = 0.0;
         mpm_pc.Calculate_Total_Energies(tke, tse);
-        specs.tmp_tke_tse << steps << " " << current_time << " " << tke << " "
-                          << tse << " " << tke + tse << "\n";
+        if (amrex::ParallelDescriptor::IOProcessor())
+        {
+            specs.tmp_tke_tse << steps << " " << current_time << " " << tke
+                              << " " << tse << " " << tke + tse << "\n";
+        }
         specs.tmp_tke_tse.flush();
     }
 
@@ -259,12 +276,15 @@ void Do_All_Diagnostics(MPMspecs &specs,
 
         amrex::GpuArray<Real, AMREX_SPACEDIM> Vcm;
         mpm_pc.Calculate_MWA_VelocityComponents(Vcm);
-        specs.tmp_mwa_velcomp << steps << " " << current_time;
-        for (int dim = 0; dim < AMREX_SPACEDIM; dim++)
+        if (amrex::ParallelDescriptor::IOProcessor())
         {
-            specs.tmp_mwa_velcomp << " " << Vcm[dim];
+            specs.tmp_mwa_velcomp << steps << " " << current_time;
+            for (int dim = 0; dim < AMREX_SPACEDIM; dim++)
+            {
+                specs.tmp_mwa_velcomp << " " << Vcm[dim];
+            }
+            specs.tmp_mwa_velcomp << "\n";
         }
-        specs.tmp_mwa_velcomp << "\n";
         specs.tmp_mwa_velcomp.flush();
     }
     if (specs.do_calculate_mwa_velmag)
@@ -272,22 +292,29 @@ void Do_All_Diagnostics(MPMspecs &specs,
 
         amrex::Real Vmag;
         mpm_pc.Calculate_MWA_VelocityMagnitude(Vmag);
-        specs.tmp_mwa_velcomp << steps << " " << current_time << " " << Vmag
-                              << "\n";
+        if (amrex::ParallelDescriptor::IOProcessor())
+        {
+            specs.tmp_mwa_velcomp << steps << " " << current_time << " " << Vmag
+                                  << "\n";
+        }
         specs.tmp_mwa_velcomp.flush();
     }
 
     if (specs.do_calculate_minmaxpos)
     {
+
         amrex::GpuArray<Real, AMREX_SPACEDIM> minpos;
         amrex::GpuArray<Real, AMREX_SPACEDIM> maxpos;
         mpm_pc.Calculate_MinMaxPos(minpos, maxpos);
-        specs.tmp_minmaxpos << steps << " " << current_time;
-        for (int dim = 0; dim < AMREX_SPACEDIM; dim++)
+        if (amrex::ParallelDescriptor::IOProcessor())
         {
-            specs.tmp_minmaxpos << " " << minpos[dim] << " " << maxpos[dim];
+            specs.tmp_minmaxpos << steps << " " << current_time;
+            for (int dim = 0; dim < AMREX_SPACEDIM; dim++)
+            {
+                specs.tmp_minmaxpos << " " << minpos[dim] << " " << maxpos[dim];
+            }
+            specs.tmp_minmaxpos << "\n";
         }
-        specs.tmp_minmaxpos << "\n";
         specs.tmp_minmaxpos.flush();
     }
 }

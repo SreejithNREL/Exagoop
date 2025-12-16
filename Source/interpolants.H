@@ -28,18 +28,18 @@ struct QuadraticSplineDerCoeff
 #ifdef AMREX_USE_GPU
 AMREX_GPU_DEVICE __constant__
 #endif
-constexpr int interval_map_quadbspline[5][6] = {
-    {-1, -1, -1, -1, -1, -1}, // type 0 filler
-    {0, 0, 1, 2, 3, 3},  // type 1 (fixed): collapse bins 0–1→0, 2→1, 3→2, 4–5→3
-    {0, 1, 1, 2, 2, -1}, // type 2
-    {0, 0, 1, 1, 2, 2},  // type 3
-    {0, 0, 1, 1, 2, -1}  // type 4
+    constexpr int interval_map_quadbspline[5][6] = {
+        {-1, -1, -1, -1, -1, -1}, // type 0 filler
+        {0, 0, 1, 2, 3,
+         3}, // type 1 (fixed): collapse bins 0–1→0, 2→1, 3→2, 4–5→3
+        {0, 1, 1, 2, 2, -1}, // type 2
+        {0, 0, 1, 1, 2, 2},  // type 3
+        {0, 0, 1, 1, 2, -1}  // type 4
 };
 #ifdef AMREX_USE_GPU
 AMREX_GPU_DEVICE __constant__
 #endif
-constexpr CubicSplineCoeff
-    cubic_spline_coeffs[5][4] = {
+    constexpr CubicSplineCoeff cubic_spline_coeffs[5][4] = {
         // shapefunctiontype = 0 (unused, just filler)
         {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}},
 
@@ -72,8 +72,7 @@ constexpr CubicSplineCoeff
 #ifdef AMREX_USE_GPU
 AMREX_GPU_DEVICE __constant__
 #endif
-constexpr CubicSplineDerCoeff
-    cubic_splineder_coeffs[5][4] = {
+    constexpr CubicSplineDerCoeff cubic_splineder_coeffs[5][4] = {
         // shapefunctiontype = 0 (unused filler)
         {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}},
 
@@ -107,8 +106,7 @@ constexpr CubicSplineDerCoeff
 #ifdef AMREX_USE_GPU
 AMREX_GPU_DEVICE __constant__
 #endif
-constexpr QuadraticSplineCoeff
-    quad_spline_coeffs[5][4] = {
+    constexpr QuadraticSplineCoeff quad_spline_coeffs[5][4] = {
         // shapefunctiontype = 0 (unused filler)
         {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}},
 
@@ -139,8 +137,7 @@ constexpr QuadraticSplineCoeff
 #ifdef AMREX_USE_GPU
 AMREX_GPU_DEVICE __constant__
 #endif
-constexpr QuadraticSplineDerCoeff
-    quad_splineder_coeffs[5][4] = {
+    constexpr QuadraticSplineDerCoeff quad_splineder_coeffs[5][4] = {
         // shapefunctiontype = 0 (unused filler)
         {{0, 0}, {0, 0}, {0, 0}, {0, 0}},
 
