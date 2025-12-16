@@ -3,9 +3,9 @@ AMREX_HOME ?= ${MPM_HOME}/Submodules/amrex
 
 EBASE = ExaGOOP
 
-DEBUG	= FALSE
+DEBUG	= TRUE
 
-DIM	= 2
+DIM	= 3
 
 COMP    = gnu
 
@@ -14,6 +14,7 @@ USE_TEMP = TRUE
 USE_MPI   = TRUE 
 USE_OMP   = FALSE
 USE_CUDA  = FALSE
+USE_HIP   = TRUE
 USE_EB    = TRUE
 
 TINY_PROFILE = FALSE
