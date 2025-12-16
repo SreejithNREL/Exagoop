@@ -5,15 +5,16 @@ generate_particles.py
 Generate MPM particle file (mpm_particles.dat) and inputs_axialbar for ExaGOOP.
 
 Positional arguments (original ordering kept):
-  1  no_of_cell_in_x         (int >0)
-  2  buffery                 (int >=0)
-  3  periodic                (0 or 1)
-  4  np_per_cell_x           (int >0)
-  5  order_scheme            (int)
-  6  alpha_pic_flip          (float)
-  7  stress_update_scheme    (int)
-  8  CFL                     (float)  
- 9  output_tag              (string) used for Solution/<tag> prefixes
+  1  dimension               (int>0)
+  2  no_of_cell_in_x         (int >0)
+  3  buffery                 (int >=0)
+  4  periodic                (0 or 1)
+  5  np_per_cell_x           (int >0)
+  6  order_scheme            (int)
+  7  alpha_pic_flip          (float)
+  8  stress_update_scheme    (int)
+  9  CFL                     (float)  
+  10  output_tag              (string) used for Solution/<tag> prefixes
 
 Example:
   python3 generate_particles.py 25 3 1 1 3 1 1 0.1 mytag
@@ -61,7 +62,8 @@ def write_atomic_with_count(lines: List[str], out_filename: str) -> None:
         die(f"Failed to write '{out_filename}': {e}")
 
 
-def generate_particles_and_return(ncells_x: int,
+def generate_particles_and_return(dim: int,
+                                  ncells_x: int,
                                   buffery: int,
                                   periodic: int,
                                   np_per_cell_x: int,
@@ -123,33 +125,59 @@ def generate_particles_and_return(ncells_x: int,
     particle_lines: List[str] = []
 
     # generate particle lines; keep formatting stable so 'phase' prints as an integer token
-    for k in range(int(ncells[2])):
+    if(dim==3):
+        for k in range(int(ncells[2])):
+            for j in range(int(ncells[1])):
+                for i in range(int(ncells[0])):
+                    c_cx = blo[0] + i * dx[0]
+                    c_cy = blo[1] + j * dx[1]
+                    c_cz = blo[2] + k * dx[2]
+                    if (xmin <= c_cx < xmax) and (ymin <= c_cy < ymax) and (zmin <= c_cz < zmax):
+                        for ii in range(int(np_per_cell_x)):
+                            cell_cx = c_cx + (2 * ii + 1) * dx[0] / (2.0 * np_per_cell_x)
+                            velx = v0 * np.sin(beta_n * cell_cx)
+                            vely = 0.0
+                            velz = 0.0
+                            # explicit formatting keeps tokens separated and phase as integer
+                            line = "{phase:d} {cx:.6e} {cy:.6e} {cz:.6e} {rad:.6e} {dens:.6e} {vx:.6e} {vy:.6e} {vz:.6e} {flag:d} {E:.6e} {nu:.6e}\n".format(
+                                phase=int(phase),
+                                cx=cell_cx,
+                                cy=0.0,
+                                cz=0.0,
+                                rad=rad,
+                                dens=dens,
+                                vx=velx,
+                                vy=vely,
+                                vz=velz,
+                                flag=0,
+                                E=E,
+                                nu=nu
+                                )
+                            particle_lines.append(line)
+    elif(dim==2):
         for j in range(int(ncells[1])):
             for i in range(int(ncells[0])):
                 c_cx = blo[0] + i * dx[0]
-                c_cy = blo[1] + j * dx[1]
-                c_cz = blo[2] + k * dx[2]
-                if (xmin <= c_cx < xmax) and (ymin <= c_cy < ymax) and (zmin <= c_cz < zmax):
+                c_cy = blo[1] + j * dx[1]                
+                if (xmin <= c_cx < xmax) and (ymin <= c_cy < ymax):
                     for ii in range(int(np_per_cell_x)):
                         cell_cx = c_cx + (2 * ii + 1) * dx[0] / (2.0 * np_per_cell_x)
                         velx = v0 * np.sin(beta_n * cell_cx)
                         vely = 0.0
-                        velz = 0.0
+                        
                         # explicit formatting keeps tokens separated and phase as integer
-                        line = "{phase:d} {cx:.6e} {cy:.6e} {cz:.6e} {rad:.6e} {dens:.6e} {vx:.6e} {vy:.6e} {vz:.6e} {flag:d} {E:.6e} {nu:.6e}\n".format(
-                            phase=int(phase),
-                            cx=cell_cx,
-                            cy=0.0,
-                            cz=0.0,
-                            rad=rad,
-                            dens=dens,
-                            vx=velx,
-                            vy=vely,
-                            vz=velz,
-                            flag=0,
-                            E=E,
-                            nu=nu
-                        )
+                        line = "{phase:d} {cx:.6e} {cy:.6e} {rad:.6e} {dens:.6e} {vx:.6e} {vy:.6e} {flag:d} {E:.6e} {nu:.6e}\n".format(
+                                phase=int(phase),
+                                cx=cell_cx,
+                                cy=0.0,                                
+                                rad=rad,
+                                dens=dens,
+                                vx=velx,
+                                vy=vely,                                
+                                flag=0,
+                                E=E,
+                                nu=nu
+                                )
                         particle_lines.append(line)
 
     npart = len(particle_lines)
@@ -172,7 +200,7 @@ def write_inputs_file(ncells_x: int,
                       CFL: float,                      
                       output_tag: str,
                       dx1: float,
-                      out_filename: str = "inputs_axialbar") -> None:
+                      out_filename: str = "inputs_axialbar.inp") -> None:
     """
     Write inputs_axialbar file using provided parameters. Creates Solution/<output_tag> directory if needed.
     """
@@ -218,10 +246,10 @@ def write_inputs_file(ncells_x: int,
             f.write("mpm.particle_file=\"mpm_particles.dat\"\n")
 
             f.write("\n\n#File output parameters\n")
-            f.write(f"mpm.prefix_particlefilename=\"./Solution/{output_tag}/plt\"\n")
-            f.write(f"mpm.prefix_gridfilename=\"./Solution/{output_tag}/nplt\"\n")
-            f.write(f"mpm.prefix_densityfilename=\"./Solution/{output_tag}/dens\"\n")
-            f.write(f"mpm.prefix_checkpointfilename=\"./Solution/{output_tag}/chk\"\n")
+            f.write(f"#mpm.prefix_particlefilename=\"./Solution/{output_tag}/plt\"\n")
+            f.write(f"#mpm.prefix_gridfilename=\"./Solution/{output_tag}/nplt\"\n")
+            f.write(f"#mpm.prefix_densityfilename=\"./Solution/{output_tag}/dens\"\n")
+            f.write(f"#mpm.prefix_checkpointfilename=\"./Solution/{output_tag}/chk\"\n")
             f.write("mpm.num_of_digits_in_filenames=6\n")
 
             f.write("\n\n#Simulation run parameters\n")
@@ -271,6 +299,7 @@ def write_inputs_file(ncells_x: int,
 
 def parse_cli() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Generate MPM particle file and inputs_axialbar.in")
+    p.add_argument("dimension", type=int)
     p.add_argument("no_of_cell_in_x", type=int)
     p.add_argument("buffery", type=int)
     p.add_argument("periodic", type=int, choices=[0, 1])
@@ -290,6 +319,7 @@ def main() -> None:
         print("DEBUG ARGS:", args)
 
     npart, dx1 = generate_particles_and_return(
+        dim=args.dimension,
         ncells_x=args.no_of_cell_in_x,
         buffery=args.buffery,
         periodic=args.periodic,
@@ -313,7 +343,7 @@ def main() -> None:
         CFL=args.CFL,        
         output_tag=args.output_tag,
         dx1=dx1,
-        out_filename="inputs_axialbar.dat"
+        out_filename="inputs_axialbar.inp"
     )
 
     print("All done.")

@@ -210,7 +210,7 @@ quadraticspline_1d(int shapefunctiontype, amrex::Real zi)
 {
     amrex::Real value = 0.0;
     int method=0;
-    if(method==0)
+    if(method==1)
       {
     amrex::Real zi_squared = zi*zi;
     int interval = interval_idx_quadratic(shapefunctiontype, zi);
@@ -238,7 +238,7 @@ quadraticspline_1d(int shapefunctiontype, amrex::Real zi)
 	        }
 	      else
 	        {
-
+		  value=0.0;
 	        }
 	    }
 	  else if(shapefunctiontype==2)	//Near Boundary node, low end
@@ -498,7 +498,8 @@ bilin_interp(amrex::Real xp[AMREX_SPACEDIM],
 
 
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+amrex::Real
 quadratic_interp(amrex::Real xp[AMREX_SPACEDIM],
                  IntVect iv,
                  IntVect min_index,
@@ -510,12 +511,13 @@ quadratic_interp(amrex::Real xp[AMREX_SPACEDIM],
                  const int *lo,
                  const int *hi)
 {
-    amrex::Real rx, ry, rz;
-    amrex::Real lval, mval, nval;
     amrex::Real value = shunya;
-    int shapetypex, shapetypey, shapetypez;
 
 #if (AMREX_SPACEDIM == 1)
+    amrex::Real rx;
+    amrex::Real lval;
+    int shapetypex;
+
     int i = iv[XDIR];
     int lmin = min_index[XDIR];
     int lmax = max_index[XDIR];
@@ -538,6 +540,10 @@ quadratic_interp(amrex::Real xp[AMREX_SPACEDIM],
     value += lval * nodaldata(i + l, 0, 0, comp);
 
 #elif (AMREX_SPACEDIM == 2)
+    amrex::Real rx, ry;
+    amrex::Real lval, mval;
+    int shapetypex, shapetypey;
+
     int i = iv[XDIR];
     int lmin = min_index[XDIR];
     int lmax = max_index[XDIR];
@@ -582,6 +588,10 @@ quadratic_interp(amrex::Real xp[AMREX_SPACEDIM],
     }
 
 #elif (AMREX_SPACEDIM == 3)
+    amrex::Real rx, ry, rz;
+    amrex::Real lval, mval, nval;
+    int shapetypex, shapetypey, shapetypez;
+
     int i = iv[XDIR];
     int lmin = min_index[XDIR];
     int lmax = max_index[XDIR];
@@ -650,7 +660,8 @@ quadratic_interp(amrex::Real xp[AMREX_SPACEDIM],
     return (value);
 }
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+amrex::Real
 cubic_interp(amrex::Real xp[AMREX_SPACEDIM],
              IntVect iv,
              IntVect min_index,
@@ -938,7 +949,7 @@ basisvalder(const int dir,
         else if(od==2)
         {
             // Cubic spline shape (order 3): classify boundary/periodic type
-            int shapefunctype = 3; // interior default
+
             int idx = i + l;
             if (periodic[d] == 0)
               {
@@ -954,7 +965,7 @@ basisvalder(const int dir,
         }
         else
                 {
-            int shapefunctype = 3; // interior default
+
                         int idx = i + l;
                         if (periodic[d] == 0)
                           {
