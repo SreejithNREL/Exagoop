@@ -255,13 +255,9 @@ def write_inputs_file(ncells_x: int,
 
             f.write("\n\n#Diagnostics and Test\n")
             f.write("mpm.print_diagnostics= 1\n")
-            f.write("mpm.is_standard_test= 1\n")
-            f.write("mpm.test_number= 1\n")
-            f.write("mpm.axial_bar_E= 100\n")
-            f.write("mpm.axial_bar_rho= 1\n")
-            f.write("mpm.axial_bar_L= 25.0\n")
-            f.write("mpm.axial_bar_modenumber= 1\n")
-            f.write("mpm.axial_bar_v0= 0.1\n")
+            f.write("mpm.do_calculate_mwa_velcomp= 1\n")
+            f.write("mpm.do_calculate_tke_tse= 1\n")
+            f.write("mpm.write_diag_output_time= 0.01\n")
 
             f.write("\n\n#Boundary conditions\n")
             f.write("mpm.bc_lower=1 0 0\n")

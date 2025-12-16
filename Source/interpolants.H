@@ -582,6 +582,17 @@ quadratic_interp(amrex::Real xp[AMREX_SPACEDIM],
     }
 
 #elif (AMREX_SPACEDIM == 3)
+    int i = iv[XDIR];
+    int lmin = min_index[XDIR];
+    int lmax = max_index[XDIR];
+
+    int j = iv[YDIR];
+    int mmin = min_index[YDIR];
+    int mmax = max_index[YDIR];
+
+    int k = iv[ZDIR];
+    int nmin = min_index[ZDIR];
+    int nmax = max_index[ZDIR];
 
     for (int n = nmin; n < nmax; n++)
     {
