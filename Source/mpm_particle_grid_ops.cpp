@@ -198,7 +198,7 @@ compute_bounds(int ivd, int lod, int hid, int scheme, bool is_periodic)
         bmin = 0;
         bmax = 2;
     }
-    else if (scheme == 3 or scheme==2)
+    else if (scheme == 3 or scheme == 2)
     {
         if (is_periodic)
         {
@@ -1106,16 +1106,31 @@ void MPMParticleContainer::interpolate_from_grid(
 
                         if (order_scheme_directional[dim] == 1)
                         {
-                            p.rdata(realData::xvel_prime + dim) =  bilin_interp(xp, iv, plo, dx, nodal_data_arr, VELX_INDEX + dim);
-                            p.rdata(realData::xvel + dim) = alpha_pic_flip * p.rdata(realData::xvel + dim) +
-                        				    alpha_pic_flip * bilin_interp(xp, iv, plo, dx, nodal_data_arr, DELTA_VELX_INDEX + dim) +
-							    (1 - alpha_pic_flip) * p.rdata(realData::xvel_prime + dim);
+                            p.rdata(realData::xvel_prime + dim) =
+                                bilin_interp(xp, iv, plo, dx, nodal_data_arr,
+                                             VELX_INDEX + dim);
+                            p.rdata(realData::xvel + dim) =
+                                alpha_pic_flip * p.rdata(realData::xvel + dim) +
+                                alpha_pic_flip *
+                                    bilin_interp(xp, iv, plo, dx,
+                                                 nodal_data_arr,
+                                                 DELTA_VELX_INDEX + dim) +
+                                (1 - alpha_pic_flip) *
+                                    p.rdata(realData::xvel_prime + dim);
                         }
                         else if (order_scheme_directional[dim] == 2)
                         {
-                            p.rdata(realData::xvel_prime + dim) = quadratic_interp(xp, iv, min_index, max_index, plo, dx, nodal_data_arr, VELX_INDEX + dim, lo, hi);
-                            p.rdata(realData::xvel + dim) = alpha_pic_flip * p.rdata(realData::xvel + dim) +
-                        				    alpha_pic_flip * quadratic_interp( xp, iv, min_index, max_index, plo, dx, nodal_data_arr, DELTA_VELX_INDEX + dim, lo, hi) +
+                            p.rdata(realData::xvel_prime + dim) =
+                                quadratic_interp(xp, iv, min_index, max_index,
+                                                 plo, dx, nodal_data_arr,
+                                                 VELX_INDEX + dim, lo, hi);
+                            p.rdata(realData::xvel + dim) =
+                                alpha_pic_flip * p.rdata(realData::xvel + dim) +
+                                alpha_pic_flip *
+                                    quadratic_interp(
+                                        xp, iv, min_index, max_index, plo, dx,
+                                        nodal_data_arr, DELTA_VELX_INDEX + dim,
+                                        lo, hi) +
                                 (1 - alpha_pic_flip) *
                                     p.rdata(realData::xvel_prime + dim);
                         }

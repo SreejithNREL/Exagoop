@@ -93,15 +93,15 @@ void Initialise_Domain(MPMspecs &specs,
     Name_Nodaldata_Variables(nodaldata_names);
 
     // Ghost cells for particle data
-     ng_cells = 1;													//Defining number of ghost cells for particle data
-        if(specs.order_scheme==3)
-          {
-            ng_cells = 2;
-          }
-        if(specs.order_scheme==2 )
-          {
-            ng_cells = 3;
-          }
+    ng_cells = 1; // Defining number of ghost cells for particle data
+    if (specs.order_scheme == 3)
+    {
+        ng_cells = 2;
+    }
+    if (specs.order_scheme == 2)
+    {
+        ng_cells = 3;
+    }
 
     // Ghost cells for nodal data
     if (specs.order_scheme == 1)
@@ -109,50 +109,50 @@ void Initialise_Domain(MPMspecs &specs,
         ng_cells_nodaldata = 1;
     }
     else if (specs.order_scheme == 2)
-      {
-	amrex::Print()<<"\n Yes the order is 2";
-            ng_cells_nodaldata = 3;
+    {
+        amrex::Print() << "\n Yes the order is 2";
+        ng_cells_nodaldata = 3;
 
-            // Set directional order-scheme based on periodicity and grid size
+        // Set directional order-scheme based on periodicity and grid size
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        {
+            const int ncd = specs.ncells[d];
+            const int periodic_d = specs.periodic[d];
+            // Non-periodic: need >=5 to allow cubic; periodic: need >=3
+            specs.order_scheme_directional[d] =
+                ((periodic_d == 0) ? ((ncd < 5) ? 1 : 2) : ((ncd < 3) ? 1 : 2));
+        }
+
+        // Warn if all directions fell back to linear
+        bool all_linear = true;
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        {
+            all_linear &= (specs.order_scheme_directional[d] == 1);
+        }
+        if (all_linear)
+        {
+            amrex::Print() << "\nWarning! Number of cells in all directions do "
+                              "not qualify for cubic-spline shape functions\n"
+                           << "Reverting to linear hat shape functions in all "
+                              "directions\n";
+        }
+
+        // Ensure no spline box has size==1 in any dimension
+        for (int box_index = 0; box_index < ba.size(); ++box_index)
+        {
+            const auto sz = ba[box_index].size();
             for (int d = 0; d < AMREX_SPACEDIM; ++d)
             {
-                const int ncd = specs.ncells[d];
-                const int periodic_d = specs.periodic[d];
-                // Non-periodic: need >=5 to allow cubic; periodic: need >=3
-                specs.order_scheme_directional[d] =
-                    ((periodic_d == 0) ? ((ncd < 5) ? 1 : 2) : ((ncd < 3) ? 1 : 2));
-            }
-
-            // Warn if all directions fell back to linear
-            bool all_linear = true;
-            for (int d = 0; d < AMREX_SPACEDIM; ++d)
-            {
-                all_linear &= (specs.order_scheme_directional[d] == 1);
-            }
-            if (all_linear)
-            {
-                amrex::Print() << "\nWarning! Number of cells in all directions do "
-                                  "not qualify for cubic-spline shape functions\n"
-                               << "Reverting to linear hat shape functions in all "
-                                  "directions\n";
-            }
-
-            // Ensure no spline box has size==1 in any dimension
-            for (int box_index = 0; box_index < ba.size(); ++box_index)
-            {
-                const auto sz = ba[box_index].size();
-                for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                if (sz[d] == 1 && specs.order_scheme_directional[d] == 3)
                 {
-                    if (sz[d] == 1 && specs.order_scheme_directional[d] == 3)
-                    {
-                        amrex::Abort("Error: Box cannot be of size = 1 when using "
-                                     "spline shape functions. "
-                                     "Please adjust max_grid_size so all boxes "
-                                     "have size > 1.");
-                    }
+                    amrex::Abort("Error: Box cannot be of size = 1 when using "
+                                 "spline shape functions. "
+                                 "Please adjust max_grid_size so all boxes "
+                                 "have size > 1.");
                 }
             }
         }
+    }
     else if (specs.order_scheme == 3)
     {
         ng_cells_nodaldata = 3;
@@ -611,25 +611,26 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
             }
 
             if (testing == 0)
-            {/*
-                amrex::Print()
-                    << "\n Particle " << p.rdata(realData::radius) << " "
-                    << p.rdata(realData::density) << " "
-                    << p.rdata(realData::xvel) << " " << p.rdata(realData::yvel)
-                    << " " << p.rdata(realData::zvel) << " "
-                    << p.idata(intData::constitutive_model) << " "
-                    << p.rdata(realData::E) << " " << p.rdata(realData::nu)
-                    << " " << p.rdata(realData::volume) << " "
-                    << p.rdata(realData::mass) << " "
-                    << p.rdata(realData::deformation_gradient + 0) << " "
-                    << p.rdata(realData::deformation_gradient + 1) << " "
-                    << p.rdata(realData::deformation_gradient + 2) << " "
-                    << p.rdata(realData::deformation_gradient + 3) << " "
-                    << p.rdata(realData::deformation_gradient + 4) << " "
-                    << p.rdata(realData::deformation_gradient + 5) << " "
-                    << p.rdata(realData::deformation_gradient + 6) << " "
-                    << p.rdata(realData::deformation_gradient + 7) << " "
-                    << p.rdata(realData::deformation_gradient + 8) << " ";*/
+            { /*
+                 amrex::Print()
+                     << "\n Particle " << p.rdata(realData::radius) << " "
+                     << p.rdata(realData::density) << " "
+                     << p.rdata(realData::xvel) << " " <<
+                 p.rdata(realData::yvel)
+                     << " " << p.rdata(realData::zvel) << " "
+                     << p.idata(intData::constitutive_model) << " "
+                     << p.rdata(realData::E) << " " << p.rdata(realData::nu)
+                     << " " << p.rdata(realData::volume) << " "
+                     << p.rdata(realData::mass) << " "
+                     << p.rdata(realData::deformation_gradient + 0) << " "
+                     << p.rdata(realData::deformation_gradient + 1) << " "
+                     << p.rdata(realData::deformation_gradient + 2) << " "
+                     << p.rdata(realData::deformation_gradient + 3) << " "
+                     << p.rdata(realData::deformation_gradient + 4) << " "
+                     << p.rdata(realData::deformation_gradient + 5) << " "
+                     << p.rdata(realData::deformation_gradient + 6) << " "
+                     << p.rdata(realData::deformation_gradient + 7) << " "
+                     << p.rdata(realData::deformation_gradient + 8) << " ";*/
             }
 
             host_particles.push_back(p);

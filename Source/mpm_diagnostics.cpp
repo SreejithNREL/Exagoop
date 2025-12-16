@@ -203,7 +203,6 @@ void MPMParticleContainer::Calculate_MWA_VelocityMagnitude(amrex::Real &Vcm)
     Vcm = massvelmag / mass_tot;
 }
 
-
 /**
  * @brief Calculates the mass weighted average of velocity magnitude of material
  * points
@@ -219,31 +218,25 @@ void MPMParticleContainer::Calculate_MWA_VelocityMagnitude(amrex::Real &Vcm)
  * reduction.
  */
 
-void MPMParticleContainer::Calculate_MinMaxPos(amrex::GpuArray<Real, AMREX_SPACEDIM> &minpos,amrex::GpuArray<Real, AMREX_SPACEDIM> &maxpos)
+void MPMParticleContainer::Calculate_MinMaxPos(
+    amrex::GpuArray<Real, AMREX_SPACEDIM> &minpos,
+    amrex::GpuArray<Real, AMREX_SPACEDIM> &maxpos)
 {
     using PType = typename MPMParticleContainer::SuperParticleType;
 
-    for(int dim=0;dim<AMREX_SPACEDIM;dim++)
-      {
-	minpos[dim] =
-	        amrex::ReduceMin(*this,
-	                         [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
-	                         {
+    for (int dim = 0; dim < AMREX_SPACEDIM; dim++)
+    {
+        minpos[dim] = amrex::ReduceMin(
+            *this, [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
+            { return p.pos(dim); });
+    }
 
-	                             return p.pos(dim);
-	                         });
-      }
-
-    for(int dim=0;dim<AMREX_SPACEDIM;dim++)
-          {
-    	maxpos[dim] =
-    	        amrex::ReduceMax(*this,
-    	                         [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
-    	                         {
-
-    	                             return p.pos(dim);
-    	                         });
-          }
+    for (int dim = 0; dim < AMREX_SPACEDIM; dim++)
+    {
+        maxpos[dim] = amrex::ReduceMax(
+            *this, [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
+            { return p.pos(dim); });
+    }
 }
 
 void MPMParticleContainer::CalculateSurfaceIntegralTop(

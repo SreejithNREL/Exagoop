@@ -388,7 +388,6 @@ class MPMspecs
             pp.query("do_calculate_mwa_velmag", do_calculate_mwa_velmag);
             pp.query("do_calculate_minmaxpos", do_calculate_minmaxpos);
             pp.query("write_diag_output_time", write_diag_output_time);
-
         }
 
         // by default it is periodic
