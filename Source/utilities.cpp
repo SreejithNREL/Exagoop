@@ -219,6 +219,25 @@ void Initialise_Diagnostic_Streams(MPMspecs &specs)
         specs.tmp_mwa_velmag << "iter,time,velmag\n";
         specs.tmp_mwa_velmag.flush();
     }
+
+    if (specs.do_calculate_minmaxpos)
+        {
+            std::string fullfilename =
+                specs.diagnostic_output_folder + "/" + specs.file_minmaxpos;
+            specs.tmp_minmaxpos.open(fullfilename.c_str(),
+                                      std::ios::out | std::ios::app |
+                                          std::ios_base::binary);
+            specs.tmp_minmaxpos.precision(12);
+#if(AMREX_SPACEDIM==1)
+            specs.tmp_minmaxpos << "iter,time,xmin,xmax\n";
+#elif(AMREX_SPACEDIM==2)
+            specs.tmp_minmaxpos << "iter,time,xmin,ymin,xmax,ymax\n";
+#else
+            specs.tmp_minmaxpos << "iter,time,xmin,ymin,xmax,ymax,zmin,zmax\n";
+#endif
+
+            specs.tmp_minmaxpos.flush();
+        }
 }
 
 void Do_All_Diagnostics(MPMspecs &specs,
@@ -246,6 +265,8 @@ void Do_All_Diagnostics(MPMspecs &specs,
             specs.tmp_mwa_velcomp << " " << Vcm[dim];
         }
         specs.tmp_mwa_velcomp << "\n";
+        specs.tmp_mwa_velcomp.flush();
+
     }
     if (specs.do_calculate_mwa_velmag)
     {
@@ -254,7 +275,24 @@ void Do_All_Diagnostics(MPMspecs &specs,
         mpm_pc.Calculate_MWA_VelocityMagnitude(Vmag);
         specs.tmp_mwa_velcomp << steps << " " << current_time << " " << Vmag
                               << "\n";
+        specs.tmp_mwa_velcomp.flush();
+
     }
+
+    if (specs.do_calculate_minmaxpos)
+      {
+	amrex::GpuArray<Real, AMREX_SPACEDIM> minpos;
+	amrex::GpuArray<Real, AMREX_SPACEDIM> maxpos;
+	mpm_pc.Calculate_MinMaxPos(minpos,maxpos);
+	specs.tmp_minmaxpos << steps << " " << current_time;
+	for(int dim=0;dim<AMREX_SPACEDIM;dim++)
+	  {
+	    specs.tmp_minmaxpos<< " "<< minpos[dim]<<" "<<maxpos[dim];
+	  }
+            specs.tmp_minmaxpos<<"\n";
+            specs.tmp_minmaxpos.flush();
+
+        }
 }
 
 void Close_Diagnostic_Streams(MPMspecs &specs)
@@ -276,4 +314,9 @@ void Close_Diagnostic_Streams(MPMspecs &specs)
         specs.tmp_mwa_velmag.flush();
         specs.tmp_mwa_velmag.close();
     }
+    if (specs.do_calculate_minmaxpos)
+        {
+            specs.tmp_minmaxpos.flush();
+            specs.tmp_minmaxpos.close();
+        }
 }

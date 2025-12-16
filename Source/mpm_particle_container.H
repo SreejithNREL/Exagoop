@@ -161,6 +161,7 @@ class MPMParticleContainer
     void Calculate_Total_Energies(Real &TKE, Real &TSE);
     void Calculate_MWA_VelocityComponents(
         amrex::GpuArray<Real, AMREX_SPACEDIM> &Vcm);
+    void Calculate_MinMaxPos(amrex::GpuArray<Real, AMREX_SPACEDIM> &minpos,amrex::GpuArray<Real, AMREX_SPACEDIM> &maxpos);
     void Calculate_MWA_VelocityMagnitude(amrex::Real &Vcm);
     amrex::Real CalculateEffectiveSpringConstant(amrex::Real Area,
                                                  amrex::Real L0);

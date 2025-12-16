@@ -203,6 +203,49 @@ void MPMParticleContainer::Calculate_MWA_VelocityMagnitude(amrex::Real &Vcm)
     Vcm = massvelmag / mass_tot;
 }
 
+
+/**
+ * @brief Calculates the mass weighted average of velocity magnitude of material
+ * points
+ *
+ * Performs a reduction over all particles to compute:
+ * - massvelmag = the total momentum magnitude of mps
+ * - mass_tot = total mass of material points
+ *
+ * @param[out] Vcm scalar value of mass weighted averaged (MWA) material point
+ * velocity magnitude
+ *
+ * @note This function loops over all particles and performs a parallel
+ * reduction.
+ */
+
+void MPMParticleContainer::Calculate_MinMaxPos(amrex::GpuArray<Real, AMREX_SPACEDIM> &minpos,amrex::GpuArray<Real, AMREX_SPACEDIM> &maxpos)
+{
+    using PType = typename MPMParticleContainer::SuperParticleType;
+
+    for(int dim=0;dim<AMREX_SPACEDIM;dim++)
+      {
+	minpos[dim] =
+	        amrex::ReduceMin(*this,
+	                         [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
+	                         {
+
+	                             return p.pos(dim);
+	                         });
+      }
+
+    for(int dim=0;dim<AMREX_SPACEDIM;dim++)
+          {
+    	maxpos[dim] =
+    	        amrex::ReduceMax(*this,
+    	                         [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
+    	                         {
+
+    	                             return p.pos(dim);
+    	                         });
+          }
+}
+
 void MPMParticleContainer::CalculateSurfaceIntegralTop(
     Array<Real, AMREX_SPACEDIM> gravity, Real &Fy_top, Real &Fy_bottom)
 {

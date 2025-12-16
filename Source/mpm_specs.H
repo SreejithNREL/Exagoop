@@ -126,14 +126,17 @@ class MPMspecs
     std::string file_tke_tse = "Total_Energies.dat";
     std::string file_mwa_velcomp = "VelComponents.dat";
     std::string file_mwa_velmag = "VelMagnitudes.dat";
+    std::string file_minmaxpos = "MinMaxPosition.dat";
 
     bool do_calculate_tke_tse = false;
     bool do_calculate_mwa_velcomp = false;
     bool do_calculate_mwa_velmag = false;
+    bool do_calculate_minmaxpos = false;
 
     std::ofstream tmp_tke_tse;
     std::ofstream tmp_mwa_velcomp;
     std::ofstream tmp_mwa_velmag;
+    std::ofstream tmp_minmaxpos;
 
     int num_of_digits_in_filenames = 6;
 
@@ -383,7 +386,9 @@ class MPMspecs
             pp.query("do_calculate_tke_tse", do_calculate_tke_tse);
             pp.query("do_calculate_mwa_velcomp", do_calculate_mwa_velcomp);
             pp.query("do_calculate_mwa_velmag", do_calculate_mwa_velmag);
+            pp.query("do_calculate_minmaxpos", do_calculate_minmaxpos);
             pp.query("write_diag_output_time", write_diag_output_time);
+
         }
 
         // by default it is periodic
