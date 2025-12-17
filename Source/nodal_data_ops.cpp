@@ -191,6 +191,12 @@ void store_delta_temperature(MultiFab &nodaldata)
                     nodal_data_arr(i, j, k, DELTA_TEMPERATURE) =
                         nodal_data_arr(i, j, k, TEMPERATURE) -
                         nodal_data_arr(i, j, k, DELTA_TEMPERATURE);
+
+                    if(i==100)
+                      {
+                	amrex::Print()<<"\n Last temp = "<<nodal_data_arr(i, j, k, DELTA_TEMPERATURE)<<" "<<nodal_data_arr(i, j, k, TEMPERATURE);
+                	nodal_data_arr(i, j, k, DELTA_TEMPERATURE)=0.0;
+                      }
                 }
             });
     }

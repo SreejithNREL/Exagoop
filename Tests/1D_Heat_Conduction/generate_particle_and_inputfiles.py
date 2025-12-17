@@ -138,7 +138,7 @@ def generate_particles_and_return(ncells_x: int,
                 if (xmin <= c_cx < xmax) and (ymin <= c_cy < ymax) and (zmin <= c_cz < zmax):
                     for ii in range(int(np_per_cell_x)):
                         cell_cx = c_cx + (2 * ii + 1) * dx[0] / (2.0 * np_per_cell_x)
-                        T = np.sin(2.0*np.pi*cell_cx/(0.5))
+                        #T = np.sin(2.0*np.pi*cell_cx/(0.5))
                         velx = 0.0
                         vely = 0.0
                         velz = 0.0

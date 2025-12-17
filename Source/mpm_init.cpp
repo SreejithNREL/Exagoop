@@ -321,20 +321,20 @@ void Initialise_Internal_Forces(MPMspecs &specs,
             nodaldata,
 	    1,
             1,
-            1, specs.mass_tolerance,
+            0, specs.mass_tolerance,
             specs.order_scheme_directional, specs.periodic);
 
-        //backup_current_temperature(nodaldata);
+        backup_current_temperature(nodaldata);
 
         // Apply nodal boundary conditions (ensure correct Geometry is passed)
         const Geometry &geom = mpm_pc.Geom(0);
-        /*nodal_bcs_temperature(geom, nodaldata, specs.bclo.data(),
-                              specs.bchi.data(), temp_lo.data(), temp_hi.data());*/
+        nodal_bcs_temperature(geom, nodaldata, specs.bclo.data(), specs.bchi.data(), temp_lo.data(), temp_hi.data());
+        store_delta_temperature(nodaldata);
 
         // Interpolate temperature grid -> particles
         mpm_pc.interpolate_from_grid_temperature(
             nodaldata,
-            0,
+            1,
             1, specs.order_scheme_directional, specs.periodic,
             1.0);
 

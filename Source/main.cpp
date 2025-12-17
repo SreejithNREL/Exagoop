@@ -93,8 +93,7 @@ int main(int argc, char *argv[])
             Apply_Nodal_BCs(geom, nodaldata, specs, dt);
 
 #if USE_TEMP
-            P2G_Temperature(specs, mpm_pc, nodaldata, 1, 1, 0);
-            P2G_Temperature(specs, mpm_pc, nodaldata, 0, 0, 1);
+            P2G_Temperature(specs, mpm_pc, nodaldata, 1, 1, 1);
             backup_current_temperature(nodaldata);
             Nodal_Time_Update_Temperature(nodaldata, dt, specs.mass_tolerance);
             Apply_Nodal_BCs_Temperature(geom, nodaldata, specs, dt);
