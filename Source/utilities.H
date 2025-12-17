@@ -31,7 +31,17 @@ void P2G_Momentum(MPMspecs &specs,
                   int update_mass,
                   int update_vel,
                   int update_forces);
+void P2G_Temperature(MPMspecs &specs,
+                  MPMParticleContainer &mpm_pc,
+                  amrex::MultiFab &nodaldata,
+		  int reset_nodaldata_to_zero,
+                  int update_temp,
+                  int update_source);
 void Apply_Nodal_BCs(amrex::Geometry &geom,
+                     amrex::MultiFab &nodaldata,
+                     MPMspecs &specs,
+                     amrex::Real dt);
+void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
                      amrex::MultiFab &nodaldata,
                      MPMspecs &specs,
                      amrex::Real dt);
@@ -40,6 +50,12 @@ void G2P_Momentum(MPMspecs &specs,
                   amrex::MultiFab &nodaldata,
                   int update_vel,
                   int update_strainrate,
+                  amrex::Real dt);
+void G2P_Temperature(MPMspecs &specs,
+                  MPMParticleContainer &mpm_pc,
+                  amrex::MultiFab &nodaldata,
+                  int update_temperature,
+                  int update_heatflux,
                   amrex::Real dt);
 void Update_MP_Positions(MPMspecs &specs,
                          MPMParticleContainer &mpm_pc,

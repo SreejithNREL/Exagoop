@@ -990,6 +990,17 @@ get_tensor(MPMParticleContainer::ParticleType &p,
     }
 }
 
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+get_vector(MPMParticleContainer::ParticleType &p,
+           int start_index,
+           amrex::Real vect[AMREX_SPACEDIM])
+{
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
+    {
+	vect[i] = p.rdata(start_index + i);
+    }
+}
+
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void get_deformation_gradient_tensor(
     MPMParticleContainer::ParticleType &p,
     int start_index,

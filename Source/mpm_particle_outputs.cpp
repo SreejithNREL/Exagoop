@@ -211,11 +211,12 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
     real_data_names.push_back("temperature");
     real_data_names.push_back("specific_heat");
     real_data_names.push_back("thermal_conductivity");
-    real_data_names.push_back("heat_source");
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
-    {
-        real_data_names.push_back(amrex::Concatenate("heat_flux_", d, 1));
-    }
+        {
+            real_data_names.push_back(amrex::Concatenate("heat_flux_", d, 1));
+        }
+    real_data_names.push_back("heat_source");
+
 #endif
 
     // Integer data fields
@@ -253,7 +254,7 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
     writeflags_real[realData::heat_source] = 0;
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
     {
-        writeflags_real[realData::heat_flux + d] = 0;
+        writeflags_real[realData::heat_flux + d] = 1;
     }
 #endif
 

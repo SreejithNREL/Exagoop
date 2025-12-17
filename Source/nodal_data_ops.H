@@ -25,7 +25,7 @@ void store_delta_temperature(amrex::MultiFab &nodaldata);
 void Nodal_Time_Update_Momentum(amrex::MultiFab &nodaldata,
                                 const amrex::Real &dt,
                                 const amrex::Real &mass_tolerance);
-void nodal_update_temperature(amrex::MultiFab &nodaldata,
+void Nodal_Time_Update_Temperature(amrex::MultiFab &nodaldata,
                               const amrex::Real &dt,
                               const amrex::Real &mass_tolerance);
 void nodal_detect_contact(
@@ -54,8 +54,7 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
                            int bcloarr[AMREX_SPACEDIM],
                            int bchiarr[AMREX_SPACEDIM],
                            amrex::Real dirichlet_temperature_lo[AMREX_SPACEDIM],
-                           amrex::Real dirichlet_temperature_hi[AMREX_SPACEDIM],
-                           const amrex::Real &dt);
+                           amrex::Real dirichlet_temperature_hi[AMREX_SPACEDIM]);
 void CalculateSurfaceIntegralOnBG(const amrex::Geometry geom,
                                   amrex::MultiFab &nodaldata,
                                   int nodaldataindex,

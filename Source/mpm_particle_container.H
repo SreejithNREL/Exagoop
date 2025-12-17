@@ -104,6 +104,7 @@ class MPMParticleContainer
 
     void deposit_onto_grid_temperature(
         MultiFab &nodaldata,
+	bool resetnodaldata_to_zero,
         bool update_mass_temp,
         bool update_source,
         amrex::Real mass_tolerance,
@@ -149,8 +150,7 @@ class MPMParticleContainer
         bool update_heatflux,
         GpuArray<int, AMREX_SPACEDIM> order_scheme_directional,
         GpuArray<int, AMREX_SPACEDIM> periodic,
-        amrex::Real alpha_pic_flip,
-        amrex::Real dt);
+        amrex::Real alpha_pic_flip);
 
     void move_particles_from_nodevel(MultiFab &nodaldata,
                                      const amrex::Real &dt,

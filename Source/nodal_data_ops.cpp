@@ -53,19 +53,16 @@ void backup_current_temperature(MultiFab &nodaldata)
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
         const Box &bx = mfi.validbox();
-        Box nodalbox = convert(bx, {1, 1, 1});
+        Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
 
         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
-        amrex::ParallelFor(nodalbox,
-                           [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
-                           {
-                               if (nodal_data_arr(i, j, k, MASS_SPHEAT) >
-                                   shunya)
-                               {
-                                   nodal_data_arr(i, j, k, DELTA_TEMPERATURE) =
-                                       nodal_data_arr(i, j, k, TEMPERATURE);
-                               }
-                           });
+        amrex::ParallelFor(nodalbox, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+        {
+          if (nodal_data_arr(i, j, k, MASS_SPHEAT) > shunya)
+            {
+              nodal_data_arr(i, j, k, DELTA_TEMPERATURE) = nodal_data_arr(i, j, k, TEMPERATURE);
+            }
+        });
     }
 }
 #endif
@@ -235,7 +232,7 @@ void Nodal_Time_Update_Momentum(MultiFab &nodaldata,
 }
 
 #if USE_TEMP
-void nodal_update_temperature(MultiFab &nodaldata,
+void Nodal_Time_Update_Temperature(MultiFab &nodaldata,
                               const amrex::Real &dt,
                               const amrex::Real &mass_tolerance)
 {
@@ -253,9 +250,7 @@ void nodal_update_temperature(MultiFab &nodaldata,
             {
                 if (nodal_data_arr(i, j, k, MASS_SPHEAT) >= mass_tolerance)
                 {
-                    nodal_data_arr(i, j, k, TEMPERATURE) +=
-                        nodal_data_arr(i, j, k, SOURCE_TEMP_INDEX) /
-                        nodal_data_arr(i, j, k, MASS_SPHEAT) * dt;
+                    nodal_data_arr(i, j, k, TEMPERATURE) += nodal_data_arr(i, j, k, SOURCE_TEMP_INDEX) / nodal_data_arr(i, j, k, MASS_SPHEAT) * dt;
                 }
                 else
                 {
@@ -543,8 +538,7 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
                            int bcloarr[AMREX_SPACEDIM],
                            int bchiarr[AMREX_SPACEDIM],
                            amrex::Real dirichlet_temperature_lo[AMREX_SPACEDIM],
-                           amrex::Real dirichlet_temperature_hi[AMREX_SPACEDIM],
-                           const amrex::Real &dt)
+                           amrex::Real dirichlet_temperature_hi[AMREX_SPACEDIM])
 {
 
     const int *domloarr = geom.Domain().loVect();
@@ -577,7 +571,7 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
         const Box &bx = mfi.validbox();
-        Box nodalbox = convert(bx, {1, 1, 1});
+        Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
 
         Array4<amrex::Real> nodal_data_arr = nodaldata.array(mfi);
 

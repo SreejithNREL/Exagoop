@@ -79,6 +79,21 @@ void P2G_Momentum(MPMspecs &specs,
         specs.order_scheme_directional, specs.periodic);
 }
 
+void P2G_Temperature(MPMspecs &specs,
+                  MPMParticleContainer &mpm_pc,
+                  amrex::MultiFab &nodaldata,
+		  int reset_nodaldata_to_zero,
+                  int update_temp,
+                  int update_source)
+{
+    if (testing == 1)
+        amrex::Print() << "\n Doing P2G for temperature\n";
+    mpm_pc.deposit_onto_grid_temperature(
+        nodaldata, reset_nodaldata_to_zero, update_temp,
+	update_source, specs.mass_tolerance,
+        specs.order_scheme_directional, specs.periodic);
+}
+
 void Apply_Nodal_BCs(amrex::Geometry &geom,
                      amrex::MultiFab &nodaldata,
                      MPMspecs &specs,
@@ -97,7 +112,27 @@ void Apply_Nodal_BCs(amrex::Geometry &geom,
 
     // Calculate velocity diff
     store_delta_velocity(nodaldata);
+
 }
+
+#if USE_TEMP
+void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
+                     amrex::MultiFab &nodaldata,
+                     MPMspecs &specs,
+                     amrex::Real dt)
+{
+    amrex::Array<amrex::Real, AMREX_SPACEDIM> temp_lo;
+    amrex::Array<amrex::Real, AMREX_SPACEDIM> temp_hi;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+      {
+	temp_lo[d] = 0.0;
+	temp_hi[d] = (d == 0) ? 1.0 : 0.0;
+      }
+    nodal_bcs_temperature(geom, nodaldata, specs.bclo.data(),
+                                  specs.bchi.data(), temp_lo.data(), temp_hi.data());
+    store_delta_temperature(nodaldata);
+}
+#endif
 
 void G2P_Momentum(MPMspecs &specs,
                   MPMParticleContainer &mpm_pc,
@@ -111,6 +146,20 @@ void G2P_Momentum(MPMspecs &specs,
     mpm_pc.interpolate_from_grid(nodaldata, update_vel, update_strainrate,
                                  specs.order_scheme_directional, specs.periodic,
                                  specs.alpha_pic_flip, dt);
+}
+
+void G2P_Temperature(MPMspecs &specs,
+                  MPMParticleContainer &mpm_pc,
+                  amrex::MultiFab &nodaldata,
+                  int update_temperature,
+                  int update_heatflux,
+                  amrex::Real dt)
+{
+    if (testing == 1)
+        amrex::Print() << "\n Doing G2P \n";
+    mpm_pc.interpolate_from_grid_temperature(nodaldata, update_temperature, update_heatflux,
+                                 specs.order_scheme_directional, specs.periodic,
+                                 specs.alpha_pic_flip);
 }
 
 void Update_MP_Positions(MPMspecs &specs,

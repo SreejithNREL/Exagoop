@@ -314,49 +314,29 @@ void Initialise_Internal_Forces(MPMspecs &specs,
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
         {
             temp_lo[d] = 0.0;
-            // Example: activate BC in first dimension only; adjust as needed
             temp_hi[d] = (d == 0) ? 1.0 : 0.0;
         }
 
-        // Deposit temperature-related nodal quantities
         mpm_pc.deposit_onto_grid_temperature(
             nodaldata,
-            /*do_reset=*/true,
-            /*do_average=*/true, specs.mass_tolerance,
+	    1,
+            1,
+            1, specs.mass_tolerance,
             specs.order_scheme_directional, specs.periodic);
+
+        //backup_current_temperature(nodaldata);
 
         // Apply nodal boundary conditions (ensure correct Geometry is passed)
         const Geometry &geom = mpm_pc.Geom(0);
-        nodal_bcs_temperature(geom, nodaldata, specs.bclo.data(),
-                              specs.bchi.data(), temp_lo.data(), temp_hi.data(),
-                              dt);
+        /*nodal_bcs_temperature(geom, nodaldata, specs.bclo.data(),
+                              specs.bchi.data(), temp_lo.data(), temp_hi.data());*/
 
         // Interpolate temperature grid -> particles
         mpm_pc.interpolate_from_grid_temperature(
             nodaldata,
-            /*do_reset=*/true,
-            /*do_average=*/true, specs.order_scheme_directional, specs.periodic,
-            /*alpha_pic_flip_temp=*/0.5, dt);
-
-        // Dimension-aware nodal box conversion (1 = nodal in each active dim)
-        for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
-        {
-            const Box &bx = mfi.validbox();
-            const IntVect nodal_iv{
-                AMREX_D_DECL(1, 1, 1)}; // compiled to 1D/2D/3D
-            Box nodalbox = convert(bx, nodal_iv);
-            auto nodal_data_arr = nodaldata.array(mfi);
-
-            amrex::ParallelFor(nodalbox,
-                               [=]
-                               AMREX_GPU_DEVICE(int i, int j, int k) noexcept
-                               {
-                                   const IntVect nodeid(i, j, k);
-                                   // Example hook for debugging/inspection:
-                                   // amrex::Real T = nodal_data_arr(i, j, k,
-                                   // TEMPERATURE);
-                               });
-        }
+            0,
+            1, specs.order_scheme_directional, specs.periodic,
+            1.0);
 
         PrintMessage(msg, print_length, false);
     }
