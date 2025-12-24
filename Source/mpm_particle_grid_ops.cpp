@@ -1240,8 +1240,6 @@ void MPMParticleContainer::interpolate_from_grid_temperature(
                       for (int d = 0; d < AMREX_SPACEDIM; ++d)
                 	{
                 	  p.rdata(realData::heat_flux+d) = p.rdata(realData::thermal_conductivity)*gradT[d];
-                	  amrex::Print()<<"\n Heat flux = "<< p.rdata(realData::heat_flux+d);
-
                 	}
 
                   }

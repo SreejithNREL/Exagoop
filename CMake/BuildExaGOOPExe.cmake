@@ -11,6 +11,10 @@ function(build_exagoop_exe exagoop_exe_name)
   target_sources(${exagoop_exe_name}
      PRIVATE
        ${SRC_DIR}/constants.H
+       ${SRC_DIR}/aesthetics.H
+       ${SRC_DIR}/aesthetics.cpp
+       ${SRC_DIR}/utilities.H
+       ${SRC_DIR}/utilities.cpp
        ${SRC_DIR}/mpm_diagnostics.cpp
        ${SRC_DIR}/mpm_init.cpp
        ${SRC_DIR}/mpm_init.cpp

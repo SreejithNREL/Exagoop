@@ -1,0 +1,69 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "cpu-debug",
+      "displayName": "CPU Debug (no MPI, no CUDA)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/Build_Cmake/cpu-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "EXAGOOP_ENABLE_MPI": "OFF",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "EXAGOOP_ENABLE_CUDA": "OFF"
+      }
+    },
+    {
+      "name": "cpu-mpi",      
+      "displayName": "CPU + MPI",
+      "cacheVariables": { 
+        "CMAKE_C_COMPILER": "cl.exe", 
+        "CMAKE_CXX_COMPILER": "cl.exe",
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "EXAGOOP_ENABLE_MPI": "ON",
+        "EXAGOOP_ENABLE_CUDA": "OFF",
+        "AMReX_CUDA_ARCH": "86",
+        "CMAKE_CUDA_ARCHITECTURES": "86" },
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/Build_Cmake/cpu-mpi"    
+    },
+    {
+      "name": "cuda86",
+      "displayName": "CUDA (sm_86, no MPI)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/Build_Cmake/cuda86",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "EXAGOOP_ENABLE_MPI": "OFF",
+        "EXAGOOP_ENABLE_CUDA": "ON",
+        "AMReX_CUDA_ARCH": "86",
+        "CMAKE_CUDA_ARCHITECTURES": "86"
+      }
+    },
+    {
+      "name": "cuda86-mpi",
+      "displayName": "CUDA (sm_86) + MPI",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/Build_Cmake/cuda86-mpi",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "AMReX_GPU_AWARE_MPI": "OFF",
+        "EXAGOOP_ENABLE_MPI": "ON",
+        "EXAGOOP_ENABLE_CUDA": "ON",
+        "AMReX_CUDA_ARCH": "86",
+        "CMAKE_CUDA_ARCHITECTURES": "86"
+      }
+    },
+    { "name": "clang-intellisense", "displayName": "Clang IntelliSense Only", "generator": "Ninja", "binaryDir": "${sourceDir}/Build_Cmake/clang-intellisense", "cacheVariables": { "CMAKE_C_COMPILER": "clang", "CMAKE_CXX_COMPILER": "clang++", "CMAKE_EXPORT_COMPILE_COMMANDS": "ON", "EXAGOOP_ENABLE_MPI": "OFF", "EXAGOOP_ENABLE_CUDA": "OFF" } }
+  ],
+
+  "buildPresets": [
+    { "name": "build-cpu-debug", "configurePreset": "cpu-debug" },
+    { "name": "build-cpu-mpi", "configurePreset": "cpu-mpi" },
+    { "name": "build-cuda86", "configurePreset": "cuda86" },
+    { "name": "build-cuda86-mpi", "configurePreset": "cuda86-mpi" }
+  ]
+}
