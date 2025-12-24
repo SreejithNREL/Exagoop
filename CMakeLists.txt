@@ -93,8 +93,6 @@ endif()
 # Debug/opt
 if (CMAKE_BUILD_TYPE MATCHES "Debug")
     set(BTYPE "DEBUG")
-else()
-    set(BTYPE "OPT")
 endif()
 
 # Final executable name
