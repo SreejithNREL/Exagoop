@@ -61,6 +61,9 @@ class MPMParticleContainer
                                        amrex::Real v0,
                                        amrex::Real L,
                                        amrex::Real time);
+    void writeAsciiFiles(std::string prefix_particlefilename,
+	                        int num_of_digits_in_filenames,
+	                        amrex::Real n);
     void writeParticles(std::string prefix_particlefilename,
                         int num_of_digits_in_filenames,
                         const int n);

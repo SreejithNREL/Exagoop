@@ -574,7 +574,7 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
                   IntVect nodeindex(AMREX_D_DECL(i, j, k));
                   nodal_data_arr(nodeindex, MASS_SPHEAT) = shunya;
                   nodal_data_arr(nodeindex, MASS_SPHEAT_TEMP) = shunya;
-                  nodal_data_arr(nodeindex, TEMPERATURE) = shunya;
+                  //nodal_data_arr(nodeindex, TEMPERATURE) = shunya;
                   nodal_data_arr(nodeindex, SOURCE_TEMP_INDEX) = shunya;
               });
       }
@@ -691,7 +691,7 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
               [=] AMREX_GPU_DEVICE(AMREX_D_DECL(int i, int j, int k)) noexcept
               {
                   IntVect nodeindex(AMREX_D_DECL(i, j, k));
-                  if (update_mass_temp && nodal_data_arr(nodeindex, MASS_INDEX) > 0.0)
+                  if (update_mass_temp && nodal_data_arr(nodeindex, MASS_SPHEAT) > 0.0)
                   {
 
                           if (nodal_data_arr(nodeindex, MASS_SPHEAT) >= mass_tolerance)

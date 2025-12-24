@@ -115,10 +115,14 @@ class MPMspecs
     std::string prefix_gridfilename = "plt";
     std::string prefix_densityfilename = "plt";
     std::string prefix_checkpointfilename = "chk";
+    std::string prefix_asciifilename = "matpnt";
+
+    bool write_ascii=false;
 
     std::string particle_output_folder = "./Solution/particle_files/";
     std::string grid_output_folder = "./Solution/grid_files/";
     std::string checkpoint_output_folder = "./Solution/checkpoint_files/";
+    std::string ascii_output_folder = "./Solution/ascii_files/";
     std::string levset_output_folder = "./Solution/levset_files/";
     std::string diagnostic_output_folder = "./Diagnostics/";
 
@@ -216,9 +220,13 @@ class MPMspecs
     Vector<int> bclo;
     Vector<int> bchi;
 
+
+
 #if USE_TEMP
     Vector<int> bclo_temp;
     Vector<int> bchi_temp;
+    Vector<amrex::Real> bclo_tempval;
+    Vector<amrex::Real> bchi_tempval;
 #endif
 
     GpuArray<int, AMREX_SPACEDIM> order_scheme_directional{
@@ -252,6 +260,9 @@ class MPMspecs
     {
         bclo.resize(AMREX_SPACEDIM);
         bchi.resize(AMREX_SPACEDIM);
+
+        bclo_temp.resize(AMREX_SPACEDIM);
+        bchi_temp.resize(AMREX_SPACEDIM);
 
         autogen_mincoords.resize(AMREX_SPACEDIM);
         autogen_maxcoords.resize(AMREX_SPACEDIM);
@@ -296,6 +307,7 @@ class MPMspecs
         pp.query("prefix_densityfilename", prefix_densityfilename);
         pp.query("prefix_checkpointfilename", prefix_checkpointfilename);
         pp.query("num_of_digits_in_filenames", num_of_digits_in_filenames);
+        pp.query("write_ascii", write_ascii);
 
         // Reading diagnostic parameters
         pp.query("is_standard_test", is_standard_test);
@@ -403,6 +415,14 @@ class MPMspecs
 #endif
         pp.queryarr("bc_lower", bclo);
         pp.queryarr("bc_upper", bchi);
+
+#if USE_TEMP
+        pp.queryarr("bc_lower_temp", bclo_temp);
+        pp.queryarr("bc_upper_temp", bchi_temp);
+
+        pp.queryarr("bc_lower_tempval", bclo_tempval);
+        pp.queryarr("bc_upper_tempval", bchi_tempval);
+#endif
 
         pp.query("levelset_bc", levelset_bc);
         pp.query("levelset_wall_mu", levelset_wall_mu);

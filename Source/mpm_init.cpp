@@ -243,6 +243,7 @@ void Create_Output_Directories(MPMspecs &specs)
     amrex::UtilCreateDirectory(specs.particle_output_folder, 0755);
     amrex::UtilCreateDirectory(specs.grid_output_folder, 0755);
     amrex::UtilCreateDirectory(specs.checkpoint_output_folder, 0755);
+    amrex::UtilCreateDirectory(specs.ascii_output_folder, 0755);
     if (specs.levset_output)
     {
         amrex::UtilCreateDirectory(specs.levset_output_folder, 0755);
@@ -313,8 +314,8 @@ void Initialise_Internal_Forces(MPMspecs &specs,
         amrex::Array<amrex::Real, AMREX_SPACEDIM> temp_hi;
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
         {
-            temp_lo[d] = 0.0;
-            temp_hi[d] = (d == 0) ? 1.0 : 0.0;
+            temp_lo[d] = specs.bclo_tempval[d];
+            temp_hi[d] = specs.bchi_tempval[d];
         }
 
         mpm_pc.deposit_onto_grid_temperature(

@@ -145,6 +145,14 @@ void MPMParticleContainer::update_phase_field(MultiFab &phasedata,
     // phasedata.SumBoundary(geom.periodicity());
 }
 
+void MPMParticleContainer::writeAsciiFiles(std::string prefix_particlefilename,
+	                                          int num_of_digits_in_filenames,
+						  amrex::Real time)
+{
+  std::ostringstream oss; oss << prefix_particlefilename << "_t" << std::fixed << std::setprecision(6) << time;
+  WriteAsciiFile(oss.str());
+}
+
 void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
                                           int num_of_digits_in_filenames,
                                           const int n)
@@ -211,7 +219,7 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
     real_data_names.push_back("temperature");
     real_data_names.push_back("specific_heat");
     real_data_names.push_back("thermal_conductivity");
-    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    for (int d = 0; d < 3; ++d)
         {
             real_data_names.push_back(amrex::Concatenate("heat_flux_", d, 1));
         }
@@ -252,7 +260,7 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
     writeflags_real[realData::specific_heat] = 0;
     writeflags_real[realData::thermal_conductivity] = 0;
     writeflags_real[realData::heat_source] = 0;
-    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    for (int d = 0; d < 3; ++d)
     {
         writeflags_real[realData::heat_flux + d] = 1;
     }

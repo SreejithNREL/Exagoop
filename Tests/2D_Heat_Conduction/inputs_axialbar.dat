@@ -1,9 +1,9 @@
 #geometry parameters
-mpm.prob_lo = 0.0 -0.055 -0.055			#Lower corner of physical domain
-mpm.prob_hi = 1.0 0.055 0.055			#Upper corner of physical domain
-mpm.ncells  = 100 11 11
+mpm.prob_lo = 0.0 0.0 0.0			#Lower corner of physical domain
+mpm.prob_hi = 1.0 1.0 0.01			#Upper corner of physical domain
+mpm.ncells  = 100 100 1
 mpm.max_grid_size = 101
-mpm.is_it_periodic = 0  1  1
+mpm.is_it_periodic = 0  0  1
 
 
 #AMR Parameters
@@ -37,7 +37,7 @@ mpm.write_ascii = 1
 #Simulation run parameters
 mpm.final_time= 0.05
 mpm.max_steps=5000000
-mpm.screen_output_time = 0.001
+mpm.screen_output_time = 0.0001
 mpm.write_output_time=0.001
 mpm.num_redist = 1
 
@@ -51,7 +51,7 @@ mpm.dt_max_limit=1e+00
 
 
 #Numerical schemes
-mpm.order_scheme=3
+mpm.order_scheme=1
 mpm.alpha_pic_flip = 0.0
 mpm.stress_update_scheme= 1
 mpm.mass_tolerance = 1e-18
@@ -72,11 +72,11 @@ mpm.print_diagnostics= 0
 
 
 #Boundary conditions
-mpm.bc_lower=1 0 0
-mpm.bc_upper=1 0 0
+mpm.bc_lower=1 1 0
+mpm.bc_upper=1 1 0
 
-mpm.bc_lower_temp=1 0 0
-mpm.bc_upper_temp=1 0 0
+mpm.bc_lower_temp=1 1 0
+mpm.bc_upper_temp=1 1 0
 
-mpm.bc_lower_tempval=0 0 0
-mpm.bc_upper_tempval=1 0 0
+mpm.bc_lower_tempval=1 1 0
+mpm.bc_upper_tempval=1 1 0

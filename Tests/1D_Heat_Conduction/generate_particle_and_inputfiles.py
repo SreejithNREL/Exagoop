@@ -129,22 +129,20 @@ def generate_particles_and_return(ncells_x: int,
     use_temp=True
 
     # generate particle lines; keep formatting stable so 'phase' prints as an integer token
-    for k in range(int(ncells[2])):
-        for j in range(int(ncells[1])):
-            for i in range(int(ncells[0])):
-                c_cx = blo[0] + i * dx[0]
-                c_cy = blo[1] + j * dx[1]
-                c_cz = blo[2] + k * dx[2]
-                if (xmin <= c_cx < xmax) and (ymin <= c_cy < ymax) and (zmin <= c_cz < zmax):
-                    for ii in range(int(np_per_cell_x)):
-                        cell_cx = c_cx + (2 * ii + 1) * dx[0] / (2.0 * np_per_cell_x)
-                        #T = np.sin(2.0*np.pi*cell_cx/(0.5))
-                        velx = 0.0
-                        vely = 0.0
-                        velz = 0.0
+    for i in range(int(ncells[0])):
+        c_cx = blo[0] + i * dx[0]
+        c_cy = 0.0
+        c_cz = 0.0
+        if (xmin <= c_cx < xmax) and (ymin <= c_cy < ymax) and (zmin <= c_cz < zmax):
+            for ii in range(int(np_per_cell_x)):
+                cell_cx = c_cx + (2 * ii + 1) * dx[0] / (2.0 * np_per_cell_x)
+                #T = np.sin(2.0*np.pi*cell_cx/(0.5))
+                velx = 0.0
+                vely = 0.0
+                velz = 0.0
                         # explicit formatting keeps tokens separated and phase as integer
-                        if(use_temp):
-                            line = "{phase:d} {cx:.6e} {cy:.6e} {cz:.6e} {rad:.6e} {dens:.6e} {vx:.6e} {vy:.6e} {vz:.6e} {flag:d} {E:.6e} {nu:.6e} {T:.6e} {spheat:.6e} {thermcond:.6e} {heatsrc:.6e}\n".format(
+                if(use_temp):
+                    line = "{phase:d} {cx:.6e} {cy:.6e} {cz:.6e} {rad:.6e} {dens:.6e} {vx:.6e} {vy:.6e} {vz:.6e} {flag:d} {E:.6e} {nu:.6e} {T:.6e} {spheat:.6e} {thermcond:.6e} {heatsrc:.6e}\n".format(
                                 phase=int(phase),
                                 cx=cell_cx,
                                 cy=0.0,
@@ -162,7 +160,7 @@ def generate_particles_and_return(ncells_x: int,
                                 thermcond = thermcond,
                                 heatsrc = heatsrc
                                 )
-                        else:
+                else:
                             line = "{phase:d} {cx:.6e} {cy:.6e} {cz:.6e} {rad:.6e} {dens:.6e} {vx:.6e} {vy:.6e} {vz:.6e} {flag:d} {E:.6e} {nu:.6e} \n".format(
                                 phase=int(phase),
                                 cx=cell_cx,
@@ -179,7 +177,7 @@ def generate_particles_and_return(ncells_x: int,
                                 )
                             
                         
-                        particle_lines.append(line)
+                particle_lines.append(line)
 
     npart = len(particle_lines)
     if npart == 0:
@@ -254,14 +252,14 @@ def write_inputs_file(ncells_x: int,
             f.write("mpm.num_of_digits_in_filenames=6\n")
 
             f.write("\n\n#Simulation run parameters\n")
-            f.write("mpm.final_time=-50.0\n")
+            f.write("mpm.final_time= 0.05\n")
             f.write("mpm.max_steps=5000000\n")
             f.write("mpm.screen_output_time = 0.001\n")
-            f.write("mpm.write_output_time=0.5\n")
+            f.write("mpm.write_output_time=0.001\n")
             f.write("mpm.num_redist = 1\n")
 
             f.write("\n\n#Timestepping parameters\n")
-            f.write("mpm.fixed_timestep = 0\n")
+            f.write("mpm.fixed_timestep = 1\n")
             f.write("mpm.timestep = 1.0e-5\n")
             f.write(f"mpm.CFL={CFL}\n")
             f.write("mpm.dt_min_limit=1e-12\n")
@@ -284,17 +282,10 @@ def write_inputs_file(ncells_x: int,
 
             f.write("\n\n#Diagnostics and Test\n")
             f.write("mpm.print_diagnostics= 0\n")
-            f.write("mpm.is_standard_test= 1\n")
-            f.write("mpm.test_number= 1\n")
-            f.write("mpm.axial_bar_E= 100\n")
-            f.write("mpm.axial_bar_rho= 1\n")
-            f.write("mpm.axial_bar_L= 25.0\n")
-            f.write("mpm.axial_bar_modenumber= 1\n")
-            f.write("mpm.axial_bar_v0= 0.1\n")
 
             f.write("\n\n#Boundary conditions\n")
             f.write("mpm.bc_lower=1 0 0\n")
-            f.write("mpm.bc_upper=2 0 0\n")
+            f.write("mpm.bc_upper=1 0 0\n")
 
     except Exception as e:
         die(f"Failed to write inputs file '{out_filename}': {e}")

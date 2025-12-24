@@ -60,6 +60,12 @@ void Write_Particle_Grid_Levset_Output(
             specs.num_of_digits_in_filenames, time, steps, output_it);
     }
 
+    if(specs.write_ascii)
+      {
+	mpm_pc.writeAsciiFiles(specs.ascii_output_folder + specs.prefix_asciifilename,6,time);
+
+      }
+
     BL_PROFILE_VAR_STOP(outputs);
 }
 
@@ -125,8 +131,8 @@ void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
     amrex::Array<amrex::Real, AMREX_SPACEDIM> temp_hi;
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
       {
-	temp_lo[d] = 0.0;
-	temp_hi[d] = (d == 0) ? 1.0 : 0.0;
+	temp_lo[d] = specs.bclo_tempval[d];
+	temp_hi[d] = specs.bchi_tempval[d];
       }
     nodal_bcs_temperature(geom, nodaldata, specs.bclo.data(),
                                   specs.bchi.data(), temp_lo.data(), temp_hi.data());

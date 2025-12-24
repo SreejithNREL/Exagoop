@@ -2,7 +2,7 @@
 #define _CONSTANTS_H_
 
 #define numrigidbodies 0
-#define USE_TEMP 1
+
 
 #define XDIR 0
 #define YDIR 1

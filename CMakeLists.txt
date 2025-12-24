@@ -21,6 +21,16 @@ option(EXAGOOP_ENABLE_CUDA "Enable CUDA" OFF)
 option(EXAGOOP_ENABLE_HIP "Enable HIP" OFF)
 option(EXAGOOP_ENABLE_SYCL "Enable SyCL" OFF)
 
+#Enable Temperature Equation
+option(EXAGOOP_USE_TEMP "Enable temperature equation" ON)
+
+if (EXAGOOP_USE_TEMP)
+    add_compile_definitions(USE_TEMP=1)
+else()
+    add_compile_definitions(USE_TEMP=0)
+endif()
+
+
 # Setting CUDA
 if(EXAGOOP_ENABLE_CUDA)
   enable_language(CUDA)
@@ -43,6 +53,54 @@ if(EXAGOOP_ENABLE_MPI)
   message(STATUS "MPI Configure Section")
   find_package(MPI REQUIRED CXX)
 endif()
+
+# -----------------------------
+# Match AMReX GNUmake naming
+# -----------------------------
+
+# Base name
+set(EBASE "ExaGOOP")
+
+# Dimension (AMReX_SPACEDIM is already defined)
+set(DIM "${EXAGOOP_DIM}d")
+
+# Compiler name (match AMReX COMP)
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    set(COMP "gnu")
+elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(COMP "clang")
+elseif (CMAKE_CXX_COMPILER_ID MATCHES "Intel")
+    set(COMP "intel")
+else()
+    set(COMP "unknown")
+endif()
+
+# Parallel model
+if (EXAGOOP_ENABLE_MPI)
+    set(PARALLEL "MPI")
+else()
+    set(PARALLEL "SERIAL")
+endif()
+
+if (EXAGOOP_ENABLE_OMP)
+    set(PARALLEL "${PARALLEL}.OMP")
+endif()
+
+if (EXAGOOP_ENABLE_CUDA)
+    set(PARALLEL "${PARALLEL}.CUDA")
+endif()
+
+# Debug/opt
+if (CMAKE_BUILD_TYPE MATCHES "Debug")
+    set(BTYPE "DEBUG")
+else()
+    set(BTYPE "OPT")
+endif()
+
+# Final executable name
+set(EXAGOOP_EXE_NAME "${EBASE}${DIM}.${COMP}.${PARALLEL}.${BTYPE}.ex")
+message(STATUS "Executable name: ${EXAGOOP_EXE_NAME}")
+
 
 # Setting AMReX Configuration
 message(STATUS "AMReX Configure Section")
