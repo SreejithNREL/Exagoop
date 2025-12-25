@@ -106,7 +106,7 @@ def generate_particles_and_return(ncells_x: int,
     zmin, zmax = -dx1 / 2.0, dx1 / 2.0
 
     # particle geometry and physical properties (original defaults)
-    vol_cell = float(dx[0] * dx[1] * dx[2])
+    vol_cell = float(dx[0] )
     vol_particle = vol_cell / float(np_per_cell_x * 1 * 1)
     if vol_particle <= 0.0 or not np.isfinite(vol_particle):
         die("Computed particle volume is non-positive or invalid.")
@@ -225,11 +225,12 @@ def write_inputs_file(ncells_x: int,
             f.write("mpm.num_of_digits_in_filenames=6\n")
 
             f.write("\n\n#Simulation run parameters\n")
-            f.write("mpm.final_time=50.0\n")
+            f.write("mpm.final_time=10.0\n")
             f.write("mpm.max_steps=5000000\n")
             f.write("mpm.screen_output_time = 0.001\n")
-            f.write("mpm.write_output_time=0.5\n")
+            f.write("mpm.write_output_time=0.1\n")
             f.write("mpm.num_redist = 1\n")
+            f.write("mpm.write_ascii = 1\n")
 
             f.write("\n\n#Timestepping parameters\n")
             f.write("mpm.fixed_timestep = 0\n")
@@ -265,7 +266,7 @@ def write_inputs_file(ncells_x: int,
 
             f.write("\n\n#Boundary conditions\n")
             f.write("mpm.bc_lower=1 0 0\n")
-            f.write("mpm.bc_upper=2 0 0\n")
+            f.write("mpm.bc_upper=1 0 0\n")
 
     except Exception as e:
         die(f"Failed to write inputs file '{out_filename}': {e}")

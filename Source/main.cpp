@@ -103,7 +103,9 @@ int main(int argc, char *argv[])
             {
                 // Algo 1, step 18, 20, 21, 23 Vacoeboil;s paper
                 G2P_Momentum(specs, mpm_pc, nodaldata, 1, 1, dt);
+#if USE_TEMP
                 G2P_Temperature(specs, mpm_pc, nodaldata, 1, 1, dt);
+#endif
                 Update_MP_Positions(specs, mpm_pc, dt); // step 19
             }
 

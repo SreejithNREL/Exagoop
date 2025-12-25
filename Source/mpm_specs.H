@@ -158,28 +158,6 @@ class MPMspecs
     // Rigid body nodes
     Rigid_Bodies *Rb;
 
-    // Parameters for Axial bar test
-    amrex::Real axial_bar_E = 100.0;
-    amrex::Real axial_bar_rho = 1.0;
-    amrex::Real axial_bar_L = 25.0;
-    int axial_bar_modenumber = 1;
-    amrex::Real axial_bar_v0 = 0.1;
-
-    // Parameters for dam break
-    amrex::Real dam_break_H1 = 0.2;
-    amrex::Real dam_break_g = ACCG;
-
-    // Parameters for lateral vibration of bar (TVB). The test case is performed
-    // for first mode
-    amrex::Real tvb_E = 50.0;
-    amrex::Real tvb_L = 0.1;
-    amrex::Real tvb_rho = 25.0;
-    amrex::Real tvb_v0 = 0.0;
-
-    amrex::Real p2g_L = 1.0;
-    amrex::Real p2g_f = 1.0;
-    int p2g_ncell = 0;
-
     // Parameters for membrane compaction
     amrex::Real mem_compaction_area = 1.0;
     amrex::Real mem_compaction_dampcoeff = 1.0;
@@ -260,9 +238,10 @@ class MPMspecs
     {
         bclo.resize(AMREX_SPACEDIM);
         bchi.resize(AMREX_SPACEDIM);
-
+#if USE_TEMP
         bclo_temp.resize(AMREX_SPACEDIM);
         bchi_temp.resize(AMREX_SPACEDIM);
+#endif
 
         autogen_mincoords.resize(AMREX_SPACEDIM);
         autogen_maxcoords.resize(AMREX_SPACEDIM);
@@ -312,21 +291,6 @@ class MPMspecs
         // Reading diagnostic parameters
         pp.query("is_standard_test", is_standard_test);
         pp.query("test_number", test_number);
-        pp.query("axial_bar_E", axial_bar_E);
-        pp.query("axial_bar_rho", axial_bar_rho);
-        pp.query("axial_bar_L", axial_bar_L);
-        pp.query("axial_bar_modenumber", axial_bar_modenumber);
-        pp.query("axial_bar_v0", axial_bar_v0);
-
-        // Reading TVB test parameters
-        pp.query("tvb_v0", tvb_v0);
-        pp.query("tvb_L", tvb_L);
-        pp.query("tvb_E", tvb_E);
-        pp.query("tvb_rho", tvb_rho);
-
-        pp.query("p2g_L", p2g_L);
-        pp.query("p2g_f", p2g_f);
-        pp.query("p2g_ncell", p2g_ncell);
 
         pp.query("mem_compaction_area", mem_compaction_area);
         pp.query("mem_compaction_dampcoeff", mem_compaction_dampcoeff);

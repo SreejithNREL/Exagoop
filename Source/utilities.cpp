@@ -85,6 +85,7 @@ void P2G_Momentum(MPMspecs &specs,
         specs.order_scheme_directional, specs.periodic);
 }
 
+#if USE_TEMP
 void P2G_Temperature(MPMspecs &specs,
                   MPMParticleContainer &mpm_pc,
                   amrex::MultiFab &nodaldata,
@@ -99,6 +100,7 @@ void P2G_Temperature(MPMspecs &specs,
 	update_source, specs.mass_tolerance,
         specs.order_scheme_directional, specs.periodic);
 }
+#endif
 
 void Apply_Nodal_BCs(amrex::Geometry &geom,
                      amrex::MultiFab &nodaldata,
@@ -153,7 +155,7 @@ void G2P_Momentum(MPMspecs &specs,
                                  specs.order_scheme_directional, specs.periodic,
                                  specs.alpha_pic_flip, dt);
 }
-
+#if USE_TEMP
 void G2P_Temperature(MPMspecs &specs,
                   MPMParticleContainer &mpm_pc,
                   amrex::MultiFab &nodaldata,
@@ -167,7 +169,7 @@ void G2P_Temperature(MPMspecs &specs,
                                  specs.order_scheme_directional, specs.periodic,
                                  specs.alpha_pic_flip);
 }
-
+#endif
 void Update_MP_Positions(MPMspecs &specs,
                          MPMParticleContainer &mpm_pc,
                          amrex::Real dt)
