@@ -3,6 +3,7 @@ import os
 import glob
 import numpy as np
 import matplotlib.pyplot as plt
+import string
 
 # ---------------------------------------------------------
 # Exact solution function (section 10.3.3 Ngyuen's book)
@@ -22,13 +23,15 @@ def Texact(x_array, T0, T1, t, N=100):
 
 def main():
     parser = argparse.ArgumentParser(description="Plot temperature vs x and compute errors.")
-    parser.add_argument("time", type=float, help="Time value to search for (e.g., 0.020000)")
+    parser.add_argument("--time", type=float, default=0.0, help="Time value to search for (e.g., 0.020000)")
     parser.add_argument("--T0", type=float, default=0.0, help="Boundary temperature at x=0")
     parser.add_argument("--T1", type=float, default=1.0, help="Boundary temperature at x=1")
+    parser.add_argument("--fileloc", type=str, default=1.0, help="Boundary temperature at x=1")
+    parser.add_argument("--outputpic", type=str, default=1.0, help="Boundary temperature at x=1")
     args = parser.parse_args()
 
     time_str = f"{args.time:.6f}"
-    folder = "Solution/ascii_files"
+    folder = args.fileloc
     pattern = os.path.join(folder, f"matpnt_t{time_str}")
 
     matches = glob.glob(pattern)
@@ -68,7 +71,7 @@ def main():
     plt.grid(True)
     plt.legend(fontsize=15)
     plt.tight_layout()
-    plt.show()
+    plt.savefig(args.outputpic)
 
 if __name__ == "__main__":
     main()

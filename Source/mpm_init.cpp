@@ -243,7 +243,9 @@ void Create_Output_Directories(MPMspecs &specs)
     amrex::UtilCreateDirectory(specs.particle_output_folder, 0755);
     amrex::UtilCreateDirectory(specs.grid_output_folder, 0755);
     amrex::UtilCreateDirectory(specs.checkpoint_output_folder, 0755);
+    amrex::Print()<<"\nCreating folder "<<specs.checkpoint_output_folder;
     amrex::UtilCreateDirectory(specs.ascii_output_folder, 0755);
+    amrex::Print()<<"\nCreating ascii folder "<<specs.ascii_output_folder;
     if (specs.levset_output)
     {
         amrex::UtilCreateDirectory(specs.levset_output_folder, 0755);
@@ -264,7 +266,6 @@ void Initialise_Internal_Forces(MPMspecs &specs,
     {
         std::string msg = "\n Calculating initial strainrates and stresses";
         PrintMessage(msg, print_length, true);
-        amrex::Print() << "\n Printing..";
         amrex::Real dt = 0.0;
 
         mpm_pc.deposit_onto_grid_momentum(

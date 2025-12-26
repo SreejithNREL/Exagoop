@@ -27,8 +27,10 @@ def Texact_2D(x, y, T0, T1, L, H, t, N_terms):
 # ---------------------------------------------------------
 def main():
     parser = argparse.ArgumentParser(description="2D heat conduction: numeric vs exact vs error.")
-    parser.add_argument("time", type=float, help="Time value (e.g., 0.050000)")
+    parser.add_argument("--time", type=float, help="Time value (e.g., 0.050000)")
     parser.add_argument("--folder", type=str, default="Solution/ascii_files",
+                        help="Folder containing matpnt files")
+    parser.add_argument("--outputpic", type=str, default="Solution/ascii_files/Pics",
                         help="Folder containing matpnt files")
     parser.add_argument("--skiprows", type=int, default=5,
                         help="Number of metadata rows to skip")
@@ -104,7 +106,7 @@ def main():
     fig.colorbar(c3, ax=axes[2])
 
     plt.suptitle(f"2D Heat Conduction at t = {args.time:.6f}", fontsize=16)
-    plt.show()
+    plt.savefig(args.outputpic)
 
 
 if __name__ == "__main__":

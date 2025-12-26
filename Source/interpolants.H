@@ -464,7 +464,7 @@ bilin_interp(amrex::Real xp[AMREX_SPACEDIM],
     value += (1.0 - alpha) * beta * nodaldata(i, j + 1, 0, comp);
     value += alpha * beta * nodaldata(i + 1, j + 1, 0, comp);
 
-    // amrex::Print()<<"\n Value values in bilin_interp: "<<value;
+
 
 #elif (AMREX_SPACEDIM == 3)
     // Trilinear interpolation in 3D (your original code)

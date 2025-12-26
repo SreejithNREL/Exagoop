@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sys import argv
 
-data=np.loadtxt('./Diagnostics/VelComponents.dat',skiprows=1)
+data=np.loadtxt(argv[1],skiprows=1)
 
 fig = plt.figure(1)
 ax = fig.add_subplot(111)
@@ -24,4 +24,4 @@ plt.ylabel("CM Velocity")
 lgd = ax.legend()  
 # saving the file.Make sure you 
 # use savefig() before show().
-plt.savefig(argv[1])
+plt.savefig(argv[2])

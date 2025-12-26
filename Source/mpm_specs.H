@@ -9,6 +9,8 @@
 
 using namespace amrex;
 
+
+
 struct realData
 {
     enum
@@ -116,6 +118,7 @@ class MPMspecs
     std::string prefix_densityfilename = "plt";
     std::string prefix_checkpointfilename = "chk";
     std::string prefix_asciifilename = "matpnt";
+    std::string prefix_diagnosticname = "";
 
     bool write_ascii=false;
 
@@ -285,12 +288,30 @@ class MPMspecs
         pp.query("prefix_gridfilename", prefix_gridfilename);
         pp.query("prefix_densityfilename", prefix_densityfilename);
         pp.query("prefix_checkpointfilename", prefix_checkpointfilename);
+        pp.query("prefix_asciifilename", prefix_asciifilename);
+        pp.query("diagnostic_output_folder", diagnostic_output_folder);
+
+        size_t pos = prefix_asciifilename.find('/');
+        std::string temp_prefix;
+        std::string temp_suffix;
+        if (pos == std::string::npos)
+          {
+            temp_prefix = "";
+            temp_suffix = prefix_asciifilename;
+          }
+        else
+          {
+            temp_prefix = prefix_asciifilename.substr(0, pos);
+            temp_suffix = prefix_asciifilename.substr(pos + 1);
+          }
+
+
+        ascii_output_folder = ascii_output_folder+temp_prefix;
+        prefix_asciifilename = temp_suffix;
+
         pp.query("num_of_digits_in_filenames", num_of_digits_in_filenames);
         pp.query("write_ascii", write_ascii);
 
-        // Reading diagnostic parameters
-        pp.query("is_standard_test", is_standard_test);
-        pp.query("test_number", test_number);
 
         pp.query("mem_compaction_area", mem_compaction_area);
         pp.query("mem_compaction_dampcoeff", mem_compaction_dampcoeff);

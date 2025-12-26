@@ -62,7 +62,7 @@ void Write_Particle_Grid_Levset_Output(
 
     if(specs.write_ascii)
       {
-	mpm_pc.writeAsciiFiles(specs.ascii_output_folder + specs.prefix_asciifilename,6,time);
+	mpm_pc.writeAsciiFiles(specs.ascii_output_folder +"/"+ specs.prefix_asciifilename,6,time);
 
       }
 
@@ -252,6 +252,7 @@ void Initialise_Diagnostic_Streams(MPMspecs &specs)
 
     if (specs.do_calculate_mwa_velcomp)
     {
+	amrex::Print()<<"\n Diag vel comp";
         std::string fullfilename =
             specs.diagnostic_output_folder + "/" + specs.file_mwa_velcomp;
         if (amrex::ParallelDescriptor::IOProcessor())
@@ -274,6 +275,7 @@ void Initialise_Diagnostic_Streams(MPMspecs &specs)
 
     if (specs.do_calculate_mwa_velmag)
     {
+	amrex::Print()<<"\n Diag vel mag";
         std::string fullfilename =
             specs.diagnostic_output_folder + "/" + specs.file_mwa_velmag;
         if (amrex::ParallelDescriptor::IOProcessor())
