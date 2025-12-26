@@ -243,9 +243,9 @@ void Create_Output_Directories(MPMspecs &specs)
     amrex::UtilCreateDirectory(specs.particle_output_folder, 0755);
     amrex::UtilCreateDirectory(specs.grid_output_folder, 0755);
     amrex::UtilCreateDirectory(specs.checkpoint_output_folder, 0755);
-    amrex::Print()<<"\nCreating folder "<<specs.checkpoint_output_folder;
+    amrex::Print() << "\nCreating folder " << specs.checkpoint_output_folder;
     amrex::UtilCreateDirectory(specs.ascii_output_folder, 0755);
-    amrex::Print()<<"\nCreating ascii folder "<<specs.ascii_output_folder;
+    amrex::Print() << "\nCreating ascii folder " << specs.ascii_output_folder;
     if (specs.levset_output)
     {
         amrex::UtilCreateDirectory(specs.levset_output_folder, 0755);
@@ -320,25 +320,22 @@ void Initialise_Internal_Forces(MPMspecs &specs,
         }
 
         mpm_pc.deposit_onto_grid_temperature(
-            nodaldata,
-	    1,
-            1,
-            0, specs.mass_tolerance,
+            nodaldata, 1, 1, 0, specs.mass_tolerance,
             specs.order_scheme_directional, specs.periodic);
 
         backup_current_temperature(nodaldata);
 
         // Apply nodal boundary conditions (ensure correct Geometry is passed)
         const Geometry &geom = mpm_pc.Geom(0);
-        nodal_bcs_temperature(geom, nodaldata, specs.bclo.data(), specs.bchi.data(), temp_lo.data(), temp_hi.data());
+        nodal_bcs_temperature(geom, nodaldata, specs.bclo.data(),
+                              specs.bchi.data(), temp_lo.data(),
+                              temp_hi.data());
         store_delta_temperature(nodaldata);
 
         // Interpolate temperature grid -> particles
-        mpm_pc.interpolate_from_grid_temperature(
-            nodaldata,
-            1,
-            1, specs.order_scheme_directional, specs.periodic,
-            1.0);
+        mpm_pc.interpolate_from_grid_temperature(nodaldata, 1, 1,
+                                                 specs.order_scheme_directional,
+                                                 specs.periodic, 1.0);
 
         PrintMessage(msg, print_length, false);
     }

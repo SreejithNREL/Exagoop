@@ -10,8 +10,6 @@
 #include <mpm_init.H>
 #include <utilities.H>
 
-
-
 // clang-format on
 
 #include <aesthetics.H>
@@ -159,7 +157,6 @@ int main(int argc, char *argv[])
                 Write_Particle_Grid_Levset_Output(
                     specs, mpm_pc, nodaldata, levset_data, nodaldata_names,
                     geom, geom_levset, ba, dm, time, steps, output_it, true);
-
 
                 output_time = shunya;
                 BL_PROFILE_VAR_STOP(outputs);

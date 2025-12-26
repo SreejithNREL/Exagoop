@@ -540,172 +540,204 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
     GpuArray<int, AMREX_SPACEDIM> order_scheme_directional,
     GpuArray<int, AMREX_SPACEDIM> periodic)
 {
-  // if(testing==1) amrex::Print()<<"\n Entered deposit_onto_grid_momentum";
+    // if(testing==1) amrex::Print()<<"\n Entered deposit_onto_grid_momentum";
 
-      const int lev = 0;
-      const Geometry &geom = Geom(lev);
-      auto &plev = GetParticles(lev);
-      const auto dxi = geom.InvCellSizeArray();
-      const auto dx = geom.CellSizeArray();
-      const auto plo = geom.ProbLoArray();
-      const auto domain = geom.Domain();
+    const int lev = 0;
+    const Geometry &geom = Geom(lev);
+    auto &plev = GetParticles(lev);
+    const auto dxi = geom.InvCellSizeArray();
+    const auto dx = geom.CellSizeArray();
+    const auto plo = geom.ProbLoArray();
+    const auto domain = geom.Domain();
 
-      const int *loarr = domain.loVect();
-      const int *hiarr = domain.hiVect();
+    const int *loarr = domain.loVect();
+    const int *hiarr = domain.hiVect();
 
+    int lo[] = {AMREX_D_DECL(loarr[0], loarr[1], loarr[2])};
+    int hi[] = {AMREX_D_DECL(hiarr[0], hiarr[1], hiarr[2])};
 
+    // Zero out nodal data
+    if (resetnodaldata_to_zero)
+    {
+        for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
+        {
 
+            const Box &nodalbox = mfi.validbox();
+            auto nodal_data_arr = nodaldata.array(mfi);
+            amrex::ParallelFor(
+                nodalbox,
+                [=] AMREX_GPU_DEVICE(AMREX_D_DECL(int i, int j, int k)) noexcept
+                {
+                    IntVect nodeindex(AMREX_D_DECL(i, j, k));
+                    nodal_data_arr(nodeindex, MASS_SPHEAT) = shunya;
+                    nodal_data_arr(nodeindex, MASS_SPHEAT_TEMP) = shunya;
+                    // nodal_data_arr(nodeindex, TEMPERATURE) = shunya;
+                    nodal_data_arr(nodeindex, SOURCE_TEMP_INDEX) = shunya;
+                });
+        }
+    }
 
-      int lo[] = {AMREX_D_DECL(loarr[0], loarr[1], loarr[2])};
-      int hi[] = {AMREX_D_DECL(hiarr[0], hiarr[1], hiarr[2])};
+    // Deposit particle contributions
+    for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
 
-      // Zero out nodal data
-      if(resetnodaldata_to_zero)
-	{
-      for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
-      {
+        Box nodalbox = convert(mfi.tilebox(), {AMREX_D_DECL(1, 1, 1)});
+        auto &ptile = plev[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
+        auto &aos = ptile.GetArrayOfStructs();
+        int nt = aos.numRealParticles() + aos.numNeighborParticles();
+        auto nodal_data_arr = nodaldata.array(mfi);
+        ParticleType *pstruct = aos().dataPtr();
 
-          const Box &nodalbox = mfi.validbox();
-          auto nodal_data_arr = nodaldata.array(mfi);
-          amrex::ParallelFor(
-              nodalbox,
-              [=] AMREX_GPU_DEVICE(AMREX_D_DECL(int i, int j, int k)) noexcept
-              {
-                  IntVect nodeindex(AMREX_D_DECL(i, j, k));
-                  nodal_data_arr(nodeindex, MASS_SPHEAT) = shunya;
-                  nodal_data_arr(nodeindex, MASS_SPHEAT_TEMP) = shunya;
-                  //nodal_data_arr(nodeindex, TEMPERATURE) = shunya;
-                  nodal_data_arr(nodeindex, SOURCE_TEMP_INDEX) = shunya;
-              });
-      }
-	}
+        amrex::ParallelFor(
+            nt,
+            [=] AMREX_GPU_DEVICE(int ip) noexcept
+            {
+                ParticleType &p = pstruct[ip];
+                if (p.idata(intData::phase) != 0)
+                    return;
 
-      // Deposit particle contributions
-      for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
-      {
+                amrex::Real xp[AMREX_SPACEDIM];
+                for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                    xp[d] = p.pos(d);
 
-          Box nodalbox = convert(mfi.tilebox(), {AMREX_D_DECL(1, 1, 1)});
-          auto &ptile = plev[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
-          auto &aos = ptile.GetArrayOfStructs();
-          int nt = aos.numRealParticles() + aos.numNeighborParticles();
-          auto nodal_data_arr = nodaldata.array(mfi);
-          ParticleType *pstruct = aos().dataPtr();
+                auto iv = getParticleCell(p, plo, dxi, domain);
 
-          amrex::ParallelFor(
-              nt,
-              [=] AMREX_GPU_DEVICE(int ip) noexcept
-              {
-                  ParticleType &p = pstruct[ip];
-                  if (p.idata(intData::phase) != 0)
-                      return;
+                // Compute stencil extents per dimension
 
-                  amrex::Real xp[AMREX_SPACEDIM];
-                  for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                      xp[d] = p.pos(d);
+                int min_idx[AMREX_SPACEDIM], max_idx[AMREX_SPACEDIM];
 
-                  auto iv = getParticleCell(p, plo, dxi, domain);
+                for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                {
+                    auto bounds = compute_bounds(iv[d], lo[d], hi[d],
+                                                 order_scheme_directional[d],
+                                                 periodic[d]);
+                    min_idx[d] = bounds.first;
+                    max_idx[d] = bounds.second;
+                }
 
-                  // Compute stencil extents per dimension
+                // Nested loops over stencil (specialized per dimension)
+                amrex::Real basisvalue = 0.0;
+                amrex::Real basisval_grad[AMREX_SPACEDIM] = {
+                    AMREX_D_DECL(0.0, 0.0, 0.0)};
+                IntVect ivlocal = {AMREX_D_DECL(0, 0, 0)};
 
-                  int min_idx[AMREX_SPACEDIM], max_idx[AMREX_SPACEDIM];
-
-                  for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                  {
-                      auto bounds = compute_bounds(iv[d], lo[d], hi[d],
-                                                   order_scheme_directional[d],
-                                                   periodic[d]);
-                      min_idx[d] = bounds.first;
-                      max_idx[d] = bounds.second;
-                  }
-
-                  // Nested loops over stencil (specialized per dimension)
-                  amrex::Real basisvalue = 0.0;
-                  amrex::Real basisval_grad[AMREX_SPACEDIM] = { AMREX_D_DECL(0.0, 0.0, 0.0)};
-                  IntVect ivlocal = {AMREX_D_DECL(0, 0, 0)};
-
-  #if (AMREX_SPACEDIM == 3)
-                  for (int n = min_idx[2]; n < max_idx[2]; n++)
-                  {
-  #endif
-  #if (AMREX_SPACEDIM >= 2)
-                      for (int m = min_idx[1]; m < max_idx[1]; m++)
-                      {
-  #endif
-                          for (int l = min_idx[0]; l < max_idx[0]; l++)
-                          {
-                              ivlocal = { AMREX_D_DECL(iv[0] + l, iv[1] + m, iv[2] + n)};
-                              IntVect stencil(AMREX_D_DECL(l, m, n));
-                              if (nodalbox.contains(ivlocal))
-                              {
-                                  basisvalue = basisval(stencil, iv, xp, plo, dx, order_scheme_directional, periodic, lo, hi);
-
-                                  if (update_mass_temp)
-                                  {
-                                      amrex::Real mass_spheat_contrib = p.rdata(realData::mass) * p.rdata(realData::specific_heat) * basisvalue;
-                                      amrex::Real mass_spheat_temp_contrib = p.rdata(realData::mass) * p.rdata(realData::specific_heat) * p.rdata(realData::temperature) * basisvalue;
-                                      amrex::Gpu::Atomic::AddNoRet(&nodal_data_arr(ivlocal, MASS_SPHEAT),mass_spheat_contrib);
-                                      amrex::Gpu::Atomic::AddNoRet(&nodal_data_arr(ivlocal, MASS_SPHEAT_TEMP),mass_spheat_temp_contrib);
-                                  }
-
-                                  if (update_source)
-                                  {
-                                      for (int dim = 0; dim < AMREX_SPACEDIM; dim++)
-                                      {
-                                          basisval_grad[dim] = basisvalder( dim, stencil, iv, xp, plo, dx, order_scheme_directional, periodic, lo, hi);
-                                      }
-
-                                      amrex::Real heat_flux_vect[AMREX_SPACEDIM];
-                                      amrex::Real net_heatflux=0.0;
-                                      amrex::Real int_source=0.0;
-                                      amrex::Real ext_source=0.0;
-                                      get_vector(p, realData::heat_flux, heat_flux_vect);
-
-                                      for (int dim = 0; dim < AMREX_SPACEDIM;dim++)
-                                	{
-                                	  net_heatflux +=heat_flux_vect[dim]*basisval_grad[dim];
-                                	}
-
-                                      int_source = net_heatflux*p.rdata(realData::volume);
-                                      ext_source = p.rdata(realData::volume) * p.rdata(realData::heat_source)*basisvalue;
-
-                                      IntVect nodeindex(AMREX_D_DECL(iv[0] + l, iv[1] + m, iv[2] + n));
-                                      amrex::Gpu::Atomic::AddNoRet(&nodal_data_arr(nodeindex,SOURCE_TEMP_INDEX),int_source + ext_source);
-                                  }
-                              }
-                          }
-  #if (AMREX_SPACEDIM >= 2)
-                      }
-  #endif
-  #if (AMREX_SPACEDIM == 3)
-                  }
-  #endif
-              });
-      }
-
-      for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
-      {
-          Box nodalbox = convert(mfi.tilebox(), {AMREX_D_DECL(1, 1, 1)});
-          auto nodal_data_arr = nodaldata.array(mfi);
-          amrex::ParallelFor(
-              nodalbox,
-              [=] AMREX_GPU_DEVICE(AMREX_D_DECL(int i, int j, int k)) noexcept
-              {
-                  IntVect nodeindex(AMREX_D_DECL(i, j, k));
-                  if (update_mass_temp && nodal_data_arr(nodeindex, MASS_SPHEAT) > 0.0)
-                  {
-
-                          if (nodal_data_arr(nodeindex, MASS_SPHEAT) >= mass_tolerance)
-                          {
-                              nodal_data_arr(nodeindex, TEMPERATURE) =  nodal_data_arr(nodeindex, MASS_SPHEAT_TEMP) / nodal_data_arr(nodeindex, MASS_SPHEAT);
-                          }
-
-                          else
+#if (AMREX_SPACEDIM == 3)
+                for (int n = min_idx[2]; n < max_idx[2]; n++)
+                {
+#endif
+#if (AMREX_SPACEDIM >= 2)
+                    for (int m = min_idx[1]; m < max_idx[1]; m++)
+                    {
+#endif
+                        for (int l = min_idx[0]; l < max_idx[0]; l++)
+                        {
+                            ivlocal = {
+                                AMREX_D_DECL(iv[0] + l, iv[1] + m, iv[2] + n)};
+                            IntVect stencil(AMREX_D_DECL(l, m, n));
+                            if (nodalbox.contains(ivlocal))
                             {
-                              nodal_data_arr(nodeindex, TEMPERATURE) = 0.0;
+                                basisvalue = basisval(stencil, iv, xp, plo, dx,
+                                                      order_scheme_directional,
+                                                      periodic, lo, hi);
+
+                                if (update_mass_temp)
+                                {
+                                    amrex::Real mass_spheat_contrib =
+                                        p.rdata(realData::mass) *
+                                        p.rdata(realData::specific_heat) *
+                                        basisvalue;
+                                    amrex::Real mass_spheat_temp_contrib =
+                                        p.rdata(realData::mass) *
+                                        p.rdata(realData::specific_heat) *
+                                        p.rdata(realData::temperature) *
+                                        basisvalue;
+                                    amrex::Gpu::Atomic::AddNoRet(
+                                        &nodal_data_arr(ivlocal, MASS_SPHEAT),
+                                        mass_spheat_contrib);
+                                    amrex::Gpu::Atomic::AddNoRet(
+                                        &nodal_data_arr(ivlocal,
+                                                        MASS_SPHEAT_TEMP),
+                                        mass_spheat_temp_contrib);
+                                }
+
+                                if (update_source)
+                                {
+                                    for (int dim = 0; dim < AMREX_SPACEDIM;
+                                         dim++)
+                                    {
+                                        basisval_grad[dim] = basisvalder(
+                                            dim, stencil, iv, xp, plo, dx,
+                                            order_scheme_directional, periodic,
+                                            lo, hi);
+                                    }
+
+                                    amrex::Real heat_flux_vect[AMREX_SPACEDIM];
+                                    amrex::Real net_heatflux = 0.0;
+                                    amrex::Real int_source = 0.0;
+                                    amrex::Real ext_source = 0.0;
+                                    get_vector(p, realData::heat_flux,
+                                               heat_flux_vect);
+
+                                    for (int dim = 0; dim < AMREX_SPACEDIM;
+                                         dim++)
+                                    {
+                                        net_heatflux += heat_flux_vect[dim] *
+                                                        basisval_grad[dim];
+                                    }
+
+                                    int_source = net_heatflux *
+                                                 p.rdata(realData::volume);
+                                    ext_source =
+                                        p.rdata(realData::volume) *
+                                        p.rdata(realData::heat_source) *
+                                        basisvalue;
+
+                                    IntVect nodeindex(AMREX_D_DECL(
+                                        iv[0] + l, iv[1] + m, iv[2] + n));
+                                    amrex::Gpu::Atomic::AddNoRet(
+                                        &nodal_data_arr(nodeindex,
+                                                        SOURCE_TEMP_INDEX),
+                                        int_source + ext_source);
+                                }
                             }
-                  }
-              });
-      }
+                        }
+#if (AMREX_SPACEDIM >= 2)
+                    }
+#endif
+#if (AMREX_SPACEDIM == 3)
+                }
+#endif
+            });
+    }
+
+    for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        Box nodalbox = convert(mfi.tilebox(), {AMREX_D_DECL(1, 1, 1)});
+        auto nodal_data_arr = nodaldata.array(mfi);
+        amrex::ParallelFor(
+            nodalbox,
+            [=] AMREX_GPU_DEVICE(AMREX_D_DECL(int i, int j, int k)) noexcept
+            {
+                IntVect nodeindex(AMREX_D_DECL(i, j, k));
+                if (update_mass_temp &&
+                    nodal_data_arr(nodeindex, MASS_SPHEAT) > 0.0)
+                {
+
+                    if (nodal_data_arr(nodeindex, MASS_SPHEAT) >=
+                        mass_tolerance)
+                    {
+                        nodal_data_arr(nodeindex, TEMPERATURE) =
+                            nodal_data_arr(nodeindex, MASS_SPHEAT_TEMP) /
+                            nodal_data_arr(nodeindex, MASS_SPHEAT);
+                    }
+
+                    else
+                    {
+                        nodal_data_arr(nodeindex, TEMPERATURE) = 0.0;
+                    }
+                }
+            });
+    }
 }
 
 #endif
@@ -1120,131 +1152,141 @@ void MPMParticleContainer::interpolate_from_grid_temperature(
     GpuArray<int, AMREX_SPACEDIM> periodic,
     amrex::Real alpha_pic_flip)
 {
-  const int lev = 0;
-      const Geometry &geom = Geom(lev);
-      auto &plev = GetParticles(lev);
-      const auto dxi = geom.InvCellSizeArray();
-      const auto dx = geom.CellSizeArray();
-      const auto plo = geom.ProbLoArray();
-      const auto domain = geom.Domain();
+    const int lev = 0;
+    const Geometry &geom = Geom(lev);
+    auto &plev = GetParticles(lev);
+    const auto dxi = geom.InvCellSizeArray();
+    const auto dx = geom.CellSizeArray();
+    const auto plo = geom.ProbLoArray();
+    const auto domain = geom.Domain();
 
-      const int *loarr = domain.loVect();
-      const int *hiarr = domain.hiVect();
+    const int *loarr = domain.loVect();
+    const int *hiarr = domain.hiVect();
 
-      int lo[AMREX_SPACEDIM];
-      int hi[AMREX_SPACEDIM];
-      for (int d = 0; d < AMREX_SPACEDIM; ++d)
-      {
-          lo[d] = loarr[d];
-          hi[d] = hiarr[d];
-      }
+    int lo[AMREX_SPACEDIM];
+    int hi[AMREX_SPACEDIM];
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        lo[d] = loarr[d];
+        hi[d] = hiarr[d];
+    }
 
-      nodaldata.FillBoundary(geom.periodicity());
+    nodaldata.FillBoundary(geom.periodicity());
 
-      for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
-      {
-          int gid = mfi.index();
-          int tid = mfi.LocalTileIndex();
-          auto index = std::make_pair(gid, tid);
+    for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        int gid = mfi.index();
+        int tid = mfi.LocalTileIndex();
+        auto index = std::make_pair(gid, tid);
 
-          auto &ptile = plev[index];
-          auto &aos = ptile.GetArrayOfStructs();
-          const int np = aos.numRealParticles();
+        auto &ptile = plev[index];
+        auto &aos = ptile.GetArrayOfStructs();
+        const int np = aos.numRealParticles();
 
-          Array4<Real> nodal_data_arr = nodaldata.array(mfi);
-          ParticleType *pstruct = aos().dataPtr();
+        Array4<Real> nodal_data_arr = nodaldata.array(mfi);
+        ParticleType *pstruct = aos().dataPtr();
 
-          amrex::ParallelFor(
-              np,
-              [=] AMREX_GPU_DEVICE(int i) noexcept
-              {
-                  ParticleType &p = pstruct[i];
-                  if (p.idata(intData::phase) != 0)
-                      return;
+        amrex::ParallelFor(
+            np,
+            [=] AMREX_GPU_DEVICE(int i) noexcept
+            {
+                ParticleType &p = pstruct[i];
+                if (p.idata(intData::phase) != 0)
+                    return;
 
-                  amrex::Real xp[AMREX_SPACEDIM];
-                  for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                  {
-                      xp[d] = p.pos(d);
-                  }
+                amrex::Real xp[AMREX_SPACEDIM];
+                for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                {
+                    xp[d] = p.pos(d);
+                }
 
-                  auto iv = getParticleCell(p, plo, dxi, domain);
+                auto iv = getParticleCell(p, plo, dxi, domain);
 
-                  // Dimension‑aware min/max indices
-                  IntVect min_index = {AMREX_D_DECL(0, 0, 0)};
-                  IntVect max_index = {AMREX_D_DECL(0, 0, 0)};
+                // Dimension‑aware min/max indices
+                IntVect min_index = {AMREX_D_DECL(0, 0, 0)};
+                IntVect max_index = {AMREX_D_DECL(0, 0, 0)};
 
-                  for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                  {
-                      auto bounds = compute_bounds(iv[d], lo[d], hi[d],
-                                                   order_scheme_directional[d],
-                                                   periodic[d]);
-                      min_index[d] = bounds.first;
-                      max_index[d] = bounds.second;
-                  }
+                for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                {
+                    auto bounds = compute_bounds(iv[d], lo[d], hi[d],
+                                                 order_scheme_directional[d],
+                                                 periodic[d]);
+                    min_index[d] = bounds.first;
+                    max_index[d] = bounds.second;
+                }
 
-                  if (update_temperature)
-                  {
-                      if (order_scheme_directional[0] == 1)
-                	{
-                	  p.rdata(realData::temperature) += bilin_interp(xp, iv, plo, dx, nodal_data_arr, DELTA_TEMPERATURE);
-                	}
-                      else if (order_scheme_directional[0] == 2)
-                	{
-                	  p.rdata(realData::temperature) += quadratic_interp(xp, iv, min_index, max_index,
-				                                                 plo, dx, nodal_data_arr,
-										 DELTA_TEMPERATURE, lo, hi);
-                	}
-                      else if (order_scheme_directional[0] == 3)
-                	{
-                	  p.rdata(realData::temperature) += cubic_interp(xp, iv, min_index, max_index,
-			                                                 plo, dx, nodal_data_arr,
-									 DELTA_TEMPERATURE, lo, hi);
-                	}
-                  }
+                if (update_temperature)
+                {
+                    if (order_scheme_directional[0] == 1)
+                    {
+                        p.rdata(realData::temperature) += bilin_interp(
+                            xp, iv, plo, dx, nodal_data_arr, DELTA_TEMPERATURE);
+                    }
+                    else if (order_scheme_directional[0] == 2)
+                    {
+                        p.rdata(realData::temperature) += quadratic_interp(
+                            xp, iv, min_index, max_index, plo, dx,
+                            nodal_data_arr, DELTA_TEMPERATURE, lo, hi);
+                    }
+                    else if (order_scheme_directional[0] == 3)
+                    {
+                        p.rdata(realData::temperature) += cubic_interp(
+                            xp, iv, min_index, max_index, plo, dx,
+                            nodal_data_arr, DELTA_TEMPERATURE, lo, hi);
+                    }
+                }
 
-                  // Strain rate update
-                  if (update_heatflux)
-                  {
-                      amrex::Real gradT[AMREX_SPACEDIM] = {};
-  #if (AMREX_SPACEDIM == 3)
-                      for (int n = min_index[2]; n < max_index[2]; ++n)
-                      {
-  #endif
-  #if (AMREX_SPACEDIM != 1)
-                          for (int m = min_index[1]; m < max_index[1]; ++m)
-                          {
-  #endif
-                              for (int l = min_index[0]; l < max_index[0]; ++l)
-                              {
-                                  amrex::Real basisval_grad[AMREX_SPACEDIM];
-                                  for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                                  {
-                                      IntVect stencil(AMREX_D_DECL(l, m, n));
-                                      IntVect celliv( AMREX_D_DECL(iv[0], iv[1], iv[2]));
-                                      basisval_grad[d] = basisvalder( d, stencil, celliv, xp, plo, dx, order_scheme_directional, periodic, lo, hi);
-                                  }
-                                  for (int d1 = 0; d1 < AMREX_SPACEDIM; ++d1)
-                                  {
-                                      IntVect nodeindex(AMREX_D_DECL(iv[0] + l, iv[1] + m, iv[2] + n));
-                                      gradT[d1] += nodal_data_arr(nodeindex,TEMPERATURE) * basisval_grad[d1];
-                                      //amrex::Print()<<"\n Temp = "<<d1<<" "<<nodal_data_arr(nodeindex,TEMPERATURE)<<" "<<basisval_grad[d1];
-                                  }
-                              }
-  #if (AMREX_SPACEDIM != 1)
-                          }
-  #endif
-  #if (AMREX_SPACEDIM == 3)
-                      }
-  #endif
-                      for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                	{
-                	  p.rdata(realData::heat_flux+d) = -p.rdata(realData::thermal_conductivity)*gradT[d];
-                	}
-
-                  }
-              });
-      }
+                // Strain rate update
+                if (update_heatflux)
+                {
+                    amrex::Real gradT[AMREX_SPACEDIM] = {};
+#if (AMREX_SPACEDIM == 3)
+                    for (int n = min_index[2]; n < max_index[2]; ++n)
+                    {
+#endif
+#if (AMREX_SPACEDIM != 1)
+                        for (int m = min_index[1]; m < max_index[1]; ++m)
+                        {
+#endif
+                            for (int l = min_index[0]; l < max_index[0]; ++l)
+                            {
+                                amrex::Real basisval_grad[AMREX_SPACEDIM];
+                                for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                                {
+                                    IntVect stencil(AMREX_D_DECL(l, m, n));
+                                    IntVect celliv(
+                                        AMREX_D_DECL(iv[0], iv[1], iv[2]));
+                                    basisval_grad[d] = basisvalder(
+                                        d, stencil, celliv, xp, plo, dx,
+                                        order_scheme_directional, periodic, lo,
+                                        hi);
+                                }
+                                for (int d1 = 0; d1 < AMREX_SPACEDIM; ++d1)
+                                {
+                                    IntVect nodeindex(AMREX_D_DECL(
+                                        iv[0] + l, iv[1] + m, iv[2] + n));
+                                    gradT[d1] +=
+                                        nodal_data_arr(nodeindex, TEMPERATURE) *
+                                        basisval_grad[d1];
+                                    // amrex::Print()<<"\n Temp = "<<d1<<"
+                                    // "<<nodal_data_arr(nodeindex,TEMPERATURE)<<"
+                                    // "<<basisval_grad[d1];
+                                }
+                            }
+#if (AMREX_SPACEDIM != 1)
+                        }
+#endif
+#if (AMREX_SPACEDIM == 3)
+                    }
+#endif
+                    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                    {
+                        p.rdata(realData::heat_flux + d) =
+                            -p.rdata(realData::thermal_conductivity) * gradT[d];
+                    }
+                }
+            });
+    }
 }
 #endif
 

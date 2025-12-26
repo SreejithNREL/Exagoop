@@ -62,8 +62,8 @@ class MPMParticleContainer
                                        amrex::Real L,
                                        amrex::Real time);
     void writeAsciiFiles(std::string prefix_particlefilename,
-	                        int num_of_digits_in_filenames,
-	                        amrex::Real n);
+                         int num_of_digits_in_filenames,
+                         amrex::Real n);
     void writeParticles(std::string prefix_particlefilename,
                         int num_of_digits_in_filenames,
                         const int n);
@@ -107,7 +107,7 @@ class MPMParticleContainer
 
     void deposit_onto_grid_temperature(
         MultiFab &nodaldata,
-	bool resetnodaldata_to_zero,
+        bool resetnodaldata_to_zero,
         bool update_mass_temp,
         bool update_source,
         amrex::Real mass_tolerance,

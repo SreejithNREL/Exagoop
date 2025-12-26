@@ -60,11 +60,12 @@ void Write_Particle_Grid_Levset_Output(
             specs.num_of_digits_in_filenames, time, steps, output_it);
     }
 
-    if(specs.write_ascii)
-      {
-	mpm_pc.writeAsciiFiles(specs.ascii_output_folder +"/"+ specs.prefix_asciifilename,6,time);
-
-      }
+    if (specs.write_ascii)
+    {
+        mpm_pc.writeAsciiFiles(specs.ascii_output_folder + "/" +
+                                   specs.prefix_asciifilename,
+                               6, time);
+    }
 
     BL_PROFILE_VAR_STOP(outputs);
 }
@@ -87,18 +88,17 @@ void P2G_Momentum(MPMspecs &specs,
 
 #if USE_TEMP
 void P2G_Temperature(MPMspecs &specs,
-                  MPMParticleContainer &mpm_pc,
-                  amrex::MultiFab &nodaldata,
-		  int reset_nodaldata_to_zero,
-                  int update_temp,
-                  int update_source)
+                     MPMParticleContainer &mpm_pc,
+                     amrex::MultiFab &nodaldata,
+                     int reset_nodaldata_to_zero,
+                     int update_temp,
+                     int update_source)
 {
     if (testing == 1)
         amrex::Print() << "\n Doing P2G for temperature\n";
     mpm_pc.deposit_onto_grid_temperature(
-        nodaldata, reset_nodaldata_to_zero, update_temp,
-	update_source, specs.mass_tolerance,
-        specs.order_scheme_directional, specs.periodic);
+        nodaldata, reset_nodaldata_to_zero, update_temp, update_source,
+        specs.mass_tolerance, specs.order_scheme_directional, specs.periodic);
 }
 #endif
 
@@ -120,24 +120,23 @@ void Apply_Nodal_BCs(amrex::Geometry &geom,
 
     // Calculate velocity diff
     store_delta_velocity(nodaldata);
-
 }
 
 #if USE_TEMP
 void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
-                     amrex::MultiFab &nodaldata,
-                     MPMspecs &specs,
-                     amrex::Real dt)
+                                 amrex::MultiFab &nodaldata,
+                                 MPMspecs &specs,
+                                 amrex::Real dt)
 {
     amrex::Array<amrex::Real, AMREX_SPACEDIM> temp_lo;
     amrex::Array<amrex::Real, AMREX_SPACEDIM> temp_hi;
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
-      {
-	temp_lo[d] = specs.bclo_tempval[d];
-	temp_hi[d] = specs.bchi_tempval[d];
-      }
-    nodal_bcs_temperature(geom, nodaldata, specs.bclo.data(),
-                                  specs.bchi.data(), temp_lo.data(), temp_hi.data());
+    {
+        temp_lo[d] = specs.bclo_tempval[d];
+        temp_hi[d] = specs.bchi_tempval[d];
+    }
+    nodal_bcs_temperature(geom, nodaldata, specs.bclo.data(), specs.bchi.data(),
+                          temp_lo.data(), temp_hi.data());
     store_delta_temperature(nodaldata);
 }
 #endif
@@ -157,17 +156,17 @@ void G2P_Momentum(MPMspecs &specs,
 }
 #if USE_TEMP
 void G2P_Temperature(MPMspecs &specs,
-                  MPMParticleContainer &mpm_pc,
-                  amrex::MultiFab &nodaldata,
-                  int update_temperature,
-                  int update_heatflux,
-                  amrex::Real dt)
+                     MPMParticleContainer &mpm_pc,
+                     amrex::MultiFab &nodaldata,
+                     int update_temperature,
+                     int update_heatflux,
+                     amrex::Real dt)
 {
     if (testing == 1)
         amrex::Print() << "\n Doing G2P \n";
-    mpm_pc.interpolate_from_grid_temperature(nodaldata, update_temperature, update_heatflux,
-                                 specs.order_scheme_directional, specs.periodic,
-                                 specs.alpha_pic_flip);
+    mpm_pc.interpolate_from_grid_temperature(
+        nodaldata, update_temperature, update_heatflux,
+        specs.order_scheme_directional, specs.periodic, specs.alpha_pic_flip);
 }
 #endif
 void Update_MP_Positions(MPMspecs &specs,
@@ -252,7 +251,7 @@ void Initialise_Diagnostic_Streams(MPMspecs &specs)
 
     if (specs.do_calculate_mwa_velcomp)
     {
-	amrex::Print()<<"\n Diag vel comp";
+        amrex::Print() << "\n Diag vel comp";
         std::string fullfilename =
             specs.diagnostic_output_folder + "/" + specs.file_mwa_velcomp;
         if (amrex::ParallelDescriptor::IOProcessor())
@@ -275,7 +274,7 @@ void Initialise_Diagnostic_Streams(MPMspecs &specs)
 
     if (specs.do_calculate_mwa_velmag)
     {
-	amrex::Print()<<"\n Diag vel mag";
+        amrex::Print() << "\n Diag vel mag";
         std::string fullfilename =
             specs.diagnostic_output_folder + "/" + specs.file_mwa_velmag;
         if (amrex::ParallelDescriptor::IOProcessor())

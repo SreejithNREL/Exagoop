@@ -56,13 +56,16 @@ void backup_current_temperature(MultiFab &nodaldata)
         Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
 
         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
-        amrex::ParallelFor(nodalbox, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
-        {
-          if (nodal_data_arr(i, j, k, MASS_SPHEAT) > shunya)
-            {
-              nodal_data_arr(i, j, k, DELTA_TEMPERATURE) = nodal_data_arr(i, j, k, TEMPERATURE);
-            }
-        });
+        amrex::ParallelFor(nodalbox,
+                           [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+                           {
+                               if (nodal_data_arr(i, j, k, MASS_SPHEAT) >
+                                   shunya)
+                               {
+                                   nodal_data_arr(i, j, k, DELTA_TEMPERATURE) =
+                                       nodal_data_arr(i, j, k, TEMPERATURE);
+                               }
+                           });
     }
 }
 #endif
@@ -191,7 +194,6 @@ void store_delta_temperature(MultiFab &nodaldata)
                     nodal_data_arr(i, j, k, DELTA_TEMPERATURE) =
                         nodal_data_arr(i, j, k, TEMPERATURE) -
                         nodal_data_arr(i, j, k, DELTA_TEMPERATURE);
-
                 }
             });
     }
@@ -234,8 +236,8 @@ void Nodal_Time_Update_Momentum(MultiFab &nodaldata,
 
 #if USE_TEMP
 void Nodal_Time_Update_Temperature(MultiFab &nodaldata,
-                              const amrex::Real &dt,
-                              const amrex::Real &mass_tolerance)
+                                   const amrex::Real &dt,
+                                   const amrex::Real &mass_tolerance)
 {
 
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
@@ -251,7 +253,9 @@ void Nodal_Time_Update_Temperature(MultiFab &nodaldata,
             {
                 if (nodal_data_arr(i, j, k, MASS_SPHEAT) >= mass_tolerance)
                 {
-                    nodal_data_arr(i, j, k, TEMPERATURE) += nodal_data_arr(i, j, k, SOURCE_TEMP_INDEX) / nodal_data_arr(i, j, k, MASS_SPHEAT) * dt;
+                    nodal_data_arr(i, j, k, TEMPERATURE) +=
+                        nodal_data_arr(i, j, k, SOURCE_TEMP_INDEX) /
+                        nodal_data_arr(i, j, k, MASS_SPHEAT) * dt;
                 }
                 else
                 {

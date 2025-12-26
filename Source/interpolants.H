@@ -464,8 +464,6 @@ bilin_interp(amrex::Real xp[AMREX_SPACEDIM],
     value += (1.0 - alpha) * beta * nodaldata(i, j + 1, 0, comp);
     value += alpha * beta * nodaldata(i + 1, j + 1, 0, comp);
 
-
-
 #elif (AMREX_SPACEDIM == 3)
     // Trilinear interpolation in 3D (your original code)
     int i = iv[XDIR];
@@ -997,7 +995,7 @@ get_vector(MPMParticleContainer::ParticleType &p,
 {
     for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
-	vect[i] = p.rdata(start_index + i);
+        vect[i] = p.rdata(start_index + i);
     }
 }
 

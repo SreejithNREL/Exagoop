@@ -9,8 +9,6 @@
 
 using namespace amrex;
 
-
-
 struct realData
 {
     enum
@@ -120,7 +118,7 @@ class MPMspecs
     std::string prefix_asciifilename = "matpnt";
     std::string prefix_diagnosticname = "";
 
-    bool write_ascii=false;
+    bool write_ascii = false;
 
     std::string particle_output_folder = "./Solution/particle_files/";
     std::string grid_output_folder = "./Solution/grid_files/";
@@ -200,8 +198,6 @@ class MPMspecs
 
     Vector<int> bclo;
     Vector<int> bchi;
-
-
 
 #if USE_TEMP
     Vector<int> bclo_temp;
@@ -295,23 +291,21 @@ class MPMspecs
         std::string temp_prefix;
         std::string temp_suffix;
         if (pos == std::string::npos)
-          {
+        {
             temp_prefix = "";
             temp_suffix = prefix_asciifilename;
-          }
+        }
         else
-          {
+        {
             temp_prefix = prefix_asciifilename.substr(0, pos);
             temp_suffix = prefix_asciifilename.substr(pos + 1);
-          }
+        }
 
-
-        ascii_output_folder = ascii_output_folder+temp_prefix;
+        ascii_output_folder = ascii_output_folder + temp_prefix;
         prefix_asciifilename = temp_suffix;
 
         pp.query("num_of_digits_in_filenames", num_of_digits_in_filenames);
         pp.query("write_ascii", write_ascii);
-
 
         pp.query("mem_compaction_area", mem_compaction_area);
         pp.query("mem_compaction_dampcoeff", mem_compaction_dampcoeff);

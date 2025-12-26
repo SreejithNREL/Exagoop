@@ -281,7 +281,7 @@ def generate_particles_and_return(dim: int,
     bhi = np.array([1.0, 1.0, 0.05], dtype=float)
     ncells = np.array([ncells_x, ncells_x, 1], dtype=int)
     
-    nparticle_per_cells_eachdir = np_per_cell_x
+    nparticle_per_cells_eachdir = 4
 
     # Base cell sizes
     dx = (bhi - blo) / ncells

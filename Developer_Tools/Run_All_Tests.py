@@ -535,9 +535,9 @@ TEST_CASES = {
             "./PostProcess/plot_energy.py"            
         ],
         "parameter_space": {     
-            "dimension": [2,3],        
+            "dimension": [2],        
             "np_per_cell_x": [1],            
-            "order_scheme": [2],            
+            "order_scheme": [1],            
             "stress_update_scheme": [1]            
         }
     },

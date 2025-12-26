@@ -146,11 +146,13 @@ void MPMParticleContainer::update_phase_field(MultiFab &phasedata,
 }
 
 void MPMParticleContainer::writeAsciiFiles(std::string prefix_particlefilename,
-	                                          int num_of_digits_in_filenames,
-						  amrex::Real time)
+                                           int num_of_digits_in_filenames,
+                                           amrex::Real time)
 {
-  std::ostringstream oss; oss << prefix_particlefilename << "_t" << std::fixed << std::setprecision(6) << time;
-  WriteAsciiFile(oss.str());
+    std::ostringstream oss;
+    oss << prefix_particlefilename << "_t" << std::fixed << std::setprecision(6)
+        << time;
+    WriteAsciiFile(oss.str());
 }
 
 void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
@@ -220,9 +222,9 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
     real_data_names.push_back("specific_heat");
     real_data_names.push_back("thermal_conductivity");
     for (int d = 0; d < 3; ++d)
-        {
-            real_data_names.push_back(amrex::Concatenate("heat_flux_", d, 1));
-        }
+    {
+        real_data_names.push_back(amrex::Concatenate("heat_flux_", d, 1));
+    }
     real_data_names.push_back("heat_source");
 
 #endif
