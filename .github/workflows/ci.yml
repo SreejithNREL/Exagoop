@@ -46,6 +46,10 @@ jobs:
           key: ccache-${{github.workflow}}-${{github.job}}-git-${{github.sha}}
           restore-keys: |
                ccache-${{github.workflow}}-${{github.job}}-git-
+      - name: Install Python dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip3 install numpy
 
       - name: Prepare DamBreak test
         working-directory: ./Tests/Dam_Break
