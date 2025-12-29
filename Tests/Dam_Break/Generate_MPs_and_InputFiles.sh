@@ -1,5 +1,5 @@
 python3 ./PreProcess/generate_particle_and_inputfiles.py \
-    --dimension 3 \
+    --dimension 2 \
     --no_of_cell_in_x 100 \
     --np_per_cell_x 1 \
     --alpha_pic_flip 0.98 \
