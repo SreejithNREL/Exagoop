@@ -12,7 +12,7 @@ cmake -DCMAKE_INSTALL_PREFIX:PATH=./install \
       -DAMReX_AMD_ARCH="gfx90a" \
       -DPYTHON_EXECUTABLE=$(which python3) \
       -DEXAGOOP_PRECISION:STRING=DOUBLE \
-      -DEXAGOOP_DIM=2 \
+      -DEXAGOOP_DIM=1 \
       ..
 #make
 cmake --build . --parallel $(sysctl -n hw.ncpu) #&> output.txt

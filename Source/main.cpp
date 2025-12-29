@@ -55,8 +55,9 @@ int main(int argc, char *argv[])
         Initialise_Domain(specs, geom, geom_levset, ba, dm, ng_cells,
                           ng_cells_nodaldata, nodaldata, levset_data,
                           nodaldata_names);
-
+#if USE_EB
         mpm_ebtools::init_eb(geom, ba, dm);
+#endif
 
         MPMParticleContainer mpm_pc(geom, dm, ba, ng_cells);
 

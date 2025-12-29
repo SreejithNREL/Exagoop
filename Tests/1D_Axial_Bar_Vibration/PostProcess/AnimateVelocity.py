@@ -41,7 +41,14 @@ for f in files:
     data = np.loadtxt(f, skiprows=5)
 
     x = data[:, 0]      # x coordinate
-    vx = data[:, 4]     # x velocity
+    vel_idx=0
+    if(sys.argv[2]=='1'):
+        vel_idx=2
+    if(sys.argv[2]=='2'):
+        vel_idx=3        
+    if(sys.argv[2]=='3'):
+        vel_idx=4    
+    vx = data[:, vel_idx]     # x velocity
 
     frames.append((x, vx))
 
@@ -97,7 +104,7 @@ def update(frame_idx):
 ani = animation.FuncAnimation(
     fig, update, frames=len(frames), interval=80, blit=True
 )
-ani.save(sys.argv[2], fps=30, dpi=150)
+ani.save(sys.argv[3], fps=30, dpi=150)
 
 
 #plt.show()

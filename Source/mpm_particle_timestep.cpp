@@ -144,8 +144,10 @@ void MPMParticleContainer::moveParticles(
     const auto dx = Geom(lev).CellSizeArray();
     auto &plev = GetParticles(lev);
 
+#if USE_EB
     bool using_levsets = mpm_ebtools::using_levelset_geometry;
     int lsref = mpm_ebtools::ls_refinement;
+#endif
 
     GpuArray<int, AMREX_SPACEDIM> bc_lo_arr, bc_hi_arr;
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
@@ -176,11 +178,13 @@ void MPMParticleContainer::moveParticles(
         const size_t np = aos.numParticles();
         ParticleType *pstruct = aos().dataPtr();
 
+#if USE_EB
         amrex::Array4<amrex::Real> lsetarr;
         if (using_levsets)
         {
             lsetarr = mpm_ebtools::lsphi->array(mfi);
         }
+#endif
 
         amrex::ParallelFor(
             np,
@@ -205,7 +209,9 @@ void MPMParticleContainer::moveParticles(
                     relvel_out[d] = p.rdata(realData::xvel + d);
                 }
 
+#if USE_EB
                 // Levelset BC
+
                 if (using_levsets && p.idata(intData::phase) == 0)
                 {
                     amrex::Real xp[AMREX_SPACEDIM];
@@ -245,6 +251,7 @@ void MPMParticleContainer::moveParticles(
                         }
                     }
                 }
+#endif
 
                 // Domain boundary BCs
                 amrex::Real wallvel[AMREX_SPACEDIM];

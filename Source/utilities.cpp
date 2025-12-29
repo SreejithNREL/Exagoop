@@ -112,11 +112,13 @@ void Apply_Nodal_BCs(amrex::Geometry &geom,
               specs.wall_mu_lo.data(), specs.wall_mu_hi.data(),
               specs.wall_vel_lo.data(), specs.wall_vel_hi.data(), dt);
 
+#if USE_EB
     if (mpm_ebtools::using_levelset_geometry)
     {
         nodal_levelset_bcs(nodaldata, geom, dt, specs.levelset_bc,
                            specs.levelset_wall_mu);
     }
+#endif
 
     // Calculate velocity diff
     store_delta_velocity(nodaldata);

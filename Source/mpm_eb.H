@@ -4,10 +4,11 @@
 #include <AMReX.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFab.H>
+
+#if USE_EB
 #include <AMReX_EB2_IF_Cylinder.H>
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_EBFabFactory.H>
-#include <AMReX_PlotFileUtil.H>
 
 #include <AMReX_EB2.H>
 #include <AMReX_EB2_IF.H>
@@ -19,12 +20,16 @@
 #include <AMReX_EB2_IF_Translation.H>
 
 #include <AMReX_EB_utils.H>
+#endif
+
+#include <AMReX_PlotFileUtil.H>
 #include <constants.H>
 #include <interpolants.H>
 // clang-format on
 
 using namespace amrex;
 
+#if USE_EB
 namespace mpm_ebtools
 {
 extern EBFArrayBoxFactory *ebfactory;
@@ -38,6 +43,7 @@ void make_wedge_hopper_levelset(const Geometry &geom,
                                 const BoxArray &ba,
                                 const DistributionMapping &dm);
 } // namespace mpm_ebtools
+#endif
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 get_levelset_value(amrex::Array4<amrex::Real> phi,

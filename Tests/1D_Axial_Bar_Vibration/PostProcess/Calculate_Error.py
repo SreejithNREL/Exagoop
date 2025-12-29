@@ -41,13 +41,15 @@ def plot_overlay(x, vx_num, vx_exact, t):
 # ---------------------------------------------------------
 def main():
     parser = argparse.ArgumentParser(description="Compute min/max/RMS error for axial vibration velocity and plot overlay.")
-    parser.add_argument("time", type=float, help="Time value (e.g., 0.030000)")
+    parser.add_argument("--time", type=float, help="Time value (e.g., 0.030000)")
     parser.add_argument("--folder", type=str, default="Solution/ascii_files",
                         help="Folder containing matpnt_t files")
     parser.add_argument("--skiprows", type=int, default=5,
                         help="Number of metadata rows to skip")
-    parser.add_argument("--vx_col", type=int, default=4,
-                        help="Column index for x-velocity")
+    parser.add_argument("--dim", type=int, default=1,
+                        help="Dimension")
+    parser.add_argument("--showplot", type=bool, default=False,
+                        help=" show plot?")
     args = parser.parse_args()
 
     # ---------------------------------------------------------
@@ -69,7 +71,19 @@ def main():
     # ---------------------------------------------------------
     data = np.loadtxt(filename, skiprows=args.skiprows)
     x = data[:, 0]
-    vx_num = data[:, args.vx_col]
+    vx_col = 2
+    if(args.dim==1):
+        vx_col = 3
+    elif(args.dim==2):
+        vx_col = 3
+    elif(args.dim==3):
+        vx_col = 4
+        
+    print(args.dim, vx_col)
+        
+        
+        
+    vx_num = data[:, vx_col]
 
     # ---------------------------------------------------------
     # Compute exact velocity
@@ -96,7 +110,8 @@ def main():
     # ---------------------------------------------------------
     # Plot overlay
     # ---------------------------------------------------------
-    #plot_overlay(x, vx_num, vx_exact, args.time)
+    if(args.showplot):
+        plot_overlay(x, vx_num, vx_exact, args.time)
 
 
 if __name__ == "__main__":

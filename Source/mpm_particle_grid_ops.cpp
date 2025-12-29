@@ -309,7 +309,9 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
 
-        Box nodalbox = convert(mfi.tilebox(), {AMREX_D_DECL(1, 1, 1)});
+        // Box nodalbox = convert(mfi.tilebox(), {AMREX_D_DECL(1, 1, 1)});
+        Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
+
         auto &ptile = plev[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
         auto &aos = ptile.GetArrayOfStructs();
         int nt = aos.numRealParticles() + aos.numNeighborParticles();
@@ -347,7 +349,8 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
                 amrex::Real basisvalue = 0.0;
                 amrex::Real basisval_grad[AMREX_SPACEDIM] = {
                     AMREX_D_DECL(0.0, 0.0, 0.0)};
-                IntVect ivlocal = {AMREX_D_DECL(0, 0, 0)};
+                // IntVect ivlocal = {AMREX_D_DECL(0, 0, 0)};
+                IntVect ivlocal(AMREX_D_DECL(0, 0, 0));
 
 #if (AMREX_SPACEDIM == 3)
                 for (int n = min_idx[2]; n < max_idx[2]; n++)
@@ -359,8 +362,16 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
 #endif
                         for (int l = min_idx[0]; l < max_idx[0]; l++)
                         {
-                            ivlocal = {
-                                AMREX_D_DECL(iv[0] + l, iv[1] + m, iv[2] + n)};
+                            //                            ivlocal =
+                            //                            (AMREX_D_DECL(iv[0] +
+                            //                            l, iv[1] + m, iv[2] +
+                            //                            n));
+                            ivlocal = IntVect(
+                                AMREX_D_DECL(iv[0] + l, iv[1] + m, iv[2] + n));
+
+                            /*ivlocal = {
+                                AMREX_D_DECL(iv[0] + l, iv[1] + m, iv[2] +
+                               n)};*/
                             IntVect stencil(AMREX_D_DECL(l, m, n));
                             if (nodalbox.contains(ivlocal))
                             {
@@ -492,7 +503,9 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
     // Normalize velocities and stresses
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
-        Box nodalbox = convert(mfi.tilebox(), {AMREX_D_DECL(1, 1, 1)});
+        // Box nodalbox = convert(mfi.tilebox(), {AMREX_D_DECL(1, 1, 1)});
+        Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
+
         auto nodal_data_arr = nodaldata.array(mfi);
         amrex::ParallelFor(
             nodalbox,
@@ -581,7 +594,8 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
 
-        Box nodalbox = convert(mfi.tilebox(), {AMREX_D_DECL(1, 1, 1)});
+        // Box nodalbox = convert(mfi.tilebox(), {AMREX_D_DECL(1, 1, 1)});
+        Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
         auto &ptile = plev[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
         auto &aos = ptile.GetArrayOfStructs();
         int nt = aos.numRealParticles() + aos.numNeighborParticles();
@@ -619,7 +633,8 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
                 amrex::Real basisvalue = 0.0;
                 amrex::Real basisval_grad[AMREX_SPACEDIM] = {
                     AMREX_D_DECL(0.0, 0.0, 0.0)};
-                IntVect ivlocal = {AMREX_D_DECL(0, 0, 0)};
+                //                IntVect ivlocal = {AMREX_D_DECL(0, 0, 0)};
+                IntVect ivlocal(AMREX_D_DECL(0, 0, 0));
 
 #if (AMREX_SPACEDIM == 3)
                 for (int n = min_idx[2]; n < max_idx[2]; n++)
@@ -631,8 +646,11 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
 #endif
                         for (int l = min_idx[0]; l < max_idx[0]; l++)
                         {
-                            ivlocal = {
-                                AMREX_D_DECL(iv[0] + l, iv[1] + m, iv[2] + n)};
+                            // ivlocal = {
+                            //     AMREX_D_DECL(iv[0] + l, iv[1] + m, iv[2] +
+                            //     n)};
+                            ivlocal = IntVect(
+                                AMREX_D_DECL(iv[0] + l, iv[1] + m, iv[2] + n));
                             IntVect stencil(AMREX_D_DECL(l, m, n));
                             if (nodalbox.contains(ivlocal))
                             {
@@ -712,7 +730,8 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
 
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
-        Box nodalbox = convert(mfi.tilebox(), {AMREX_D_DECL(1, 1, 1)});
+        // Box nodalbox = convert(mfi.tilebox(), {AMREX_D_DECL(1, 1, 1)});
+        Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
         auto nodal_data_arr = nodaldata.array(mfi);
         amrex::ParallelFor(
             nodalbox,
@@ -1012,8 +1031,11 @@ void MPMParticleContainer::interpolate_from_grid(
                 auto iv = getParticleCell(p, plo, dxi, domain);
 
                 // Dimension‑aware min/max indices
-                IntVect min_index = {AMREX_D_DECL(0, 0, 0)};
-                IntVect max_index = {AMREX_D_DECL(0, 0, 0)};
+                /*IntVect min_index = {AMREX_D_DECL(0, 0, 0)};
+                IntVect max_index = {AMREX_D_DECL(0, 0, 0)};*/
+
+                IntVect min_index(AMREX_D_DECL(0, 0, 0));
+                IntVect max_index(AMREX_D_DECL(0, 0, 0));
 
                 for (int d = 0; d < AMREX_SPACEDIM; ++d)
                 {
@@ -1203,8 +1225,11 @@ void MPMParticleContainer::interpolate_from_grid_temperature(
                 auto iv = getParticleCell(p, plo, dxi, domain);
 
                 // Dimension‑aware min/max indices
-                IntVect min_index = {AMREX_D_DECL(0, 0, 0)};
-                IntVect max_index = {AMREX_D_DECL(0, 0, 0)};
+                // IntVect min_index = {AMREX_D_DECL(0, 0, 0)};
+                // IntVect max_index = {AMREX_D_DECL(0, 0, 0)};
+
+                IntVect min_index(AMREX_D_DECL(0, 0, 0));
+                IntVect max_index(AMREX_D_DECL(0, 0, 0));
 
                 for (int d = 0; d < AMREX_SPACEDIM; ++d)
                 {

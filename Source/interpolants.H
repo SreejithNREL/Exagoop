@@ -524,10 +524,10 @@ quadratic_interp(amrex::Real xp[AMREX_SPACEDIM],
             shapetypex = 4;
         else
             shapetypex = 3;
+        rx = (xp[XDIR] - (plo[XDIR] + (i + l) * dx[XDIR])) / dx[XDIR];
+        lval = quadraticspline_1d(shapetypex, rx);
+        value += lval * nodaldata(i + l, 0, 0, comp);
     }
-    rx = (xp[XDIR] - (plo[XDIR] + (i + l) * dx[XDIR])) / dx[XDIR];
-    lval = quadraticspline_1d(shapetypex, rx);
-    value += lval * nodaldata(i + l, 0, 0, comp);
 
 #elif (AMREX_SPACEDIM == 2)
     amrex::Real rx, ry;

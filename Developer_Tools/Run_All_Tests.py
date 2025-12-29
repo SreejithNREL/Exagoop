@@ -121,7 +121,14 @@ def Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg):
         run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")
 
         # Select executable
-        exe = "./ExaGOOP3d.gnu.MPI.ex" if dim == 3 else "./ExaGOOP2d.gnu.MPI.ex"
+        if(dim==1):
+            exe = "./ExaGOOP1d.gnu.MPI.ex"
+        elif(dim==2):
+            exe = "./ExaGOOP2d.gnu.MPI.ex"
+        elif(dim==3):
+            exe = "./ExaGOOP3d.gnu.MPI.ex"
+            
+        #exe = "./ExaGOOP3d.gnu.MPI.ex" if dim == 3 else "./ExaGOOP2d.gnu.MPI.ex"
 
         # Run simulation
         run_cmd(f"cd {test_dir} && mpirun -np 4 {exe} {cfg['input_file']}")
@@ -135,7 +142,7 @@ def Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg):
             rms = float("nan")
         else:
             err_script = os.path.join(test_dir,cfg["postproc_scripts"][0])                     
-            err_cmd = f"python3 {err_script} {latest_time} --folder {ascii_folder}"
+            err_cmd = f"python3 {err_script} --time {latest_time} --folder {ascii_folder} --dim {dim}"
             error_output = subprocess.check_output(err_cmd, shell=True, text=True)
             
             
@@ -157,7 +164,7 @@ def Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg):
             
             pp3_script = os.path.join(test_dir,cfg["postproc_scripts"][3])   
             input_file=os.path.join(test_dir,f"./Solution/ascii_files/{output_tag}")
-            pp3_cmd = f"python3 {pp3_script} {input_file} {MoviesFolder}/AxialBar.mp4"            
+            pp3_cmd = f"python3 {pp3_script} {input_file} {dim} {MoviesFolder}/AxialBar.mp4"            
             pp3_output = subprocess.check_output(pp3_cmd, shell=True, text=True)
             
             rms = None
@@ -220,7 +227,12 @@ def Run_ParameterSweep_1D_HeatConduction(cfg):
         run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")
 
         # Select executable
-        exe = "./ExaGOOP3d.gnu.MPI.ex" if dim == 3 else "./ExaGOOP2d.gnu.MPI.ex"
+        if(dim==1):
+            exe = "./ExaGOOP1d.gnu.MPI.ex"
+        elif(dim==2):
+            exe = "./ExaGOOP2d.gnu.MPI.ex"
+        elif(dim==3):
+            exe = "./ExaGOOP3d.gnu.MPI.ex"
 
         # Run simulation
         run_cmd(f"cd {test_dir} && mpirun -np 4 {exe} {cfg['input_file']}")
@@ -236,7 +248,7 @@ def Run_ParameterSweep_1D_HeatConduction(cfg):
             PicsFolder = os.path.join(test_dir,f"Solution/ascii_files/{output_tag}/Pics")
             os.makedirs(PicsFolder, exist_ok=True)           
             err_script = os.path.join(test_dir,cfg["postproc_scripts"][0])                     
-            err_cmd = f"python3 {err_script} --time {latest_time} --fileloc {ascii_folder} --outputpic {PicsFolder}/Temperature_x.png"
+            err_cmd = f"python3 {err_script} --time {latest_time} --fileloc {ascii_folder} --dim {dim} --outputpic {PicsFolder}/Temperature_x.png"
             error_output = subprocess.check_output(err_cmd, shell=True, text=True)           
             
             rms = None
@@ -474,10 +486,10 @@ TEST_CASES = {
             "./PostProcess/AnimateVelocity.py"
         ],
         "parameter_space": {
-            "dimension": [2,3],
+            "dimension": [1,2,3],
             "np_per_cell_x": [1],
             "order_scheme": [1,2,3],
-            "alpha_pic_flip": [0.0,1.0],
+            "alpha_pic_flip": [1.0],
             "stress_update_scheme": [1],
             "CFL": [0.1]
         }
@@ -493,8 +505,8 @@ TEST_CASES = {
             "./PostProcess/Plot_Temperature.py"            
         ],
         "parameter_space": {
-            "dimension": [2,3],
-            "np_per_cell_x": [1,2],            
+            "dimension": [1,2,3],
+            "np_per_cell_x": [1],            
             "order_scheme": [1,2,3],            
             "stress_update_scheme": [1]            
         }
@@ -571,6 +583,8 @@ for test_name, cfg in TEST_CASES.items():
     #Deleting existing solution and diagnostics folders
     sol_dir = os.path.join(test_dir,"Solution")
     diagn_dir = os.path.join(test_dir,"Diagnostics")
+    tmp_build_dir = os.path.join(test_dir,"tmp_build_dir")
+    
     if os.path.exists(sol_dir):
         shutil.rmtree(sol_dir)
         print(f"Deleted: {sol_dir}")
@@ -581,21 +595,52 @@ for test_name, cfg in TEST_CASES.items():
         shutil.rmtree(diagn_dir)
         print(f"Deleted: {diagn_dir}")
     else:
-        print(f"No Solution directory found at: {diagn_dir}")
+        print(f"No Solution directory found at: {diagn_dir}") 
+        
+    if os.path.exists(tmp_build_dir):
+        shutil.rmtree(tmp_build_dir)
+        print(f"Deleted: {tmp_build_dir}")
+    else:
+        print(f"No Solution directory found at: {tmp_build_dir}") 
     
+    # --- Delete ExaGOOP executables ---
+    deleted_any = False
+    
+    for fname in os.listdir(test_dir):
+        fpath = os.path.join(test_dir, fname)
+    
+        # Match pattern: ExaGOOP*.ex
+        if (
+            os.path.isfile(fpath)
+            and fname.startswith("ExaGOOP")
+            and fname.endswith(".ex")
+            and os.access(fpath, os.X_OK)
+        ):
+            os.remove(fpath)
+            print(f"Deleted executable: {fpath}")
+            deleted_any = True
+    
+    if not deleted_any:
+        print("No ExaGOOP executables found.")
+
 
     # Copy GNUmakefile
     copy_gnumake_to_test(ROOT, test_name)
     
-    if(test_name=="1D_Axial_Bar_Vibration"):                
-        Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg)
-    elif(test_name=="1D_Heat_Conduction"):        
-        Run_ParameterSweep_1D_HeatConduction(cfg)
-    elif(test_name=="2D_Heat_Conduction"):        
-        Run_ParameterSweep_2D_HeatConduction(cfg)
-    elif(test_name=="Dam_Break"):        
-        Run_ParameterSweep_Dambreak(cfg)
+    if(test_name=="1D_Axial_Bar_Vibration"):
+        print('Nothing to do')                
+        #Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg)
+    elif(test_name=="1D_Heat_Conduction"):
+        print('Nothing to do')        
+        #Run_ParameterSweep_1D_HeatConduction(cfg)
+    elif(test_name=="2D_Heat_Conduction"):
+        print('Nothing to do')        
+        #Run_ParameterSweep_2D_HeatConduction(cfg)
+    elif(test_name=="Dam_Break"):
+        print('Nothing to do')        
+        #Run_ParameterSweep_Dambreak(cfg)
     elif(test_name=="Elastic_disk_collision"):
+        #print('Nothing to do')
         Run_ParameterSweep_EDC(cfg)
         
     

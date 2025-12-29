@@ -25,6 +25,7 @@ def main():
     parser = argparse.ArgumentParser(description="Plot temperature vs x and compute errors.")
     parser.add_argument("--time", type=float, default=0.0, help="Time value to search for (e.g., 0.020000)")
     parser.add_argument("--T0", type=float, default=0.0, help="Boundary temperature at x=0")
+    parser.add_argument("--dim", type=int, default=3, help="Temperature col index in the ascii file")
     parser.add_argument("--T1", type=float, default=1.0, help="Boundary temperature at x=1")
     parser.add_argument("--fileloc", type=str, default=1.0, help="Boundary temperature at x=1")
     parser.add_argument("--outputpic", type=str, default=1.0, help="Boundary temperature at x=1")
@@ -45,7 +46,8 @@ def main():
     # Load data
     data = np.loadtxt(filename,skiprows=5)
     x = data[:, 0]
-    T_num = data[:, 49]
+    temp_idx = 46
+    T_num = data[:, temp_idx+args.dim]
 
     # Compute exact solution
     T_ex = Texact(x, args.T0, args.T1, args.time)

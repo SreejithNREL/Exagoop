@@ -30,6 +30,13 @@ else()
     add_compile_definitions(USE_TEMP=0)
 endif()
 
+# Enable EB only if requested AND dimension >= 2
+if(EXAGOOP_ENABLE_EB AND EXAGOOP_DIM GREATER_EQUAL 2)
+    add_compile_definitions(USE_EB=1)
+else()
+    add_compile_definitions(USE_EB=0)
+endif()
+
 
 # Setting CUDA
 if(EXAGOOP_ENABLE_CUDA)

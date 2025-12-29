@@ -1,10 +1,13 @@
 // clang-format off
 #include <mpm_eb.H>
+#if USE_EB
 #include <AMReX_EB_utils.H>
+#endif
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_MultiFabUtil.H>
 // clang-format on
 
+#if USE_EB
 namespace mpm_ebtools
 {
 EBFArrayBoxFactory *ebfactory = NULL;
@@ -187,3 +190,4 @@ void init_eb(const Geometry &geom,
     }
 }
 } // namespace mpm_ebtools
+#endif

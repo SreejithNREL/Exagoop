@@ -400,10 +400,12 @@ void Initialise_Material_Points(MPMspecs &specs,
     }
 
     // remove particles inside EB if levelset geometry is active
+#if USE_EB
     if (mpm_ebtools::using_levelset_geometry)
     {
         mpm_pc.removeParticlesInsideEB();
     }
+#endif
 
     mpm_pc.RedistributeLocal();
     mpm_pc.fillNeighbors();
@@ -835,6 +837,7 @@ void MPMParticleContainer::PrintParticleData()
     }
 }
 
+#if USE_EB
 void MPMParticleContainer::removeParticlesInsideEB()
 {
     const int lev = 0;
@@ -843,7 +846,9 @@ void MPMParticleContainer::removeParticlesInsideEB()
     const auto dx = geom.CellSizeArray();
     const auto plo = geom.ProbLoArray();
 
+#if USE_EB
     int lsref = mpm_ebtools::ls_refinement;
+#endif
 
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
@@ -883,3 +888,4 @@ void MPMParticleContainer::removeParticlesInsideEB()
 
     Redistribute();
 }
+#endif

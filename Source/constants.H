@@ -66,7 +66,14 @@
 #define DELTA_TEMPERATURE 24 // T_I
 #endif
 
-#if (AMREX_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 1)
+#define XX 0
+#define XY 1
+#define XZ 2
+#define YY 3
+#define YZ 4
+#define ZZ 5
+#elif (AMREX_SPACEDIM == 2)
 #define XX 0
 #define XY 1
 #define YY 2

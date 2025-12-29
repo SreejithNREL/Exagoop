@@ -175,6 +175,27 @@ def generate_particles_and_return(dim: int,
                         nu=nu
                         )
                     particle_lines.append(line)
+    elif(dim==1):
+        for i in range(int(ncells[0])):
+            c_cx = blo[0] + i * dx[0]            
+            if (xmin <= c_cx < xmax):
+                for ii in range(int(np_per_cell_x)):
+                    cell_cx = c_cx + (2 * ii + 1) * dx[0] / (2.0 * np_per_cell_x)
+                    velx = v0 * np.sin(beta_n * cell_cx)
+                    vely = 0.0
+                    velz = 0.0
+                    # explicit formatting keeps tokens separated and phase as integer
+                    line = "{phase:d} {cx:.6e} {rad:.6e} {dens:.6e} {vx:.6e} {flag:d} {E:.6e} {nu:.6e}\n".format(
+                        phase=int(phase),
+                        cx=cell_cx,                                               
+                        rad=rad,
+                        dens=dens,
+                        vx=velx,                                             
+                        flag=0,
+                        E=E,
+                        nu=nu
+                        )
+                    particle_lines.append(line)
 
     npart = len(particle_lines)
     if npart == 0:

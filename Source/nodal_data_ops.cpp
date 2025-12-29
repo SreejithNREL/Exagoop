@@ -24,7 +24,8 @@ void backup_current_velocity(MultiFab &nodaldata)
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
         const Box &bx = mfi.validbox();
-        Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
+        // Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
+        Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 
         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
 
@@ -53,7 +54,8 @@ void backup_current_temperature(MultiFab &nodaldata)
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
         const Box &bx = mfi.validbox();
-        Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
+        // Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
+        Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 
         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
         amrex::ParallelFor(nodalbox,
@@ -70,6 +72,7 @@ void backup_current_temperature(MultiFab &nodaldata)
 }
 #endif
 
+#if USE_EB
 void nodal_levelset_bcs(MultiFab &nodaldata,
                         const Geometry geom,
                         amrex::Real & /*dt*/,
@@ -146,6 +149,7 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
             });
     }
 }
+#endif
 
 void store_delta_velocity(MultiFab &nodaldata)
 {
@@ -153,7 +157,8 @@ void store_delta_velocity(MultiFab &nodaldata)
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
         const Box &bx = mfi.validbox();
-        Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
+        // Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
+        Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 
         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
 
@@ -181,7 +186,8 @@ void store_delta_temperature(MultiFab &nodaldata)
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
         const Box &bx = mfi.validbox();
-        Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
+        // Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
+        Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 
         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
 
@@ -207,7 +213,8 @@ void Nodal_Time_Update_Momentum(MultiFab &nodaldata,
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
         const Box &bx = mfi.validbox();
-        Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
+        // Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
+        Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 
         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
 
@@ -243,7 +250,8 @@ void Nodal_Time_Update_Temperature(MultiFab &nodaldata,
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
         const Box &bx = mfi.validbox();
-        Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
+        // Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
+        Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 
         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
 
@@ -277,11 +285,14 @@ void nodal_detect_contact(
     {
         const Box &bx = mfi.validbox();
 #if (AMREX_SPACEDIM == 1)
-        Box nodalbox = convert(bx, {1});
+        // Box nodalbox = convert(bx, {1});
+        Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 #elif (AMREX_SPACEDIM == 2)
-        Box nodalbox = convert(bx, {1, 1});
+        // Box nodalbox = convert(bx, {1, 1});
+        Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 #else
-        Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
+        // Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
+        Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 #endif
 
         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
@@ -290,25 +301,26 @@ void nodal_detect_contact(
             nodalbox,
             [=] AMREX_GPU_DEVICE(AMREX_D_DECL(int i, int j, int k)) noexcept
             {
-                if (nodal_data_arr(AMREX_D_DECL(i, j, k), MASS_INDEX) >
+                if (nodal_data_arr(IntVect(AMREX_D_DECL(i, j, k)), MASS_INDEX) >
                         contact_tolerance &&
-                    nodal_data_arr(AMREX_D_DECL(i, j, k), MASS_RIGID_INDEX) >
-                        contact_tolerance &&
-                    int(nodal_data_arr(AMREX_D_DECL(i, j, k), RIGID_BODY_ID)) !=
-                        -1)
+                    nodal_data_arr(IntVect(AMREX_D_DECL(i, j, k)),
+                                   MASS_RIGID_INDEX) > contact_tolerance &&
+                    int(nodal_data_arr(IntVect(AMREX_D_DECL(i, j, k)),
+                                       RIGID_BODY_ID)) != -1)
                 {
-                    const int rb_id = int(
-                        nodal_data_arr(AMREX_D_DECL(i, j, k), RIGID_BODY_ID));
+                    const int rb_id = int(nodal_data_arr(
+                        IntVect(AMREX_D_DECL(i, j, k)), RIGID_BODY_ID));
 
                     // Compute contact_alpha = (v_node - v_rigid) � normal
                     amrex::Real contact_alpha = 0.0;
                     for (int d = 0; d < AMREX_SPACEDIM; ++d)
                     {
                         contact_alpha +=
-                            (nodal_data_arr(AMREX_D_DECL(i, j, k),
+                            (nodal_data_arr(IntVect(AMREX_D_DECL(i, j, k)),
                                             VELX_INDEX + d) -
                              velocity[rb_id][d]) *
-                            nodal_data_arr(AMREX_D_DECL(i, j, k), NORMALX + d);
+                            nodal_data_arr(IntVect(AMREX_D_DECL(i, j, k)),
+                                           NORMALX + d);
                     }
 
                     if (contact_alpha >= 0.0)
@@ -317,20 +329,21 @@ void nodal_detect_contact(
                         amrex::Real V_relative = 0.0;
                         for (int d = 0; d < AMREX_SPACEDIM; ++d)
                         {
-                            V_relative += (nodal_data_arr(AMREX_D_DECL(i, j, k),
-                                                          VELX_INDEX + d) -
-                                           velocity[rb_id][d]) *
-                                          nodal_data_arr(AMREX_D_DECL(i, j, k),
-                                                         NORMALX + d);
+                            V_relative +=
+                                (nodal_data_arr(IntVect(AMREX_D_DECL(i, j, k)),
+                                                VELX_INDEX + d) -
+                                 velocity[rb_id][d]) *
+                                nodal_data_arr(IntVect(AMREX_D_DECL(i, j, k)),
+                                               NORMALX + d);
                         }
 
                         // Project out normal component
                         for (int d = 0; d < AMREX_SPACEDIM; ++d)
                         {
-                            nodal_data_arr(AMREX_D_DECL(i, j, k),
+                            nodal_data_arr(IntVect(AMREX_D_DECL(i, j, k)),
                                            VELX_INDEX + d) -=
                                 V_relative *
-                                nodal_data_arr(AMREX_D_DECL(i, j, k),
+                                nodal_data_arr(IntVect(AMREX_D_DECL(i, j, k)),
                                                NORMALX + d);
                         }
                     }
@@ -356,7 +369,8 @@ void initialise_shape_function_indices(iMultiFab &shapefunctionindex,
     for (MFIter mfi(shapefunctionindex); mfi.isValid(); ++mfi)
     {
         const Box &bx = mfi.validbox();
-        Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
+        // Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
+        Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 
         Array4<int> shapefunctionindex_arr = shapefunctionindex.array(mfi);
 
@@ -477,7 +491,8 @@ void nodal_bcs(const amrex::Geometry geom,
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
         const Box &bx = mfi.validbox();
-        Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
+        // Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
+        Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 
         Array4<amrex::Real> nodal_data_arr = nodaldata.array(mfi);
 
@@ -576,7 +591,8 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
         const Box &bx = mfi.validbox();
-        Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
+        // Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
+        Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 
         Array4<amrex::Real> nodal_data_arr = nodaldata.array(mfi);
 
@@ -646,7 +662,8 @@ void CalculateInterpolationError(const amrex::Geometry geom,
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
         const Box &bx = mfi.validbox();
-        Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
+        // Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
+        Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 
         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
 
