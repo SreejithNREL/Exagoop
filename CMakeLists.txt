@@ -77,9 +77,7 @@ endif()
 
 # Parallel model
 if (EXAGOOP_ENABLE_MPI)
-    set(PARALLEL "MPI")
-else()
-    set(PARALLEL "SERIAL")
+    set(PARALLEL ".MPI")
 endif()
 
 if (EXAGOOP_ENABLE_OMP)
@@ -91,12 +89,12 @@ if (EXAGOOP_ENABLE_CUDA)
 endif()
 
 # Debug/opt
-if (CMAKE_BUILD_TYPE MATCHES "Debug")
+if (CMAKE_BUILD_TYPE MATCHES ".Debug")
     set(BTYPE "DEBUG")
 endif()
 
 # Final executable name
-set(EXAGOOP_EXE_NAME "${EBASE}${DIM}.${COMP}.${PARALLEL}.${BTYPE}.ex")
+set(EXAGOOP_EXE_NAME "${EBASE}${DIM}.${COMP}${PARALLEL}${BTYPE}.ex")
 message(STATUS "Executable name: ${EXAGOOP_EXE_NAME}")
 
 

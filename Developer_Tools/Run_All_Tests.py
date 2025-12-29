@@ -265,7 +265,7 @@ def Run_ParameterSweep_2D_HeatConduction(cfg):
         npcx_vals, order_vals, sus_vals
     ):
 
-        print(f"\n--- Case: dim={dim}, npcx={npcx}, ord={order}, sus={sus}")
+        print(f"\n--- Case: npcx={npcx}, ord={order}, sus={sus}")
 
         # Build auto-tag
         desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}"
@@ -474,10 +474,10 @@ TEST_CASES = {
             "./PostProcess/AnimateVelocity.py"
         ],
         "parameter_space": {
-            "dimension": [3],
+            "dimension": [2,3],
             "np_per_cell_x": [1],
-            "order_scheme": [1],
-            "alpha_pic_flip": [1.0],
+            "order_scheme": [1,2,3],
+            "alpha_pic_flip": [0.0,1.0],
             "stress_update_scheme": [1],
             "CFL": [0.1]
         }
@@ -493,9 +493,9 @@ TEST_CASES = {
             "./PostProcess/Plot_Temperature.py"            
         ],
         "parameter_space": {
-            "dimension": [3],
-            "np_per_cell_x": [1],            
-            "order_scheme": [1],            
+            "dimension": [2,3],
+            "np_per_cell_x": [1,2],            
+            "order_scheme": [1,2,3],            
             "stress_update_scheme": [1]            
         }
     },
@@ -507,8 +507,8 @@ TEST_CASES = {
             "./PostProcess/Plot_Temperature.py"            
         ],
         "parameter_space": {            
-            "np_per_cell_x": [1],            
-            "order_scheme": [1],            
+            "np_per_cell_x": [1,2],            
+            "order_scheme": [1,2,3],            
             "stress_update_scheme": [1]            
         }
     },
@@ -520,10 +520,10 @@ TEST_CASES = {
             "./PostProcess/plot_waterfront.py"            
         ],
         "parameter_space": {     
-            "dimension": [2], 
+            "dimension": [2,3], 
             "no_of_cell_in_x": [100],      
             "np_per_cell_x": [1],            
-            "order_scheme": [1],            
+            "order_scheme": [1,2,3],            
             "stress_update_scheme": [1]            
         }
     },
@@ -535,9 +535,9 @@ TEST_CASES = {
             "./PostProcess/plot_energy.py"            
         ],
         "parameter_space": {     
-            "dimension": [2],        
+            "dimension": [2,3],        
             "np_per_cell_x": [1],            
-            "order_scheme": [1],            
+            "order_scheme": [1,2,3],            
             "stress_update_scheme": [1]            
         }
     },
@@ -587,18 +587,14 @@ for test_name, cfg in TEST_CASES.items():
     # Copy GNUmakefile
     copy_gnumake_to_test(ROOT, test_name)
     
-    if(test_name=="1D_Axial_Bar_Vibration"):
-        print('do nothing')
-        #Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg)
-    elif(test_name=="1D_Heat_Conduction"):
-        print('do nothing')
-        #Run_ParameterSweep_1D_HeatConduction(cfg)
-    elif(test_name=="2D_Heat_Conduction"):
-        print('do nothing')
-        #Run_ParameterSweep_2D_HeatConduction(cfg)
-    elif(test_name=="Dam_Break"):
-        print('do nothing')
-        #Run_ParameterSweep_Dambreak(cfg)
+    if(test_name=="1D_Axial_Bar_Vibration"):                
+        Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg)
+    elif(test_name=="1D_Heat_Conduction"):        
+        Run_ParameterSweep_1D_HeatConduction(cfg)
+    elif(test_name=="2D_Heat_Conduction"):        
+        Run_ParameterSweep_2D_HeatConduction(cfg)
+    elif(test_name=="Dam_Break"):        
+        Run_ParameterSweep_Dambreak(cfg)
     elif(test_name=="Elastic_disk_collision"):
         Run_ParameterSweep_EDC(cfg)
         
