@@ -61,7 +61,7 @@ jobs:
           ./Generate_MPs_and_InputFiles.sh
 
           echo "Copying GNUmakefile from Build_Gnumake..."
-          cp ../Build_Gnumake/GNUmakefile .
+          cp ../../Build_Gnumake/GNUmakefile .
 
           echo "Generated files:"
           ls -l
@@ -89,7 +89,7 @@ jobs:
         working-directory: ./Tests/Dam_Break
         run: |
           echo "Running executable..."
-          ./ExaGOOP2d.gnu.DEBUG.ex Inputs_DamBreak.inp amr.max_step=1 amr.plot_int=-1 amr.check_int=-1
+          ./ExaGOOP2d.gnu.DEBUG.ex Inputs_DamBreak.inp amr.max_step=10 amr.plot_int=-1 amr.check_int=-1
   GPU-Nvidia:
     name: GPU-CUDA
     needs: [Formatting, CPU-GNUmake]
