@@ -26,7 +26,7 @@ struct QuadraticSplineDerCoeff
     amrex::Real a, b;
 };
 #ifdef AMREX_USE_GPU
-AMREX_GPU_DEVICE __constant__
+AMREX_GPU_DEVICE AMREX_GPU_CONSTANT
 #endif
     constexpr int interval_map_quadbspline[5][6] = {
         {-1, -1, -1, -1, -1, -1}, // type 0 filler
@@ -37,7 +37,7 @@ AMREX_GPU_DEVICE __constant__
         {0, 0, 1, 1, 2, -1}  // type 4
 };
 #ifdef AMREX_USE_GPU
-AMREX_GPU_DEVICE __constant__
+AMREX_GPU_DEVICE AMREX_GPU_CONSTANT
 #endif
     constexpr CubicSplineCoeff cubic_spline_coeffs[5][4] = {
         // shapefunctiontype = 0 (unused, just filler)
@@ -70,7 +70,7 @@ AMREX_GPU_DEVICE __constant__
          {0.0, 0.0, 0.0, 0.0}}};
 
 #ifdef AMREX_USE_GPU
-AMREX_GPU_DEVICE __constant__
+AMREX_GPU_DEVICE AMREX_GPU_CONSTANT
 #endif
     constexpr CubicSplineDerCoeff cubic_splineder_coeffs[5][4] = {
         // shapefunctiontype = 0 (unused filler)
@@ -104,7 +104,7 @@ AMREX_GPU_DEVICE __constant__
 };
 
 #ifdef AMREX_USE_GPU
-AMREX_GPU_DEVICE __constant__
+AMREX_GPU_DEVICE AMREX_GPU_CONSTANT
 #endif
     constexpr QuadraticSplineCoeff quad_spline_coeffs[5][4] = {
         // shapefunctiontype = 0 (unused filler)
@@ -135,7 +135,7 @@ AMREX_GPU_DEVICE __constant__
          {0, 0, 0}}};
 
 #ifdef AMREX_USE_GPU
-AMREX_GPU_DEVICE __constant__
+AMREX_GPU_DEVICE AMREX_GPU_CONSTANT
 #endif
     constexpr QuadraticSplineDerCoeff quad_splineder_coeffs[5][4] = {
         // shapefunctiontype = 0 (unused filler)
