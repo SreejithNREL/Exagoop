@@ -101,7 +101,11 @@ if (CMAKE_BUILD_TYPE MATCHES ".Debug")
 endif()
 
 # Final executable name
-set(EXAGOOP_EXE_NAME "${EBASE}${DIM}.${COMP}${PARALLEL}${BTYPE}.ex")
+set(EXAGOOP_EXE_NAME "${EBASE}${DIM}.${COMP}${PARALLEL}${BTYPE}") 
+# Add .ex only on non-Windows platforms 
+if(NOT WIN32) 
+    set(EXAGOOP_EXE_NAME "${EXAGOOP_EXE_NAME}.ex") 
+endif()
 message(STATUS "Executable name: ${EXAGOOP_EXE_NAME}")
 
 
