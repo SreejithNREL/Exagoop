@@ -147,6 +147,7 @@ jobs:
             -DEXAGOOP_ENABLE_MPI:BOOL=OFF \
             -DEXAGOOP_ENABLE_CUDA:BOOL=ON \
             -DEXAGOOP_ENABLE_EB:BOOL=${{matrix.use_eb}} \
+            -DEXAGOOP_DIM=2 \
             -DAMReX_CUDA_ERROR_CAPTURE_THIS:BOOL=ON \
             -DCMAKE_CUDA_ARCHITECTURES:STRING=80 \
             -DCMAKE_CUDA_COMPILER_LAUNCHER:STRING=ccache \
