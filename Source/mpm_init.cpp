@@ -481,7 +481,7 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
             }
 
             // positions (dimension‑aware)
-            for (int d = 0; d < 3; ++d)
+            for (int d = 0; d < AMREX_SPACEDIM; ++d)
             {
                 p.pos(d) = 0.0;
             }
@@ -817,24 +817,26 @@ MPMParticleContainer::generate_particle(amrex::Real coords[AMREX_SPACEDIM],
 
 void MPMParticleContainer::PrintParticleData()
 {
-    const int lev = 0;
-    auto &plev = GetParticles(lev);
+    /*
+      const int lev = 0;
+      auto &plev = GetParticles(lev);
 
-    for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
-    {
-        int gid = mfi.index();
-        int tid = mfi.LocalTileIndex();
-        auto index = std::make_pair(gid, tid);
+      for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+      {
+          int gid = mfi.index();
+          int tid = mfi.LocalTileIndex();
+          auto index = std::make_pair(gid, tid);
 
-        auto &ptile = plev[index];
-        auto &aos = ptile.GetArrayOfStructs();
+          auto &ptile = plev[index];
+          auto &aos = ptile.GetArrayOfStructs();
 
-        int np = aos.numRealParticles();
-        ParticleType *pstruct = aos().dataPtr();
+          int np = aos.numRealParticles();
+          ParticleType *pstruct = aos().dataPtr();
 
-        amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE(int i) noexcept
-                           { ParticleType &p = pstruct[i]; });
-    }
+          amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE(int i) noexcept
+                             { ParticleType &p = pstruct[i]; });
+      }
+      */
 }
 
 #if USE_EB

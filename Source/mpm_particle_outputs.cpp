@@ -150,8 +150,8 @@ void MPMParticleContainer::writeAsciiFiles(std::string prefix_particlefilename,
                                            amrex::Real time)
 {
     std::ostringstream oss;
-    oss << prefix_particlefilename << "_t" << std::fixed << std::setprecision(6)
-        << time;
+    oss << prefix_particlefilename << "_t" << std::fixed
+        << std::setprecision(num_of_digits_in_filenames) << time;
     WriteAsciiFile(oss.str());
 }
 
