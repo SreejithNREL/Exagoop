@@ -505,8 +505,8 @@ TEST_CASES = {
             "./PostProcess/Plot_Temperature.py"            
         ],
         "parameter_space": {
-            "dimension": [1,2,3],
-            "np_per_cell_x": [1],            
+            "dimension": [1],
+            "np_per_cell_x": [1,2,4],            
             "order_scheme": [1,2,3],            
             "stress_update_scheme": [1]            
         }
@@ -520,7 +520,7 @@ TEST_CASES = {
         ],
         "parameter_space": {            
             "np_per_cell_x": [1,2],            
-            "order_scheme": [1,2,3],            
+            "order_scheme": [1,3],            
             "stress_update_scheme": [1]            
         }
     },
@@ -634,14 +634,14 @@ for test_name, cfg in TEST_CASES.items():
         print('Nothing to do')        
         #Run_ParameterSweep_1D_HeatConduction(cfg)
     elif(test_name=="2D_Heat_Conduction"):
-        print('Nothing to do')        
-        #Run_ParameterSweep_2D_HeatConduction(cfg)
+        #print('Nothing to do')        
+        Run_ParameterSweep_2D_HeatConduction(cfg)
     elif(test_name=="Dam_Break"):
         print('Nothing to do')        
         #Run_ParameterSweep_Dambreak(cfg)
     elif(test_name=="Elastic_disk_collision"):
-        #print('Nothing to do')
-        Run_ParameterSweep_EDC(cfg)
+        print('Nothing to do')
+        #Run_ParameterSweep_EDC(cfg)
         
     
 

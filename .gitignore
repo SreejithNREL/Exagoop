@@ -8,12 +8,17 @@ Tests/*/mpm_particles.dat
 Tests/*/Backtrace.*
 Tests/*/Diagnostics/*
 Tests/*/Solution/*
-Tests/*/*.ex
-Tests/*/tmp_build_dir/*
-Tests/*/*.png
-Tests/*/*.sh
-Tests/*/mpm_particles.dat
-
+Tests/**/*.png
+Tests/**/*.ex
+Tests/**/tmp_build_dir/*
+Tests/**/*.sh
+Tests/**/*.inp
+Tests/**/mpm_particles.dat
+Tests/**/GNUmakefile
+Build_Cmake/**
+!Build_Cmake/cmake.sh
+!Build_Cmake/clean_build_files.sh
 
 Build_Gnumake/*.ex
 Build_Gnumake/tmp_build_dir/*
+
