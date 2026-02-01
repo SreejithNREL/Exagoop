@@ -1,5 +1,7 @@
 .project
 .pydevproject
-tests/AxialVibrationofBar/GNUmakefile
-tests/AxialVibrationofBar/mpm_particles.dat
+tests/**/GNUmakefile
+tests/**/.DS_Store
+tests/**/mpm_particles.dat
 /paper/
+clangformat.sh
