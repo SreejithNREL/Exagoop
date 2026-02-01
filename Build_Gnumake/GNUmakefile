@@ -3,24 +3,86 @@ AMREX_HOME ?= ${MPM_HOME}/Submodules/amrex
 
 EBASE = ExaGOOP
 
-DEBUG	= FALSE
+# ===============================================================
+# AMReX configuration
+# ===============================================================
+DIM        = 1
+COMP       = gnu
+PRECISION  = DOUBLE
+USE_EB     = FALSE
+USE_HYPRE  = FALSE
 
-DIM	= 1
+# ===============================================================
+# Profiling
+# ===============================================================
+PROFILE        = FALSE
+TINY_PROFILE   = FALSE
+COMM_PROFILE   = FALSE
+TRACE_PROFILE  = FALSE
+MEM_PROFILE    = FALSE
+USE_GPROF      = FALSE
+BL_NO_FORT     = TRUE
 
-COMP    = gnu
-
-USE_TEMP = FALSE
-
-
-USE_MPI   = TRUE 
+# ===============================================================
+# Parallelism
+# ===============================================================
+USE_MPI   = TRUE
 USE_OMP   = FALSE
 USE_CUDA  = FALSE
 USE_HIP   = FALSE
-USE_EB    = TRUE
+USE_SYCL  = FALSE
 
-# ------------------------------------------------------------------
-# Enforce: EB is not available in 1D
-# ------------------------------------------------------------------
+# ===============================================================
+# Debugging
+# ===============================================================
+DEBUG             = FALSE
+FSANITIZER        = FALSE
+THREAD_SANITIZER  = FALSE
+
+# ===============================================================
+# ExaGOOP configuration
+# ===============================================================
+USE_TEMP      = FALSE
+USE_PARTICLES = TRUE
+
+# ===============================================================
+# Precision 
+# ===============================================================
+PRECISION ?= DOUBLE
+
+ifeq ($(PRECISION),SINGLE)
+  DEFINES += -DAMREX_USE_FLOAT
+  DEFINES += -DEXAGOOP_PRECISION_STR=\"single\"
+endif
+
+ifeq ($(PRECISION),DOUBLE)
+  DEFINES += -DAMREX_USE_DOUBLE
+  DEFINES += -DEXAGOOP_PRECISION_STR=\"double\"
+endif
+
+
+# ===============================================================
+# GPU backend detection
+# ===============================================================
+ifeq ($(USE_CUDA),TRUE)
+  CXXFLAGS += -DEXAGOOP_GPU_BACKEND=\"CUDA\"
+endif
+
+ifeq ($(USE_HIP),TRUE)
+  CXXFLAGS += -DEXAGOOP_GPU_BACKEND=\"HIP\"
+endif
+
+ifeq ($(USE_SYCL),TRUE)
+  CXXFLAGS += -DEXAGOOP_GPU_BACKEND=\"SYCL\"
+endif
+
+ifndef EXAGOOP_GPU_BACKEND
+  CXXFLAGS += -DEXAGOOP_GPU_BACKEND=\"None\"
+endif
+
+# ===============================================================
+# Enforce EB rules (AMReX limitation)
+# ===============================================================
 ifeq ($(DIM),1)
   ifeq ($(USE_EB),TRUE)
     $(warning USE_EB=TRUE requested, but EB is not available in 1D. Forcing USE_EB=FALSE.)
@@ -29,28 +91,30 @@ ifeq ($(DIM),1)
 endif
 
 DEFINES += -DUSE_EB=$(USE_EB)
-DEFINES += -DTRUE=1 -DFALSE=0
-
-
-TINY_PROFILE = FALSE
-USE_PARTICLES = TRUE
-BL_NO_FORT = TRUE
-
 DEFINES += -DUSE_TEMP=$(USE_TEMP)
-DEFINES += -DUSE_EB=$(USE_EB)
 DEFINES += -DTRUE=1 -DFALSE=0
 
+# ===============================================================
+# Include AMReX and ExaGOOP sources
+# ===============================================================
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Particle/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package
-# True if DIM >= 2
-GE_DIM_2 := $(filter $(DIM),2 3 4 5 6 7 8 9)
+
+# ===============================================================
+# Git hashes (ExaGOOP + AMReX)
+# ===============================================================
+EXAGOOP_GIT_HASH := $(shell git rev-parse --short HEAD)
+CXXFLAGS += -DEXAGOOP_GIT_HASH=\"$(EXAGOOP_GIT_HASH)\"
+
+AMREX_GIT_HASH := $(shell git -C $(AMREX_HOME) rev-parse --short HEAD)
+CXXFLAGS += -DAMREX_GIT_HASH=\"$(AMREX_GIT_HASH)\"
 
 ifeq ($(USE_EB),TRUE)
-  ifneq ($(GE_DIM_2),)
+  ifneq ($(filter $(DIM),2 3 4 5 6 7 8 9),)
     include $(AMREX_HOME)/Src/EB/Make.package
   endif
 endif
@@ -61,3 +125,4 @@ INCLUDE_LOCATIONS += $(MPM_HOME)/Source
 VPATH_LOCATIONS   += $(MPM_HOME)/Source
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
+

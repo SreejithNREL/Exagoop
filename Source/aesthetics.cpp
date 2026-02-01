@@ -1,21 +1,128 @@
 #include <AMReX.H> // for amrex::Print and amrex::Real
-// #include <AMReX_MultiFab.H>
 #include <aesthetics.H>
-#include <iomanip>  // for std::setprecision
-#include <iostream> // optional, if you use std::cout
-#include <sstream>  // optional, if you later use string streams
-#include <string>   // for std::string
+#include <iomanip>
+#include <iostream>
+#include <sstream>
+#include <string>
+
+#include <AMReX_ParallelDescriptor.H>
+#include <ctime>
+#include <unistd.h>
 
 using namespace amrex;
 
+
+#ifndef EXAGOOP_GIT_HASH
+#define EXAGOOP_GIT_HASH "unknown"
+#endif
+
+#ifndef AMREX_GIT_HASH
+#define AMREX_GIT_HASH "unknown"
+#endif
+
+
+/**
+ * @brief Prints welcome message at the beginning of ExaGOOP run
+ *
+ * @param[in] 	None
+ * @param[out] 	None
+ *
+ * This function prints:
+ *  - total number of material points
+ *  - total mass of material points
+ *  - total volume of material points
+ *  - rigid body particle counts and masses
+ *
+ * @return None
+ */
+
 void PrintWelcomeMessage()
 {
-    amrex::Print() << " ===============================================\n";
-    amrex::Print() << "        Welcome to EXAGOOP MPM Solver           \n";
-    amrex::Print() << "        Developed by SAMSers at NREL            \n";
-    amrex::Print() << "                 -Hari, Sree and Marc           \n";
-    amrex::Print() << " ===============================================\n";
+    if (!amrex::ParallelDescriptor::IOProcessor()) return;
+
+    char hostname[256];
+    gethostname(hostname, sizeof(hostname));
+
+    std::time_t now = std::time(nullptr);
+    std::tm* local = std::localtime(&now);
+    char timebuf[64];
+    std::strftime(timebuf, sizeof(timebuf), "%Y-%m-%d %H:%M:%S %Z", local);
+
+    std::string compiler;
+#if defined(__clang__)
+    compiler = "Clang " + std::to_string(__clang_major__) + "." +
+               std::to_string(__clang_minor__) + "." +
+               std::to_string(__clang_patchlevel__);
+#elif defined(__GNUC__)
+    compiler = "GCC " + std::to_string(__GNUC__) + "." +
+               std::to_string(__GNUC_MINOR__) + "." +
+               std::to_string(__GNUC_PATCHLEVEL__);
+#elif defined(_MSC_VER)
+    compiler = "MSVC " + std::to_string(_MSC_VER);
+#else
+    compiler = "Unknown compiler";
+#endif
+
+    std::string gpu_backend = "None";
+#if defined(AMREX_USE_CUDA)
+    gpu_backend = "CUDA";
+#elif defined(AMREX_USE_HIP)
+    gpu_backend = "HIP";
+#elif defined(AMREX_USE_SYCL)
+    gpu_backend = "SYCL";
+#endif
+
+    std::string build_type =
+#if defined(NDEBUG)
+        "Release";
+#else
+        "Debug";
+#endif
+
+    std::string mpi_status =
+#if defined(AMREX_USE_MPI)
+        "ON";
+#else
+        "OFF";
+#endif
+
+    std::string omp_status =
+#if defined(_OPENMP)
+        "ON";
+#else
+        "OFF";
+#endif
+
+    std::string precision =
+#if defined(AMREX_USE_FLOAT)
+	"float";
+#elif defined(AMREX_USE_DOUBLE)
+	"double";
+#else
+	"unknown";
+#endif
+
+
+    // -----------------------------
+    // Print Banner
+    // -----------------------------
+    amrex::Print() << "\n===============================================================\n";
+    amrex::Print() << "                 Welcome to EXAGOOP MPM Solver\n";
+    amrex::Print() << "           Developed by SAMSers: Hari, Sree and Marc at NREL\n";
+    amrex::Print() << "-----------------------------------------------------------------\n";
+    amrex::Print() << "ExaGOOP Git commit: " << EXAGOOP_GIT_HASH << "\n";
+    amrex::Print() << "AMReX   Git commit: " << AMREX_GIT_HASH << "\n";
+    amrex::Print() << "Build: " << build_type
+                   << " | GPU: " << gpu_backend
+                   << " | MPI: " << mpi_status
+                   << " | OpenMP: " << omp_status
+                   << " | Precision: " << precision << "\n";
+    amrex::Print() << "Compiler: " << compiler << "\n";
+    amrex::Print() << "Hostname: " << hostname << "\n";
+    amrex::Print() << "Run started: " << timebuf << "\n";
+    amrex::Print() << "===============================================================\n\n";
 }
+
 
 void PrintMessage(std::string msg, int print_len, bool begin)
 {
