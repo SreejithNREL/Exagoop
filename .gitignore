@@ -1,5 +1,6 @@
 .project
 .pydevproject
+
 .DS_Store
 .clang-format
 /paper/
@@ -21,4 +22,3 @@ Build_Cmake/**
 
 Build_Gnumake/*.ex
 Build_Gnumake/tmp_build_dir/*
-
