@@ -16,6 +16,22 @@ int ls_refinement = 1;
 bool using_levelset_geometry = false;
 
 #if (AMREX_SPACEDIM == 3)
+/**
+ * @brief Builds a wedge hopper embedded boundary and corresponding level-set.
+ *
+ * Constructs a 3D wedge hopper geometry using EB2 primitives (planes and boxes),
+ * then:
+ *  - Builds an EB index space for the hopper geometry.
+ *  - Creates a refined geometry for the level-set representation.
+ *  - Builds an EBFArrayBoxFactory for EB-aware data structures.
+ *  - Allocates and fills a nodal MultiFab (lsphi) with signed distance values.
+ *
+ * @param[in] geom  Coarse-level geometry describing the computational domain.
+ * @param[in] ba    BoxArray describing the grid decomposition.
+ * @param[in] dm    DistributionMapping describing MPI rank distribution.
+ *
+ * @return None.
+ */
 void make_wedge_hopper_levelset(const Geometry &geom,
                                 const BoxArray &ba,
                                 const DistributionMapping &dm)
@@ -116,6 +132,24 @@ void make_wedge_hopper_levelset(const Geometry &geom,
     amrex::FillSignedDistance(*lsphi, lslev, *ebfactory, ls_ref);
 }
 #endif
+
+/**
+ * @brief Initializes embedded boundary (EB) and level-set data structures.
+ *
+ * Reads EB configuration from ParmParse ("eb2") and:
+ *  - If geom_type == "all_regular": leaves EB disabled.
+ *  - If geom_type == "wedge_hopper" (3D): builds a wedge hopper EB and level-set.
+ *  - Otherwise: builds EB from EB2 input and constructs a level-set MultiFab.
+ *
+ * When a level-set geometry is used, this function also writes a plotfile
+ * ("ebplt") containing the signed distance field.
+ *
+ * @param[in] geom  Geometry describing the computational domain.
+ * @param[in] ba    BoxArray describing the grid decomposition.
+ * @param[in] dm    DistributionMapping describing MPI rank distribution.
+ *
+ * @return None.
+ */
 
 void init_eb(const Geometry &geom,
              const BoxArray &ba,

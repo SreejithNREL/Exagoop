@@ -6,6 +6,24 @@
 
 using namespace amrex;
 
+/**
+ * @brief Writes nodal grid data to a single‑level plotfile.
+ *
+ * Converts nodal (node‑centered) data to cell‑centered form using
+ * average_node_to_cellcenter(), then writes the resulting MultiFab
+ * to a plotfile directory.
+ *
+ * @param[in] fname        Output plotfile name.
+ * @param[in] nodaldata    Nodal MultiFab to be written.
+ * @param[in] fieldnames   Names of each component in nodaldata.
+ * @param[in] geom         Geometry describing the domain.
+ * @param[in] ba           BoxArray for the output MultiFab.
+ * @param[in] dm           DistributionMapping for parallel layout.
+ * @param[in] time         Simulation time for the plotfile.
+ *
+ * @return None.
+ */
+
 void write_grid_file(std::string fname,
                      MultiFab &nodaldata,
                      Vector<std::string> fieldnames,
@@ -18,6 +36,20 @@ void write_grid_file(std::string fname,
     average_node_to_cellcenter(plotmf, 0, nodaldata, 0, nodaldata.nComp());
     WriteSingleLevelPlotfile(fname, plotmf, fieldnames, geom, time, 0);
 }
+
+/**
+ * @brief Stores the current nodal mass and velocity for later PIC/FLIP updates.
+ *
+ * For each node with positive mass:
+ *   - MASS_OLD_INDEX ← MASS_INDEX
+ *   - DELTA_VELX_INDEX[d] ← VELX_INDEX[d]
+ *
+ * This is used to compute Δv during the next P2G/G2P cycle.
+ *
+ * @param[in,out] nodaldata  Nodal MultiFab containing mass and velocity fields.
+ *
+ * @return None.
+ */
 
 void backup_current_velocity(MultiFab &nodaldata)
 {
@@ -48,6 +80,17 @@ void backup_current_velocity(MultiFab &nodaldata)
 }
 
 #if USE_TEMP
+/**
+ * @brief Stores the current nodal temperature for later ΔT updates.
+ *
+ * For each node with positive thermal mass (MASS_SPHEAT):
+ *   DELTA_TEMPERATURE ← TEMPERATURE
+ *
+ * @param[in,out] nodaldata  Nodal MultiFab containing thermal fields.
+ *
+ * @return None.
+ */
+
 void backup_current_temperature(MultiFab &nodaldata)
 {
 
@@ -73,6 +116,26 @@ void backup_current_temperature(MultiFab &nodaldata)
 #endif
 
 #if USE_EB
+/**
+ * @brief Applies level‑set‑based boundary conditions to nodal velocities.
+ *
+ * For each node:
+ *   1. Maps the node to the refined level‑set grid.
+ *   2. If φ(node) < 0 and mass > 0:
+ *        - Computes ∇φ at the node.
+ *        - Normalizes the gradient to obtain the wall normal.
+ *        - Applies applybc() to nodal velocity.
+ *
+ * This enforces embedded‑boundary constraints directly on nodal velocities.
+ *
+ * @param[in,out] nodaldata  Nodal MultiFab containing velocity fields.
+ * @param[in]     geom       Geometry describing the domain.
+ * @param[in]     dt         Time step (unused).
+ * @param[in]     lsetbc     Boundary condition type for EB.
+ * @param[in]     lset_wall_mu  Friction coefficient for EB.
+ *
+ * @return None.
+ */
 void nodal_levelset_bcs(MultiFab &nodaldata,
                         const Geometry geom,
                         amrex::Real & /*dt*/,
@@ -151,6 +214,21 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
 }
 #endif
 
+/**
+ * @brief Computes nodal Δv = v_new − v_old for PIC/FLIP blending.
+ *
+ * Requires that backup_current_velocity() has already stored v_old in
+ * DELTA_VELX_INDEX. This routine overwrites DELTA_VELX_INDEX with:
+ *
+ *      Δv[d] = v[d] − v_old[d]
+ *
+ * Only nodes with positive mass are updated.
+ *
+ * @param[in,out] nodaldata  Nodal MultiFab containing velocity fields.
+ *
+ * @return None.
+ */
+
 void store_delta_velocity(MultiFab &nodaldata)
 {
     // amrex::Print() << "Storing delta velocity\n";
@@ -180,6 +258,20 @@ void store_delta_velocity(MultiFab &nodaldata)
 }
 
 #if USE_TEMP
+/**
+ * @brief Computes nodal ΔT = T_new − T_old for thermal PIC/FLIP updates.
+ *
+ * Requires that backup_current_temperature() has already stored T_old in
+ * DELTA_TEMPERATURE. This routine overwrites DELTA_TEMPERATURE with:
+ *
+ *      ΔT = T − T_old
+ *
+ * Only nodes with positive MASS_SPHEAT are updated.
+ *
+ * @param[in,out] nodaldata  Nodal MultiFab containing thermal fields.
+ *
+ * @return None.
+ */
 void store_delta_temperature(MultiFab &nodaldata)
 {
 
@@ -205,6 +297,22 @@ void store_delta_temperature(MultiFab &nodaldata)
     }
 }
 #endif
+
+/**
+ * @brief Advances nodal velocities using nodal forces (explicit time integration).
+ *
+ * For each node with mass ≥ mass_tolerance:
+ *
+ *      v[d] ← v[d] + (F[d] / m) * dt
+ *
+ * Otherwise, nodal velocity is zeroed.
+ *
+ * @param[in,out] nodaldata      Nodal MultiFab containing mass, force, velocity.
+ * @param[in]     dt             Time step.
+ * @param[in]     mass_tolerance Minimum mass required to update velocity.
+ *
+ * @return None.
+ */
 
 void Nodal_Time_Update_Momentum(MultiFab &nodaldata,
                                 const amrex::Real &dt,
@@ -242,6 +350,21 @@ void Nodal_Time_Update_Momentum(MultiFab &nodaldata,
 }
 
 #if USE_TEMP
+/**
+ * @brief Advances nodal temperature using nodal heat sources.
+ *
+ * For each node with MASS_SPHEAT ≥ mass_tolerance:
+ *
+ *      T ← T + (source / MASS_SPHEAT) * dt
+ *
+ * Otherwise, temperature is set to zero.
+ *
+ * @param[in,out] nodaldata      Nodal MultiFab containing thermal fields.
+ * @param[in]     dt             Time step.
+ * @param[in]     mass_tolerance Minimum thermal mass required to update T.
+ *
+ * @return None.
+ */
 void Nodal_Time_Update_Temperature(MultiFab &nodaldata,
                                    const amrex::Real &dt,
                                    const amrex::Real &mass_tolerance)
@@ -273,6 +396,30 @@ void Nodal_Time_Update_Temperature(MultiFab &nodaldata,
     }
 }
 #endif
+
+/**
+ * @brief Detects and resolves contact between material nodes and rigid bodies.
+ *
+ * A node is in contact if:
+ *   - MASS_INDEX > contact_tolerance
+ *   - MASS_RIGID_INDEX > contact_tolerance
+ *   - RIGID_BODY_ID != −1
+ *
+ * For such nodes:
+ *   1. Computes relative velocity between node and rigid body.
+ *   2. Projects out the normal component if the node is approaching the rigid body:
+ *
+ *        v_node ← v_node − (v_rel ⋅ n) n
+ *
+ * This enforces non‑penetration at the nodal level.
+ *
+ * @param[in,out] nodaldata  Nodal MultiFab containing velocity and normals.
+ * @param[in]     geom       Geometry (unused).
+ * @param[in]     contact_tolerance  Minimum mass to consider contact.
+ * @param[in]     velocity   Rigid‑body velocities indexed by rigid body ID.
+ *
+ * @return None.
+ */
 
 void nodal_detect_contact(
     MultiFab &nodaldata,
@@ -351,6 +498,24 @@ void nodal_detect_contact(
             });
     }
 }
+
+/**
+ * @brief Precomputes per‑node shape‑function index categories for boundary handling.
+ *
+ * For each node, assigns an integer code (0–4) in each dimension indicating:
+ *   - 0: domain lower boundary
+ *   - 1: near lower boundary
+ *   - 2: interior
+ *   - 3: near upper boundary
+ *   - 4: domain upper boundary
+ *
+ * These indices are used to select one‑sided or symmetric interpolation stencils.
+ *
+ * @param[out] shapefunctionindex  iMultiFab storing index codes.
+ * @param[in]  geom                Geometry describing the domain.
+ *
+ * @return None.
+ */
 
 void initialise_shape_function_indices(iMultiFab &shapefunctionindex,
                                        const amrex::Geometry geom)
@@ -442,6 +607,33 @@ void initialise_shape_function_indices(iMultiFab &shapefunctionindex,
                            });
     }
 }
+
+/**
+ * @brief Applies velocity boundary conditions at nodal locations.
+ *
+ * For each node lying on a domain boundary:
+ *   1. Subtracts wall velocity to obtain relative velocity.
+ *   2. Applies applybc() using the appropriate wall friction μ and BC type.
+ *   3. Restores wall velocity to obtain the final nodal velocity.
+ *
+ * Supports:
+ *   - No‑slip
+ *   - Slip
+ *   - Partial slip
+ *   - Periodic
+ *
+ * @param[in]     geom             Geometry describing the domain.
+ * @param[in,out] nodaldata        Nodal MultiFab containing velocity fields.
+ * @param[in]     bcloarr          BC types at lower faces.
+ * @param[in]     bchiarr          BC types at upper faces.
+ * @param[in]     wall_mu_loarr    Friction coefficients at lower faces.
+ * @param[in]     wall_mu_hiarr    Friction coefficients at upper faces.
+ * @param[in]     wall_vel_loarr   Wall velocities at lower faces.
+ * @param[in]     wall_vel_hiarr   Wall velocities at upper faces.
+ * @param[in]     dt               Time step (unused).
+ *
+ * @return None.
+ */
 
 void nodal_bcs(const amrex::Geometry geom,
                MultiFab &nodaldata,
@@ -553,6 +745,23 @@ void nodal_bcs(const amrex::Geometry geom,
 }
 
 #if USE_TEMP
+/**
+ * @brief Applies Dirichlet temperature boundary conditions at nodal locations.
+ *
+ * For each dimension d:
+ *   - At nodeid[d] = domlo[d], set T = wall_temp_lo[d]
+ *   - At nodeid[d] = domhi[d] + 1, set T = wall_temp_hi[d]
+ *
+ * @param[in]     geom                   Geometry describing the domain.
+ * @param[in,out] nodaldata              Nodal MultiFab containing temperature.
+ * @param[in]     bcloarr                BC types at lower faces (unused).
+ * @param[in]     bchiarr                BC types at upper faces (unused).
+ * @param[in]     dirichlet_temperature_lo  Temperature at lower faces.
+ * @param[in]     dirichlet_temperature_hi  Temperature at upper faces.
+ *
+ * @return None.
+ */
+
 void nodal_bcs_temperature(const amrex::Geometry geom,
                            MultiFab &nodaldata,
                            int bcloarr[AMREX_SPACEDIM],
@@ -650,6 +859,22 @@ integral_value+=(nodal_data_arr(i,j,k,nodaldataindex)+nodal_data_arr(i+1,j,k,nod
 #endif
 }*/
 
+/**
+ * @brief Computes interpolation error for a manufactured cosine velocity field.
+ *
+ * Overwrites nodaldata(nodaldataindex) with:
+ *
+ *      error = v_x − cos(2π x)
+ *
+ * where x is computed from domain lower bound and grid spacing.
+ *
+ * @param[in]     geom            Geometry describing the domain.
+ * @param[in,out] nodaldata       Nodal MultiFab containing velocity/error.
+ * @param[in]     nodaldataindex  Component index to store the error.
+ *
+ * @return None.
+ */
+
 void CalculateInterpolationError(const amrex::Geometry geom,
                                  amrex::MultiFab &nodaldata,
                                  int nodaldataindex)
@@ -677,6 +902,17 @@ void CalculateInterpolationError(const amrex::Geometry geom,
                            });
     }
 }
+
+/**
+ * @brief Sets all nodal data components to zero (shunya).
+ *
+ * Resets the MultiFab including ghost cells.
+ *
+ * @param[in,out] nodaldata            Nodal MultiFab to reset.
+ * @param[in]     ng_cells_nodaldata   Number of ghost cells to include.
+ *
+ * @return None.
+ */
 
 void Reset_Nodaldata_to_Zero(amrex::MultiFab &nodaldata, int ng_cells_nodaldata)
 {

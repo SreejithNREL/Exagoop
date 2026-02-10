@@ -45,6 +45,25 @@ void make_wedge_hopper_levelset(const Geometry &geom,
 } // namespace mpm_ebtools
 #endif
 
+/**
+ * @brief Evaluates the level‑set field at an arbitrary physical point.
+ *
+ * Computes the interpolated level‑set value φ(x) at a particle or query
+ * location using multilinear basis functions. The function:
+ *   1. Computes the refined‑grid spacing (dx / lsref)
+ *   2. Determines the cell index containing the query point
+ *   3. Loops over all 2^D corners of the cell
+ *   4. Accumulates φ * basisval for each corner
+ *
+ * @param[in] phi      Nodal Array4 containing the level‑set field.
+ * @param[in] problo   Physical lower bounds of the domain.
+ * @param[in] dx       Coarse grid spacing.
+ * @param[in] ptxyz    Physical coordinates of the query point.
+ * @param[in] lsref    Refinement factor used for the level‑set grid.
+ *
+ * @return Interpolated level‑set value at ptxyz.
+ */
+
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 get_levelset_value(amrex::Array4<amrex::Real> phi,
                    const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> problo,
@@ -99,6 +118,25 @@ get_levelset_value(amrex::Array4<amrex::Real> phi,
 
     return lsval;
 }
+
+/**
+ * @brief Computes the gradient of the level‑set field at a physical point.
+ *
+ * Evaluates ∇φ(x) using multilinear basis‑function derivatives. The procedure:
+ *   1. Computes refined grid spacing (dx / lsref)
+ *   2. Determines the cell index containing the query point
+ *   3. Loops over all 2^D corners of the cell
+ *   4. Accumulates φ * ∂basis/∂x_d for each dimension d
+ *
+ * @param[in]  phi      Nodal Array4 containing the level‑set field.
+ * @param[in]  problo   Physical lower bounds of the domain.
+ * @param[in]  dx       Coarse grid spacing.
+ * @param[in]  ptxyz    Physical coordinates of the query point.
+ * @param[in]  lsref    Refinement factor used for the level‑set grid.
+ * @param[out] lsgrad   Output gradient vector ∇φ evaluated at ptxyz.
+ *
+ * @return None.
+ */
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 get_levelset_grad(amrex::Array4<amrex::Real> phi,

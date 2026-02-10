@@ -166,6 +166,21 @@ AMREX_GPU_DEVICE AMREX_GPU_CONSTANT
          {0, 0}}                    // filler
 };
 
+/**
+ * @brief Computes the interval index for a quadratic B‑spline basis function.
+ *
+ * Determines which polynomial segment should be used for evaluating a
+ * quadratic B‑spline basis function, based on the shape-function type and
+ * the shifted/scaled coordinate zi. Returns -1 if zi lies outside the
+ * supported range.
+ *
+ * @param[in] shapefunctiontype  Type of spline (1=boundary, 2=near-boundary,
+ *                               3=interior, 4=alt interior)
+ * @param[in] zi                 Local coordinate in spline space
+ *
+ * @return Interval index in [0,3], or -1 if zi is outside support.
+ */
+
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE int
 interval_idx_quadratic(int shapefunctiontype, amrex::Real zi)
 {
@@ -176,6 +191,19 @@ interval_idx_quadratic(int shapefunctiontype, amrex::Real zi)
         return -1;
     return interval_map_quadbspline[shapefunctiontype][raw];
 }
+
+/**
+ * @brief Evaluates a 1D cubic B‑spline basis function.
+ *
+ * Selects the correct cubic polynomial segment based on floor(zi) and
+ * evaluates it using precomputed coefficients for the given shape-function
+ * type. Supports boundary, near-boundary, and interior spline variants.
+ *
+ * @param[in] shapefunctiontype  Spline type controlling which coefficient set to use
+ * @param[in] zi                 Local coordinate in spline space
+ *
+ * @return Value of the cubic B‑spline basis function at zi.
+ */
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 cubicspline_1d(int shapefunctiontype, amrex::Real zi)
@@ -190,6 +218,18 @@ cubicspline_1d(int shapefunctiontype, amrex::Real zi)
     return value;
 }
 
+/**
+ * @brief Evaluates the derivative of a 1D cubic B‑spline basis function.
+ *
+ * Uses precomputed derivative coefficients for each interval and shape-function
+ * type. Computes dN/dzi for the appropriate cubic polynomial segment.
+ *
+ * @param[in] shapefunctiontype  Spline type controlling which derivative coefficients to use
+ * @param[in] zi                 Local coordinate in spline space
+ *
+ * @return Derivative of the cubic B‑spline basis function at zi.
+ */
+
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 cubicspline_1d_der(int shapefunctiontype, amrex::Real zi)
 {
@@ -200,6 +240,21 @@ cubicspline_1d_der(int shapefunctiontype, amrex::Real zi)
     value = c.a * zi_squared + c.b * zi + c.c;
     return value;
 }
+
+/**
+ * @brief Evaluates a 1D quadratic B‑spline basis function.
+ *
+ * Supports two evaluation modes:
+ *   - Coefficient-based evaluation (method == 1)
+ *   - Explicit piecewise polynomial formulas (method == 0)
+ *
+ * Handles boundary, near-boundary, and interior spline types.
+ *
+ * @param[in] shapefunctiontype  Spline type controlling which polynomial to use
+ * @param[in] zi                 Local coordinate in spline space
+ *
+ * @return Value of the quadratic B‑spline basis function at zi.
+ */
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 quadraticspline_1d(int shapefunctiontype, amrex::Real zi)
@@ -305,6 +360,18 @@ quadraticspline_1d(int shapefunctiontype, amrex::Real zi)
     return value;
 }
 
+/**
+ * @brief Evaluates the derivative of a 1D quadratic B‑spline basis function.
+ *
+ * Uses precomputed derivative coefficients for each interval and spline type.
+ * Computes dN/dzi for the appropriate quadratic polynomial segment.
+ *
+ * @param[in] shapefunctiontype  Spline type controlling which derivative coefficients to use
+ * @param[in] zi                 Local coordinate in spline space
+ *
+ * @return Derivative of the quadratic B‑spline basis function at zi.
+ */
+
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 quadraticspline_1d_der(int shapefunctiontype, amrex::Real zi)
 {
@@ -318,6 +385,20 @@ quadraticspline_1d_der(int shapefunctiontype, amrex::Real zi)
     value = c.a * zi + c.b;
     return value;
 }
+
+/**
+ * @brief Evaluates a normalized spherical Gaussian kernel.
+ *
+ * Computes exp(-‖xi - xp‖² / r0²) multiplied by the correct normalization
+ * constant for 1D, 2D, or 3D. Used for smooth particle kernels, density
+ * estimation, or level-set approximations.
+ *
+ * @param[in] xi   Evaluation point in physical space
+ * @param[in] xp   Kernel center (particle position)
+ * @param[in] r0   Kernel radius (standard deviation-like parameter)
+ *
+ * @return Gaussian kernel value at xi.
+ */
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 spherical_gaussian(amrex::Real xi[AMREX_SPACEDIM],
@@ -343,6 +424,20 @@ spherical_gaussian(amrex::Real xi[AMREX_SPACEDIM],
 #endif
 }
 
+/**
+ * @brief Evaluates a compact-support box kernel.
+ *
+ * Returns 1.0 if the squared distance between xi and xp is less than r0²,
+ * otherwise returns 0.0. Useful for simple particle-to-grid transfer or
+ * indicator functions.
+ *
+ * @param[in] xi   Evaluation point
+ * @param[in] xp   Kernel center
+ * @param[in] r0   Support radius
+ *
+ * @return 1.0 if inside support, 0.0 otherwise.
+ */
+
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 box_kernel(amrex::Real xi[AMREX_SPACEDIM],
            amrex::Real xp[AMREX_SPACEDIM],
@@ -362,6 +457,25 @@ box_kernel(amrex::Real xi[AMREX_SPACEDIM],
 
     return (r2 < r0 * r0) ? 1.0 : 0.0;
 }
+
+/**
+ * @brief Computes a signed-distance-like level-set value.
+ *
+ * Returns:
+ *   - minval if inside radius r0
+ *   - sqrt(r²) outside
+ *   - clamped to maxval beyond 3*r0
+ *
+ * Used for implicit geometry, particle-based level sets, or interface tracking.
+ *
+ * @param[in] xi      Evaluation point
+ * @param[in] xp      Center point
+ * @param[in] r0      Radius threshold
+ * @param[in] minval  Value returned inside r0
+ * @param[in] maxval  Maximum clamped value
+ *
+ * @return Level-set-like scalar value.
+ */
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 levelset(amrex::Real xi[AMREX_SPACEDIM],
@@ -389,6 +503,20 @@ levelset(amrex::Real xi[AMREX_SPACEDIM],
     return f2;
 }
 
+/**
+ * @brief Evaluates a 1D hat (tent) basis function.
+ *
+ * Produces a triangular function centered at xp with width hatsize and
+ * peak value proportional to 1/hatsize. Used for simple interpolation or
+ * particle-to-grid transfer.
+ *
+ * @param[in] xi       Evaluation coordinate
+ * @param[in] xp       Center coordinate
+ * @param[in] hatsize  Width of the hat function
+ *
+ * @return Hat function value at xi.
+ */
+
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 hat1d(amrex::Real xi, amrex::Real xp, amrex::Real hatsize)
 {
@@ -412,6 +540,18 @@ hat1d(amrex::Real xi, amrex::Real xp, amrex::Real hatsize)
     return (funcval);
 }
 
+/**
+ * @brief Evaluates an N-dimensional hat function as a tensor product of 1D hats.
+ *
+ * Supports 1D, 2D, and 3D. Each dimension uses hat1d() with its own width.
+ *
+ * @param[in] xi       Evaluation point
+ * @param[in] xp       Center point
+ * @param[in] hatsize  Hat width per dimension
+ *
+ * @return Tensor-product hat basis value.
+ */
+
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 hatND(amrex::Real xi[AMREX_SPACEDIM],
       amrex::Real xp[AMREX_SPACEDIM],
@@ -434,6 +574,22 @@ hatND(amrex::Real xi[AMREX_SPACEDIM],
 
     return funcval;
 }
+
+/**
+ * @brief Performs linear, bilinear, or trilinear interpolation on nodal data.
+ *
+ * Computes the interpolated value at particle position xp using nodal values
+ * stored in nodaldata. Dimensionality is determined by AMREX_SPACEDIM.
+ *
+ * @param[in] xp        Particle position
+ * @param[in] iv        Cell index containing xp
+ * @param[in] plo       Physical lower bounds of the domain
+ * @param[in] dx        Grid spacing
+ * @param[in] nodaldata Nodal field values
+ * @param[in] comp      Component index to interpolate
+ *
+ * @return Interpolated nodal value at xp.
+ */
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 bilin_interp(amrex::Real xp[AMREX_SPACEDIM],
@@ -488,6 +644,27 @@ bilin_interp(amrex::Real xp[AMREX_SPACEDIM],
 
     return value;
 }
+
+/**
+ * @brief Performs quadratic B‑spline interpolation in 1D, 2D, or 3D.
+ *
+ * Evaluates tensor-product quadratic B‑splines over the stencil defined by
+ * min_index and max_index. Boundary-aware shape-function types are selected
+ * automatically based on lo/hi and periodicity.
+ *
+ * @param[in] xp         Particle position
+ * @param[in] iv         Base cell index
+ * @param[in] min_index  Minimum stencil offset
+ * @param[in] max_index  Maximum stencil offset
+ * @param[in] plo        Domain lower bounds
+ * @param[in] dx         Grid spacing
+ * @param[in] nodaldata  Nodal field values
+ * @param[in] comp       Component index
+ * @param[in] lo         Lower physical boundary indices
+ * @param[in] hi         Upper physical boundary indices
+ *
+ * @return Quadratic B‑spline interpolated value.
+ */
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 quadratic_interp(amrex::Real xp[AMREX_SPACEDIM],
@@ -649,6 +826,26 @@ quadratic_interp(amrex::Real xp[AMREX_SPACEDIM],
 
     return (value);
 }
+
+/**
+ * @brief Performs cubic B‑spline interpolation in 1D, 2D, or 3D.
+ *
+ * Evaluates tensor-product cubic B‑splines using precomputed coefficients and
+ * boundary-aware shape-function types. Supports arbitrary stencils.
+ *
+ * @param[in] xp         Particle position
+ * @param[in] iv         Base cell index
+ * @param[in] min_index  Minimum stencil offset
+ * @param[in] max_index  Maximum stencil offset
+ * @param[in] plo        Domain lower bounds
+ * @param[in] dx         Grid spacing
+ * @param[in] nodaldata  Nodal field values
+ * @param[in] comp       Component index
+ * @param[in] lo         Lower physical boundary indices
+ * @param[in] hi         Upper physical boundary indices
+ *
+ * @return Cubic B‑spline interpolated value.
+ */
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 cubic_interp(amrex::Real xp[AMREX_SPACEDIM],
@@ -822,6 +1019,29 @@ cubic_interp(amrex::Real xp[AMREX_SPACEDIM],
     return value;
 }
 
+/**
+ * @brief Evaluates a tensor-product basis function (linear, quadratic, or cubic).
+ *
+ * For each dimension:
+ *   - order 1 → linear basis
+ *   - order 2 → quadratic B‑spline
+ *   - order 3 → cubic B‑spline
+ *
+ * Boundary conditions and periodicity are handled per dimension.
+ *
+ * @param[in] stencil     Stencil offset per dimension
+ * @param[in] cell        Base cell index
+ * @param[in] xp          Particle position
+ * @param[in] plo         Domain lower bounds
+ * @param[in] dx          Grid spacing
+ * @param[in] order_scheme_directional  Basis order per dimension
+ * @param[in] periodic    Periodicity flags per dimension
+ * @param[in] lo          Lower boundary indices
+ * @param[in] hi          Upper boundary indices
+ *
+ * @return Basis function value at xp.
+ */
+
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 basisval(const IntVect stencil,
          const IntVect cell,
@@ -887,6 +1107,26 @@ basisval(const IntVect stencil,
     }
     return val;
 }
+
+/**
+ * @brief Evaluates the derivative of a tensor-product basis function.
+ *
+ * Computes ∂N/∂x_dir by differentiating the basis in the specified direction
+ * and multiplying by the basis values in all other directions.
+ *
+ * @param[in] dir         Direction of derivative (0=x, 1=y, 2=z)
+ * @param[in] stencil     Stencil offset per dimension
+ * @param[in] cell        Base cell index
+ * @param[in] xp          Particle position
+ * @param[in] plo         Domain lower bounds
+ * @param[in] dx          Grid spacing
+ * @param[in] order_scheme_directional  Basis order per dimension
+ * @param[in] periodic    Periodicity flags per dimension
+ * @param[in] lo          Lower boundary indices
+ * @param[in] hi          Upper boundary indices
+ *
+ * @return Derivative of basis function in direction dir.
+ */
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 basisvalder(const int dir,
@@ -971,6 +1211,20 @@ basisvalder(const int dir,
     return prod;
 }
 
+/**
+ * @brief Extracts a symmetric tensor stored in particle rdata into a full matrix.
+ *
+ * The particle stores only the upper-triangular components of a symmetric
+ * tensor in packed order. This routine reconstructs the full tensor by
+ * filling both (i,j) and (j,i) entries.
+ *
+ * @param[in]  p            Particle whose rdata contains the packed tensor
+ * @param[in]  start_index  Starting index in p.rdata where the packed tensor begins
+ * @param[out] tens         Output full tensor of size (AMREX_SPACEDIM × AMREX_SPACEDIM)
+ *
+ * @return None.
+ */
+
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 get_tensor(MPMParticleContainer::ParticleType &p,
            int start_index,
@@ -988,6 +1242,19 @@ get_tensor(MPMParticleContainer::ParticleType &p,
     }
 }
 
+/**
+ * @brief Extracts a vector stored in particle rdata.
+ *
+ * Reads AMREX_SPACEDIM consecutive entries from p.rdata starting at
+ * start_index and writes them into vect[].
+ *
+ * @param[in]  p            Particle containing vector data
+ * @param[in]  start_index  Starting index in p.rdata
+ * @param[out] vect         Output vector of length AMREX_SPACEDIM
+ *
+ * @return None.
+ */
+
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 get_vector(MPMParticleContainer::ParticleType &p,
            int start_index,
@@ -998,6 +1265,23 @@ get_vector(MPMParticleContainer::ParticleType &p,
         vect[i] = p.rdata(start_index + i);
     }
 }
+
+/**
+ * @brief Updates the deformation gradient tensor F using the velocity gradient.
+ *
+ * Computes:
+ *      Lp = I + (grad v_p) * dt
+ *      F_new = Lp * F_old
+ *
+ * The updated deformation gradient is written back into the particle's rdata.
+ *
+ * @param[in,out] p            Particle whose deformation gradient is updated
+ * @param[in]     start_index  Starting index of F in p.rdata (row-major storage)
+ * @param[in]     gradvp       Velocity gradient tensor ∂v/∂x at the particle
+ * @param[in]     dt           Time step
+ *
+ * @return None.
+ */
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void get_deformation_gradient_tensor(
     MPMParticleContainer::ParticleType &p,
@@ -1045,6 +1329,21 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void get_deformation_gradient_tensor(
         }
     }
 }
+
+/**
+ * @brief Computes the product of a tensor and a vector.
+ *
+ * Computes:
+ *      tensvect[i] = Σ_j tens[i,j] * vect[j]
+ *
+ * where tens is stored in row-major flattened form.
+ *
+ * @param[in]  tens      Input tensor of size (AMREX_SPACEDIM × AMREX_SPACEDIM)
+ * @param[in]  vect      Input vector of length AMREX_SPACEDIM
+ * @param[out] tensvect  Output vector = tens * vect
+ *
+ * @return None.
+ */
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 tensor_vector_pdt(amrex::Real tens[AMREX_SPACEDIM * AMREX_SPACEDIM],

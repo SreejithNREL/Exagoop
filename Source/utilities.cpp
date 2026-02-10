@@ -10,6 +10,39 @@
 #include <sstream> // optional, if you later use string streams
 #include <string>  // for std::string
 
+/**
+ * @brief Writes all particle, grid, and level‑set outputs for the current step.
+ *
+ * This routine performs the full output pipeline:
+ *
+ *   1. Redistributes particles and updates neighbor lists.
+ *   2. Writes particle plotfile via writeParticles().
+ *   3. Writes nodal grid plotfile via write_grid_file().
+ *   4. Writes level‑set plotfile (if enabled).
+ *   5. Writes checkpoint file (if rewrite_checkpoint = true).
+ *   6. Writes ASCII particle output (if enabled).
+ *
+ * Output filenames are constructed using the user‑specified prefixes and
+ * number‑of‑digits formatting.
+ *
+ * @param[in]     specs               Simulation specification structure.
+ * @param[in,out] mpm_pc              Particle container.
+ * @param[in]     nodaldata           Nodal MultiFab for grid output.
+ * @param[in]     levset_data         Level‑set MultiFab (if enabled).
+ * @param[in]     nodaldata_names     Names of nodal data components.
+ * @param[in]     geom                Geometry for grid output.
+ * @param[in]     geom_levset         Geometry for level‑set output.
+ * @param[in]     ba                  BoxArray for grid output.
+ * @param[in]     dm                  DistributionMapping for grid output.
+ * @param[in]     time                Current simulation time.
+ * @param[in]     steps               Current step index.
+ * @param[in]     output_it           Output iteration counter.
+ * @param[in]     rewrite_checkpoint  Whether to write a checkpoint file.
+ *
+ * @return None.
+ */
+
+
 void Write_Particle_Grid_Levset_Output(
     MPMspecs &specs,
     MPMParticleContainer &mpm_pc,
@@ -70,6 +103,23 @@ void Write_Particle_Grid_Levset_Output(
     BL_PROFILE_VAR_STOP(outputs);
 }
 
+/**
+ * @brief Performs particle‑to‑grid (P2G) transfer of mass, momentum, and forces.
+ *
+ * A thin wrapper around deposit_onto_grid_momentum(), forwarding all relevant
+ * simulation parameters from specs.
+ *
+ * @param[in] specs         Simulation specification structure.
+ * @param[in,out] mpm_pc    Particle container.
+ * @param[in,out] nodaldata Nodal MultiFab to receive P2G contributions.
+ * @param[in] update_mass   Whether to deposit mass.
+ * @param[in] update_vel    Whether to deposit momentum.
+ * @param[in] update_forces Whether to deposit internal/external forces.
+ *
+ * @return None.
+ */
+
+
 void P2G_Momentum(MPMspecs &specs,
                   MPMParticleContainer &mpm_pc,
                   amrex::MultiFab &nodaldata,
@@ -87,6 +137,22 @@ void P2G_Momentum(MPMspecs &specs,
 }
 
 #if USE_TEMP
+/**
+ * @brief Performs particle‑to‑grid (P2G) transfer of thermal quantities.
+ *
+ * Wraps deposit_onto_grid_temperature(), forwarding all thermal parameters
+ * from specs.
+ *
+ * @param[in] specs                   Simulation specification structure.
+ * @param[in,out] mpm_pc              Particle container.
+ * @param[in,out] nodaldata           Nodal thermal MultiFab.
+ * @param[in] reset_nodaldata_to_zero Whether to zero nodal fields first.
+ * @param[in] update_temp             Whether to deposit temperature.
+ * @param[in] update_source           Whether to deposit heat sources.
+ *
+ * @return None.
+ */
+
 void P2G_Temperature(MPMspecs &specs,
                      MPMParticleContainer &mpm_pc,
                      amrex::MultiFab &nodaldata,
@@ -101,6 +167,22 @@ void P2G_Temperature(MPMspecs &specs,
         specs.mass_tolerance, specs.order_scheme_directional, specs.periodic);
 }
 #endif
+
+/**
+ * @brief Applies velocity boundary conditions at nodal locations.
+ *
+ * This routine:
+ *   1. Applies domain boundary conditions via nodal_bcs().
+ *   2. Applies embedded‑boundary (level‑set) BCs if enabled.
+ *   3. Computes Δv for PIC/FLIP blending via store_delta_velocity().
+ *
+ * @param[in]     geom       Geometry describing the domain.
+ * @param[in,out] nodaldata  Nodal MultiFab containing velocity fields.
+ * @param[in]     specs      Simulation specification structure.
+ * @param[in]     dt         Time step.
+ *
+ * @return None.
+ */
 
 void Apply_Nodal_BCs(amrex::Geometry &geom,
                      amrex::MultiFab &nodaldata,
@@ -125,6 +207,20 @@ void Apply_Nodal_BCs(amrex::Geometry &geom,
 }
 
 #if USE_TEMP
+/**
+ * @brief Applies temperature boundary conditions at nodal locations.
+ *
+ * Applies Dirichlet temperature BCs using nodal_bcs_temperature(), then
+ * computes ΔT for PIC/FLIP thermal updates via store_delta_temperature().
+ *
+ * @param[in]     geom       Geometry describing the domain.
+ * @param[in,out] nodaldata  Nodal MultiFab containing temperature fields.
+ * @param[in]     specs      Simulation specification structure.
+ * @param[in]     dt         Time step.
+ *
+ * @return None.
+ */
+
 void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
                                  amrex::MultiFab &nodaldata,
                                  MPMspecs &specs,
@@ -143,6 +239,22 @@ void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
 }
 #endif
 
+/**
+ * @brief Performs grid‑to‑particle (G2P) transfer of velocity and strain‑rate.
+ *
+ * Wraps interpolate_from_grid(), forwarding interpolation order, periodicity,
+ * PIC/FLIP blending parameter, and time step.
+ *
+ * @param[in] specs             Simulation specification structure.
+ * @param[in,out] mpm_pc        Particle container.
+ * @param[in] nodaldata         Nodal MultiFab containing grid values.
+ * @param[in] update_vel        Whether to interpolate velocity.
+ * @param[in] update_strainrate Whether to compute strain‑rate and F.
+ * @param[in] dt                Time step.
+ *
+ * @return None.
+ */
+
 void G2P_Momentum(MPMspecs &specs,
                   MPMParticleContainer &mpm_pc,
                   amrex::MultiFab &nodaldata,
@@ -157,6 +269,22 @@ void G2P_Momentum(MPMspecs &specs,
                                  specs.alpha_pic_flip, dt);
 }
 #if USE_TEMP
+/**
+ * @brief Performs grid‑to‑particle (G2P) transfer of temperature and heat flux.
+ *
+ * Wraps interpolate_from_grid_temperature(), forwarding interpolation order,
+ * periodicity, and PIC/FLIP blending parameter.
+ *
+ * @param[in] specs               Simulation specification structure.
+ * @param[in,out] mpm_pc          Particle container.
+ * @param[in] nodaldata           Nodal thermal MultiFab.
+ * @param[in] update_temperature  Whether to interpolate ΔT.
+ * @param[in] update_heatflux     Whether to compute heat flux.
+ * @param[in] dt                  Time step (unused).
+ *
+ * @return None.
+ */
+
 void G2P_Temperature(MPMspecs &specs,
                      MPMParticleContainer &mpm_pc,
                      amrex::MultiFab &nodaldata,
@@ -171,6 +299,20 @@ void G2P_Temperature(MPMspecs &specs,
         specs.order_scheme_directional, specs.periodic, specs.alpha_pic_flip);
 }
 #endif
+
+/**
+ * @brief Advances particle positions and applies particle‑level boundary conditions.
+ *
+ * Wraps moveParticles(), forwarding all wall BCs, friction coefficients,
+ * wall velocities, and level‑set BC parameters from specs.
+ *
+ * @param[in] specs   Simulation specification structure.
+ * @param[in,out] mpm_pc  Particle container.
+ * @param[in] dt      Time step.
+ *
+ * @return None.
+ */
+
 void Update_MP_Positions(MPMspecs &specs,
                          MPMParticleContainer &mpm_pc,
                          amrex::Real dt)
@@ -181,10 +323,42 @@ void Update_MP_Positions(MPMspecs &specs,
                          specs.wall_vel_hi.data(), specs.levelset_wall_mu);
 }
 
+/**
+ * @brief Updates particle volume, density, and Jacobian.
+ *
+ * Thin wrapper around updateVolume().
+ *
+ * @param[in,out] mpm_pc  Particle container.
+ *
+ * @return None.
+ */
+
+
 void Update_MP_Volume(MPMParticleContainer &mpm_pc)
 {
     mpm_pc.updateVolume();
 }
+
+/**
+ * @brief Updates particle stress and strain using the chosen constitutive model.
+ *
+ * If current time < applied_strainrate_time:
+ *   - Applies externally imposed strain‑rate.
+ * Otherwise:
+ *   - Applies zero external strain‑rate.
+ *
+ * Depending on specs.calculate_strain_based_on_delta:
+ *   - Uses apply_constitutive_model_delta()  (incremental)
+ *   - Uses apply_constitutive_model()        (total strain)
+ *
+ * @param[in] specs   Simulation specification structure.
+ * @param[in,out] mpm_pc  Particle container.
+ * @param[in] time    Current simulation time.
+ * @param[in] dt      Time step.
+ *
+ * @return None.
+ */
+
 
 void Calculate_MP_Stress_Strain(MPMspecs &specs,
                                 MPMParticleContainer &mpm_pc,
@@ -215,6 +389,24 @@ void Calculate_MP_Stress_Strain(MPMspecs &specs,
     }
 }
 
+/**
+ * @brief Updates particle neighbor lists and redistributes particles periodically.
+ *
+ * Every specs.num_redist steps:
+ *   - RedistributeLocal()
+ *   - fillNeighbors()
+ *   - buildNeighborList()
+ *
+ * Otherwise:
+ *   - updateNeighbors()
+ *
+ * @param[in] specs   Simulation specification structure.
+ * @param[in,out] mpm_pc  Particle container.
+ * @param[in] steps   Current step index.
+ *
+ * @return None.
+ */
+
 void Redistribute_Fill_Update(MPMspecs &specs,
                               MPMParticleContainer &mpm_pc,
                               int steps)
@@ -230,6 +422,23 @@ void Redistribute_Fill_Update(MPMspecs &specs,
         mpm_pc.updateNeighbors();
     }
 }
+
+/**
+ * @brief Opens diagnostic output files and writes header lines.
+ *
+ * Initializes output streams for:
+ *   - TKE/TSE
+ *   - Mass‑weighted average velocity components
+ *   - Mass‑weighted average velocity magnitude
+ *   - Min/max particle positions
+ *
+ * Only executed if specs.print_diagnostics = 1.
+ *
+ * @param[in,out] specs  Simulation specification structure.
+ *
+ * @return None.
+ */
+
 
 void Initialise_Diagnostic_Streams(MPMspecs &specs)
 {
@@ -313,6 +522,26 @@ void Initialise_Diagnostic_Streams(MPMspecs &specs)
     }
 }
 
+/**
+ * @brief Computes and writes all enabled diagnostics for the current step.
+ *
+ * Diagnostics include:
+ *   - Total kinetic and strain energy
+ *   - Mass‑weighted average velocity components
+ *   - Mass‑weighted average velocity magnitude
+ *   - Min/max particle positions
+ *
+ * Each diagnostic is written to its corresponding output stream.
+ *
+ * @param[in] specs         Simulation specification structure.
+ * @param[in] mpm_pc        Particle container.
+ * @param[in] steps         Current step index.
+ * @param[in] current_time  Current simulation time.
+ *
+ * @return None.
+ */
+
+
 void Do_All_Diagnostics(MPMspecs &specs,
                         MPMParticleContainer &mpm_pc,
                         int steps,
@@ -378,6 +607,17 @@ void Do_All_Diagnostics(MPMspecs &specs,
         specs.tmp_minmaxpos.flush();
     }
 }
+
+/**
+ * @brief Flushes and closes all diagnostic output streams.
+ *
+ * Called at the end of the simulation or when diagnostics are no longer needed.
+ *
+ * @param[in,out] specs  Simulation specification structure.
+ *
+ * @return None.
+ */
+
 
 void Close_Diagnostic_Streams(MPMspecs &specs)
 {

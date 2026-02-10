@@ -6,6 +6,17 @@
 #include <nodal_data_ops.H>
 // clang-format on
 
+/**
+ * @brief Populates the list of nodal data variable names.
+ *
+ * Appends human‑readable names for each nodal data component in the
+ * nodal MultiFab. These names are used for diagnostics, plotfiles,
+ * and debugging output.
+ *
+ * @param[out] nodaldata_names  Vector of strings to be filled with names.
+ *
+ * @return None.
+ */
 void Name_Nodaldata_Variables(amrex::Vector<std::string> &nodaldata_names)
 {
     nodaldata_names.push_back("mass");
@@ -36,6 +47,31 @@ void Name_Nodaldata_Variables(amrex::Vector<std::string> &nodaldata_names)
     nodaldata_names.push_back("DELTA_TEMPERATURE");
 #endif
 }
+
+/**
+ * @brief Initializes the computational domain, geometry, nodal data, and level‑set structures.
+ *
+ * Performs the following:
+ *  - Defines the physical RealBox from user specs.
+ *  - Constructs the index‑space domain.
+ *  - Builds AMReX Geometry, BoxArray, and DistributionMapping.
+ *  - Determines ghost‑cell requirements based on interpolation order.
+ *  - Initializes nodal MultiFab and (optionally) level‑set MultiFab.
+ *  - Sets directional spline order based on periodicity and grid size.
+ *
+ * @param[in,out] specs                 User‑defined MPM simulation specifications.
+ * @param[out]    geom                  AMReX Geometry for the primary grid.
+ * @param[out]    geom_levset           Geometry for the refined level‑set grid.
+ * @param[out]    ba                    BoxArray defining the domain decomposition.
+ * @param[out]    dm                    DistributionMapping for parallel layout.
+ * @param[out]    ng_cells              Number of ghost cells for particle‑grid ops.
+ * @param[out]    ng_cells_nodaldata    Number of ghost cells for nodal data.
+ * @param[out]    nodaldata             MultiFab storing nodal quantities.
+ * @param[out]    levset_data           MultiFab storing level‑set field (if enabled).
+ * @param[out]    nodaldata_names       Vector of nodal variable names.
+ *
+ * @return None.
+ */
 
 void Initialise_Domain(MPMspecs &specs,
                        Geometry &geom,
@@ -237,6 +273,17 @@ void Initialise_Domain(MPMspecs &specs,
     PrintMessage("", print_length, false);
 }
 
+/**
+ * @brief Creates all required output directories for the simulation.
+ *
+ * Ensures that folders for particle output, grid output, checkpoints,
+ * ASCII diagnostics, and level‑set output exist before the simulation begins.
+ *
+ * @param[in] specs  Simulation specification structure containing folder paths.
+ *
+ * @return None.
+ */
+
 void Create_Output_Directories(MPMspecs &specs)
 {
 
@@ -255,6 +302,25 @@ void Create_Output_Directories(MPMspecs &specs)
         amrex::UtilCreateDirectory(specs.diagnostic_output_folder, 0755);
     }
 }
+
+/**
+ * @brief Computes initial internal forces, strain rates, stresses, and phase‑field values.
+ *
+ * Performs:
+ *  - Momentum deposition from particles to grid.
+ *  - Backup of nodal velocities.
+ *  - Grid‑to‑particle interpolation of velocity.
+ *  - Constitutive model update at particles.
+ *  - Optional level‑set / phase‑field update.
+ *  - Optional thermal initialization (if USE_TEMP).
+ *
+ * @param[in]     specs        Simulation specifications.
+ * @param[in,out] mpm_pc       Particle container.
+ * @param[in,out] nodaldata    Nodal MultiFab storing grid quantities.
+ * @param[in,out] levset_data  Level‑set MultiFab (if enabled).
+ *
+ * @return None.
+ */
 
 void Initialise_Internal_Forces(MPMspecs &specs,
                                 MPMParticleContainer &mpm_pc,
@@ -342,6 +408,28 @@ void Initialise_Internal_Forces(MPMspecs &specs,
 #endif
 }
 
+/**
+ * @brief Initializes material points either from a checkpoint, a particle file, or autogeneration.
+ *
+ * Three modes:
+ *  - Restart from checkpoint file.
+ *  - Read particle data from an external file.
+ *  - Autogenerate particles inside a bounding box.
+ *
+ * Also:
+ *  - Redistributes particles across tiles.
+ *  - Fills neighbor lists.
+ *  - Removes particles inside embedded boundaries (if EB active).
+ *
+ * @param[in]     specs        Simulation specifications.
+ * @param[in,out] mpm_pc       Particle container.
+ * @param[out]    steps        Initial step index.
+ * @param[out]    time         Initial simulation time.
+ * @param[out]    output_it    Output iteration counter.
+ *
+ * @return None.
+ */
+
 void Initialise_Material_Points(MPMspecs &specs,
                                 MPMParticleContainer &mpm_pc,
                                 int &steps,
@@ -411,6 +499,33 @@ void Initialise_Material_Points(MPMspecs &specs,
     mpm_pc.fillNeighbors();
 }
 
+/**
+ * @brief Initializes particles by reading from an ASCII particle file.
+ *
+ * Reads:
+ *  - Phase (MPM or rigid)
+ *  - Rigid body ID
+ *  - Position
+ *  - Radius and density
+ *  - Velocity components
+ *  - Constitutive model and material parameters
+ *  - Optional thermal fields
+ *
+ * Computes:
+ *  - Volume (sphere assumption)
+ *  - Mass
+ *  - Initial deformation gradient (identity)
+ *  - Zero strain, stress, strain‑rate
+ *
+ * @param[in]  filename              Path to particle file.
+ * @param[out] total_mass            Total mass of MPM particles.
+ * @param[out] total_vol             Total volume of MPM particles.
+ * @param[out] total_rigid_mass      Total mass of rigid particles (ID=0).
+ * @param[out] num_of_rigid_bodies   Number of rigid bodies encountered.
+ * @param[out] ifrigidnodespresent   Flag indicating presence of rigid nodes.
+ *
+ * @return None.
+ */
 void MPMParticleContainer::InitParticles(const std::string &filename,
                                          amrex::Real &total_mass,
                                          amrex::Real &total_vol,
@@ -633,6 +748,37 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
     Redistribute();
 }
 
+/**
+ * @brief Autogenerates particles inside a user‑specified bounding box.
+ *
+ * For each cell:
+ *  - Places either one particle at the cell center, or
+ *  - 2^D particles at sub‑cell centers (if do_multi_part_per_cell enabled)
+ *
+ * Assigns:
+ *  - Position
+ *  - Velocity
+ *  - Density
+ *  - Material properties
+ *  - Volume and mass
+ *  - Zero stress/strain fields
+ *
+ * @param[in]  mincoords   Minimum coordinates of autogen region.
+ * @param[in]  maxcoords   Maximum coordinates of autogen region.
+ * @param[in]  vel         Initial velocity vector.
+ * @param[in]  dens        Density.
+ * @param[in]  constmodel  Constitutive model ID.
+ * @param[in]  E           Young’s modulus.
+ * @param[in]  nu          Poisson ratio.
+ * @param[in]  bulkmod     Bulk modulus.
+ * @param[in]  Gama_pres   Gamma pressure parameter.
+ * @param[in]  visc        Dynamic viscosity.
+ * @param[in]  do_multi_part_per_cell  Flag for multi‑particle seeding.
+ * @param[out] total_mass  Total mass of generated particles.
+ * @param[out] total_vol   Total volume of generated particles.
+ *
+ * @return None.
+ */
 void MPMParticleContainer::InitParticles(amrex::Real mincoords[AMREX_SPACEDIM],
                                          amrex::Real maxcoords[AMREX_SPACEDIM],
                                          amrex::Real vel[AMREX_SPACEDIM],
@@ -756,6 +902,31 @@ void MPMParticleContainer::InitParticles(amrex::Real mincoords[AMREX_SPACEDIM],
     Redistribute();
 }
 
+/**
+ * @brief Generates a single particle with given position, velocity, and material properties.
+ *
+ * Initializes:
+ *  - Position
+ *  - Density, velocity
+ *  - Constitutive model parameters
+ *  - Volume and mass
+ *  - Jacobian, pressure, initial volume
+ *  - Zero stress, strain, and strain‑rate tensors
+ *
+ * @param[in] coords      Particle position.
+ * @param[in] vel         Velocity vector.
+ * @param[in] dens        Density.
+ * @param[in] vol         Particle volume.
+ * @param[in] constmodel  Constitutive model ID.
+ * @param[in] E           Young’s modulus.
+ * @param[in] nu          Poisson ratio.
+ * @param[in] bulkmod     Bulk modulus.
+ * @param[in] Gama_pres   Gamma pressure parameter.
+ * @param[in] visc        Dynamic viscosity.
+ *
+ * @return A fully initialized ParticleType object.
+ */
+
 MPMParticleContainer::ParticleType
 MPMParticleContainer::generate_particle(amrex::Real coords[AMREX_SPACEDIM],
                                         amrex::Real vel[AMREX_SPACEDIM],
@@ -815,6 +986,18 @@ MPMParticleContainer::generate_particle(amrex::Real coords[AMREX_SPACEDIM],
     return p;
 }
 
+/**
+ * @brief Prints particle data for debugging (currently disabled).
+ *
+ * This function is intended to loop over all particles on level 0 and
+ * print or inspect their properties. The implementation is currently
+ * commented out, but the structure shows how to iterate over tiles and
+ * access particle AoS data on CPU or GPU.
+ *
+ * @note No operations are performed because the body is commented out.
+ *
+ * @return None.
+ */
 void MPMParticleContainer::PrintParticleData()
 {
     /*
@@ -840,6 +1023,26 @@ void MPMParticleContainer::PrintParticleData()
 }
 
 #if USE_EB
+/**
+ * @brief Removes particles located inside the embedded boundary (EB) region.
+ *
+ * For each particle:
+ *   1. Computes its physical position xp.
+ *   2. Evaluates the level‑set value φ(xp) using get_levelset_value().
+ *   3. If φ(xp) < TINYVAL, the particle is considered inside the EB and is
+ *      marked for deletion by setting p.id() = -1.
+ *
+ * After marking, the function calls Redistribute() to remove invalid particles
+ * and rebalance the particle distribution across tiles and MPI ranks.
+ *
+ * @param None (operates on the particle container at level 0)
+ *
+ * @note Requires EB and level‑set geometry to be active. Uses the globally
+ *       defined lsphi MultiFab and ls_refinement from mpm_ebtools.
+ *
+ * @return None.
+ */
+
 void MPMParticleContainer::removeParticlesInsideEB()
 {
     const int lev = 0;

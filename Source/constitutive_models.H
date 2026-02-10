@@ -4,6 +4,20 @@
 #include<constants.H>
 #include <AMReX.H>
 // clang-format on
+
+/**
+ * @brief Computes Cauchy stress for a linear elastic solid.
+ *
+ * Implements isotropic Hookean elasticity in 1D, 2D, or 3D depending on
+ * AMREX_SPACEDIM. Uses Young’s modulus (E) and Poisson’s ratio (v) to form
+ * the constitutive matrix and multiplies it by the strain tensor eps[].
+ *
+ * @param eps    Strain tensor components
+ * @param sigma  Output stress tensor components
+ * @param E      Young’s modulus
+ * @param v      Poisson’s ratio
+ */
+
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 linear_elastic(amrex::Real eps[NCOMP_TENSOR],
                amrex::Real sigma[NCOMP_TENSOR],
@@ -39,6 +53,18 @@ linear_elastic(amrex::Real eps[NCOMP_TENSOR],
 #endif
 }
 
+/**
+ * @brief Computes the incremental stress response for linear elasticity.
+ *
+ * This is the differential form of Hooke’s law: Δσ = C : Δε.
+ * Used in implicit or incremental formulations where only the change in
+ * strain is known. Behavior depends on AMREX_SPACEDIM.
+ *
+ * @param delta_eps     Incremental strain tensor
+ * @param delta_sigma   Output incremental stress tensor
+ * @param E             Young’s modulus
+ * @param v             Poisson’s ratio
+ */
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 linear_elastic_delta(amrex::Real delta_eps[NCOMP_TENSOR],
                      amrex::Real delta_sigma[NCOMP_TENSOR],
@@ -77,6 +103,18 @@ linear_elastic_delta(amrex::Real delta_eps[NCOMP_TENSOR],
 #endif
 }
 
+/**
+ * @brief Computes the Cauchy stress for a Newtonian fluid.
+ *
+ * Implements σ = 2μ ε̇_dev − p I, where ε̇ is the strain‑rate tensor,
+ * μ is the dynamic viscosity, and p is the pressure. Handles 1D, 2D, and 3D
+ * cases depending on AMREX_SPACEDIM.
+ *
+ * @param epsdot    Strain‑rate tensor components
+ * @param sigma     Output stress tensor components
+ * @param dyn_visc  Dynamic viscosity μ
+ * @param pressure  Fluid pressure p
+ */
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 Newtonian_Fluid(amrex::Real epsdot[NCOMP_TENSOR],
                 amrex::Real sigma[NCOMP_TENSOR],
@@ -121,3 +159,5 @@ Newtonian_Fluid(amrex::Real epsdot[NCOMP_TENSOR],
 }
 
 #endif
+
+

@@ -4,18 +4,20 @@
 // clang-format on
 
 /**
- * @brief Calculates the total kinetic and strain energies of all material
- * points in the domain at a given time
+ * @brief Computes the total kinetic and strain energies of all material points.
  *
- * Performs a reduction over all particles to compute:
- * - TKE = 0.5 * m * v²
- * - TSE = 0.5 * V * (σ:ε)
+ * Performs a parallel reduction over all particles to compute:
+ *  - Total kinetic energy:  TKE = 0.5 * m * |v|²
+ *  - Total strain energy:   TSE = 0.5 * V * (σ : ε)
  *
- * @param[out] TKE Total kinetic energy of all particles (units: Joules).
- * @param[out] TSE Total strain energy of all particles (units: Joules).
+ * The function launches two AMReX reductions, one for kinetic energy and one
+ * for strain energy. The results are summed across MPI ranks if applicable.
  *
- * @note This function loops over all particles and performs a parallel
- * reduction.
+ * @param[out] TKE  Total kinetic energy of all particles (Joules)
+ * @param[out] TSE  Total strain energy of all particles (Joules)
+ *
+ * @note This routine does not modify particle data. It only reads particle
+ *       mass, velocity, stress, strain, and volume.
  */
 
 void MPMParticleContainer::Calculate_Total_Energies(Real &TKE, Real &TSE)
@@ -102,17 +104,19 @@ void MPMParticleContainer::Calculate_Total_Energies(Real &TKE, Real &TSE)
 }
 
 /**
- * @brief Calculates the mass weighted average of all velocity components
+ * @brief Computes the mass‑weighted average velocity components of all particles.
  *
- * Performs a reduction over all particles to compute:
- * - momentum_tot = the total momentum in dimension d
- * - mass_tot = total mass of material points
+ * Performs AMReX reductions to compute:
+ *   momentum_tot[d] = Σ (m * v_d)
+ *   mass_tot        = Σ m
  *
- * @param[out] Vcm Vector of mass weighted averaged (MWA) material point
- * velocities
+ * The center‑of‑mass velocity is then:
+ *   Vcm[d] = momentum_tot[d] / mass_tot
  *
- * @note This function loops over all particles and performs a parallel
- * reduction.
+ * @param[out] Vcm  Array of size AMREX_SPACEDIM containing the mass‑weighted
+ *                  average velocity components.
+ *
+ * @note MPI reductions are performed when running in parallel.
  */
 
 void MPMParticleContainer::Calculate_MWA_VelocityComponents(
@@ -154,18 +158,18 @@ void MPMParticleContainer::Calculate_MWA_VelocityComponents(
 }
 
 /**
- * @brief Calculates the mass weighted average of velocity magnitude of material
- * points
+ * @brief Computes the mass‑weighted average velocity magnitude of all particles.
  *
- * Performs a reduction over all particles to compute:
- * - massvelmag = the total momentum magnitude of mps
- * - mass_tot = total mass of material points
+ * Performs reductions to compute:
+ *   massvelmag = Σ (m * |v|)
+ *   mass_tot   = Σ m
  *
- * @param[out] Vcm scalar value of mass weighted averaged (MWA) material point
- * velocity magnitude
+ * The mass‑weighted average velocity magnitude is:
+ *   Vcm = massvelmag / mass_tot
  *
- * @note This function loops over all particles and performs a parallel
- * reduction.
+ * @param[out] Vcm  Scalar mass‑weighted average velocity magnitude.
+ *
+ * @note Uses AMReX parallel reductions and MPI reductions when enabled.
  */
 
 void MPMParticleContainer::Calculate_MWA_VelocityMagnitude(amrex::Real &Vcm)
@@ -204,18 +208,15 @@ void MPMParticleContainer::Calculate_MWA_VelocityMagnitude(amrex::Real &Vcm)
 }
 
 /**
- * @brief Calculates the mass weighted average of velocity magnitude of material
- * points
+ * @brief Computes the minimum and maximum particle positions in each dimension.
  *
- * Performs a reduction over all particles to compute:
- * - massvelmag = the total momentum magnitude of mps
- * - mass_tot = total mass of material points
+ * Performs AMReX ReduceMin and ReduceMax operations over all particles to find
+ * the bounding box of the particle cloud.
  *
- * @param[out] Vcm scalar value of mass weighted averaged (MWA) material point
- * velocity magnitude
+ * @param[out] minpos  Minimum particle position per dimension.
+ * @param[out] maxpos  Maximum particle position per dimension.
  *
- * @note This function loops over all particles and performs a parallel
- * reduction.
+ * @note This function does not modify particle data.
  */
 
 void MPMParticleContainer::Calculate_MinMaxPos(

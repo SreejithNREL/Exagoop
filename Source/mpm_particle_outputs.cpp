@@ -5,6 +5,31 @@
 #include <AMReX_AmrMesh.H>
 // clang-format on
 
+/**
+ * @brief Updates the Eulerian phase‑field / level‑set representation from particle data.
+ *
+ * This routine constructs a refined phase‑field grid and assigns to each node
+ * the minimum smoothed signed‑distance value contributed by nearby particles.
+ *
+ * For each particle:
+ *   1. Computes its refined‑grid cell index using the refined spacing (dx / refratio).
+ *   2. Loops over a fixed stencil (±3 cells in each dimension).
+ *   3. For each stencil node:
+ *        - Computes the physical node location.
+ *        - Evaluates a smoothed distance function:
+ *              dist = levelset(x_node, x_particle, smoothfactor * radius, -1, maxdist)
+ *        - Atomically updates the nodal value with:
+ *              φ_node = min(φ_node, dist)
+ *
+ * The resulting MultiFab stores a smooth approximation of the particle surface
+ * suitable for visualization, contact, or multiphase modeling.
+ *
+ * @param[in,out] phasedata     MultiFab storing the refined phase‑field values.
+ * @param[in]     refratio      Refinement ratio between base grid and phase grid.
+ * @param[in]     smoothfactor  Smoothing factor applied to particle radius.
+ *
+ * @return None.
+ */
 void MPMParticleContainer::update_phase_field(MultiFab &phasedata,
                                               int refratio,
                                               amrex::Real smoothfactor)
@@ -145,6 +170,20 @@ void MPMParticleContainer::update_phase_field(MultiFab &phasedata,
     // phasedata.SumBoundary(geom.periodicity());
 }
 
+/**
+ * @brief Writes particle data to an ASCII file with a time‑encoded filename.
+ *
+ * Constructs a filename of the form:
+ *      prefix_particlefilename_t<time>
+ * and writes particle data using WriteAsciiFile().
+ *
+ * @param[in] prefix_particlefilename   Base filename prefix.
+ * @param[in] num_of_digits_in_filenames  Number of digits for time formatting.
+ * @param[in] time                      Simulation time used in filename.
+ *
+ * @return None.
+ */
+
 void MPMParticleContainer::writeAsciiFiles(std::string prefix_particlefilename,
                                            int num_of_digits_in_filenames,
                                            amrex::Real time)
@@ -155,6 +194,27 @@ void MPMParticleContainer::writeAsciiFiles(std::string prefix_particlefilename,
     WriteAsciiFile(oss.str());
 }
 
+/**
+ * @brief Writes particle data to an AMReX plotfile.
+ *
+ * Constructs a plotfile directory name using the prefix and output index,
+ * selects which particle real and integer components to write, assigns
+ * human‑readable names, and calls WritePlotFile().
+ *
+ * Fields written include:
+ *   - radius, velocity, velocity', strainrate, strain, stress
+ *   - deformation gradient
+ *   - volume, mass, density, jacobian, pressure, vol_init
+ *   - material properties (optional)
+ *   - thermal fields (if enabled)
+ *   - integer fields: phase, rigid_body_id, constitutive_model
+ *
+ * @param[in] prefix_particlefilename   Base filename prefix.
+ * @param[in] num_of_digits_in_filenames  Number of digits for index formatting.
+ * @param[in] n                         Output index.
+ *
+ * @return None.
+ */
 void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
                                           int num_of_digits_in_filenames,
                                           const int n)
@@ -273,6 +333,25 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
                   real_data_names, int_data_names);
 }
 
+/**
+ * @brief Writes the header file for a checkpoint or plotfile directory.
+ *
+ * The header contains:
+ *   - Version string
+ *   - Step number
+ *   - Output index
+ *   - EB max level (if enabled)
+ *   - Current simulation time
+ *
+ * @param[in] name                 Directory name for the output.
+ * @param[in] is_checkpoint        Whether this is a checkpoint (vs. plotfile).
+ * @param[in] cur_time             Current simulation time.
+ * @param[in] nstep                Current step number.
+ * @param[in] EB_generate_max_level  EB hierarchy depth (if EB enabled).
+ * @param[in] output_it            Output index.
+ *
+ * @return None.
+ */
 void MPMParticleContainer::WriteHeader(const std::string &name,
                                        bool is_checkpoint,
                                        amrex::Real cur_time,
@@ -307,6 +386,33 @@ void MPMParticleContainer::WriteHeader(const std::string &name,
         HeaderFile << cur_time << "\n";
     }
 }
+
+/**
+ * @brief Writes a complete particle checkpoint to disk.
+ *
+ * Creates a directory hierarchy, writes a header file, and stores all particle
+ * real and integer data components required for restart.
+ *
+ * Real fields include:
+ *   - radius, velocity, velocity', strainrate, strain, stress
+ *   - deformation gradient
+ *   - volume, mass, density, jacobian, pressure, vol_init
+ *   - material properties
+ *   - thermal fields (if enabled)
+ *
+ * Integer fields include:
+ *   - phase
+ *   - constitutive_model
+ *   - rigid_body_id
+ *
+ * @param[in] prefix_particlefilename   Base prefix for checkpoint directory.
+ * @param[in] num_of_digits_in_filenames  Number of digits for index formatting.
+ * @param[in] cur_time                  Current simulation time.
+ * @param[in] nstep                     Current step number.
+ * @param[in] output_it                 Output index.
+ *
+ * @return None.
+ */
 
 void MPMParticleContainer::writeCheckpointFile(
     std::string prefix_particlefilename,
@@ -396,11 +502,40 @@ void MPMParticleContainer::writeCheckpointFile(
                real_data_names, int_data_names);
 }
 
+/**
+ * @brief Skips the remainder of the current line in an input stream.
+ *
+ * Utility function used when parsing checkpoint header files.
+ *
+ * @param[in,out] is  Input stream to advance.
+ *
+ * @return None.
+ */
+
 void GotoNextLine(std::istream &is)
 {
     constexpr std::streamsize bl_ignore_max{100000};
     is.ignore(bl_ignore_max, '\n');
 }
+
+/**
+ * @brief Reads particle data and metadata from a checkpoint directory.
+ *
+ * This routine:
+ *   1. Reads the Header file (step, output index, time, EB level).
+ *   2. Broadcasts header contents to all MPI ranks.
+ *   3. Calls Restart() to load particle data from disk.
+ *
+ * After completion, the particle container is fully restored to the state
+ * saved in the checkpoint.
+ *
+ * @param[in]  restart_chkfile   Path to checkpoint directory.
+ * @param[out] nstep             Restored step number.
+ * @param[out] cur_time          Restored simulation time.
+ * @param[out] output_it         Restored output index.
+ *
+ * @return None.
+ */
 
 void MPMParticleContainer::readCheckpointFile(std::string &restart_chkfile,
                                               int &nstep,

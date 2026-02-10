@@ -22,18 +22,16 @@ using namespace amrex;
 
 
 /**
- * @brief Prints welcome message at the beginning of ExaGOOP run
+ * @brief Prints a detailed startup banner for an ExaGOOP run.
  *
- * @param[in] 	None
- * @param[out] 	None
+ * This function:
+ *  - Executes only on the I/O processor
+ *  - Gathers system metadata (hostname, compiler, GPU backend, MPI/OpenMP status)
+ *  - Prints git hashes for ExaGOOP and AMReX
+ *  - Prints build configuration and timestamp
  *
- * This function prints:
- *  - total number of material points
- *  - total mass of material points
- *  - total volume of material points
- *  - rigid body particle counts and masses
- *
- * @return None
+ * The banner helps ensure reproducibility and provides useful diagnostics
+ * for debugging and provenance tracking.
  */
 
 void PrintWelcomeMessage()
@@ -124,6 +122,17 @@ void PrintWelcomeMessage()
 }
 
 
+/**
+ * @brief Prints a formatted progress message with a default '-' fill character.
+ *
+ * @param msg        Base message to print
+ * @param print_len  Desired total printed width before the arrow
+ * @param begin      If true, prints the starting message; otherwise prints " Done"
+ *
+ * This helper is used to create consistent progress-line formatting
+ * throughout ExaGOOP’s console output.
+ */
+
 void PrintMessage(std::string msg, int print_len, bool begin)
 {
     if (begin == true)
@@ -139,6 +148,17 @@ void PrintMessage(std::string msg, int print_len, bool begin)
     }
 }
 
+/**
+ * @brief Prints a formatted progress message using a custom fill character.
+ *
+ * @param msg        Base message to print
+ * @param print_len  Desired total printed width before the arrow
+ * @param begin      If true, prints the starting message; otherwise prints " Done"
+ * @param c          Character used to fill the spacing region
+ *
+ * This overload allows decorative separators (e.g., '*') for section headers.
+ */
+
 void PrintMessage(std::string msg, int print_len, bool begin, char c)
 {
     if (begin == true)
@@ -152,6 +172,19 @@ void PrintMessage(std::string msg, int print_len, bool begin, char c)
         amrex::Print() << msg;
     }
 }
+
+/**
+ * @brief Prints key simulation parameters for the current MPM setup.
+ *
+ * This function prints:
+ *  - Total number of material points
+ *  - Total mass of material points
+ *  - Total volume of material points
+ *  - Rigid-body particle counts and masses for each rigid body
+ *
+ * It queries the MPMParticleContainer and MPMspecs structures to extract
+ * physically meaningful summary information for the user.
+ */
 
 void PrintSimParams(MPMParticleContainer *mpm_pc, MPMspecs *specs)
 {
@@ -199,3 +232,4 @@ void PrintSimParams(MPMParticleContainer *mpm_pc, MPMspecs *specs)
     msg = "\n     ";
     PrintMessage(msg, print_length, true, '*'); //* line
 }
+

@@ -4,6 +4,18 @@
 #include <interpolants.H>
 // clang-format on
 
+/**
+ * @brief Checks whether any rigid-body particles are present in the container.
+ *
+ * Performs a parallel reduction over all particles to determine whether
+ * any particle has phase = 1 (rigid). Returns 1 if at least one rigid
+ * particle exists, otherwise returns 0.
+ *
+ * @return int
+ *         1 if rigid particles are present,
+ *         0 otherwise.
+ */
+
 int MPMParticleContainer::checkifrigidnodespresent()
 {
     int rigidnodespresent = 0;
@@ -31,6 +43,19 @@ int MPMParticleContainer::checkifrigidnodespresent()
     return (rigidnodespresent);
 }
 
+/**
+ * @brief Computes the total number of rigid-body particles belonging to a given body ID.
+ *
+ * Performs a parallel reduction over all particles and counts those with:
+ *   - phase = 1 (rigid)
+ *   - rigid_body_id = body_id
+ *
+ * @param[in]  body_id     Rigid body identifier to count.
+ * @param[out] total_num   Total number of rigid particles for this body.
+ *
+ * @return None.
+ */
+
 void MPMParticleContainer::Calculate_Total_Number_of_rigid_particles(
     int body_id, int &total_num)
 {
@@ -57,6 +82,16 @@ void MPMParticleContainer::Calculate_Total_Number_of_rigid_particles(
 #endif
 }
 
+/**
+ * @brief Computes the total number of material (non-rigid) particles.
+ *
+ * Counts all particles with phase = 0 using a parallel reduction.
+ *
+ * @param[out] total_num  Total number of material particles.
+ *
+ * @return None.
+ */
+
 void MPMParticleContainer::Calculate_Total_Number_of_MaterialParticles(
     int &total_num)
 {
@@ -81,6 +116,19 @@ void MPMParticleContainer::Calculate_Total_Number_of_MaterialParticles(
     ParallelDescriptor::ReduceIntSum(total_num);
 #endif
 }
+
+/**
+ * @brief Computes the total mass of rigid-body particles for a given body ID.
+ *
+ * Sums p.mass for all particles satisfying:
+ *   - phase = 1
+ *   - rigid_body_id = body_id
+ *
+ * @param[in]  body_id      Rigid body identifier.
+ * @param[out] total_mass   Total mass of rigid particles for this body.
+ *
+ * @return None.
+ */
 
 void MPMParticleContainer::Calculate_Total_Mass_RigidParticles(int body_id,
                                                                Real &total_mass)
@@ -108,6 +156,16 @@ void MPMParticleContainer::Calculate_Total_Mass_RigidParticles(int body_id,
 #endif
 }
 
+/**
+ * @brief Computes the total mass of all material (phase=0) particles.
+ *
+ * Performs a parallel reduction summing p.mass for all material points.
+ *
+ * @param[out] total_mass  Total mass of material particles.
+ *
+ * @return None.
+ */
+
 void MPMParticleContainer::Calculate_Total_Mass_MaterialPoints(Real &total_mass)
 {
 
@@ -133,6 +191,16 @@ void MPMParticleContainer::Calculate_Total_Mass_MaterialPoints(Real &total_mass)
 #endif
 }
 
+/**
+ * @brief Computes the total volume of all material (phase=0) particles.
+ *
+ * Performs a parallel reduction summing p.volume for all material points.
+ *
+ * @param[out] total_vol  Total volume of material particles.
+ *
+ * @return None.
+ */
+
 void MPMParticleContainer::Calculate_Total_Vol_MaterialPoints(Real &total_vol)
 {
 
@@ -157,6 +225,19 @@ void MPMParticleContainer::Calculate_Total_Vol_MaterialPoints(Real &total_vol)
     ParallelDescriptor::ReduceRealSum(total_vol);
 #endif
 }
+
+/**
+ * @brief Computes the total volume of rigid-body particles for a given body ID.
+ *
+ * Sums p.volume for all particles satisfying:
+ *   - phase = 1
+ *   - rigid_body_id = body_id
+ *
+ * @param[in] body_id  Rigid body identifier.
+ *
+ * @return amrex::Real
+ *         Total volume of rigid particles belonging to this body.
+ */
 
 amrex::Real
 MPMParticleContainer::Calculate_Total_Vol_RigidParticles(int body_id)
@@ -185,6 +266,29 @@ MPMParticleContainer::Calculate_Total_Vol_RigidParticles(int body_id)
 #endif
     return (total_vol);
 }
+
+/**
+ * @brief Computes the stencil bounds for interpolation in one dimension.
+ *
+ * Determines the lower and upper stencil offsets (bmin, bmax) for a given
+ * interpolation scheme:
+ *
+ *   - scheme = 1 → linear (2-point support)
+ *   - scheme = 2 or 3 → quadratic/cubic spline (4-point support)
+ *
+ * Boundary handling:
+ *   - Periodic → symmetric stencil [-1, 2]
+ *   - Non-periodic → one-sided stencils at domain boundaries
+ *
+ * @param[in] ivd          Cell index in this dimension.
+ * @param[in] lod          Domain lower bound.
+ * @param[in] hid          Domain upper bound.
+ * @param[in] scheme       Interpolation order (1, 2, or 3).
+ * @param[in] is_periodic  Whether the dimension is periodic.
+ *
+ * @return std::pair<int,int>
+ *         (bmin, bmax) stencil bounds.
+ */
 
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE std::pair<int, int>
@@ -231,6 +335,36 @@ compute_bounds(int ivd, int lod, int hid, int scheme, bool is_periodic)
 
     return {bmin, bmax};
 }
+
+/**
+ * @brief Deposits particle mass, momentum, and internal/external forces onto the nodal grid.
+ *
+ * For each particle:
+ *   1. Determines its cell index and interpolation stencil.
+ *   2. Evaluates basis functions and (optionally) basis gradients.
+ *   3. Deposits:
+ *        - mass                (if update_mass)
+ *        - momentum            (if update_vel)
+ *        - body forces         (gravity, external loads)
+ *        - internal forces     (−V σ ∇N)  if update_forces
+ *
+ * After deposition, nodal velocities and stresses are normalized by nodal mass.
+ *
+ * @param[in,out] nodaldata               MultiFab storing nodal quantities.
+ * @param[in]     gravity                 Gravity vector.
+ * @param[in]     external_loads_present  Flag enabling external slab forces.
+ * @param[in]     force_slab_lo           Lower bounds of external force region.
+ * @param[in]     force_slab_hi           Upper bounds of external force region.
+ * @param[in]     extforce                External force vector.
+ * @param[in]     update_mass             Whether to deposit mass.
+ * @param[in]     update_vel              Whether to deposit momentum.
+ * @param[in]     update_forces           Whether to deposit forces (1=body, 2=stress).
+ * @param[in]     mass_tolerance          Threshold for velocity normalization.
+ * @param[in]     order_scheme_directional  Per-dimension interpolation order.
+ * @param[in]     periodic                Per-dimension periodicity flags.
+ *
+ * @return None.
+ */
 
 void MPMParticleContainer::deposit_onto_grid_momentum(
     MultiFab &nodaldata,
@@ -542,6 +676,29 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
             });
     }
 }
+
+/**
+ * @brief Deposits thermal quantities (mass*specific_heat, temperature, heat sources) onto the nodal grid.
+ *
+ * For each particle:
+ *   - Deposits mass * specific_heat
+ *   - Deposits mass * specific_heat * temperature
+ *   - Deposits internal heat flux contributions (−∇·q)
+ *   - Deposits external heat sources
+ *
+ * After deposition, nodal temperature is computed as:
+ *      T = (mass_spheat_temp) / (mass_spheat)
+ *
+ * @param[in,out] nodaldata               Nodal thermal MultiFab.
+ * @param[in]     resetnodaldata_to_zero  Whether to zero nodal fields first.
+ * @param[in]     update_mass_temp        Whether to deposit thermal mass.
+ * @param[in]     update_source           Whether to deposit heat sources.
+ * @param[in]     mass_tolerance          Threshold for temperature normalization.
+ * @param[in]     order_scheme_directional  Per-dimension interpolation order.
+ * @param[in]     periodic                Per-dimension periodicity flags.
+ *
+ * @return None.
+ */
 
 #if USE_TEMP
 void MPMParticleContainer::deposit_onto_grid_temperature(
@@ -971,6 +1128,42 @@ void MPMParticleContainer::deposit_onto_grid_rigidnodesonly(
      }*/
 }
 
+/**
+ * @brief Interpolates nodal grid quantities back to particles (G2P transfer).
+ *
+ * This routine performs the particle update step of the MPM algorithm.
+ * For each material particle (phase = 0), it:
+ *
+ *   1. Determines the particle’s cell index and interpolation stencil.
+ *   2. Interpolates **velocity** using:
+ *        - linear (order=1)
+ *        - quadratic (order=2)
+ *        - cubic (order=3)
+ *      depending on the directional order scheme.
+ *
+ *   3. Applies **PIC/FLIP blending**:
+ *        vᵖ ← α vᵖ + α Δv_grid + (1−α) v_grid
+ *      where α = alpha_pic_flip.
+ *
+ *   4. If enabled, computes **velocity gradient** ∇v using basis derivatives.
+ *
+ *   5. Updates the **deformation gradient**:
+ *        Fᵖ ← (I + ∇v dt) Fᵖ
+ *
+ *   6. Computes the **strain‑rate tensor**:
+ *        Dᵖ = 0.5 (∇v + ∇vᵀ)
+ *
+ * @param[in]     nodaldata               MultiFab containing nodal grid values.
+ * @param[in]     update_vel              Whether to interpolate velocity.
+ * @param[in]     update_strainrate       Whether to compute strain‑rate and F.
+ * @param[in]     order_scheme_directional  Per‑dimension interpolation order.
+ * @param[in]     periodic                Per‑dimension periodicity flags.
+ * @param[in]     alpha_pic_flip          PIC/FLIP blending parameter.
+ * @param[in]     dt                      Time step for deformation update.
+ *
+ * @return None.
+ */
+
 void MPMParticleContainer::interpolate_from_grid(
     MultiFab &nodaldata,
     int update_vel,
@@ -1166,6 +1359,33 @@ void MPMParticleContainer::interpolate_from_grid(
 }
 
 #if USE_TEMP
+/**
+ * @brief Interpolates temperature and heat‑flux from nodal grid to particles.
+ *
+ * For each material particle (phase = 0), this routine:
+ *
+ *   1. Determines the interpolation stencil based on the directional order.
+ *
+ *   2. If update_temperature is enabled:
+ *        Tᵖ ← Tᵖ + ΔT_grid(xᵖ)
+ *      using linear, quadratic, or cubic interpolation.
+ *
+ *   3. If update_heatflux is enabled:
+ *        Computes ∇T using basis derivatives:
+ *            ∇T = Σ (T_node ∇N)
+ *        Then computes particle heat flux:
+ *            qᵖ = −k ∇T
+ *
+ * @param[in]     nodaldata               MultiFab containing nodal temperature.
+ * @param[in]     update_temperature      Whether to interpolate ΔT.
+ * @param[in]     update_heatflux         Whether to compute heat‑flux.
+ * @param[in]     order_scheme_directional  Per‑dimension interpolation order.
+ * @param[in]     periodic                Per‑dimension periodicity flags.
+ * @param[in]     alpha_pic_flip          PIC/FLIP blending parameter (unused here).
+ *
+ * @return None.
+ */
+
 void MPMParticleContainer::interpolate_from_grid_temperature(
     MultiFab &nodaldata,
     bool update_temperature,
@@ -1314,6 +1534,24 @@ void MPMParticleContainer::interpolate_from_grid_temperature(
     }
 }
 #endif
+
+/**
+ * @brief Computes nodal normals from particle mass‑weighted basis gradients.
+ *
+ * This function is currently disabled (commented out), but its intended behavior is:
+ *
+ *   1. Zero nodal normal components.
+ *   2. For each particle:
+ *        - Compute ∇N at the particle location.
+ *        - Accumulate mass‑weighted gradients into nodal normals.
+ *   3. Normalize nodal normals at each node.
+ *
+ * This is typically used for contact algorithms or boundary detection.
+ *
+ * @note The implementation is commented out and not executed.
+ *
+ * @return None.
+ */
 
 void MPMParticleContainer::calculate_nodal_normal(
     MultiFab & /*nodaldata*/,

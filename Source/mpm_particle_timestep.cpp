@@ -6,6 +6,33 @@
 #include <aesthetics.H>
 // clang-format on
 
+/**
+ * @brief Computes the stable time step for the MPM update using a CFL condition.
+ *
+ * If a fixed time step is requested in the input specs, that value is returned.
+ * Otherwise, this routine performs a parallel reduction over all material
+ * particles (phase = 0) to compute:
+ *
+ *   - The elastic or acoustic wave speed:
+ *        Cs = sqrt( (λ + 2μ) / ρ )     for solids
+ *        Cs = sqrt( K / ρ )           for fluids
+ *
+ *   - The particle velocity magnitude |v|
+ *
+ *   - The minimum cell size dx_min across dimensions
+ *
+ * The local stable time step is:
+ *        dt_p = dx_min / (Cs + |v|)
+ *
+ * The global time step is:
+ *        dt = CFL * min_p(dt_p)
+ * and is clamped to [dt_min_limit, dt_max_limit].
+ *
+ * @param[in] specs  Simulation specification structure containing CFL and limits.
+ *
+ * @return amrex::Real  The stable time step for the next update.
+ */
+
 amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
 {
     if (specs.fixed_timestep == 1)
@@ -72,6 +99,23 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
     return dt;
 }
 
+/**
+ * @brief Updates particle volume, density, and Jacobian from the deformation gradient.
+ *
+ * For each material particle (phase = 0), this routine:
+ *
+ *   1. Reconstructs the deformation gradient F from particle storage.
+ *   2. Computes det(F) in 1D, 2D, or 3D.
+ *   3. Updates:
+ *        J = det(F)
+ *        V = V₀ * J
+ *        ρ = m / V
+ *
+ * This is the standard MPM kinematic update for compressible materials.
+ *
+ * @return None.
+ */
+
 void MPMParticleContainer::updateVolume()
 {
     BL_PROFILE("MPMParticleContainer::updateVolume");
@@ -124,6 +168,47 @@ void MPMParticleContainer::updateVolume()
             });
     }
 }
+
+/**
+ * @brief Advances particle positions and applies boundary conditions.
+ *
+ * For each particle:
+ *
+ *   1. **Position update**:
+ *        xᵖ ← xᵖ + vᵖ' dt
+ *
+ *   2. **Builds relative velocity** for boundary condition evaluation.
+ *
+ *   3. **Embedded boundary (level‑set) handling** (if enabled):
+ *        - Computes φ(xᵖ) and ∇φ(xᵖ)
+ *        - Applies applybc() using the level‑set normal
+ *        - Optionally projects particle out of the EB surface
+ *
+ *   4. **Domain boundary conditions**:
+ *        - Detects crossings at low/high faces
+ *        - Subtracts wall velocity
+ *        - Applies applybc() with appropriate wall friction μ
+ *        - Reflects position if required
+ *        - Restores wall velocity to outgoing velocity
+ *
+ * Boundary types include:
+ *   - No‑slip
+ *   - Slip
+ *   - Partial slip (Coulomb friction)
+ *   - Periodic
+ *
+ * @param[in] dt              Time step.
+ * @param[in] bclo            Boundary condition types at low faces.
+ * @param[in] bchi            Boundary condition types at high faces.
+ * @param[in] lsetbc          Boundary condition type for level‑set EB.
+ * @param[in] wall_mu_lo      Friction coefficients at low faces.
+ * @param[in] wall_mu_hi      Friction coefficients at high faces.
+ * @param[in] wall_vel_lo     Wall velocities at low faces (flattened array).
+ * @param[in] wall_vel_hi     Wall velocities at high faces (flattened array).
+ * @param[in] lset_wall_mu    Friction coefficient for level‑set EB.
+ *
+ * @return None.
+ */
 
 void MPMParticleContainer::moveParticles(
     const amrex::Real &dt,
@@ -304,6 +389,15 @@ void MPMParticleContainer::moveParticles(
     }
 }
 
+/**
+ * @brief Returns the maximum Y‑coordinate among all particles.
+ *
+ * This is typically used to track the top surface of a deforming body
+ * (e.g., for spring compression diagnostics).
+ *
+ * @return amrex::Real  Maximum particle y‑position.
+ */
+
 amrex::Real MPMParticleContainer::GetPosSpring()
 {
     // const int lev = 0;
@@ -354,6 +448,23 @@ amrex::Real MPMParticleContainer::GetPosPiston()
                             });
     return (ymin);
 }
+
+/**
+ * @brief Assigns a uniform velocity to all particles belonging to a rigid body.
+ *
+ * For each particle with:
+ *      phase = 1  (rigid)
+ *      rigid_body_id = rigid_body_id
+ * the routine sets:
+ *      vᵖ' = prescribed velocity
+ *
+ * This is used to drive rigid pistons, platens, or moving boundaries.
+ *
+ * @param[in] rigid_body_id  ID of the rigid body to update.
+ * @param[in] velocity       Prescribed velocity vector.
+ *
+ * @return None.
+ */
 
 void MPMParticleContainer::UpdateRigidParticleVelocities(
     int rigid_body_id, Array<amrex::Real, AMREX_SPACEDIM> velocity)
