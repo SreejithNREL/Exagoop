@@ -21,4 +21,5 @@ Build_Cmake/**
 !Build_Cmake/clean_build_files.sh
 
 Build_Gnumake/*.ex
+Build_Gnumake/Backtrace.*
 Build_Gnumake/tmp_build_dir/*

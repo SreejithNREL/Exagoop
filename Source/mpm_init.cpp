@@ -526,6 +526,7 @@ void Initialise_Material_Points(MPMspecs &specs,
  *
  * @return None.
  */
+/*
 void MPMParticleContainer::InitParticles(const std::string &filename,
                                          amrex::Real &total_mass,
                                          amrex::Real &total_vol,
@@ -706,29 +707,6 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
                 p.rdata(realData::stress + comp) = shunya;
             }
 
-            if (testing == 0)
-            { /*
-                 amrex::Print()
-                     << "\n Particle " << p.rdata(realData::radius) << " "
-                     << p.rdata(realData::density) << " "
-                     << p.rdata(realData::xvel) << " " <<
-                 p.rdata(realData::yvel)
-                     << " " << p.rdata(realData::zvel) << " "
-                     << p.idata(intData::constitutive_model) << " "
-                     << p.rdata(realData::E) << " " << p.rdata(realData::nu)
-                     << " " << p.rdata(realData::volume) << " "
-                     << p.rdata(realData::mass) << " "
-                     << p.rdata(realData::deformation_gradient + 0) << " "
-                     << p.rdata(realData::deformation_gradient + 1) << " "
-                     << p.rdata(realData::deformation_gradient + 2) << " "
-                     << p.rdata(realData::deformation_gradient + 3) << " "
-                     << p.rdata(realData::deformation_gradient + 4) << " "
-                     << p.rdata(realData::deformation_gradient + 5) << " "
-                     << p.rdata(realData::deformation_gradient + 6) << " "
-                     << p.rdata(realData::deformation_gradient + 7) << " "
-                     << p.rdata(realData::deformation_gradient + 8) << " ";*/
-            }
-
             host_particles.push_back(p);
 
             if (!ifs.good())
@@ -746,7 +724,193 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
                   particle_tile.GetArrayOfStructs().begin() + old_size);
     }
     Redistribute();
+}*/
+
+void MPMParticleContainer::InitParticles(const std::string &filename,
+                                         amrex::Real &total_mass,
+                                         amrex::Real &total_vol,
+                                         amrex::Real &total_rigid_mass,
+                                         int &num_of_rigid_bodies,
+                                         int &ifrigidnodespresent)
+{
+    const int CHUNK_SIZE = 100000;   // tune as needed
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+        std::ifstream ifs(filename);
+        if (!ifs.good()) {
+            amrex::FileOpenFailed(filename);
+        }
+
+        int np = -1;
+        ifs >> np >> std::ws;
+        if (np < 0) {
+            amrex::Abort("Cannot read number of particles from file");
+        }
+
+        total_mass = 0.0;
+        total_vol = 0.0;
+        total_rigid_mass = 0.0;
+        ifrigidnodespresent = 0;
+        num_of_rigid_bodies = 0;
+
+        const int lev = 0, grid = 0, tile = 0;
+        auto& ptile = DefineAndReturnParticleTile(lev, grid, tile);
+        auto& aos   = ptile.GetArrayOfStructs();
+
+        Gpu::HostVector<ParticleType> host_particles;
+        host_particles.reserve(CHUNK_SIZE);
+
+        int rigid_bodies_seen[32] = {-1};
+        int rigid_count = 0;
+
+        for (int i = 0; i < np; ++i)
+        {
+            ParticleType p;
+
+            // id/cpu
+            p.id()  = ParticleType::NextID();
+            p.cpu() = ParallelDescriptor::MyProc();
+
+            // phase
+            ifs >> p.idata(intData::phase);
+
+            if (p.idata(intData::phase) == 1) {
+                ifrigidnodespresent = 1;
+                ifs >> p.idata(intData::rigid_body_id);
+
+                bool found = false;
+                for (int j = 0; j < rigid_count; ++j)
+                    found |= (rigid_bodies_seen[j] == p.idata(intData::rigid_body_id));
+
+                if (!found && rigid_count < 32)
+                    rigid_bodies_seen[rigid_count++] = p.idata(intData::rigid_body_id);
+            } else {
+                p.idata(intData::rigid_body_id) = -1;
+            }
+
+            // positions
+            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                amrex::Real coord;
+                ifs >> coord;
+                p.pos(d) = coord;
+            }
+
+            // radius & density
+            ifs >> p.rdata(realData::radius);
+            ifs >> p.rdata(realData::density);
+
+            // velocities
+            for (int d = 0; d < 3; ++d) {
+                p.rdata(realData::xvel + d) = 0.0;
+                p.rdata(realData::xvel_prime + d) = 0.0;
+            }
+            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                amrex::Real v;
+                ifs >> v;
+                p.rdata(realData::xvel + d) = v;
+            }
+
+            // constitutive model
+            ifs >> p.idata(intData::constitutive_model);
+            if (p.idata(intData::constitutive_model) == 0) {
+                ifs >> p.rdata(realData::E);
+                ifs >> p.rdata(realData::nu);
+                p.rdata(realData::Bulk_modulus) = 0.0;
+                p.rdata(realData::Gama_pressure) = 0.0;
+                p.rdata(realData::Dynamic_viscosity) = 0.0;
+            } else if (p.idata(intData::constitutive_model) == 1) {
+                p.rdata(realData::E) = 0.0;
+                p.rdata(realData::nu) = 0.0;
+                ifs >> p.rdata(realData::Bulk_modulus);
+                ifs >> p.rdata(realData::Gama_pressure);
+                ifs >> p.rdata(realData::Dynamic_viscosity);
+            } else {
+                amrex::Abort("Incorrect constitutive model");
+            }
+
+#if USE_TEMP
+            ifs >> p.rdata(realData::temperature);
+            ifs >> p.rdata(realData::specific_heat);
+            ifs >> p.rdata(realData::thermal_conductivity);
+            ifs >> p.rdata(realData::heat_source);
+            for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                p.rdata(realData::heat_flux + d) = 0.0;
+#endif
+
+            // volume & mass
+            p.rdata(realData::volume) =
+                fourbythree * PI * std::pow(p.rdata(realData::radius), three);
+            p.rdata(realData::mass) =
+                p.rdata(realData::density) * p.rdata(realData::volume);
+
+            if (p.idata(intData::phase) == 0) {
+                total_mass += p.rdata(realData::mass);
+                total_vol  += p.rdata(realData::volume);
+            } else if (p.idata(intData::phase) == 1 &&
+                       p.idata(intData::rigid_body_id) == 0) {
+                total_rigid_mass += p.rdata(realData::mass);
+            }
+
+            // deformation gradient init
+            for (int comp = 0; comp < NCOMP_FULLTENSOR; ++comp)
+                p.rdata(realData::deformation_gradient + comp) = 0.0;
+            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                int diag = d * AMREX_SPACEDIM + d;
+                p.rdata(realData::deformation_gradient + diag) = 1.0;
+            }
+
+            // strain/stress init
+            for (int comp = 0; comp < NCOMP_TENSOR; ++comp) {
+                p.rdata(realData::strainrate + comp) = 0.0;
+                p.rdata(realData::strain + comp) = 0.0;
+                p.rdata(realData::stress + comp) = 0.0;
+            }
+
+            host_particles.push_back(p);
+
+            // If chunk is full → insert + redistribute
+            if ((int)host_particles.size() == CHUNK_SIZE)
+            {
+                auto old_size = aos.size();
+                aos.resize(old_size + host_particles.size());
+
+                // host-to-host copy
+                std::copy(host_particles.begin(),
+                          host_particles.end(),
+                          aos.begin() + old_size);
+
+                host_particles.clear();
+
+                // redistribute immediately
+                Redistribute();
+            }
+        }
+
+        // Final partial chunk
+        if (!host_particles.empty())
+        {
+            auto old_size = aos.size();
+            aos.resize(old_size + host_particles.size());
+
+            std::copy(host_particles.begin(),
+                      host_particles.end(),
+                      aos.begin() + old_size);
+
+            host_particles.clear();
+
+            Redistribute();
+        }
+
+        num_of_rigid_bodies = rigid_count;
+    }
+    else
+    {
+        // Non-IO ranks still need to participate in Redistribute()
+        Redistribute();
+    }
 }
+
 
 /**
  * @brief Autogenerates particles inside a user‑specified bounding box.
