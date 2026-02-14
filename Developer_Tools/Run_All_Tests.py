@@ -282,17 +282,23 @@ def Run_ParameterSweep_2D_HeatConduction(cfg):
         # Build auto-tag
         desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}"
         output_tag = make_auto_tag_from_params(desc)
+        
+        
+        # 1. Load template config
+        with open(os.path.join(test_dir, "./Preprocess/config.json")) as f:
+            config = json.load(f)
 
-        # Update generator script
-        gen_script_path = os.path.join(test_dir, "Generate_MPs_and_InputFiles.sh")
-        with open(gen_script_path, "w") as f:
-            f.write(f"python3 {cfg['generator_script']} \\\n")            
-            f.write(f"    --no_of_cell_in_x_y 100 \\\n")            
-            f.write(f"    --np_per_cell_x_y {npcx} \\\n")
-            f.write(f"    --order_scheme {order} \\\n")            
-            f.write(f"    --stress_update_scheme {sus} \\\n")            
-            f.write(f"    --output_tag {output_tag}\n")
+        # 2. Modify config fields
+        config["ppc"] = [npcx, npcx]
+        config["order_scheme"] = order
+        config["stress_update_scheme"] = sus
 
+        # Auto-tag       
+        config["output_tag"] = output_tag
+
+        # 3. Write updated config.json
+        with open(os.path.join(test_dir, "./Preprocess/config.json"), "w") as f:
+            json.dump(config, f, indent=2)
 
         # Change gnumake file
         update_makefile_dim(os.path.join(test_dir,"GNUmakefile"),2)

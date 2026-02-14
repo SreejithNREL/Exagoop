@@ -1,184 +1,576 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-generate_particles.py
-Generate MPM particle file (mpm_particles.dat) and inputs_axialbar for ExaGOOP.
-
-Positional arguments (original ordering kept):
-  1  dimension               (0<int<=3)
-  2  no_of_cell_in_x         (int >0)  
-  3  np_per_cell_x           (int >0)
-  4  order_scheme            (int)
-  5  alpha_pic_flip          (float)
-  6  stress_update_scheme    (int)
-  7  time step               (float)  
-  8  output_tag              (string) used for Solution/<tag> prefixes
-
-Example:
-  python3 generate_particles.py 2 25 3 1 1 3 1 1 0.1 mytag
-"""
-from __future__ import annotations
 import argparse
-import sys
+import json
+import hashlib
+import importlib.util
+from typing import Tuple, Callable, Optional
+
 import numpy as np
-import tempfile
-import shutil
-import os
-from typing import List, Tuple
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 
 
-def die(msg: str) -> None:
-    print(f"ERROR: {msg}", file=sys.stderr)
-    raise SystemExit(1)
+# ------------------------------------------------------------
+# Utilities
+# ------------------------------------------------------------
+def die(msg: str):
+    raise SystemExit(f"[ERROR] {msg}")
 
 
-def warn(msg: str) -> None:
-    print(f"Warning: {msg}", file=sys.stderr)
+# ------------------------------------------------------------
+# CLI
+# ------------------------------------------------------------
+def parse_cli():
+    p = argparse.ArgumentParser(
+        description="General MPM preprocessor: particles + input file from JSON config"
+    )
+    p.add_argument(
+        "--config",
+        type=str,
+        required=True,
+        help="Path to JSON configuration file",
+    )
+    return p.parse_args()
 
 
-def write_atomic_with_count(lines: List[str], out_filename: str) -> None:
-    """
-    Write lines to out_filename with the first line equal to the count.
-    Uses a temporary file and atomic move.
-    """
-    out_dir = os.path.dirname(os.path.abspath(out_filename)) or "."
-    os.makedirs(out_dir, exist_ok=True)
-    tmp = None
-    try:
-        with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=out_dir, delete=False) as tmpf:
-            tmp = tmpf.name
-            tmpf.write(f"{len(lines)}\n")
-            for ln in lines:
-                tmpf.write(ln)
-        shutil.move(tmp, out_filename)
-    except Exception as e:
-        if tmp and os.path.exists(tmp):
-            try:
-                os.remove(tmp)
-            except Exception:
-                pass
-        die(f"Failed to write '{out_filename}': {e}")
+# ------------------------------------------------------------
+# Shape system (2D + 3D)
+# ------------------------------------------------------------
+class ShapeBase:
+    def contains(self, p):
+        raise NotImplementedError
 
 
-def generate_particles_and_return(dimensions: int,
-                                  ncells_x: int,                                  
-                                  np_per_cell_x: int,
-                                  order_scheme: int,                                  
-                                  stress_update_scheme: int,                                  
-                                  output_tag: str,
-                                  out_particles: str = "mpm_particles.dat"
-                                  ) -> Tuple[int, float]:
-    """
-    Generate particle lines and write mpm_particles.dat.
-    Returns (npart, dx1).
-    """
+class Rectangle(ShapeBase):
+    def __init__(self, xmin, xmax, ymin, ymax):
+        self.xmin, self.xmax = xmin, xmax
+        self.ymin, self.ymax = ymin, ymax
+
+    def contains(self, p):
+        x, y = p[:2]
+        return (self.xmin <= x <= self.xmax) and (self.ymin <= y <= self.ymax)
+
+
+class Circle(ShapeBase):
+    def __init__(self, center, radius):
+        self.cx, self.cy = center
+        self.r = radius
+
+    def contains(self, p):
+        x, y = p[:2]
+        return (x - self.cx) ** 2 + (y - self.cy) ** 2 <= self.r ** 2
+
+
+class AnnularCircle(ShapeBase):
+    def __init__(self, center, r1, r2):
+        self.cx, self.cy = center
+        self.r1, self.r2 = r1, r2
+
+    def contains(self, p):
+        x, y = p[:2]
+        r2 = (x - self.cx) ** 2 + (y - self.cy) ** 2
+        return self.r1 ** 2 <= r2 <= self.r2 ** 2
+
+
+class AnnularRectangle(ShapeBase):
+    def __init__(self, outer, inner):
+        self.outer = Rectangle(*outer)
+        self.inner = Rectangle(*inner)
+
+    def contains(self, p):
+        return self.outer.contains(p) and not self.inner.contains(p)
+
+
+class Sphere(ShapeBase):
+    def __init__(self, center, radius):
+        self.cx, self.cy, self.cz = center
+        self.r = radius
+
+    def contains(self, p):
+        x, y, z = p
+        return (
+            (x - self.cx) ** 2
+            + (y - self.cy) ** 2
+            + (z - self.cz) ** 2
+            <= self.r ** 2
+        )
+
+
+class AnnularSphere(ShapeBase):
+    def __init__(self, center, r1, r2):
+        self.cx, self.cy, self.cz = center
+        self.r1, self.r2 = r1, r2
+
+    def contains(self, p):
+        x, y, z = p
+        d2 = (x - self.cx) ** 2 + (y - self.cy) ** 2 + (z - self.cz) ** 2
+        return self.r1 ** 2 <= d2 <= self.r2 ** 2
+
+
+class Block(ShapeBase):
+    def __init__(self, xmin, xmax, ymin, ymax, zmin, zmax):
+        self.xmin, self.xmax = xmin, xmax
+        self.ymin, self.ymax = ymin, ymax
+        self.zmin, self.zmax = zmin, zmax
+
+    def contains(self, p):
+        x, y, z = p
+        return (
+            self.xmin <= x <= self.xmax
+            and self.ymin <= y <= self.ymax
+            and self.zmin <= z <= self.zmax
+        )
+
+
+def make_shape(shape_cfg: Optional[dict], dimensions: int) -> Optional[ShapeBase]:
+    if shape_cfg is None:
+        return None
+
+    t = shape_cfg["type"]
+
+    # 2D shapes
+    if t == "rectangle":
+        return Rectangle(
+            shape_cfg["xmin"],
+            shape_cfg["xmax"],
+            shape_cfg["ymin"],
+            shape_cfg["ymax"],
+        )
+    if t == "circle":
+        return Circle(shape_cfg["center"], shape_cfg["radius"])
+    if t == "annular_circle":
+        return AnnularCircle(
+            shape_cfg["center"],
+            shape_cfg["r_inner"],
+            shape_cfg["r_outer"],
+        )
+    if t == "annular_rectangle":
+        return AnnularRectangle(shape_cfg["outer"], shape_cfg["inner"])
+
+    # 3D shapes
+    if t == "sphere":
+        return Sphere(shape_cfg["center"], shape_cfg["radius"])
+    if t == "annular_sphere":
+        return AnnularSphere(
+            shape_cfg["center"],
+            shape_cfg["r_inner"],
+            shape_cfg["r_outer"],
+        )
+    if t == "block":
+        return Block(
+            shape_cfg["xmin"],
+            shape_cfg["xmax"],
+            shape_cfg["ymin"],
+            shape_cfg["ymax"],
+            shape_cfg["zmin"],
+            shape_cfg["zmax"],
+        )
+
+    die(f"Unsupported shape type: {t}")
+    return None
+
+
+# ------------------------------------------------------------
+# Particle generator
+# ------------------------------------------------------------
+def ppc_offsets(N: int) -> np.ndarray:
+    i = np.arange(1, N + 1)
+    return (2 * i - 1) / (2 * N)
+
+
+def generate_particles_and_return(
+    dimensions: int,
+    grid: dict,
+    ppc: Tuple[int, ...],
+    constitutive_model: dict,
+    enable_temperature: bool,
+    shape_cfg: Optional[dict],
+    velocity_function: Callable[[float, float, float], Tuple[float, float, float]],
+    temperature_function: Optional[
+        Callable[[float, float, float], Tuple[float, float, float, float]]
+    ],
+    out_particles: str = "mpm_particles.dat",
+) -> Tuple[int, float]:
+    if dimensions not in [1, 2, 3]:
+        die("dimensions must be 1, 2, or 3")
+    if len(ppc) != dimensions:
+        die("ppc tuple length must match dimensions")
+
+    xmin, xmax, nx = grid["xmin"], grid["xmax"], grid["nx"]
+    dx = (xmax - xmin) / nx
+    dx1 = dx
+
+    if dimensions >= 2:
+        ymin, ymax, ny = grid["ymin"], grid["ymax"], grid["ny"]
+        dy = (ymax - ymin) / ny
+    else:
+        ymin, ymax, ny = 0.0, 1.0, 1
+        dy = 1.0
+
+    if dimensions == 3:
+        zmin, zmax, nz = grid["zmin"], grid["zmax"], grid["nz"]
+        dz = (zmax - zmin) / nz
+    else:
+        zmin = -0.5 * dx
+        zmax = 0.5 * dx
+        nz = 1
+        dz = (zmax - zmin) / nz
+
+    offsets = [ppc_offsets(ppc[d]) for d in range(dimensions)]
+
+    #shape_obj = None if dimensions == 1 else make_shape(shape_cfg, dimensions)
     
-    if dimensions not in [2,3]:
-        die("dimension should be 2 or 3")
-    if ncells_x <= 0:
-        die("no_of_cell_in_x must be > 0")    
-    if np_per_cell_x <= 0:
-        die("np_per_cell_x must be > 0")
-    
+    if shape_cfg is None:
+        shape_obj = None
+    else:
+        shape_obj = make_shape(shape_cfg, dimensions)
 
-    # domain geometry
-    Lx = 1.0
-    Ly = 1.0
-    bufferx = 0         #no buffer cells in x for this test case    
-    dx1 = Lx / float(ncells_x)
 
-    blo = np.array([0.0, 0.0, -(0.5) * dx1], dtype=float)
-    bhi = np.array([Lx,   Ly,  (0.5) * dx1], dtype=float)
-    ncells = np.array([ncells_x,ncells_x, 1], dtype=int)
-    dx = (bhi - blo) / ncells
+    if dimensions == 1:
+        vol_cell = dx
+        vol_particle = dx / ppc[0]
+    elif dimensions == 2:
+        vol_cell = dx * dy
+        vol_particle = vol_cell / (ppc[0] * ppc[1])
+    else:
+        vol_cell = dx * dy * dz
+        vol_particle = vol_cell / np.prod(ppc)
 
-    if not np.allclose(dx[0], dx):
-        warn(f"mesh sizes differ: dx = {dx}")
-
-    # sampling window for placing particles (same as original)
-    xmin, xmax = 0.0, Lx    
-
-    # particle geometry and physical properties (original defaults)
-    vol_cell = float(dx[0] * dx[1] * dx[2])
-    vol_particle = vol_cell / float(np_per_cell_x * 1 * 1)
-    if vol_particle <= 0.0 or not np.isfinite(vol_particle):
-        die("Computed particle volume is non-positive or invalid.")
     rad = (3.0 / 4.0 * vol_particle / np.pi) ** (1.0 / 3.0)
-
-    dens = 1.0
     phase = 0
-    E = 0.0
-    nu = 0.0
-    v0 = 0.1
-    n = 1
-    T = 0.0
-    spheat= 1.0
-    thermcond = 1.0
-    heatsrc=0.0    
+    dens = 1.0
 
-    particle_lines: List[str] = []   
+    cm_type = constitutive_model["type"]
 
-    # generate particle lines; keep formatting stable so 'phase' prints as an integer token
-    for i in range(int(ncells[0])):
-        for j in range(int(ncells[1])):
-            c_cx = blo[0] + i * dx[0]
-            c_cy = blo[1] + j * dx[1]
-            c_cz = 0.0
-            if (xmin <= c_cx < xmax):
-                for ii in range(int(np_per_cell_x)):
-                    for jj in range(int(np_per_cell_x)):
-                        cell_cx = c_cx + (2 * ii + 1) * dx[0] / (2.0 * np_per_cell_x)         
-                        cell_cy = c_cy + (2 * jj + 1) * dx[1] / (2.0 * np_per_cell_x)                
-                        velx = 0.0
-                        vely = 0.0
-                        velz = 0.0              
-                
-                        if(dimensions==2):
-                            line = "{phase:d} {cx:.6e} {cy:.6e} {rad:.6e} {dens:.6e} {vx:.6e} {vy:.6e} {flag:d} {E:.6e} {nu:.6e} {T:.6e} {spheat:.6e} {thermcond:.6e} {heatsrc:.6e}\n".format(
-                                phase=int(phase),
-                                cx=cell_cx,
-                                cy=cell_cy,                                
-                                rad=rad,
-                                dens=dens,
-                                vx=velx,
-                                vy=vely,                                
-                                flag=0,
-                                E=E,
-                                nu=nu,
-                                T = T,
-                                spheat = spheat,
-                                thermcond = thermcond,
-                                heatsrc = heatsrc
+    if cm_type == "elastic":
+        cm_extra = {
+            "E": constitutive_model["E"],
+            "nu": constitutive_model["nu"],
+        }
+        cm_id = 0
+    elif cm_type == "fluid":
+        cm_extra = {
+            "Bulk_modulus": constitutive_model["Bulk_modulus"],
+            "Gama_pressure": constitutive_model["Gama_pressure"],
+            "Dynamic_viscosity": constitutive_model["Dynamic_viscosity"],
+        }
+        cm_id = 1
+    else:
+        cm_extra = {k: v for k, v in constitutive_model.items() if k != "type"}
+        cm_id = -1
+
+    def column_names():
+        cols = ["phase", "x"]
+        if dimensions >= 2:
+            cols.append("y")
+        if dimensions == 3:
+            cols.append("z")
+
+        # velocities
+        if dimensions == 1:
+            cols += ["vx"]
+        elif dimensions == 2:
+            cols += ["vx", "vy"]
+        else:
+            cols += ["vx", "vy", "vz"]
+
+        cols += ["radius", "density"]
+        cols += list(cm_extra.keys())
+
+        if enable_temperature:
+            cols += ["T", "spheat", "thermcond", "heatsrc"]
+
+        return cols
+
+    npart = 0
+
+    for i in range(nx):
+        cx = xmin + i * dx
+        for ox in offsets[0]:
+            px = cx + ox * dx
+
+            if dimensions == 1:
+                npart += 1
+                continue
+
+            for j in range(ny):
+                cy = ymin + j * dy
+                for oy in offsets[1]:
+                    py = cy + oy * dy
+
+                    if dimensions == 2:
+                        if shape_obj is None or shape_obj.contains((px, py)):
+                            npart += 1
+                        continue
+
+                    for k in range(nz):
+                        cz = zmin + k * dz
+                        for oz in offsets[2]:
+                            pz = cz + oz * dz
+                            if shape_obj is None or shape_obj.contains((px, py, pz)):
+                                npart += 1
+
+    with open(out_particles, "w") as f:
+        f.write(f"dim: {dimensions}\n")
+        f.write(f"number_of_material_points: {npart}\n")
+        f.write("# " + " ".join(column_names()) + "\n")
+
+        for i in range(nx):
+            cx = xmin + i * dx
+            for ox in offsets[0]:
+                px = cx + ox * dx
+
+                if dimensions == 1:
+                    vx, vy, vz = velocity_function(px, 0.0, 0.0)
+                    cols = [
+                        f"{phase:d}",
+                        f"{px:.6e}",
+                        f"{vx:.6e}",
+                        f"{rad:.6e}",
+                        f"{dens:.6e}",
+                    ]
+                    for v in cm_extra.values():
+                        cols.append(f"{v:.6e}")
+                    if enable_temperature:
+                        T, spheat, thermcond, heatsrc = temperature_function(
+                            px, 0.0, 0.0
+                        )
+                        cols += [
+                            f"{T:.6e}",
+                            f"{spheat:.6e}",
+                            f"{thermcond:.6e}",
+                            f"{heatsrc:.6e}",
+                        ]
+                    f.write(" ".join(cols) + "\n")
+                    continue
+
+                for j in range(ny):
+                    cy = ymin + j * dy
+                    for oy in offsets[1]:
+                        py = cy + oy * dy
+
+                        if dimensions == 2:
+                            if shape_obj is not None and not shape_obj.contains((px, py)):
+                                continue
+
+                            vx, vy, vz = velocity_function(px, py, 0.0)
+                            cols = [
+                                f"{phase:d}",
+                                f"{px:.6e}",
+                                f"{py:.6e}",
+                                f"{vx:.6e}",
+                                f"{vy:.6e}",
+                                f"{rad:.6e}",
+                                f"{dens:.6e}",
+                            ]
+                            for v in cm_extra.values():
+                                cols.append(f"{v:.6e}")
+                            if enable_temperature:
+                                T, spheat, thermcond, heatsrc = temperature_function(
+                                    px, py, 0.0
                                 )
-                        else:
-                            line = "{phase:d} {cx:.6e} {cy:.6e} {cz:.6e} {rad:.6e} {dens:.6e} {vx:.6e} {vy:.6e} {vz:.6e} {flag:d} {E:.6e} {nu:.6e} {T:.6e} {spheat:.6e} {thermcond:.6e} {heatsrc:.6e}\n".format(
-                                phase=int(phase),
-                                cx=cell_cx,
-                                cy=c_cy,
-                                cz=c_cz,
-                                rad=rad,
-                                dens=dens,
-                                vx=velx,
-                                vy=vely,
-                                vz=velz,
-                                flag=0,
-                                E=E,
-                                nu=nu,
-                                T = T,
-                                spheat = spheat,
-                                thermcond = thermcond,
-                                heatsrc = heatsrc
-                                )                        
-                        particle_lines.append(line)
+                                cols += [
+                                    f"{T:.6e}",
+                                    f"{spheat:.6e}",
+                                    f"{thermcond:.6e}",
+                                    f"{heatsrc:.6e}",
+                                ]
+                            f.write(" ".join(cols) + "\n")
+                            continue
 
-    npart = len(particle_lines)
-    if npart == 0:
-        warn("Zero particles generated; check domain/parameters.")
+                        for k in range(nz):
+                            cz = zmin + k * dz
+                            for oz in offsets[2]:
+                                pz = cz + oz * dz
+                                if shape_obj is not None and not shape_obj.contains(
+                                    (px, py, pz)
+                                ):
+                                    continue
 
-    # write atomically (header + particle lines)
-    write_atomic_with_count(particle_lines, out_particles)
-    print(f"WROTE: {out_particles} with {npart} particles")
+                                vx, vy, vz = velocity_function(px, py, pz)
+                                cols = [
+                                    f"{phase:d}",
+                                    f"{px:.6e}",
+                                    f"{py:.6e}",
+                                    f"{pz:.6e}",
+                                    f"{vx:.6e}",
+                                    f"{vy:.6e}",
+                                    f"{vz:.6e}",
+                                    f"{rad:.6e}",
+                                    f"{dens:.6e}",
+                                ]
+                                for v in cm_extra.values():
+                                    cols.append(f"{v:.6e}")
+                                if enable_temperature:
+                                    T, spheat, thermcond, heatsrc = (
+                                        temperature_function(px, py, pz)
+                                    )
+                                    cols += [
+                                        f"{T:.6e}",
+                                        f"{spheat:.6e}",
+                                        f"{thermcond:.6e}",
+                                        f"{heatsrc:.6e}",
+                                    ]
+                                f.write(" ".join(cols) + "\n")
+
+    print(f"WROTE: {out_particles} with {npart} particles (cm_type={cm_type}, id={cm_id})")
     return npart, dx1
+
+
+# ------------------------------------------------------------
+# Plotting
+# ------------------------------------------------------------
+def plot_material_points(
+    points: np.ndarray,
+    grid: dict,
+    dimensions: int,
+    output_tag: str,
+    *,
+    slice_axis: Optional[str] = None,
+    slice_value: Optional[float] = None,
+    figsize=(8, 6),
+):
+    fig, ax = plt.subplots(figsize=figsize)
+
+    if dimensions == 1:
+        x = points[:, 0]
+        xmin, xmax, nx = grid["xmin"], grid["xmax"], grid["nx"]
+        dx = (xmax - xmin) / nx
+
+        for i in range(nx + 1):
+            ax.axvline(xmin + i * dx, color="lightgray", linewidth=0.8)
+
+        ax.axvline(xmin, color="black", linewidth=2.5)
+        ax.axvline(xmax, color="black", linewidth=2.5)
+
+        ax.plot(x, np.zeros_like(x), "o", markersize=4)
+        ax.set_ylim(-0.1, 0.1)
+        ax.set_xlabel("x")
+        ax.set_title("1D Material Points with Grid + Boundary")
+        plt.savefig(output_tag)
+        return
+
+    if dimensions == 2:
+        x = points[:, 0]
+        y = points[:, 1]
+
+        xmin, xmax, nx = grid["xmin"], grid["xmax"], grid["nx"]
+        ymin, ymax, ny = grid["ymin"], grid["ymax"], grid["ny"]
+
+        dx = (xmax - xmin) / nx
+        dy = (ymax - ymin) / ny
+
+        for i in range(nx + 1):
+            ax.axvline(xmin + i * dx, color="lightgray", linewidth=0.8)
+        for j in range(ny + 1):
+            ax.axhline(ymin + j * dy, color="lightgray", linewidth=0.8)
+
+        rect = patches.Rectangle(
+            (xmin, ymin),
+            xmax - xmin,
+            ymax - ymin,
+            linewidth=2.5,
+            edgecolor="black",
+            facecolor="none",
+        )
+        ax.add_patch(rect)
+
+        ax.plot(x, y, "o", markersize=3)
+        ax.set_xlabel("x")
+        ax.set_ylabel("y")
+        ax.set_aspect("equal")
+        ax.set_title("2D Material Points with Grid + Boundary")
+        plt.savefig(output_tag)
+        return
+
+    if dimensions == 3:
+        if slice_axis not in ["x", "y", "z"]:
+            die("For 3D visualization, slice_axis must be 'x', 'y', or 'z'")
+        if slice_value is None:
+            die("For 3D visualization, slice_value must be provided")
+
+        xmin, xmax, nx = grid["xmin"], grid["xmax"], grid["nx"]
+        ymin, ymax, ny = grid["ymin"], grid["ymax"], grid["ny"]
+        zmin, zmax, nz = grid["zmin"], grid["zmax"], grid["nz"]
+
+        dx = (xmax - xmin) / nx
+        dy = (ymax - ymin) / ny
+        dz = (zmax - zmin) / nz
+
+        if slice_axis == "x":
+            lo = slice_value - dx
+            hi = slice_value + dx
+            mask = (points[:, 0] >= lo) & (points[:, 0] <= hi)
+            pts = points[mask]
+            x2 = pts[:, 1]
+            y2 = pts[:, 2]
+            xlabel, ylabel = "y", "z"
+            xmin2, xmax2 = ymin, ymax
+            ymin2, ymax2 = zmin, zmax
+            dx2, dy2 = dy, dz
+            nx2, ny2 = ny, nz
+
+        elif slice_axis == "y":
+            lo = slice_value - dy
+            hi = slice_value + dy
+            mask = (points[:, 1] >= lo) & (points[:, 1] <= hi)
+            pts = points[mask]
+            x2 = pts[:, 0]
+            y2 = pts[:, 2]
+            xlabel, ylabel = "x", "z"
+            xmin2, xmax2 = xmin, xmax
+            ymin2, ymax2 = zmin, zmax
+            dx2, dy2 = dx, dz
+            nx2, ny2 = nx, nz
+
+        else:
+            lo = slice_value - dz
+            hi = slice_value + dz
+            mask = (points[:, 2] >= lo) & (points[:, 2] <= hi)
+            pts = points[mask]
+            x2 = pts[:, 0]
+            y2 = pts[:, 1]
+            xlabel, ylabel = "x", "y"
+            xmin2, xmax2 = xmin, xmax
+            ymin2, ymax2 = ymin, ymax
+            dx2, dy2 = dx, dy
+            nx2, ny2 = nx, ny
+
+        for i in range(nx2 + 1):
+            ax.axvline(xmin2 + i * dx2, color="lightgray", linewidth=0.8)
+        for j in range(ny2 + 1):
+            ax.axhline(ymin2 + j * dy2, color="lightgray", linewidth=0.8)
+
+        rect = patches.Rectangle(
+            (xmin2, ymin2),
+            xmax2 - xmin2,
+            ymax2 - ymin2,
+            linewidth=2.5,
+            edgecolor="black",
+            facecolor="none",
+        )
+        ax.add_patch(rect)
+
+        ax.plot(x2, y2, "o", markersize=3)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.set_aspect("equal")
+        ax.set_title(f"3D Slice at {slice_axis}={slice_value} (±1 cell) with Boundary")
+        plt.savefig(output_tag)
+        return
+
+
+# ------------------------------------------------------------
+# Helpers: load particles, write inputs, auto-tag
+# ------------------------------------------------------------
+def load_particle_positions(filename: str, dimensions: int) -> np.ndarray:
+    if dimensions == 1:
+        pts = np.loadtxt(filename, comments="#", skiprows=3, usecols=[1])
+        return pts.reshape(-1, 1)
+    if dimensions == 2:
+        return np.loadtxt(filename, comments="#", skiprows=3, usecols=[1, 2])
+    return np.loadtxt(filename, comments="#", skiprows=3, usecols=[1, 2, 3])
+
 
 def write_block(f, entries, comment=None):
     """
@@ -200,39 +592,47 @@ def write_block(f, entries, comment=None):
         padding = " " * (align_col - len(key))
         f.write(f"{key}{padding}= {value}\n")
 
-
-def write_inputs_file(ncells_x: int,                      
-                      np_per_cell_x: int,
-                      order_scheme: int,                      
-                      stress_update_scheme: int,                      
-                      output_tag: str,
-                      dx1: float,
-                      out_filename: str = "inputs_axialbar.inp") -> None:
-
-    bufferx = 0
-    buffery = 0
-    xmin = 0.0
-    xmax = 1.0 
-    ymin = 0.0
-    ymax = 1.0
-    zmin = -dx1 * (buffery + 0.5)
-    zmax = dx1 * (buffery + 0.5)
-
-    #sol_dir = os.path.join(".", "Solution", output_tag)
-    #os.makedirs(sol_dir, exist_ok=True)
-
-    with open(out_filename, "w", encoding="utf-8") as f:
-
+def write_inputs_file(
+    grid: dict,
+    dimensions: int,
+    order_scheme: int,
+    stress_update_scheme: int,
+    output_tag: str,
+    constitutive_model: dict,
+    enable_temperature: bool,
+    particle_filename: str,
+    out_filename: str = "Inputs_MPM.inp",
+):
+    with open(out_filename, "w") as f:
+        f.write("# Auto-generated MPM input file\n")       
+        
         # ---------------------------------------------------------
         # Geometry
         # ---------------------------------------------------------
-        write_block(f, [
-            ("mpm.prob_lo", f"{xmin} {ymin} {zmin}    # Lower corner"),
-            ("mpm.prob_hi", f"{xmax} {ymax} {zmax}    # Upper corner"),
-            ("mpm.ncells", f"{ncells_x} {ncells_x} {1}"),
-            ("mpm.max_grid_size", f"{ncells_x + 1}"),
-            ("mpm.is_it_periodic", f"0 0 1")
-        ], comment="Geometry Parameters")
+        if(dimensions==1):
+            write_block(f, [
+                ("mpm.prob_lo", f"{grid['xmin']} 0.0 0.0    # Lower corner"),
+                ("mpm.prob_hi", f"{grid['xmax']} 0.0 0.0    # Upper corner"),
+                ("mpm.ncells", f"{grid['nx']} 0 0"),
+                ("mpm.max_grid_size", f"{grid['nx'] + 1}"),
+                ("mpm.is_it_periodic", f"0")
+            ], comment="Geometry Parameters")
+        elif(dimensions==2):
+            write_block(f, [
+                ("mpm.prob_lo", f"{grid['xmin']} {grid['ymin']} 0.0    # Lower corner"),
+                ("mpm.prob_hi", f"{grid['xmax']} {grid['ymax']} 0.0    # Upper corner"),
+                ("mpm.ncells", f"{grid['nx']} {grid['ny']} 0"),
+                ("mpm.max_grid_size", f"{grid['nx'] + 1}"),
+                ("mpm.is_it_periodic", f"0 0")
+            ], comment="Geometry Parameters")
+        else:
+            write_block(f, [
+                ("mpm.prob_lo", f"{grid['xmin']} {grid['ymin']} {grid['zmin']}    # Lower corner"),
+                ("mpm.prob_hi", f"{grid['xmax']} {grid['ymax']} {grid['zmax']}    # Upper corner"),
+                ("mpm.ncells", f"{grid['nx']} {grid['ny']} {grid['nz']}"),
+                ("mpm.max_grid_size", f"{grid['nx'] + 1}"),
+                ("mpm.is_it_periodic", f"0 0 1")
+            ], comment="Geometry Parameters")
 
         # AMR
         write_block(f, [
@@ -338,205 +738,157 @@ def write_inputs_file(ncells_x: int,
             ("mpm.do_calculate_minmaxpos", "0"),
             ("mpm.write_diag_output_time", "0.01")
         ], comment="Diagnostics Parameters")
-
     print(f"WROTE: {out_filename}")
 
-import hashlib
 
-def make_auto_tag(args) -> str:
-    """
-    Create a descriptive, deterministic, unique tag based on user inputs.
-    """
-    # Human-readable descriptive part
+def make_auto_tag_from_cfg(cfg: dict) -> str:
+    dims = cfg["dimensions"]
+    grid = cfg["grid"]
+    ppc = cfg["ppc"]
+    cm_type = cfg["constitutive_model"]["type"]
+    temp_enabled = cfg["temperature"]["enabled"]
+    ord_scheme = cfg["order_scheme"]
+    sus_scheme = cfg["stress_update_scheme"]
+
     desc = (
-        f"2D_Heat_Conduction_"        
-        f"nx{args.no_of_cell_in_x_y}_"
-        f"ppc{args.np_per_cell_x_y}_"        
-        f"ord{args.order_scheme}_"        
-        f"sus{args.stress_update_scheme}"        
+        f"{dims}D_"
+        f"nx{grid['nx']}"
+        + (f"_ny{grid['ny']}" if dims >= 2 else "")
+        + (f"_nz{grid['nz']}" if dims == 3 else "")
+        + f"_ppc{'x'.join(str(x) for x in ppc)}_"
+        f"cm{cm_type}_"
+        f"T{int(temp_enabled)}_"
+        f"ord{ord_scheme}_"
+        f"sus{sus_scheme}"
     )
-
-    # Create a short hash for uniqueness
-    key = desc
-    short_hash = hashlib.md5(key.encode()).hexdigest()[:6]
-
+    short_hash = hashlib.md5(desc.encode()).hexdigest()[:6]
     return f"{desc}_{short_hash}"
 
 
-def parse_cli() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Generate MPM particle file and inputs_axialbar.in")    
-    p.add_argument("--no_of_cell_in_x", type=int, required=True)   
-    p.add_argument("--np_per_cell_x", type=int, required=True)
-    p.add_argument("--order_scheme", type=int, required=True)    
-    p.add_argument("--stress_update_scheme", type=int, required=True)    
-    p.add_argument("--output_tag", type=str, default="", help="Leave empty to auto-generate")
-    p.add_argument("--debug", action="store_true", help="Print parsed args and exit")
-
-    args = p.parse_args()
-
-    # Auto-generate tag if empty
-    if args.output_tag.strip() == "":
-        args.output_tag = make_auto_tag(args)
-        print(f"[INFO] Auto-generated output_tag = {args.output_tag}")
-
-    return args
-
-
-# def write_inputs_file(dimensions: int,
-#                       ncells_x: int,                      
-#                       np_per_cell_x: int,
-#                       order_scheme: int,
-#                       alpha_pic_flip: float,
-#                       stress_update_scheme: int,
-#                       timestep: float,                      
-#                       output_tag: str,
-#                       dx1: float,
-#                       out_filename: str = "inputs_axialbar") -> None:
-#     """
-#     Write inputs_axialbar file using provided parameters. Creates Solution/<output_tag> directory if needed.
-#     """
-#
-#     xmin = 0.0
-#     xmax = 1.0 
-#     ymin = 0.0
-#     ymax = 1.0
-#     zmin = -dx1 * (0.5)       #Keep buffery in z-direction as well
-#     zmax = dx1 * (0.5)        #Keep buffery in z-direction as well
-#
-#     sol_dir = os.path.join(".", "Solution", output_tag)
-#     try:
-#         os.makedirs(sol_dir, exist_ok=True)
-#     except Exception as e:
-#         warn(f"Could not create Solution directory '{sol_dir}': {e}")
-#
-#     try:
-#         with open(out_filename, "w", encoding="utf-8") as f:
-#             f.write("#geometry parameters\n")
-#             f.write(f"mpm.prob_lo = {xmin} {ymin} {zmin}\t\t\t#Lower corner of physical domain\n")
-#             f.write(f"mpm.prob_hi = {xmax} {ymax} {zmax}\t\t\t#Upper corner of physical domain\n")
-#             f.write(f"mpm.ncells  = {ncells_x} {ncells_x } {1}\n")
-#             f.write(f"mpm.max_grid_size = {ncells_x + 1}\n")
-#             f.write(f"mpm.is_it_periodic = 0  0  1\n")
-#
-#             f.write("\n\n#AMR Parameters\n")
-#             f.write("#restart_checkfile = \"\"\n")
-#
-#             f.write("\n\n#Input files\n")
-#             f.write("mpm.use_autogen=0\n")
-#             f.write("mpm.mincoords_autogen=0.0 0.0 0.0\n")
-#             f.write("mpm.maxcoords_autogen=1.0 1.0 1.0\n")
-#             f.write("mpm.vel_autogen=0.0 0.0 0.0\n")
-#             f.write("mpm.constmodel_autogen=0\n")
-#             f.write("mpm.dens_autogen=1.0\n")
-#             f.write("mpm.E_autogen=1e6\n")
-#             f.write("mpm.nu_autogen=0.3\n")
-#             f.write("mpm.bulkmod_autogen=2e6\n")
-#             f.write("mpm.Gama_pres_autogen=7\n")
-#             f.write("mpm.visc_autogen=0.001\n")
-#             f.write("mpm.multi_part_per_cell_autogen=1\n")
-#             f.write("mpm.particle_file=\"mpm_particles.dat\"\n")
-#
-#             f.write("\n\n#File output parameters\n")
-#             f.write(f"mpm.prefix_particlefilename=\"{output_tag}/plt\"\n")
-#             f.write(f"mpm.prefix_gridfilename=\"{output_tag}/nplt\"\n")
-#             f.write(f"mpm.prefix_densityfilename=\"{output_tag}/dens\"\n")
-#             f.write(f"mpm.prefix_checkpointfilename=\"{output_tag}/chk\"\n")
-#             f.write("mpm.write_ascii=1\n")
-#             f.write("mpm.num_of_digits_in_filenames=6\n")
-#
-#             f.write("\n\n#Simulation run parameters\n")
-#             f.write("mpm.final_time= 0.05\n")
-#             f.write("mpm.max_steps=5000000\n")
-#             f.write("mpm.screen_output_time = 0.0001\n")
-#             f.write("mpm.write_output_time=0.001\n")
-#             f.write("mpm.num_redist = 1\n")
-#
-#             f.write("\n\n#Timestepping parameters\n")
-#             f.write("mpm.fixed_timestep = 1\n")
-#             f.write(f"mpm.timestep = {timestep}\n")
-#             f.write("mpm.CFL=0.1\n")
-#             f.write("mpm.dt_min_limit=1e-12\n")
-#             f.write("mpm.dt_max_limit=1e+00\n")
-#
-#             f.write("\n\n#Numerical schemes\n")
-#             f.write(f"mpm.order_scheme={order_scheme}\n")
-#             f.write(f"mpm.alpha_pic_flip = {alpha_pic_flip}\n")
-#             f.write(f"mpm.stress_update_scheme= {stress_update_scheme}\n")
-#             f.write("mpm.mass_tolerance = 1e-18\n")
-#
-#             f.write("\n\n#Physics parameters\n")
-#             f.write("mpm.gravity = 0.0 0.0 0.0\n")
-#             f.write("mpm.applied_strainrate_time=0.0\n")
-#             f.write("mpm.applied_strainrate=0.0\n")
-#             f.write("mpm.external_loads=0\n")
-#             f.write("mpm.force_slab_lo= 0.0 0.0 0.0\n")
-#             f.write("mpm.force_slab_hi= 1.0 1.0 1.0\n")
-#             f.write("mpm.extforce = 0.0 0.0 0.0\n")
-#
-#             f.write("\n\n#Diagnostics and Test\n")
-#             f.write("mpm.print_diagnostics= 0\n")
-#
-#             f.write("\n\n#Boundary conditions\n")
-#             f.write("mpm.bc_lower=1 1 0\n")
-#             f.write("mpm.bc_upper=1 1 0\n")            
-#             f.write("mpm.bc_lower_temp=1 1 0\n")
-#             f.write("mpm.bc_upper_temp=1 1 0\n")
-#             f.write("mpm.bc_lower_tempval=1.0 1.0 0\n")
-#             f.write("mpm.bc_upper_tempval=1.0 1.0 0\n")
-#
-#     except Exception as e:
-#         die(f"Failed to write inputs file '{out_filename}': {e}")
-#
-#     print(f"WROTE: {out_filename}")
-
-
-def parse_cli() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Generate MPM particle file and inputs_axialbar.in")   
-    p.add_argument("--no_of_cell_in_x_y", type=int, required=True)    
-    p.add_argument("--np_per_cell_x_y", type=int, required=True)
-    p.add_argument("--order_scheme", type=int, required=True)    
-    p.add_argument("--stress_update_scheme", type=int, required=True)    
-    p.add_argument("--output_tag", type=str, default="", help="Leave empty to auto-generate")
-    p.add_argument("--debug", action="store_true", help="Print parsed args and exit")
-
-    args = p.parse_args()
-
-    # Auto-generate tag if empty
-    if args.output_tag.strip() == "":
-        args.output_tag = make_auto_tag(args)
-        print(f"[INFO] Auto-generated output_tag = {args.output_tag}")
-
-    return args
-
-
-def main() -> None:
+# ------------------------------------------------------------
+# Main
+# ------------------------------------------------------------
+def main():
     args = parse_cli()
-    if args.debug:
-        print("DEBUG ARGS:", args)
+
+    with open(args.config, "r") as f:
+        cfg = json.load(f)
+
+    dimensions = cfg["dimensions"]
+    grid = cfg["grid"]
+    ppc = tuple(cfg["ppc"])
+    shape_cfg = cfg.get("shape", None)
+    input_filename=cfg["input_filename"]
+
+    cm_cfg = cfg["constitutive_model"]
+
+    temp_cfg = cfg["temperature"]
+    enable_temperature = temp_cfg.get("enabled", False)
+
+    vel_cfg = cfg["initial_velocity"]
+
+    if vel_cfg["type"] == "uniform":
+        vx0 = vel_cfg.get("vx", 0.0)
+        vy0 = vel_cfg.get("vy", 0.0)
+        vz0 = vel_cfg.get("vz", 0.0)
+
+        def velocity_function(x, y, z):
+            return vx0, vy0, vz0
+
+    elif vel_cfg["type"] == "function":
+        module_name = vel_cfg["module"]
+        function_name = vel_cfg["function"]
+        spec = importlib.util.spec_from_file_location("user_vel", module_name)
+        user_vel = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(user_vel)
+        velocity_function = getattr(user_vel, function_name)
+    else:
+        die("Unknown initial_velocity type in JSON")
+
+    if not enable_temperature:
+        temperature_function = None
+    else:
+        if temp_cfg["type"] == "uniform":
+            T0 = temp_cfg.get("T", 0.0)
+            sp0 = temp_cfg.get("spheat", 1.0)
+            k0 = temp_cfg.get("thermcond", 1.0)
+            q0 = temp_cfg.get("heatsrc", 0.0)
+
+            def temperature_function(x, y, z):
+                return T0, sp0, k0, q0
+
+        elif temp_cfg["type"] == "function":
+            module_name = temp_cfg["module"]
+            function_name = temp_cfg["function"]
+            spec = importlib.util.spec_from_file_location("user_temp", module_name)
+            user_temp = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(user_temp)
+            temperature_function = getattr(user_temp, function_name)
+        else:
+            die("Unknown temperature type in JSON")
+
+    order_scheme = cfg["order_scheme"]
+    stress_update_scheme = cfg["stress_update_scheme"]
+
+    output_tag = cfg.get("output_tag", "").strip()
+    if output_tag == "":
+        output_tag = make_auto_tag_from_cfg(cfg)
+        print(f"[INFO] Auto-generated output_tag = {output_tag}")
+
+    particle_file = "mpm_particles.dat"
 
     npart, dx1 = generate_particles_and_return(
-        dimensions=2,
-        ncells_x=args.no_of_cell_in_x_y,        
-        np_per_cell_x=args.np_per_cell_x_y,
-        order_scheme=args.order_scheme,        
-        stress_update_scheme=args.stress_update_scheme,        
-        output_tag=args.output_tag,
-        out_particles="mpm_particles.dat"
+        dimensions=dimensions,
+        grid=grid,
+        ppc=ppc,
+        constitutive_model=cm_cfg,
+        enable_temperature=enable_temperature,
+        shape_cfg=shape_cfg,
+        velocity_function=velocity_function,
+        temperature_function=temperature_function,
+        out_particles=particle_file,
     )
 
-    write_inputs_file(        
-        ncells_x=args.no_of_cell_in_x_y,        
-        np_per_cell_x=args.np_per_cell_x_y,
-        order_scheme=args.order_scheme,        
-        stress_update_scheme=args.stress_update_scheme,         
-        output_tag=args.output_tag,
-        dx1=dx1,
-        out_filename="Inputs_2DHeatConduction.inp"
+    write_inputs_file(
+        grid=grid,
+        dimensions=dimensions,
+        order_scheme=order_scheme,
+        stress_update_scheme=stress_update_scheme,
+        output_tag=output_tag,
+        constitutive_model=cm_cfg,
+        enable_temperature=enable_temperature,
+        particle_filename=particle_file,
+        out_filename=input_filename,
     )
 
-    print("All done.")
+    pts = load_particle_positions(particle_file, dimensions)
+
+    if dimensions in [1, 2]:
+        plot_material_points(pts, grid, dimensions,output_tag)
+    else:
+        # default slice for 3D: x = mid-plane
+        slice_axis = "x"
+        slice_value = 0.5 * (grid["xmin"] + grid["xmax"])
+        plot_material_points(
+            pts,
+            grid,
+            dimensions,
+            output_tag,
+            slice_axis=slice_axis,
+            slice_value=slice_value,
+        )
+
+    print("""
+    ┌─────────────────────────────────────────────────────────────────────────┐
+    │ ⚠️  IMPORTANT: Review Inputs_MPM.inp before proceeding                   │
+    │                                                                         │
+    │   Default values may have been applied for multiple input parameters    │
+    │                                                                         │
+    │   Make sure the configuration matches your test case.                   │
+    └─────────────────────────────────────────────────────────────────────────┘
+    """)
+
 
 
 if __name__ == "__main__":
     main()
-

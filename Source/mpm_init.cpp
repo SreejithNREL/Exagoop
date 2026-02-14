@@ -742,10 +742,52 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
             amrex::FileOpenFailed(filename);
         }
 
-        int np = -1;
-        ifs >> np >> std::ws;
-        if (np < 0) {
-            amrex::Abort("Cannot read number of particles from file");
+        long np = -1;
+
+        // ------------------------------------------------------------
+        // 1. Read "dim: <value>"
+        // ------------------------------------------------------------
+        std::string label;
+        int file_dim = -1;
+
+        ifs >> label >> file_dim;   // label = "dim:", file_dim = 1/2/3
+
+        if (label != "dim:") {
+            amrex::Abort("mpm_particles.dat: Expected 'dim:' at line 1");
+        }
+
+        if (file_dim != AMREX_SPACEDIM) {
+            amrex::Print() << "ERROR: Particle file dimension = " << file_dim << "\n"
+                           << "       AMREX_SPACEDIM        = " << AMREX_SPACEDIM << "\n";
+            amrex::Abort("Dimension mismatch between particle file and ExaGOOP build");
+        }
+
+        // ------------------------------------------------------------
+        // 2. Read "number_of_material_points: <value>"
+        // ------------------------------------------------------------
+        std::string label2;
+
+
+        ifs >> label2 >> np;  // label2 = "number_of_material_points:"
+
+        if (label2 != "number_of_material_points:") {
+            amrex::Abort("mpm_particles.dat: Expected 'number_of_material_points:' at line 2");
+        }
+
+        if (np <= 0) {
+            amrex::Abort("mpm_particles.dat: Invalid number_of_material_points");
+        }
+
+        // ------------------------------------------------------------
+        // 3. Skip the header line beginning with '#'
+        // ------------------------------------------------------------
+        std::string header_line;
+        std::getline(ifs, header_line); // finish line 2
+        std::getline(ifs, header_line); // read line 3 (column names)
+
+        // header_line should start with '#'
+        if (header_line.empty() || header_line[0] != '#') {
+            amrex::Abort("mpm_particles.dat: Expected header line beginning with '#'");
         }
 
         total_mass = 0.0;
