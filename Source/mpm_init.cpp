@@ -743,7 +743,8 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
         }
 
         long np = -1;
-
+        ifs >>np;
+/*
         // ------------------------------------------------------------
         // 1. Read "dim: <value>"
         // ------------------------------------------------------------
@@ -788,7 +789,7 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
         // header_line should start with '#'
         if (header_line.empty() || header_line[0] != '#') {
             amrex::Abort("mpm_particles.dat: Expected header line beginning with '#'");
-        }
+        }*/
 
         total_mass = 0.0;
         total_vol = 0.0;
