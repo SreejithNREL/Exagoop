@@ -9,7 +9,8 @@
 // clang-format on
 
 /**
- * @brief Applies particle–wall boundary conditions to a relative velocity vector.
+ * @brief Applies particle–wall boundary conditions to a relative velocity
+ * vector.
  *
  * This kernel decomposes the incoming relative velocity into normal and
  * tangential components with respect to the wall normal, then applies one of
@@ -23,7 +24,8 @@
  *
  *  - **BC_PARTIALSLIPWALL**
  *      Implements a Coulomb‑like friction model:
- *        - If vel_n ≤ 0 (approaching wall), friction may reduce tangential velocity.
+ *        - If vel_n ≤ 0 (approaching wall), friction may reduce tangential
+ * velocity.
  *        - If |v_t| ≤ −μ * vel_n, the particle sticks.
  *        - Otherwise, tangential velocity is reduced proportionally.
  *
@@ -33,7 +35,8 @@
  * The function returns a flag indicating whether the particle’s position
  * should be modified (e.g., projected out of the wall).
  *
- * @param[in]  relvel_in   Incoming relative velocity vector (particle minus wall).
+ * @param[in]  relvel_in   Incoming relative velocity vector (particle minus
+ * wall).
  * @param[out] relvel_out  Outgoing relative velocity after applying BC.
  * @param[in]  wall_mu     Friction coefficient for partial‑slip walls.
  * @param[in]  normaldir   Unit normal vector of the wall surface.

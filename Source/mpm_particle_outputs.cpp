@@ -6,18 +6,21 @@
 // clang-format on
 
 /**
- * @brief Updates the Eulerian phase‑field / level‑set representation from particle data.
+ * @brief Updates the Eulerian phase‑field / level‑set representation from
+ * particle data.
  *
  * This routine constructs a refined phase‑field grid and assigns to each node
  * the minimum smoothed signed‑distance value contributed by nearby particles.
  *
  * For each particle:
- *   1. Computes its refined‑grid cell index using the refined spacing (dx / refratio).
+ *   1. Computes its refined‑grid cell index using the refined spacing (dx /
+ * refratio).
  *   2. Loops over a fixed stencil (±3 cells in each dimension).
  *   3. For each stencil node:
  *        - Computes the physical node location.
  *        - Evaluates a smoothed distance function:
- *              dist = levelset(x_node, x_particle, smoothfactor * radius, -1, maxdist)
+ *              dist = levelset(x_node, x_particle, smoothfactor * radius, -1,
+ * maxdist)
  *        - Atomically updates the nodal value with:
  *              φ_node = min(φ_node, dist)
  *
@@ -25,7 +28,8 @@
  * suitable for visualization, contact, or multiphase modeling.
  *
  * @param[in,out] phasedata     MultiFab storing the refined phase‑field values.
- * @param[in]     refratio      Refinement ratio between base grid and phase grid.
+ * @param[in]     refratio      Refinement ratio between base grid and phase
+ * grid.
  * @param[in]     smoothfactor  Smoothing factor applied to particle radius.
  *
  * @return None.

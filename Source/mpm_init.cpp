@@ -4,6 +4,12 @@
 #include <mpm_eb.H>
 #include <aesthetics.H>
 #include <nodal_data_ops.H>
+
+//#pragma once
+//#include <AMReX.H>
+//#include <AMReX_Particles.H>
+#include <hdf5.h>
+
 // clang-format on
 
 /**
@@ -49,7 +55,8 @@ void Name_Nodaldata_Variables(amrex::Vector<std::string> &nodaldata_names)
 }
 
 /**
- * @brief Initializes the computational domain, geometry, nodal data, and level‑set structures.
+ * @brief Initializes the computational domain, geometry, nodal data, and
+ * level‑set structures.
  *
  * Performs the following:
  *  - Defines the physical RealBox from user specs.
@@ -59,15 +66,19 @@ void Name_Nodaldata_Variables(amrex::Vector<std::string> &nodaldata_names)
  *  - Initializes nodal MultiFab and (optionally) level‑set MultiFab.
  *  - Sets directional spline order based on periodicity and grid size.
  *
- * @param[in,out] specs                 User‑defined MPM simulation specifications.
+ * @param[in,out] specs                 User‑defined MPM simulation
+ * specifications.
  * @param[out]    geom                  AMReX Geometry for the primary grid.
  * @param[out]    geom_levset           Geometry for the refined level‑set grid.
- * @param[out]    ba                    BoxArray defining the domain decomposition.
+ * @param[out]    ba                    BoxArray defining the domain
+ * decomposition.
  * @param[out]    dm                    DistributionMapping for parallel layout.
- * @param[out]    ng_cells              Number of ghost cells for particle‑grid ops.
+ * @param[out]    ng_cells              Number of ghost cells for particle‑grid
+ * ops.
  * @param[out]    ng_cells_nodaldata    Number of ghost cells for nodal data.
  * @param[out]    nodaldata             MultiFab storing nodal quantities.
- * @param[out]    levset_data           MultiFab storing level‑set field (if enabled).
+ * @param[out]    levset_data           MultiFab storing level‑set field (if
+ * enabled).
  * @param[out]    nodaldata_names       Vector of nodal variable names.
  *
  * @return None.
@@ -304,7 +315,8 @@ void Create_Output_Directories(MPMspecs &specs)
 }
 
 /**
- * @brief Computes initial internal forces, strain rates, stresses, and phase‑field values.
+ * @brief Computes initial internal forces, strain rates, stresses, and
+ * phase‑field values.
  *
  * Performs:
  *  - Momentum deposition from particles to grid.
@@ -409,7 +421,8 @@ void Initialise_Internal_Forces(MPMspecs &specs,
 }
 
 /**
- * @brief Initializes material points either from a checkpoint, a particle file, or autogeneration.
+ * @brief Initializes material points either from a checkpoint, a particle file,
+ * or autogeneration.
  *
  * Three modes:
  *  - Restart from checkpoint file.
@@ -452,10 +465,22 @@ void Initialise_Material_Points(MPMspecs &specs,
         PrintMessage(msg, print_length, true);
 
         // dimension‑aware InitParticles (file‑based)
-        mpm_pc.InitParticles(specs.particlefilename, specs.total_mass,
-                             specs.total_vol, specs.total_rigid_mass,
-                             specs.no_of_rigidbodies_present,
-                             specs.ifrigidnodespresent);
+        if (specs.particlefilename.size() >= 3 &&
+            specs.particlefilename.compare(specs.particlefilename.size() - 3, 3,
+                                           ".h5") == 0)
+        {
+            mpm_pc.InitParticlesFromHDF5(
+                specs.particlefilename, specs.total_mass, specs.total_vol,
+                specs.total_rigid_mass, specs.no_of_rigidbodies_present,
+                specs.ifrigidnodespresent);
+        }
+        else
+        {
+            mpm_pc.InitParticles(specs.particlefilename, specs.total_mass,
+                                 specs.total_vol, specs.total_rigid_mass,
+                                 specs.no_of_rigidbodies_present,
+                                 specs.ifrigidnodespresent);
+        }
 
         PrintMessage(msg, print_length, false);
         mpm_pc.RedistributeLocal();
@@ -526,6 +551,7 @@ void Initialise_Material_Points(MPMspecs &specs,
  *
  * @return None.
  */
+
 /*
 void MPMParticleContainer::InitParticles(const std::string &filename,
                                          amrex::Real &total_mass,
@@ -544,11 +570,58 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
         }
 
         int np = -1;
-        ifs >> np >> std::ws;
-        if (np == -1)
-        {
-            Abort("\nCannot read number of particles from particle file\n");
+
+        // ------------------------------------------------------------
+        // 1. Read "dim: <value>"
+        // ------------------------------------------------------------
+        std::string label;
+        int file_dim = -1;
+
+        ifs >> label >> file_dim;   // label = "dim:", file_dim = 1/2/3
+
+        if (label != "dim:") {
+            amrex::Abort("mpm_particles.dat: Expected 'dim:' at line 1");
         }
+
+        if (file_dim != AMREX_SPACEDIM) {
+            amrex::Print() << "ERROR: Particle file dimension = " << file_dim <<
+"\n"
+                           << "       AMREX_SPACEDIM        = " <<
+AMREX_SPACEDIM << "\n"; amrex::Abort("Dimension mismatch between particle file
+and ExaGOOP build");
+        }
+
+        // ------------------------------------------------------------
+        // 2. Read "number_of_material_points: <value>"
+        // ------------------------------------------------------------
+        std::string label2;
+
+
+        ifs >> label2 >> np;  // label2 = "number_of_material_points:"
+
+        if (label2 != "number_of_material_points:") {
+            amrex::Abort("mpm_particles.dat: Expected
+'number_of_material_points:' at line 2");
+        }
+
+        if (np <= 0) {
+            amrex::Abort("mpm_particles.dat: Invalid
+number_of_material_points");
+        }
+
+        // ------------------------------------------------------------
+        // 3. Skip the header line beginning with '#'
+        // ------------------------------------------------------------
+        std::string header_line;
+        std::getline(ifs, header_line); // finish line 2
+        std::getline(ifs, header_line); // read line 3 (column names)
+
+        // header_line should start with '#'
+        if (header_line.empty() || header_line[0] != '#') {
+            amrex::Abort("mpm_particles.dat: Expected header line beginning with
+'#'");
+        }
+
 
         const int lev = 0, grid = 0, tile = 0;
         const int tot_rig_body_tmp = 10;
@@ -724,7 +797,241 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
                   particle_tile.GetArrayOfStructs().begin() + old_size);
     }
     Redistribute();
-}*/
+}
+*/
+
+void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
+                                                 amrex::Real &total_mass,
+                                                 amrex::Real &total_vol,
+                                                 amrex::Real &total_rigid_mass,
+                                                 int &num_of_rigid_bodies,
+                                                 int &ifrigidnodespresent)
+{
+    BL_PROFILE("ReadHDF5Particles");
+
+    // ------------------------------------------------------------
+    // Open file (serial HDF5 on macOS)
+    // ------------------------------------------------------------
+    hid_t plist_id = H5Pcreate(H5P_FILE_ACCESS);
+    // No H5Pset_fapl_mpio here: Homebrew HDF5 is serial-only
+
+    hid_t file_id = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, plist_id);
+    H5Pclose(plist_id);
+
+    if (file_id < 0)
+        amrex::Abort("ERROR: Could not open HDF5 particle file");
+
+    // ------------------------------------------------------------
+    // Read dimension + number of particles
+    // ------------------------------------------------------------
+    int dim;
+    {
+        hid_t dset = H5Dopen(file_id, "dim", H5P_DEFAULT);
+        H5Dread(dset, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &dim);
+        H5Dclose(dset);
+    }
+
+    long npart;
+    {
+        hid_t dset = H5Dopen(file_id, "number_of_material_points", H5P_DEFAULT);
+        H5Dread(dset, H5T_NATIVE_LONG, H5S_ALL, H5S_ALL, H5P_DEFAULT, &npart);
+        H5Dclose(dset);
+    }
+
+    if (ParallelDescriptor::IOProcessor())
+        amrex::Print() << "Reading " << npart << " particles (dim=" << dim
+                       << ")\n";
+
+    // ------------------------------------------------------------
+    // Helper to read a dataset into a Vector<Real>
+    // ------------------------------------------------------------
+    auto read_dset =
+        [&](const std::string &name, amrex::Vector<amrex::Real> &vec)
+    {
+        hid_t dset = H5Dopen(file_id, name.c_str(), H5P_DEFAULT);
+        if (dset < 0)
+            amrex::Abort("Missing dataset: " + name);
+
+        hid_t space = H5Dget_space(dset);
+        hsize_t dims[1];
+        H5Sget_simple_extent_dims(space, dims, nullptr);
+        vec.resize(dims[0]);
+
+        H5Dread(dset, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,
+                vec.data());
+
+        H5Sclose(space);
+        H5Dclose(dset);
+    };
+
+    // ------------------------------------------------------------
+    // Read mandatory datasets
+    // ------------------------------------------------------------
+    amrex::Vector<amrex::Real> x, y, z, vx, vy, vz, radius, density, cm_id;
+
+    read_dset("x", x);
+    if (dim >= 2)
+        read_dset("y", y);
+    if (dim == 3)
+        read_dset("z", z);
+
+    read_dset("vx", vx);
+    if (dim >= 2)
+        read_dset("vy", vy);
+    if (dim == 3)
+        read_dset("vz", vz);
+
+    read_dset("radius", radius);
+    read_dset("density", density);
+    read_dset("cm_id", cm_id);
+
+    // ------------------------------------------------------------
+    // Read any extra constitutive model fields dynamically
+    // ------------------------------------------------------------
+    std::vector<std::string> extra_fields;
+
+    {
+        hid_t root = H5Gopen(file_id, "/", H5P_DEFAULT);
+        hsize_t nobj;
+        H5Gget_num_objs(root, &nobj);
+
+        for (hsize_t i = 0; i < nobj; ++i)
+        {
+            char name[256];
+            H5Gget_objname_by_idx(root, i, name, sizeof(name));
+
+            std::string s(name);
+            if (s != "x" && s != "y" && s != "z" && s != "vx" && s != "vy" &&
+                s != "vz" && s != "radius" && s != "density" && s != "cm_id" &&
+                s != "dim" && s != "number_of_material_points")
+            {
+                extra_fields.push_back(s);
+            }
+        }
+        H5Gclose(root);
+    }
+
+    std::map<std::string, amrex::Vector<amrex::Real>> extra_data;
+    for (auto &f : extra_fields)
+    {
+        read_dset(f, extra_data[f]);
+    }
+
+    H5Fclose(file_id);
+
+    // ------------------------------------------------------------
+    // Fill AMReX ParticleContainer
+    // ------------------------------------------------------------
+    clearParticles();
+
+    // Level 0 particle tiles: map< (grid, tile), ParticleTile >
+    auto &levelmap = this->GetParticles(0);
+
+    // Create (0,0) tile if it doesn't exist yet
+    std::pair<int, int> index{0, 0};
+    auto &tile =
+        levelmap[index]; // operator[] default-constructs a ParticleTile
+
+    auto &aos = tile.GetArrayOfStructs();
+    auto &soa = tile.GetStructOfArrays();
+
+    aos.resize(npart);
+    soa.resize(npart);
+
+    using PType = MPMParticleContainer::ParticleType;
+
+    for (long i = 0; i < npart; ++i)
+    {
+        PType &p = aos[i];
+
+        p.id() = PType::NextID();
+        p.cpu() = ParallelDescriptor::MyProc();
+
+        p.pos(0) = x[i];
+        if (dim >= 2)
+            p.pos(1) = y[i];
+        if (dim == 3)
+            p.pos(2) = z[i];
+
+        p.rdata(realData::radius) = radius[i];
+        p.rdata(realData::density) = density[i];
+
+        for (int d = 0; d < 3; ++d)
+        {
+            p.rdata(realData::xvel + d) = 0.0;
+            p.rdata(realData::xvel_prime + d) = 0.0;
+        }
+
+        p.rdata(realData::xvel + 0) = vx[i];
+        if (dim >= 2)
+            p.rdata(realData::xvel + 1) = vy[i];
+        if (dim == 3)
+            p.rdata(realData::xvel + 2) = vz[i];
+
+        p.idata(intData::constitutive_model) = cm_id[i];
+
+        if (cm_id[i] == 0)
+        {
+            p.rdata(realData::E) = extra_data.at("E")[i];
+            p.rdata(realData::nu) = extra_data.at("nu")[i];
+        }
+        else if (cm_id[i] == 1)
+        {
+            p.rdata(realData::Bulk_modulus) = extra_data.at("Bulk_modulus")[i];
+            p.rdata(realData::Gama_pressure) =
+                extra_data.at("Gama_pressure")[i];
+            p.rdata(realData::Dynamic_viscosity) =
+                extra_data.at("Dynamic_viscosity")[i];
+        }
+#if USE_TEMP
+        p.rdata(realData::temperature) = extra_data.at("T")[i];
+        p.rdata(realData::specific_heat) = extra_data.at("spheat")[i];
+        p.rdata(realData::thermal_conductivity) = extra_data.at("thermcond")[i];
+        p.rdata(realData::heat_source) = extra_data.at("heatsrc")[i];
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+            p.rdata(realData::heat_flux + d) = 0.0;
+#endif
+        // volume & mass
+        p.rdata(realData::volume) =
+            fourbythree * PI * std::pow(p.rdata(realData::radius), three);
+        p.rdata(realData::mass) =
+            p.rdata(realData::density) * p.rdata(realData::volume);
+
+        if (p.idata(intData::phase) == 0)
+        {
+            total_mass += p.rdata(realData::mass);
+            total_vol += p.rdata(realData::volume);
+        }
+        else if (p.idata(intData::phase) == 1 &&
+                 p.idata(intData::rigid_body_id) == 0)
+        {
+            total_rigid_mass += p.rdata(realData::mass);
+        }
+
+        p.rdata(realData::jacobian) = 1.0;
+        p.rdata(realData::vol_init) = p.rdata(realData::volume);
+        p.rdata(realData::pressure) = 0.0;
+
+        // deformation gradient init
+        for (int comp = 0; comp < NCOMP_FULLTENSOR; ++comp)
+            p.rdata(realData::deformation_gradient + comp) = 0.0;
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        {
+            int diag = d * AMREX_SPACEDIM + d;
+            p.rdata(realData::deformation_gradient + diag) = 1.0;
+        }
+
+        // strain/stress init
+        for (int comp = 0; comp < NCOMP_TENSOR; ++comp)
+        {
+            p.rdata(realData::strainrate + comp) = 0.0;
+            p.rdata(realData::strain + comp) = 0.0;
+            p.rdata(realData::stress + comp) = 0.0;
+        }
+    }
+
+    Redistribute();
+}
 
 void MPMParticleContainer::InitParticles(const std::string &filename,
                                          amrex::Real &total_mass,
@@ -733,34 +1040,39 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
                                          int &num_of_rigid_bodies,
                                          int &ifrigidnodespresent)
 {
-    const int CHUNK_SIZE = 100000;   // tune as needed
+    const int CHUNK_SIZE = 100000; // tune as needed
 
     if (ParallelDescriptor::IOProcessor())
     {
         std::ifstream ifs(filename);
-        if (!ifs.good()) {
+        if (!ifs.good())
+        {
             amrex::FileOpenFailed(filename);
         }
 
         long np = -1;
-        ifs >>np;
-/*
+
         // ------------------------------------------------------------
         // 1. Read "dim: <value>"
         // ------------------------------------------------------------
         std::string label;
         int file_dim = -1;
 
-        ifs >> label >> file_dim;   // label = "dim:", file_dim = 1/2/3
+        ifs >> label >> file_dim; // label = "dim:", file_dim = 1/2/3
 
-        if (label != "dim:") {
+        if (label != "dim:")
+        {
             amrex::Abort("mpm_particles.dat: Expected 'dim:' at line 1");
         }
 
-        if (file_dim != AMREX_SPACEDIM) {
-            amrex::Print() << "ERROR: Particle file dimension = " << file_dim << "\n"
-                           << "       AMREX_SPACEDIM        = " << AMREX_SPACEDIM << "\n";
-            amrex::Abort("Dimension mismatch between particle file and ExaGOOP build");
+        if (file_dim != AMREX_SPACEDIM)
+        {
+            amrex::Print() << "ERROR: Particle file dimension = " << file_dim
+                           << "\n"
+                           << "       AMREX_SPACEDIM        = "
+                           << AMREX_SPACEDIM << "\n";
+            amrex::Abort(
+                "Dimension mismatch between particle file and ExaGOOP build");
         }
 
         // ------------------------------------------------------------
@@ -768,15 +1080,18 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
         // ------------------------------------------------------------
         std::string label2;
 
+        ifs >> label2 >> np; // label2 = "number_of_material_points:"
 
-        ifs >> label2 >> np;  // label2 = "number_of_material_points:"
-
-        if (label2 != "number_of_material_points:") {
-            amrex::Abort("mpm_particles.dat: Expected 'number_of_material_points:' at line 2");
+        if (label2 != "number_of_material_points:")
+        {
+            amrex::Abort("mpm_particles.dat: Expected "
+                         "'number_of_material_points:' at line 2");
         }
 
-        if (np <= 0) {
-            amrex::Abort("mpm_particles.dat: Invalid number_of_material_points");
+        if (np <= 0)
+        {
+            amrex::Abort(
+                "mpm_particles.dat: Invalid number_of_material_points");
         }
 
         // ------------------------------------------------------------
@@ -787,9 +1102,11 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
         std::getline(ifs, header_line); // read line 3 (column names)
 
         // header_line should start with '#'
-        if (header_line.empty() || header_line[0] != '#') {
-            amrex::Abort("mpm_particles.dat: Expected header line beginning with '#'");
-        }*/
+        if (header_line.empty() || header_line[0] != '#')
+        {
+            amrex::Abort(
+                "mpm_particles.dat: Expected header line beginning with '#'");
+        }
 
         total_mass = 0.0;
         total_vol = 0.0;
@@ -798,8 +1115,8 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
         num_of_rigid_bodies = 0;
 
         const int lev = 0, grid = 0, tile = 0;
-        auto& ptile = DefineAndReturnParticleTile(lev, grid, tile);
-        auto& aos   = ptile.GetArrayOfStructs();
+        auto &ptile = DefineAndReturnParticleTile(lev, grid, tile);
+        auto &aos = ptile.GetArrayOfStructs();
 
         Gpu::HostVector<ParticleType> host_particles;
         host_particles.reserve(CHUNK_SIZE);
@@ -807,33 +1124,41 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
         int rigid_bodies_seen[32] = {-1};
         int rigid_count = 0;
 
+        auto &particle_tile = DefineAndReturnParticleTile(lev, grid, tile);
+
         for (int i = 0; i < np; ++i)
         {
             ParticleType p;
 
             // id/cpu
-            p.id()  = ParticleType::NextID();
+            p.id() = ParticleType::NextID();
             p.cpu() = ParallelDescriptor::MyProc();
 
             // phase
             ifs >> p.idata(intData::phase);
 
-            if (p.idata(intData::phase) == 1) {
+            if (p.idata(intData::phase) == 1)
+            {
                 ifrigidnodespresent = 1;
                 ifs >> p.idata(intData::rigid_body_id);
 
                 bool found = false;
                 for (int j = 0; j < rigid_count; ++j)
-                    found |= (rigid_bodies_seen[j] == p.idata(intData::rigid_body_id));
+                    found |= (rigid_bodies_seen[j] ==
+                              p.idata(intData::rigid_body_id));
 
                 if (!found && rigid_count < 32)
-                    rigid_bodies_seen[rigid_count++] = p.idata(intData::rigid_body_id);
-            } else {
+                    rigid_bodies_seen[rigid_count++] =
+                        p.idata(intData::rigid_body_id);
+            }
+            else
+            {
                 p.idata(intData::rigid_body_id) = -1;
             }
 
             // positions
-            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+            for (int d = 0; d < AMREX_SPACEDIM; ++d)
+            {
                 amrex::Real coord;
                 ifs >> coord;
                 p.pos(d) = coord;
@@ -844,11 +1169,13 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
             ifs >> p.rdata(realData::density);
 
             // velocities
-            for (int d = 0; d < 3; ++d) {
+            for (int d = 0; d < 3; ++d)
+            {
                 p.rdata(realData::xvel + d) = 0.0;
                 p.rdata(realData::xvel_prime + d) = 0.0;
             }
-            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+            for (int d = 0; d < AMREX_SPACEDIM; ++d)
+            {
                 amrex::Real v;
                 ifs >> v;
                 p.rdata(realData::xvel + d) = v;
@@ -856,19 +1183,24 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
 
             // constitutive model
             ifs >> p.idata(intData::constitutive_model);
-            if (p.idata(intData::constitutive_model) == 0) {
+            if (p.idata(intData::constitutive_model) == 0)
+            {
                 ifs >> p.rdata(realData::E);
                 ifs >> p.rdata(realData::nu);
                 p.rdata(realData::Bulk_modulus) = 0.0;
                 p.rdata(realData::Gama_pressure) = 0.0;
                 p.rdata(realData::Dynamic_viscosity) = 0.0;
-            } else if (p.idata(intData::constitutive_model) == 1) {
+            }
+            else if (p.idata(intData::constitutive_model) == 1)
+            {
                 p.rdata(realData::E) = 0.0;
                 p.rdata(realData::nu) = 0.0;
                 ifs >> p.rdata(realData::Bulk_modulus);
                 ifs >> p.rdata(realData::Gama_pressure);
                 ifs >> p.rdata(realData::Dynamic_viscosity);
-            } else {
+            }
+            else
+            {
                 amrex::Abort("Incorrect constitutive model");
             }
 
@@ -887,24 +1219,33 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
             p.rdata(realData::mass) =
                 p.rdata(realData::density) * p.rdata(realData::volume);
 
-            if (p.idata(intData::phase) == 0) {
+            if (p.idata(intData::phase) == 0)
+            {
                 total_mass += p.rdata(realData::mass);
-                total_vol  += p.rdata(realData::volume);
-            } else if (p.idata(intData::phase) == 1 &&
-                       p.idata(intData::rigid_body_id) == 0) {
+                total_vol += p.rdata(realData::volume);
+            }
+            else if (p.idata(intData::phase) == 1 &&
+                     p.idata(intData::rigid_body_id) == 0)
+            {
                 total_rigid_mass += p.rdata(realData::mass);
             }
+
+            p.rdata(realData::jacobian) = 1.0;
+            p.rdata(realData::vol_init) = p.rdata(realData::volume);
+            p.rdata(realData::pressure) = 0.0;
 
             // deformation gradient init
             for (int comp = 0; comp < NCOMP_FULLTENSOR; ++comp)
                 p.rdata(realData::deformation_gradient + comp) = 0.0;
-            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+            for (int d = 0; d < AMREX_SPACEDIM; ++d)
+            {
                 int diag = d * AMREX_SPACEDIM + d;
                 p.rdata(realData::deformation_gradient + diag) = 1.0;
             }
 
             // strain/stress init
-            for (int comp = 0; comp < NCOMP_TENSOR; ++comp) {
+            for (int comp = 0; comp < NCOMP_TENSOR; ++comp)
+            {
                 p.rdata(realData::strainrate + comp) = 0.0;
                 p.rdata(realData::strain + comp) = 0.0;
                 p.rdata(realData::stress + comp) = 0.0;
@@ -919,8 +1260,7 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
                 aos.resize(old_size + host_particles.size());
 
                 // host-to-host copy
-                std::copy(host_particles.begin(),
-                          host_particles.end(),
+                std::copy(host_particles.begin(), host_particles.end(),
                           aos.begin() + old_size);
 
                 host_particles.clear();
@@ -931,13 +1271,13 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
         }
 
         // Final partial chunk
+
         if (!host_particles.empty())
         {
             auto old_size = aos.size();
             aos.resize(old_size + host_particles.size());
 
-            std::copy(host_particles.begin(),
-                      host_particles.end(),
+            std::copy(host_particles.begin(), host_particles.end(),
                       aos.begin() + old_size);
 
             host_particles.clear();
@@ -946,6 +1286,11 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
         }
 
         num_of_rigid_bodies = rigid_count;
+        /*auto old_size = particle_tile.GetArrayOfStructs().size();
+        particle_tile.resize(old_size + host_particles.size());
+        Gpu::copy(Gpu::hostToDevice, host_particles.begin(),
+                  host_particles.end(),
+                  particle_tile.GetArrayOfStructs().begin() + old_size);*/
     }
     else
     {
@@ -953,7 +1298,6 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
         Redistribute();
     }
 }
-
 
 /**
  * @brief Autogenerates particles inside a user‑specified bounding box.
@@ -1110,7 +1454,8 @@ void MPMParticleContainer::InitParticles(amrex::Real mincoords[AMREX_SPACEDIM],
 }
 
 /**
- * @brief Generates a single particle with given position, velocity, and material properties.
+ * @brief Generates a single particle with given position, velocity, and
+ * material properties.
  *
  * Initializes:
  *  - Position

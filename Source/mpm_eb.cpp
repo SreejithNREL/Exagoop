@@ -19,8 +19,8 @@ bool using_levelset_geometry = false;
 /**
  * @brief Builds a wedge hopper embedded boundary and corresponding level-set.
  *
- * Constructs a 3D wedge hopper geometry using EB2 primitives (planes and boxes),
- * then:
+ * Constructs a 3D wedge hopper geometry using EB2 primitives (planes and
+ * boxes), then:
  *  - Builds an EB index space for the hopper geometry.
  *  - Creates a refined geometry for the level-set representation.
  *  - Builds an EBFArrayBoxFactory for EB-aware data structures.
@@ -138,7 +138,8 @@ void make_wedge_hopper_levelset(const Geometry &geom,
  *
  * Reads EB configuration from ParmParse ("eb2") and:
  *  - If geom_type == "all_regular": leaves EB disabled.
- *  - If geom_type == "wedge_hopper" (3D): builds a wedge hopper EB and level-set.
+ *  - If geom_type == "wedge_hopper" (3D): builds a wedge hopper EB and
+ * level-set.
  *  - Otherwise: builds EB from EB2 input and constructs a level-set MultiFab.
  *
  * When a level-set geometry is used, this function also writes a plotfile

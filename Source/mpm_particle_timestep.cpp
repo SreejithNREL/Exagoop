@@ -7,7 +7,8 @@
 // clang-format on
 
 /**
- * @brief Computes the stable time step for the MPM update using a CFL condition.
+ * @brief Computes the stable time step for the MPM update using a CFL
+ * condition.
  *
  * If a fixed time step is requested in the input specs, that value is returned.
  * Otherwise, this routine performs a parallel reduction over all material
@@ -28,7 +29,8 @@
  *        dt = CFL * min_p(dt_p)
  * and is clamped to [dt_min_limit, dt_max_limit].
  *
- * @param[in] specs  Simulation specification structure containing CFL and limits.
+ * @param[in] specs  Simulation specification structure containing CFL and
+ * limits.
  *
  * @return amrex::Real  The stable time step for the next update.
  */
@@ -100,7 +102,8 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
 }
 
 /**
- * @brief Updates particle volume, density, and Jacobian from the deformation gradient.
+ * @brief Updates particle volume, density, and Jacobian from the deformation
+ * gradient.
  *
  * For each material particle (phase = 0), this routine:
  *

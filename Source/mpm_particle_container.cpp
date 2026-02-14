@@ -9,8 +9,8 @@ using namespace amrex;
 /**
  * @brief Applies the constitutive model to all active (phase=0) particles.
  *
- * This routine performs a full stress update using the *total strain* formulation.
- * For each particle:
+ * This routine performs a full stress update using the *total strain*
+ * formulation. For each particle:
  *
  *   1. **Accumulates strain** using the current strain‑rate:
  *        ε ← ε + dt * ε̇
@@ -18,7 +18,8 @@ using namespace amrex;
  *   2. **Applies externally imposed axial strain‑rate** (if any) in all active
  *      spatial dimensions (XX, YY, ZZ depending on AMREX_SPACEDIM).
  *
- *   3. **Builds local copies** of strain and strain‑rate for the constitutive law.
+ *   3. **Builds local copies** of strain and strain‑rate for the constitutive
+ * law.
  *
  *   4. **Evaluates the constitutive model**:
  *        - If constitutive_model = 0 → linear elastic solid
@@ -28,10 +29,13 @@ using namespace amrex;
  *   5. **Writes back the updated stress tensor** to particle storage.
  *
  * @param[in] dt                   Time step used for strain integration.
- * @param[in] applied_strainrate   Optional externally applied axial strain‑rate.
+ * @param[in] applied_strainrate   Optional externally applied axial
+ * strain‑rate.
  *
- * @note Neighbor particles (ghost particles) are also updated because nt = np + ng.
- * @note Only particles with phase = 0 (material points) receive constitutive updates.
+ * @note Neighbor particles (ghost particles) are also updated because nt = np +
+ * ng.
+ * @note Only particles with phase = 0 (material points) receive constitutive
+ * updates.
  *
  * @return None.
  */
@@ -128,7 +132,8 @@ void MPMParticleContainer::apply_constitutive_model(
 }
 
 /**
- * @brief Applies the constitutive model using an incremental (delta) formulation.
+ * @brief Applies the constitutive model using an incremental (delta)
+ * formulation.
  *
  * This routine performs a stress update based on *incremental strain*:
  *
@@ -151,7 +156,8 @@ void MPMParticleContainer::apply_constitutive_model(
  * where only the strain increment is needed.
  *
  * @param[in] dt                   Time step used to compute Δε.
- * @param[in] applied_strainrate   Optional externally applied axial strain‑rate.
+ * @param[in] applied_strainrate   Optional externally applied axial
+ * strain‑rate.
  *
  * @note Only particles with phase = 0 (material points) are updated.
  * @note Weakly compressible fluid delta‑model is not implemented.

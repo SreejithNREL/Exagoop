@@ -11,7 +11,6 @@
 
 using namespace amrex;
 
-
 #ifndef EXAGOOP_GIT_HASH
 #define EXAGOOP_GIT_HASH "unknown"
 #endif
@@ -20,13 +19,13 @@ using namespace amrex;
 #define AMREX_GIT_HASH "unknown"
 #endif
 
-
 /**
  * @brief Prints a detailed startup banner for an ExaGOOP run.
  *
  * This function:
  *  - Executes only on the I/O processor
- *  - Gathers system metadata (hostname, compiler, GPU backend, MPI/OpenMP status)
+ *  - Gathers system metadata (hostname, compiler, GPU backend, MPI/OpenMP
+ * status)
  *  - Prints git hashes for ExaGOOP and AMReX
  *  - Prints build configuration and timestamp
  *
@@ -36,13 +35,14 @@ using namespace amrex;
 
 void PrintWelcomeMessage()
 {
-    if (!amrex::ParallelDescriptor::IOProcessor()) return;
+    if (!amrex::ParallelDescriptor::IOProcessor())
+        return;
 
     char hostname[256];
     gethostname(hostname, sizeof(hostname));
 
     std::time_t now = std::time(nullptr);
-    std::tm* local = std::localtime(&now);
+    std::tm *local = std::localtime(&now);
     char timebuf[64];
     std::strftime(timebuf, sizeof(timebuf), "%Y-%m-%d %H:%M:%S %Z", local);
 
@@ -93,41 +93,42 @@ void PrintWelcomeMessage()
 
     std::string precision =
 #if defined(AMREX_USE_FLOAT)
-	"float";
+        "float";
 #elif defined(AMREX_USE_DOUBLE)
-	"double";
+        "double";
 #else
-	"unknown";
+                    "unknown";
 #endif
-
 
     // -----------------------------
     // Print Banner
     // -----------------------------
-    amrex::Print() << "\n===============================================================\n";
+    amrex::Print() << "\n======================================================"
+                      "=========\n";
     amrex::Print() << "                 Welcome to EXAGOOP MPM Solver\n";
-    amrex::Print() << "           Developed by SAMSers: Hari, Sree and Marc at NREL\n";
-    amrex::Print() << "-----------------------------------------------------------------\n";
+    amrex::Print()
+        << "           Developed by SAMSers: Hari, Sree and Marc at NREL\n";
+    amrex::Print() << "--------------------------------------------------------"
+                      "---------\n";
     amrex::Print() << "ExaGOOP Git commit: " << EXAGOOP_GIT_HASH << "\n";
     amrex::Print() << "AMReX   Git commit: " << AMREX_GIT_HASH << "\n";
-    amrex::Print() << "Build: " << build_type
-                   << " | GPU: " << gpu_backend
-                   << " | MPI: " << mpi_status
-                   << " | OpenMP: " << omp_status
+    amrex::Print() << "Build: " << build_type << " | GPU: " << gpu_backend
+                   << " | MPI: " << mpi_status << " | OpenMP: " << omp_status
                    << " | Precision: " << precision << "\n";
     amrex::Print() << "Compiler: " << compiler << "\n";
     amrex::Print() << "Hostname: " << hostname << "\n";
     amrex::Print() << "Run started: " << timebuf << "\n";
-    amrex::Print() << "===============================================================\n\n";
+    amrex::Print() << "========================================================"
+                      "=======\n\n";
 }
-
 
 /**
  * @brief Prints a formatted progress message with a default '-' fill character.
  *
  * @param msg        Base message to print
  * @param print_len  Desired total printed width before the arrow
- * @param begin      If true, prints the starting message; otherwise prints " Done"
+ * @param begin      If true, prints the starting message; otherwise prints "
+ * Done"
  *
  * This helper is used to create consistent progress-line formatting
  * throughout ExaGOOP’s console output.
@@ -153,7 +154,8 @@ void PrintMessage(std::string msg, int print_len, bool begin)
  *
  * @param msg        Base message to print
  * @param print_len  Desired total printed width before the arrow
- * @param begin      If true, prints the starting message; otherwise prints " Done"
+ * @param begin      If true, prints the starting message; otherwise prints "
+ * Done"
  * @param c          Character used to fill the spacing region
  *
  * This overload allows decorative separators (e.g., '*') for section headers.
@@ -232,4 +234,3 @@ void PrintSimParams(MPMParticleContainer *mpm_pc, MPMspecs *specs)
     msg = "\n     ";
     PrintMessage(msg, print_length, true, '*'); //* line
 }
-

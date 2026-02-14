@@ -199,7 +199,8 @@ interval_idx_quadratic(int shapefunctiontype, amrex::Real zi)
  * evaluates it using precomputed coefficients for the given shape-function
  * type. Supports boundary, near-boundary, and interior spline variants.
  *
- * @param[in] shapefunctiontype  Spline type controlling which coefficient set to use
+ * @param[in] shapefunctiontype  Spline type controlling which coefficient set
+ * to use
  * @param[in] zi                 Local coordinate in spline space
  *
  * @return Value of the cubic B‑spline basis function at zi.
@@ -224,7 +225,8 @@ cubicspline_1d(int shapefunctiontype, amrex::Real zi)
  * Uses precomputed derivative coefficients for each interval and shape-function
  * type. Computes dN/dzi for the appropriate cubic polynomial segment.
  *
- * @param[in] shapefunctiontype  Spline type controlling which derivative coefficients to use
+ * @param[in] shapefunctiontype  Spline type controlling which derivative
+ * coefficients to use
  * @param[in] zi                 Local coordinate in spline space
  *
  * @return Derivative of the cubic B‑spline basis function at zi.
@@ -366,7 +368,8 @@ quadraticspline_1d(int shapefunctiontype, amrex::Real zi)
  * Uses precomputed derivative coefficients for each interval and spline type.
  * Computes dN/dzi for the appropriate quadratic polynomial segment.
  *
- * @param[in] shapefunctiontype  Spline type controlling which derivative coefficients to use
+ * @param[in] shapefunctiontype  Spline type controlling which derivative
+ * coefficients to use
  * @param[in] zi                 Local coordinate in spline space
  *
  * @return Derivative of the quadratic B‑spline basis function at zi.
@@ -541,7 +544,8 @@ hat1d(amrex::Real xi, amrex::Real xp, amrex::Real hatsize)
 }
 
 /**
- * @brief Evaluates an N-dimensional hat function as a tensor product of 1D hats.
+ * @brief Evaluates an N-dimensional hat function as a tensor product of 1D
+ * hats.
  *
  * Supports 1D, 2D, and 3D. Each dimension uses hat1d() with its own width.
  *
@@ -1020,7 +1024,8 @@ cubic_interp(amrex::Real xp[AMREX_SPACEDIM],
 }
 
 /**
- * @brief Evaluates a tensor-product basis function (linear, quadratic, or cubic).
+ * @brief Evaluates a tensor-product basis function (linear, quadratic, or
+ * cubic).
  *
  * For each dimension:
  *   - order 1 → linear basis
@@ -1212,15 +1217,18 @@ basisvalder(const int dir,
 }
 
 /**
- * @brief Extracts a symmetric tensor stored in particle rdata into a full matrix.
+ * @brief Extracts a symmetric tensor stored in particle rdata into a full
+ * matrix.
  *
  * The particle stores only the upper-triangular components of a symmetric
  * tensor in packed order. This routine reconstructs the full tensor by
  * filling both (i,j) and (j,i) entries.
  *
  * @param[in]  p            Particle whose rdata contains the packed tensor
- * @param[in]  start_index  Starting index in p.rdata where the packed tensor begins
- * @param[out] tens         Output full tensor of size (AMREX_SPACEDIM × AMREX_SPACEDIM)
+ * @param[in]  start_index  Starting index in p.rdata where the packed tensor
+ * begins
+ * @param[out] tens         Output full tensor of size (AMREX_SPACEDIM ×
+ * AMREX_SPACEDIM)
  *
  * @return None.
  */
@@ -1276,7 +1284,8 @@ get_vector(MPMParticleContainer::ParticleType &p,
  * The updated deformation gradient is written back into the particle's rdata.
  *
  * @param[in,out] p            Particle whose deformation gradient is updated
- * @param[in]     start_index  Starting index of F in p.rdata (row-major storage)
+ * @param[in]     start_index  Starting index of F in p.rdata (row-major
+ * storage)
  * @param[in]     gradvp       Velocity gradient tensor ∂v/∂x at the particle
  * @param[in]     dt           Time step
  *

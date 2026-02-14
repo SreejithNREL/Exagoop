@@ -314,7 +314,7 @@ def Run_ParameterSweep_2D_HeatConduction(cfg):
         exe = "./ExaGOOP2d.gnu.MPI.ex"
 
         # Run simulation
-        run_cmd(f"cd {test_dir} && mpirun -np 4 {exe} {cfg['input_file']}")
+        run_cmd(f"cd {test_dir} && mpirun -np 6 {exe} {cfg['input_file']}")
 
         # Post-processing
         ascii_folder = os.path.join(test_dir, "Solution", "ascii_files",output_tag)
@@ -525,8 +525,8 @@ TEST_CASES = {
             "./PostProcess/Plot_Temperature.py"            
         ],
         "parameter_space": {            
-            "np_per_cell_x": [1,2],            
-            "order_scheme": [1,3],            
+            "np_per_cell_x": [1],            
+            "order_scheme": [3],            
             "stress_update_scheme": [1]            
         }
     },

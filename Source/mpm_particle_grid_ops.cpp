@@ -44,7 +44,8 @@ int MPMParticleContainer::checkifrigidnodespresent()
 }
 
 /**
- * @brief Computes the total number of rigid-body particles belonging to a given body ID.
+ * @brief Computes the total number of rigid-body particles belonging to a given
+ * body ID.
  *
  * Performs a parallel reduction over all particles and counts those with:
  *   - phase = 1 (rigid)
@@ -337,7 +338,8 @@ compute_bounds(int ivd, int lod, int hid, int scheme, bool is_periodic)
 }
 
 /**
- * @brief Deposits particle mass, momentum, and internal/external forces onto the nodal grid.
+ * @brief Deposits particle mass, momentum, and internal/external forces onto
+ * the nodal grid.
  *
  * For each particle:
  *   1. Determines its cell index and interpolation stencil.
@@ -358,7 +360,8 @@ compute_bounds(int ivd, int lod, int hid, int scheme, bool is_periodic)
  * @param[in]     extforce                External force vector.
  * @param[in]     update_mass             Whether to deposit mass.
  * @param[in]     update_vel              Whether to deposit momentum.
- * @param[in]     update_forces           Whether to deposit forces (1=body, 2=stress).
+ * @param[in]     update_forces           Whether to deposit forces (1=body,
+ * 2=stress).
  * @param[in]     mass_tolerance          Threshold for velocity normalization.
  * @param[in]     order_scheme_directional  Per-dimension interpolation order.
  * @param[in]     periodic                Per-dimension periodicity flags.
@@ -678,7 +681,8 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
 }
 
 /**
- * @brief Deposits thermal quantities (mass*specific_heat, temperature, heat sources) onto the nodal grid.
+ * @brief Deposits thermal quantities (mass*specific_heat, temperature, heat
+ * sources) onto the nodal grid.
  *
  * For each particle:
  *   - Deposits mass * specific_heat
@@ -693,7 +697,8 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
  * @param[in]     resetnodaldata_to_zero  Whether to zero nodal fields first.
  * @param[in]     update_mass_temp        Whether to deposit thermal mass.
  * @param[in]     update_source           Whether to deposit heat sources.
- * @param[in]     mass_tolerance          Threshold for temperature normalization.
+ * @param[in]     mass_tolerance          Threshold for temperature
+ * normalization.
  * @param[in]     order_scheme_directional  Per-dimension interpolation order.
  * @param[in]     periodic                Per-dimension periodicity flags.
  *
@@ -1381,7 +1386,8 @@ void MPMParticleContainer::interpolate_from_grid(
  * @param[in]     update_heatflux         Whether to compute heat‑flux.
  * @param[in]     order_scheme_directional  Per‑dimension interpolation order.
  * @param[in]     periodic                Per‑dimension periodicity flags.
- * @param[in]     alpha_pic_flip          PIC/FLIP blending parameter (unused here).
+ * @param[in]     alpha_pic_flip          PIC/FLIP blending parameter (unused
+ * here).
  *
  * @return None.
  */
@@ -1538,7 +1544,8 @@ void MPMParticleContainer::interpolate_from_grid_temperature(
 /**
  * @brief Computes nodal normals from particle mass‑weighted basis gradients.
  *
- * This function is currently disabled (commented out), but its intended behavior is:
+ * This function is currently disabled (commented out), but its intended
+ * behavior is:
  *
  *   1. Zero nodal normal components.
  *   2. For each particle:

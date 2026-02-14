@@ -159,5 +159,3 @@ Newtonian_Fluid(amrex::Real epsdot[NCOMP_TENSOR],
 }
 
 #endif
-
-

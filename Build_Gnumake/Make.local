@@ -1,0 +1,11 @@
+# Enable HDF5 (serial)
+AMREX_USE_HDF5 = TRUE
+AMREX_USE_HDF5_PARALLEL = FALSE
+
+# Homebrew HDF5 install
+HDF5_HOME = /opt/homebrew
+
+# Add include + link flags for ExaGOOP's own HDF5 usage
+CXXFLAGS += -I$(HDF5_HOME)/include
+LDFLAGS  += -L$(HDF5_HOME)/lib -lhdf5 -lhdf5_hl
+

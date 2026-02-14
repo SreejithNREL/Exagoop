@@ -299,7 +299,8 @@ void store_delta_temperature(MultiFab &nodaldata)
 #endif
 
 /**
- * @brief Advances nodal velocities using nodal forces (explicit time integration).
+ * @brief Advances nodal velocities using nodal forces (explicit time
+ * integration).
  *
  * For each node with mass ≥ mass_tolerance:
  *
@@ -307,7 +308,8 @@ void store_delta_temperature(MultiFab &nodaldata)
  *
  * Otherwise, nodal velocity is zeroed.
  *
- * @param[in,out] nodaldata      Nodal MultiFab containing mass, force, velocity.
+ * @param[in,out] nodaldata      Nodal MultiFab containing mass, force,
+ * velocity.
  * @param[in]     dt             Time step.
  * @param[in]     mass_tolerance Minimum mass required to update velocity.
  *
@@ -407,7 +409,8 @@ void Nodal_Time_Update_Temperature(MultiFab &nodaldata,
  *
  * For such nodes:
  *   1. Computes relative velocity between node and rigid body.
- *   2. Projects out the normal component if the node is approaching the rigid body:
+ *   2. Projects out the normal component if the node is approaching the rigid
+ * body:
  *
  *        v_node ← v_node − (v_rel ⋅ n) n
  *
@@ -500,7 +503,8 @@ void nodal_detect_contact(
 }
 
 /**
- * @brief Precomputes per‑node shape‑function index categories for boundary handling.
+ * @brief Precomputes per‑node shape‑function index categories for boundary
+ * handling.
  *
  * For each node, assigns an integer code (0–4) in each dimension indicating:
  *   - 0: domain lower boundary
@@ -509,7 +513,8 @@ void nodal_detect_contact(
  *   - 3: near upper boundary
  *   - 4: domain upper boundary
  *
- * These indices are used to select one‑sided or symmetric interpolation stencils.
+ * These indices are used to select one‑sided or symmetric interpolation
+ * stencils.
  *
  * @param[out] shapefunctionindex  iMultiFab storing index codes.
  * @param[in]  geom                Geometry describing the domain.

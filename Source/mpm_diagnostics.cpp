@@ -104,7 +104,8 @@ void MPMParticleContainer::Calculate_Total_Energies(Real &TKE, Real &TSE)
 }
 
 /**
- * @brief Computes the mass‑weighted average velocity components of all particles.
+ * @brief Computes the mass‑weighted average velocity components of all
+ * particles.
  *
  * Performs AMReX reductions to compute:
  *   momentum_tot[d] = Σ (m * v_d)
@@ -158,7 +159,8 @@ void MPMParticleContainer::Calculate_MWA_VelocityComponents(
 }
 
 /**
- * @brief Computes the mass‑weighted average velocity magnitude of all particles.
+ * @brief Computes the mass‑weighted average velocity magnitude of all
+ * particles.
  *
  * Performs reductions to compute:
  *   massvelmag = Σ (m * |v|)

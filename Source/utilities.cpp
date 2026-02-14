@@ -42,7 +42,6 @@
  * @return None.
  */
 
-
 void Write_Particle_Grid_Levset_Output(
     MPMspecs &specs,
     MPMParticleContainer &mpm_pc,
@@ -104,7 +103,8 @@ void Write_Particle_Grid_Levset_Output(
 }
 
 /**
- * @brief Performs particle‑to‑grid (P2G) transfer of mass, momentum, and forces.
+ * @brief Performs particle‑to‑grid (P2G) transfer of mass, momentum, and
+ * forces.
  *
  * A thin wrapper around deposit_onto_grid_momentum(), forwarding all relevant
  * simulation parameters from specs.
@@ -118,7 +118,6 @@ void Write_Particle_Grid_Levset_Output(
  *
  * @return None.
  */
-
 
 void P2G_Momentum(MPMspecs &specs,
                   MPMParticleContainer &mpm_pc,
@@ -301,7 +300,8 @@ void G2P_Temperature(MPMspecs &specs,
 #endif
 
 /**
- * @brief Advances particle positions and applies particle‑level boundary conditions.
+ * @brief Advances particle positions and applies particle‑level boundary
+ * conditions.
  *
  * Wraps moveParticles(), forwarding all wall BCs, friction coefficients,
  * wall velocities, and level‑set BC parameters from specs.
@@ -333,14 +333,14 @@ void Update_MP_Positions(MPMspecs &specs,
  * @return None.
  */
 
-
 void Update_MP_Volume(MPMParticleContainer &mpm_pc)
 {
     mpm_pc.updateVolume();
 }
 
 /**
- * @brief Updates particle stress and strain using the chosen constitutive model.
+ * @brief Updates particle stress and strain using the chosen constitutive
+ * model.
  *
  * If current time < applied_strainrate_time:
  *   - Applies externally imposed strain‑rate.
@@ -358,7 +358,6 @@ void Update_MP_Volume(MPMParticleContainer &mpm_pc)
  *
  * @return None.
  */
-
 
 void Calculate_MP_Stress_Strain(MPMspecs &specs,
                                 MPMParticleContainer &mpm_pc,
@@ -390,7 +389,8 @@ void Calculate_MP_Stress_Strain(MPMspecs &specs,
 }
 
 /**
- * @brief Updates particle neighbor lists and redistributes particles periodically.
+ * @brief Updates particle neighbor lists and redistributes particles
+ * periodically.
  *
  * Every specs.num_redist steps:
  *   - RedistributeLocal()
@@ -438,7 +438,6 @@ void Redistribute_Fill_Update(MPMspecs &specs,
  *
  * @return None.
  */
-
 
 void Initialise_Diagnostic_Streams(MPMspecs &specs)
 {
@@ -541,7 +540,6 @@ void Initialise_Diagnostic_Streams(MPMspecs &specs)
  * @return None.
  */
 
-
 void Do_All_Diagnostics(MPMspecs &specs,
                         MPMParticleContainer &mpm_pc,
                         int steps,
@@ -617,7 +615,6 @@ void Do_All_Diagnostics(MPMspecs &specs,
  *
  * @return None.
  */
-
 
 void Close_Diagnostic_Streams(MPMspecs &specs)
 {
