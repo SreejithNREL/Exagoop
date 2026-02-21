@@ -9,6 +9,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
+import h5py
+import numpy as np
+from typing import Tuple, Callable, Optional, Dict
 
 # ------------------------------------------------------------
 # Utilities
@@ -420,14 +423,9 @@ def generate_particles_and_return(
     print(f"WROTE: {out_particles} with {npart} particles (cm_type={cm_type}, id={cm_id})")
     return npart, dx1
 
-import h5py
-import numpy as np
-from typing import Tuple, Callable, Optional, Dict
 
-import numpy as np
-import h5py
 
-def generate_particles_hdf5_vectorized(
+def generate_particles_vectorized(
     dimensions,
     grid,
     ppc,
@@ -436,10 +434,12 @@ def generate_particles_hdf5_vectorized(
     shape_cfg,
     velocity_function,
     temperature_function,
-    out_particles="mpm_particles.h5",
-    cell_block=(32, 32, 8),      # (bx, by, bz) for vectorized blocks
-    chunk_size=1_000_000,        # HDF5 chunk size
+    out_particles=None,          # None = multi-body mode
+    cell_block=(32, 32, 8),
 ):
+    import numpy as np
+    import h5py
+
     # ------------------------------------------------------------
     # Grid setup
     # ------------------------------------------------------------
@@ -477,8 +477,8 @@ def generate_particles_hdf5_vectorized(
         vol_particle = vol_cell / np.prod(ppc)
 
     rad = (3.0 / 4.0 * vol_particle / np.pi) ** (1.0 / 3.0)
-    phase = 0
     dens = 1.0
+    phase = 0
 
     # ------------------------------------------------------------
     # Constitutive model
@@ -487,79 +487,75 @@ def generate_particles_hdf5_vectorized(
     if cm_type == "elastic":
         cm_extra = {"E": constitutive_model["E"], "nu": constitutive_model["nu"]}
         cm_id = 0
-    elif cm_type == "fluid":
-        cm_extra = {
-            "Bulk_modulus": constitutive_model["Bulk_modulus"],
-            "Gama_pressure": constitutive_model["Gama_pressure"],
-            "Dynamic_viscosity": constitutive_model["Dynamic_viscosity"],
-        }
-        cm_id = 1
     else:
         cm_extra = {k: v for k, v in constitutive_model.items() if k != "type"}
         cm_id = -1
 
     # ------------------------------------------------------------
-    # HDF5 setup
+    # Multi-body mode: collect arrays
     # ------------------------------------------------------------
-    def create_dset(h5, name):
-        return h5.create_dataset(
-            name,
-            shape=(0,),
-            maxshape=(None,),
-            chunks=(chunk_size,),
-            dtype="f8",
-        )
-
-    h5 = h5py.File(out_particles, "w")
-    h5["dim"] = dimensions
-    h5["number_of_material_points"] = 0
-
-    dsets = {}
-    dsets["phase"] = create_dset(h5, "phase")
-    dsets["x"] = create_dset(h5, "x")
-    if dimensions >= 2:
-        dsets["y"] = create_dset(h5, "y")
-    if dimensions == 3:
-        dsets["z"] = create_dset(h5, "z")
-
-    dsets["radius"] = create_dset(h5, "radius")
-    dsets["density"] = create_dset(h5, "density")
-
-    dsets["vx"] = create_dset(h5, "vx")
-    if dimensions >= 2:
-        dsets["vy"] = create_dset(h5, "vy")
-    if dimensions == 3:
-        dsets["vz"] = create_dset(h5, "vz")
-
-    dsets["cm_id"] = create_dset(h5, "cm_id")
-    for k in cm_extra.keys():
-        dsets[k] = create_dset(h5, k)
-
-    if enable_temperature:
-        for k in ["T", "spheat", "thermcond", "heatsrc"]:
-            dsets[k] = create_dset(h5, k)
+    if out_particles is None:
+        X = []; Y = []; Z = []
+        VX = []; VY = []; VZ = []
+        R = []; D = []; CMID = []
+        CMEXTRA = {k: [] for k in cm_extra.keys()}
+        if enable_temperature:
+            T = []; SP = []; K = []; Q = []
 
     # ------------------------------------------------------------
-    # Buffer for chunked writes
+    # HDF5 mode
     # ------------------------------------------------------------
-    buf = {k: [] for k in dsets.keys()}
-    total_npart = 0
+    else:
+        h5 = h5py.File(out_particles, "w")
+        h5["dim"] = dimensions
+        h5["number_of_material_points"] = 0
 
-    def flush():
-        nonlocal total_npart
-        n = len(buf["x"])
-        if n == 0:
-            return
-        old = total_npart
-        new = old + n
-        for name, dset in dsets.items():
-            dset.resize((new,))
-            dset[old:new] = np.asarray(buf[name], dtype=np.float64)
-            buf[name].clear()
-        total_npart = new
+        def create_dset(name):
+            return h5.create_dataset(name, shape=(0,), maxshape=(None,), dtype="f8")
+
+        dsets = {}
+        dsets["phase"] = create_dset("phase")
+        dsets["x"] = create_dset("x")
+        if dimensions >= 2:
+            dsets["y"] = create_dset("y")
+        if dimensions == 3:
+            dsets["z"] = create_dset("z")
+
+        dsets["radius"] = create_dset("radius")
+        dsets["density"] = create_dset("density")
+
+        dsets["vx"] = create_dset("vx")
+        if dimensions >= 2:
+            dsets["vy"] = create_dset("vy")
+        if dimensions == 3:
+            dsets["vz"] = create_dset("vz")
+
+        dsets["cm_id"] = create_dset("cm_id")
+        for k in cm_extra.keys():
+            dsets[k] = create_dset(k)
+
+        if enable_temperature:
+            for k in ["T", "spheat", "thermcond", "heatsrc"]:
+                dsets[k] = create_dset(k)
+
+        buf = {k: [] for k in dsets.keys()}
+        total_npart = 0
+
+        def flush():
+            nonlocal total_npart
+            n = len(buf["x"])
+            if n == 0:
+                return
+            old = total_npart
+            new = old + n
+            for name, dset in dsets.items():
+                dset.resize((new,))
+                dset[old:new] = np.asarray(buf[name])
+                buf[name].clear()
+            total_npart = new
 
     # ------------------------------------------------------------
-    # Vectorized block generators
+    # Vectorized block generator (2D only for now)
     # ------------------------------------------------------------
     def block_2d(ix0, ix1, iy0, iy1):
         ix = np.arange(ix0, ix1)
@@ -572,34 +568,13 @@ def generate_particles_hdf5_vectorized(
         PX = PX.ravel()
         PY = PY.ravel()
         if shape_obj is not None:
-            mask = shape_obj.contains(PX, PY)
+            mask = np.array([shape_obj.contains((x, y)) for x, y in zip(PX, PY)])
             PX = PX[mask]
             PY = PY[mask]
         return PX, PY
 
-    def block_3d(ix0, ix1, iy0, iy1, iz0, iz1):
-        ix = np.arange(ix0, ix1)
-        iy = np.arange(iy0, iy1)
-        iz = np.arange(iz0, iz1)
-        cx = xmin + ix * dx
-        cy = ymin + iy * dy
-        cz = zmin + iz * dz
-        CX, CY, CZ = np.meshgrid(cx, cy, cz, indexing="ij")
-        PX = CX[:, :, :, None] + offsets[0][None, None, None, :] * dx
-        PY = CY[:, :, :, None] + offsets[1][None, None, None, :] * dy
-        PZ = CZ[:, :, :, None] + offsets[2][None, None, None, :] * dz
-        PX = PX.ravel()
-        PY = PY.ravel()
-        PZ = PZ.ravel()
-        if shape_obj is not None:
-            mask = shape_obj.contains(PX, PY, PZ)
-            PX = PX[mask]
-            PY = PY[mask]
-            PZ = PZ[mask]
-        return PX, PY, PZ
-
     # ------------------------------------------------------------
-    # Main vectorized loop over blocks
+    # Main loop
     # ------------------------------------------------------------
     bx, by, bz = cell_block
 
@@ -609,58 +584,70 @@ def generate_particles_hdf5_vectorized(
         for iy0 in range(0, ny, by):
             iy1 = min(iy0 + by, ny)
 
-            if dimensions == 2:
-                PX, PY = block_2d(ix0, ix1, iy0, iy1)
-                PZ = np.zeros_like(PX)
+            PX, PY = block_2d(ix0, ix1, iy0, iy1)
+            PZ = np.zeros_like(PX)
 
-            else:
-                for iz0 in range(0, nz, bz):
-                    iz1 = min(iz0 + bz, nz)
-                    PX, PY, PZ = block_3d(ix0, ix1, iy0, iy1, iz0, iz1)
-
-            # --------------------------------------------------------
-            # Velocity + temperature (still scalar, but chunked)
-            # --------------------------------------------------------
             for px, py, pz in zip(PX, PY, PZ):
                 vx, vy, vz = velocity_function(px, py, pz)
 
-                buf["phase"].append(float(phase))
-                buf["x"].append(px)
-                if dimensions >= 2:
+                if out_particles is None:
+                    X.append(px); Y.append(py); Z.append(pz)
+                    VX.append(vx); VY.append(vy); VZ.append(vz)
+                    R.append(rad); D.append(dens); CMID.append(cm_id)
+                    for k, v in cm_extra.items():
+                        CMEXTRA[k].append(v)
+                    if enable_temperature:
+                        T0, SP0, K0, Q0 = temperature_function(px, py, pz)
+                        T.append(T0); SP.append(SP0); K.append(K0); Q.append(Q0)
+
+                else:
+                    buf["phase"].append(phase)
+                    buf["x"].append(px)
                     buf["y"].append(py)
-                if dimensions == 3:
-                    buf["z"].append(pz)
-
-                buf["radius"].append(rad)
-                buf["density"].append(dens)
-
-                buf["vx"].append(vx)
-                if dimensions >= 2:
+                    buf["radius"].append(rad)
+                    buf["density"].append(dens)
+                    buf["vx"].append(vx)
                     buf["vy"].append(vy)
-                if dimensions == 3:
-                    buf["vz"].append(vz)
+                    buf["cm_id"].append(cm_id)
+                    for k, v in cm_extra.items():
+                        buf[k].append(v)
+                    if enable_temperature:
+                        T0, SP0, K0, Q0 = temperature_function(px, py, pz)
+                        buf["T"].append(T0)
+                        buf["spheat"].append(SP0)
+                        buf["thermcond"].append(K0)
+                        buf["heatsrc"].append(Q0)
 
-                buf["cm_id"].append(float(cm_id))
-                for k, v in cm_extra.items():
-                    buf[k].append(float(v))
+    # ------------------------------------------------------------
+    # Finalize
+    # ------------------------------------------------------------
+    if out_particles is None:
+        result = {
+            "x": np.array(X),
+            "y": np.array(Y),
+            "z": np.array(Z),
+            "vx": np.array(VX),
+            "vy": np.array(VY),
+            "vz": np.array(VZ),
+            "radius": np.array(R),
+            "density": np.array(D),
+            "cm_id": np.array(CMID),
+        }
+        for k in cm_extra.keys():
+            result[k] = np.array(CMEXTRA[k])
+        if enable_temperature:
+            result["T"] = np.array(T)
+            result["spheat"] = np.array(SP)
+            result["thermcond"] = np.array(K)
+            result["heatsrc"] = np.array(Q)
+        return result
 
-                if enable_temperature:
-                    T, spheat, thermcond, heatsrc = temperature_function(px, py, pz)
-                    buf["T"].append(T)
-                    buf["spheat"].append(spheat)
-                    buf["thermcond"].append(thermcond)
-                    buf["heatsrc"].append(heatsrc)
+    else:
+        flush()
+        h5["number_of_material_points"][...] = total_npart
+        h5.close()
+        return total_npart
 
-                if len(buf["x"]) >= chunk_size:
-                    flush()
-
-    # Final flush
-    flush()
-    h5["number_of_material_points"][...] = total_npart
-    h5.close()
-
-    print(f"WROTE: {out_particles} with {total_npart} particles (cm_type={cm_type}, id={cm_id})")
-    return total_npart, dx
 
 
 
@@ -900,7 +887,7 @@ def write_inputs_file(
             ("mpm.Gama_pres_autogen", "7"),
             ("mpm.visc_autogen", "0.001"),
             ("mpm.multi_part_per_cell_autogen", "1"),
-            ("mpm.particle_file", "\"mpm_particles.dat\"")
+            ("mpm.particle_file", "\"mpm_particles.h5\"")
         ], comment="Input Material Points")
 
         # Output Parameters
@@ -1011,6 +998,17 @@ def make_auto_tag_from_cfg(cfg: dict) -> str:
     short_hash = hashlib.md5(desc.encode()).hexdigest()[:6]
     return f"{desc}_{short_hash}"
 
+def write_particles_hdf5(filename, particles):
+    import h5py
+    import numpy as np
+
+    with h5py.File(filename, "w") as h5:
+        h5["dim"] = 2
+        h5["number_of_material_points"] = len(particles["x"])
+
+        for key, arr in particles.items():
+            h5.create_dataset(key, data=np.asarray(arr))
+
 
 # ------------------------------------------------------------
 # Main
@@ -1024,117 +1022,121 @@ def main():
     dimensions = cfg["dimensions"]
     grid = cfg["grid"]
     ppc = tuple(cfg["ppc"])
-    shape_cfg = cfg.get("shape", None)
-    input_filename=cfg["input_filename"]
-
-    cm_cfg = cfg["constitutive_model"]
-
-    temp_cfg = cfg["temperature"]
-    enable_temperature = temp_cfg.get("enabled", False)
-
-    vel_cfg = cfg["initial_velocity"]
-
-    if vel_cfg["type"] == "uniform":
-        vx0 = vel_cfg.get("vx", 0.0)
-        vy0 = vel_cfg.get("vy", 0.0)
-        vz0 = vel_cfg.get("vz", 0.0)
-
-        def velocity_function(x, y, z):
-            return vx0, vy0, vz0
-
-    elif vel_cfg["type"] == "function":
-        module_name = vel_cfg["module"]
-        function_name = vel_cfg["function"]
-        spec = importlib.util.spec_from_file_location("user_vel", module_name)
-        user_vel = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(user_vel)
-        velocity_function = getattr(user_vel, function_name)
-    else:
-        die("Unknown initial_velocity type in JSON")
-
-    if not enable_temperature:
-        temperature_function = None
-    else:
-        if temp_cfg["type"] == "uniform":
-            T0 = temp_cfg.get("T", 0.0)
-            sp0 = temp_cfg.get("spheat", 1.0)
-            k0 = temp_cfg.get("thermcond", 1.0)
-            q0 = temp_cfg.get("heatsrc", 0.0)
-
-            def temperature_function(x, y, z):
-                return T0, sp0, k0, q0
-
-        elif temp_cfg["type"] == "function":
-            module_name = temp_cfg["module"]
-            function_name = temp_cfg["function"]
-            spec = importlib.util.spec_from_file_location("user_temp", module_name)
-            user_temp = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(user_temp)
-            temperature_function = getattr(user_temp, function_name)
-        else:
-            die("Unknown temperature type in JSON")
 
     order_scheme = cfg["order_scheme"]
     stress_update_scheme = cfg["stress_update_scheme"]
-
     output_tag = cfg.get("output_tag", "").strip()
-    if output_tag == "":
-        output_tag = make_auto_tag_from_cfg(cfg)
-        print(f"[INFO] Auto-generated output_tag = {output_tag}")
+    input_filename = cfg["input_filename"]
 
-    particle_file = "mpm_particles.dat"
+    bodies = cfg.get("bodies")
+    if bodies is None:
+        bodies = [{
+            "shape": cfg["shape"],
+            "constitutive_model": cfg["constitutive_model"],
+            "initial_velocity": cfg["initial_velocity"],
+            "temperature": cfg["temperature"],
+        }]
 
-    # npart, dx1 = generate_particles_and_return(
-    #     dimensions=dimensions,
-    #     grid=grid,
-    #     ppc=ppc,
-    #     constitutive_model=cm_cfg,
-    #     enable_temperature=enable_temperature,
-    #     shape_cfg=shape_cfg,
-    #     velocity_function=velocity_function,
-    #     temperature_function=temperature_function,
-    #     out_particles=particle_file,
-    # )
-    
-    generate_particles_hdf5_vectorized( 
-        dimensions=dimensions, 
-        grid=grid, 
-        ppc=ppc, 
-        constitutive_model=cm_cfg, 
-        enable_temperature=enable_temperature, 
-        shape_cfg=shape_cfg, 
-        velocity_function=velocity_function, 
-        temperature_function=temperature_function, 
-        out_particles="test_particles.h5", )
+    all_particles = []
 
+    for body in bodies:
+        shape_cfg = body["shape"]
+        cm_cfg = body["constitutive_model"]
+        vel_cfg = body["initial_velocity"]
+        temp_cfg = body["temperature"]
+        enable_temperature = temp_cfg.get("enabled", False)
+
+        # Velocity function
+        if vel_cfg["type"] == "uniform":
+            vx0 = vel_cfg.get("vx", 0.0)
+            vy0 = vel_cfg.get("vy", 0.0)
+            vz0 = vel_cfg.get("vz", 0.0)
+            def velocity_function(x, y, z):
+                return vx0, vy0, vz0
+        else:
+            spec = importlib.util.spec_from_file_location("user_vel", vel_cfg["module"])
+            user_vel = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(user_vel)
+            velocity_function = getattr(user_vel, vel_cfg["function"])
+
+        # Temperature function
+        if not enable_temperature:
+            def temperature_function(x, y, z):
+                return 0, 0, 0, 0
+        elif temp_cfg["type"] == "uniform":
+            T0 = temp_cfg["T"]
+            sp0 = temp_cfg["spheat"]
+            k0 = temp_cfg["thermcond"]
+            q0 = temp_cfg["heatsrc"]
+            def temperature_function(x, y, z):
+                return T0, sp0, k0, q0
+        else:
+            spec = importlib.util.spec_from_file_location("user_temp", temp_cfg["module"])
+            user_temp = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(user_temp)
+            temperature_function = getattr(user_temp, temp_cfg["function"])
+
+        # Generate particles for this body
+        pts = generate_particles_vectorized(
+            dimensions=dimensions,
+            grid=grid,
+            ppc=ppc,
+            constitutive_model=cm_cfg,
+            enable_temperature=enable_temperature,
+            shape_cfg=shape_cfg,
+            velocity_function=velocity_function,
+            temperature_function=temperature_function,
+            out_particles=None,
+        )
+
+        all_particles.append(pts)
+
+    # ---------------------------------------------------------
+    # Merge all bodies
+    # ---------------------------------------------------------
+    merged = {}
+    for key in all_particles[0].keys():
+        merged[key] = np.concatenate([p[key] for p in all_particles], axis=0)
+
+    # ---------------------------------------------------------
+    # Write final particle file
+    # ---------------------------------------------------------
+    write_particles_hdf5("mpm_particles.h5", merged)
+
+    # ---------------------------------------------------------
+    # Write input file
+    # ---------------------------------------------------------
     write_inputs_file(
         grid=grid,
         dimensions=dimensions,
         order_scheme=order_scheme,
         stress_update_scheme=stress_update_scheme,
         output_tag=output_tag,
-        constitutive_model=cm_cfg,
-        enable_temperature=enable_temperature,
-        particle_filename=particle_file,
+        constitutive_model=bodies[0]["constitutive_model"],
+        enable_temperature=bodies[0]["temperature"]["enabled"],
+        particle_filename="mpm_particles.h5",
         out_filename=input_filename,
     )
 
-    pts = load_particle_positions(particle_file, dimensions)
+    print("Multi-body preprocessing complete.")
 
-    if dimensions in [1, 2]:
-        plot_material_points(pts, grid, dimensions,output_tag)
-    else:
-        # default slice for 3D: x = mid-plane
-        slice_axis = "x"
-        slice_value = 0.5 * (grid["xmin"] + grid["xmax"])
-        plot_material_points(
-            pts,
-            grid,
-            dimensions,
-            output_tag,
-            slice_axis=slice_axis,
-            slice_value=slice_value,
-        )
+
+    # pts = load_particle_positions(particle_file, dimensions)
+    #
+    # if dimensions in [1, 2]:
+    #     plot_material_points(pts, grid, dimensions,output_tag)
+    # else:
+    #     # default slice for 3D: x = mid-plane
+    #     slice_axis = "x"
+    #     slice_value = 0.5 * (grid["xmin"] + grid["xmax"])
+    #     plot_material_points(
+    #         pts,
+    #         grid,
+    #         dimensions,
+    #         output_tag,
+    #         slice_axis=slice_axis,
+    #         slice_value=slice_value,
+    #     )
 
     print("""
     ┌─────────────────────────────────────────────────────────────────────────┐

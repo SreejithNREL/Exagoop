@@ -1,6 +1,6 @@
 # Enable HDF5 (serial)
 AMREX_USE_HDF5 = TRUE
-AMREX_USE_HDF5_PARALLEL = FALSE
+AMREX_USE_HDF5_PARALLEL = TRUE
 
 # Homebrew HDF5 install
 HDF5_HOME = /opt/homebrew

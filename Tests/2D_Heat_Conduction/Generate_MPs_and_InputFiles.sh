@@ -1,1 +1,1 @@
-python3 ./PreProcess/generate_particle_and_inputfiles.py --config ./Preprocess/config.json
+python3 ./PreProcess/Generate_MPs_Inputfile_Generic.py --config ./Preprocess/config.json

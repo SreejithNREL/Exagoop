@@ -519,14 +519,14 @@ TEST_CASES = {
     },
     
     "2D_Heat_Conduction": {
-        "generator_script": "./PreProcess/generate_particle_and_inputfiles.py",
+        "generator_script": "./PreProcess/Generate_MPs_Inputfile_Generic.py",
         "input_file": "Inputs_2DHeatConduction.inp",
         "postproc_scripts": [
             "./PostProcess/Plot_Temperature.py"            
         ],
         "parameter_space": {            
             "np_per_cell_x": [1],            
-            "order_scheme": [3],            
+            "order_scheme": [1,2,3],            
             "stress_update_scheme": [1]            
         }
     },

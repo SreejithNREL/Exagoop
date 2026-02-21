@@ -45,6 +45,7 @@ else()
     message(FATAL_ERROR "EXAGOOP_PRECISION must be SINGLE or DOUBLE")
 endif()
 
+
 # HPC options
 option(EXAGOOP_ENABLE_MPI "Enable MPI" OFF)
 option(EXAGOOP_ENABLE_OPENMP "Enable OpenMP" OFF)
@@ -154,11 +155,17 @@ endif()
 message(STATUS "Executable name: ${EXAGOOP_EXE_NAME}")
 
 
+
 # Setting AMReX Configuration
 message(STATUS "AMReX Configure Section")
+option(EXAGOOP_USE_HDF5 "Enable HDF5" OFF) 
+option(EXAGOOP_USE_HDF5_PARALLEL "Enable parallel HDF5" OFF)
+set(AMReX_HDF5 ${EXAGOOP_USE_HDF5}) 
+set(AMReX_HDF5_PARALLEL ${EXAGOOP_USE_HDF5_PARALLEL})
+
 set(AMREX_SUBMOD_LOCATION "${CMAKE_SOURCE_DIR}/Submodules/amrex")
-include(SetAmrexOptions)
 list(APPEND CMAKE_MODULE_PATH "${AMREX_SUBMOD_LOCATION}/Tools/CMake")
+include(SetAmrexOptions)
 add_subdirectory(${AMREX_SUBMOD_LOCATION})
 include(SetAmrexCompileFlags)
 

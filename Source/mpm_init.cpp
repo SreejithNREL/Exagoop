@@ -5,10 +5,9 @@
 #include <aesthetics.H>
 #include <nodal_data_ops.H>
 
-//#pragma once
-//#include <AMReX.H>
-//#include <AMReX_Particles.H>
+#ifdef AMREX_USE_HDF5
 #include <hdf5.h>
+#endif
 
 // clang-format on
 
@@ -469,10 +468,14 @@ void Initialise_Material_Points(MPMspecs &specs,
             specs.particlefilename.compare(specs.particlefilename.size() - 3, 3,
                                            ".h5") == 0)
         {
+#ifdef AMREX_USE_HDF5
             mpm_pc.InitParticlesFromHDF5(
                 specs.particlefilename, specs.total_mass, specs.total_vol,
                 specs.total_rigid_mass, specs.no_of_rigidbodies_present,
                 specs.ifrigidnodespresent);
+#else
+            amrex::Abort("ExaGOOP was built without HDF5 support.");
+#endif
         }
         else
         {
@@ -800,6 +803,8 @@ number_of_material_points");
 }
 */
 
+#ifdef AMREX_USE_HDF5
+
 void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
                                                  amrex::Real &total_mass,
                                                  amrex::Real &total_vol,
@@ -1032,6 +1037,7 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
 
     Redistribute();
 }
+#endif
 
 void MPMParticleContainer::InitParticles(const std::string &filename,
                                          amrex::Real &total_mass,

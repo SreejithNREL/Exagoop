@@ -3,6 +3,12 @@ AMREX_HOME ?= ${MPM_HOME}/Submodules/amrex
 
 EBASE = ExaGOOP
 
+include Make.local 
+# --------------------------------------------------------------- 
+# 2. Let AMReX configure itself (reads AMREX_USE_HDF5 here) 
+# --------------------------------------------------------------- 
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
+
 # ===============================================================
 # AMReX configuration
 # ===============================================================
@@ -32,21 +38,11 @@ USE_CUDA  = FALSE
 USE_HIP   = FALSE
 USE_SYCL  = FALSE
 
-#USE_HDF5 = TRUE
-#USE_HDF5_PARALLEL = FALSE
-#HDF5_HOME = /opt/homebrew
-# Enable HDF5 but disable parallel HDF5
-AMREX_USE_HDF5 = TRUE
-AMREX_USE_HDF5_PARALLEL = FALSE
-
-# Tell AMReX where Homebrew HDF5 lives
-HDF5_HOME = /opt/homebrew
-
-# Add include + link flags for your own code
-CXXFLAGS += -I$(HDF5_HOME)/include
-LDFLAGS  += -L$(HDF5_HOME)/lib -lhdf5 -lhdf5_hl
-
-
+# ===============================================================
+# I/O
+# ===============================================================
+#AMREX_USE_HDF5 ?= FALSE
+#AMREX_USE_HDF5_PARALLEL ?= FALSE
 
 # ===============================================================
 # Debugging
@@ -141,5 +137,5 @@ INCLUDE_LOCATIONS += $(MPM_HOME)/Source
 VPATH_LOCATIONS   += $(MPM_HOME)/Source
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
-include Make.local
+
 

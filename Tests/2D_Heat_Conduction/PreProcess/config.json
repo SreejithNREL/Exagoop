@@ -12,32 +12,26 @@
     1,
     1
   ],
-  "constitutive_model": {
-    "type": "elastic",
-    "E": 0.0,
-    "nu": 0.0
-  },
-  "initial_velocity": {
-    "type": "uniform",
-    "vx": 0.0,
-    "vy": 0.0,
-    "vz": 0.0,
-    "module": "velocity_udf.py",
-    "function": "velocity_field"
-  },
-  "temperature": {
-    "enabled": true,
-    "type": "uniform",
-    "T": 0.0,
-    "spheat": 1.0,
-    "thermcond": 1.0,
-    "heatsrc": 0.0,
-    "module": null,
-    "function": null
-  },
-  "shape": null,
-  "order_scheme": 3,
+  "bodies": [
+    {
+      "shape": null,
+      "constitutive_model": {
+        "type": "elastic",
+        "E": 1000000.0,
+        "nu": 0.3
+      },
+      "initial_velocity": {
+        "type": "uniform",
+        "vx": 0.0,
+        "vy": 0.0
+      },
+      "temperature": {
+        "enabled": false
+      }
+    }
+  ],
+  "order_scheme": 1,
   "stress_update_scheme": 1,
-  "output_tag": "2D_Heat_Conduction_npcx1_ord3_sus1_da93ae",
+  "output_tag": "2D_Heat_Conduction_npcx1_ord1_sus1_2fa938",
   "input_filename": "Inputs_2DHeatConduction.inp"
 }
