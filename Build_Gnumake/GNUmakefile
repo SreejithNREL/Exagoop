@@ -97,12 +97,7 @@ DEFINES += -DUSE_EB=$(USE_EB)
 DEFINES += -DUSE_TEMP=$(USE_TEMP)
 DEFINES += -DTRUE=1 -DFALSE=0
 
-include Make.local 
-# --------------------------------------------------------------- 
-# 2. Let AMReX configure itself (reads AMREX_USE_HDF5 here) 
-# --------------------------------------------------------------- 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
-
 # ===============================================================
 # Include AMReX and ExaGOOP sources
 # ===============================================================
@@ -111,7 +106,7 @@ include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Particle/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package
-include $(AMREX_HOME)/Src/Extern/HDF5/Make.package
+#include $(AMREX_HOME)/Src/Extern/HDF5/Make.package
 
 # ===============================================================
 # Git hashes (ExaGOOP + AMReX)

@@ -480,7 +480,7 @@ def generate_particle_chunks(
         vol_particle = vol_cell / np.prod(ppc)
 
     rad = (3.0 / 4.0 * vol_particle / np.pi) ** (1.0 / 3.0)
-    dens = 1.0
+    dens = 997.0
     phase = 0
 
     # ------------------------------------------------------------
@@ -1555,7 +1555,7 @@ def write_inputs_file(
 
         # Simulation Run Parameters
         write_block(f, [
-            ("mpm.final_time", "0.05"),
+            ("mpm.final_time", "2.5"),
             ("mpm.max_steps", "5000000"),
             ("mpm.screen_output_time", "0.0001"),
             ("mpm.write_output_time", "0.01"),
@@ -1564,7 +1564,7 @@ def write_inputs_file(
 
         # Timestepping
         write_block(f, [
-            ("mpm.fixed_timestep", "1"),
+            ("mpm.fixed_timestep", "0"),
             ("mpm.timestep", "1.0e-5"),
             ("mpm.CFL", f"{CFL}"),
             ("mpm.dt_min_limit", "1e-12"),
@@ -1581,14 +1581,14 @@ def write_inputs_file(
         # Numerical Schemes
         write_block(f, [
             ("mpm.order_scheme", f"{order_scheme}"),
-            ("mpm.alpha_pic_flip", "1.0"),
+            ("mpm.alpha_pic_flip", "0.9"),
             ("mpm.stress_update_scheme", f"{stress_update_scheme}"),
             ("mpm.mass_tolerance", "1e-18")
         ], comment="Numerical Schemes")
 
         # Physics
         write_block(f, [
-            ("mpm.gravity", "0.0 0.0 0.0"),
+            ("mpm.gravity", "0.0 -9.81 0.0"),
             ("mpm.applied_strainrate_time", "0.0"),
             ("mpm.applied_strainrate", "0.0"),
             ("mpm.calculate_strain_based_on_delta", "0"),
@@ -1600,8 +1600,8 @@ def write_inputs_file(
 
         # Boundary Conditions
         write_block(f, [
-            ("mpm.bc_lower", "1 0 0"),
-            ("mpm.bc_upper", "1 0 0"),
+            ("mpm.bc_lower", "2 2 0"),
+            ("mpm.bc_upper", "2 2 0"),
             ("mpm.bc_lower_temp", "1 1 0"),
             ("mpm.bc_upper_temp", "1 1 0"),
             ("mpm.bc_lower_tempval", "1.0 1.0 0"),
@@ -1616,11 +1616,11 @@ def write_inputs_file(
 
         # Diagnostics
         write_block(f, [
-            ("mpm.print_diagnostics", "0"),
-            ("mpm.do_calculate_tke_tse", "0"),
-            ("mpm.do_calculate_mwa_velcomp", "0"),
+            ("mpm.print_diagnostics", "1"),
+            ("mpm.do_calculate_tke_tse", "1"),
+            ("mpm.do_calculate_mwa_velcomp", "1"),
             ("mpm.do_calculate_mwa_velmag", "0"),
-            ("mpm.do_calculate_minmaxpos", "0"),
+            ("mpm.do_calculate_minmaxpos", "1"),
             ("mpm.write_diag_output_time", "0.01")
         ], comment="Diagnostics Parameters")
     print(f"WROTE: {out_filename}")

@@ -60,7 +60,7 @@ void Write_Particle_Grid_Levset_Output(
     mpm_pc.Redistribute();
     mpm_pc.fillNeighbors();
     BL_PROFILE_VAR("OUTPUT_TIME", outputs);
-    Print() << "\nWriting outputs at step, time:" << steps << ", " << time
+    Print() << "\n Writing outputs at step, time:" << steps << ", " << time
             << "\n";
 
     std::string msg;
@@ -461,7 +461,6 @@ void Initialise_Diagnostic_Streams(MPMspecs &specs)
 
     if (specs.do_calculate_mwa_velcomp)
     {
-        amrex::Print() << "\n Diag vel comp";
         std::string fullfilename =
             specs.diagnostic_output_folder + "/" + specs.file_mwa_velcomp;
         if (amrex::ParallelDescriptor::IOProcessor())

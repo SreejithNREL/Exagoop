@@ -1,5 +1,5 @@
 {
-  "dimensions": 2,
+  "dimensions": 1,
   "grid": {
     "xmin": 0.0,
     "xmax": 1.0,
@@ -9,8 +9,8 @@
     "ny": 100
   },
   "ppc": [
-    1,
-    1
+    4,
+    4
   ],
   "bodies": [
     {
@@ -37,8 +37,8 @@
   ],
   "order_scheme": 3,
   "stress_update_scheme": 1,
-  "output_tag": "2D_Heat_Conduction_npcx1_ord3_sus1_da93ae",
-  "input_filename": "Inputs_2DHeatConduction.inp",
+  "output_tag": "1D_Heat_Conduction_npcx4_ord3_sus1_cd48aa",
+  "input_filename": "Inputs_1DHeatConduction.inp",
   "output_format": "hdf5",
   "materialpoint_filename": "mpm_particles.h5",
   "plot_to_check": false

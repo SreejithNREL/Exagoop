@@ -187,34 +187,36 @@ def Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg):
         
 def Run_ParameterSweep_1D_HeatConduction(cfg):
     # Parameter sweep setup
-    dims = cfg["parameter_space"]["dimension"]
+    dim = cfg["parameter_space"]["dimension"][0]
     npcx_vals = cfg["parameter_space"]["np_per_cell_x"]
     order_vals = cfg["parameter_space"]["order_scheme"]
     sus_vals = cfg["parameter_space"]["stress_update_scheme"]    
 
-    for dim, npcx, order, sus in itertools.product(
-        dims, npcx_vals, order_vals, sus_vals
+    for npcx, order, sus in itertools.product(
+        npcx_vals, order_vals, sus_vals
     ):
 
-        print(f"\n--- Case: dim={dim}, npcx={npcx}, ord={order}, sus={sus}")
+        print(f"\n--- Case: npcx={npcx}, ord={order}, sus={sus}")
 
         # Build auto-tag
-        desc = f"{test_name}_dim{dim}_npcx{npcx}_ord{order}_sus{sus}"
+        desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}"
         output_tag = make_auto_tag_from_params(desc)
 
-        # Update generator script
-        gen_script_path = os.path.join(test_dir, "Generate_MPs_and_InputFiles.sh")
-        with open(gen_script_path, "w") as f:
-            f.write(f"python3 {cfg['generator_script']} \\\n")
-            f.write(f"    --dimension {dim} \\\n")
-            f.write(f"    --no_of_cell_in_x 100 \\\n")
-            f.write(f"    --buffery 5 \\\n")
-            f.write(f"    --periodic 0 \\\n")
-            f.write(f"    --np_per_cell_x {npcx} \\\n")
-            f.write(f"    --order_scheme {order} \\\n")            
-            f.write(f"    --stress_update_scheme {sus} \\\n")            
-            f.write(f"    --output_tag {output_tag}\n")
+        # 1. Load template config
+        with open(os.path.join(test_dir, "./Preprocess/config.json")) as f:
+            config = json.load(f)
 
+        # 2. Modify config fields
+        config["ppc"] = [npcx, npcx]
+        config["order_scheme"] = order
+        config["stress_update_scheme"] = sus
+
+        # Auto-tag       
+        config["output_tag"] = output_tag
+        
+        # 3. Write updated config.json
+        with open(os.path.join(test_dir, "./Preprocess/config.json"), "w") as f:
+            json.dump(config, f, indent=2)
 
         # Change gnumake file
         update_makefile_dim(os.path.join(test_dir,"GNUmakefile"),dim)
@@ -363,17 +365,20 @@ def Run_ParameterSweep_Dambreak(cfg):
         output_tag = make_auto_tag_from_params(desc)
 
         # Update generator script
-        gen_script_path = os.path.join(test_dir, "Generate_MPs_and_InputFiles.sh")
-        with open(gen_script_path, "w") as f:
-            f.write(f"python3 {cfg['generator_script']} \\\n")      
-            f.write(f"    --dimension {dim} \\\n")                   
-            f.write(f"    --no_of_cell_in_x 100 \\\n")
-            f.write(f"    --np_per_cell_x {npcx} \\\n")
-            f.write(f"    --alpha_pic_flip 0.98 \\\n")
-            f.write(f"    --order_scheme {order} \\\n")            
-            f.write(f"    --stress_update_scheme {sus} \\\n") 
-            f.write(f"    --CFL 0.1 \\\n")            
-            f.write(f"    --output_tag {output_tag}\n")
+        with open(os.path.join(test_dir, "./Preprocess/config.json")) as f:
+            config = json.load(f)
+
+        # 2. Modify config fields
+        config["ppc"] = [npcx, npcx]
+        config["order_scheme"] = order
+        config["stress_update_scheme"] = sus
+
+        # Auto-tag       
+        config["output_tag"] = output_tag
+
+        # 3. Write updated config.json
+        with open(os.path.join(test_dir, "./Preprocess/config.json"), "w") as f:
+            json.dump(config, f, indent=2)
 
 
         # Change gnumake file
@@ -390,7 +395,7 @@ def Run_ParameterSweep_Dambreak(cfg):
         exe = "./ExaGOOP3d.gnu.MPI.ex" if dim == 3 else "./ExaGOOP2d.gnu.MPI.ex"
 
         # Run simulation
-        run_cmd(f"cd {test_dir} && mpirun -np 4 {exe} {cfg['input_file']}")
+        run_cmd(f"cd {test_dir} && mpirun -np 6 {exe} {cfg['input_file']}")
 
         # Post-processing
         ascii_folder = os.path.join(test_dir, "Solution", "ascii_files",output_tag)
@@ -640,11 +645,11 @@ for test_name, cfg in TEST_CASES.items():
         print('Nothing to do')        
         #Run_ParameterSweep_1D_HeatConduction(cfg)
     elif(test_name=="2D_Heat_Conduction"):
-        #print('Nothing to do')        
-        Run_ParameterSweep_2D_HeatConduction(cfg)
-    elif(test_name=="Dam_Break"):
         print('Nothing to do')        
-        #Run_ParameterSweep_Dambreak(cfg)
+        #Run_ParameterSweep_2D_HeatConduction(cfg)
+    elif(test_name=="Dam_Break"):
+        #print('Nothing to do')        
+        Run_ParameterSweep_Dambreak(cfg)
     elif(test_name=="Elastic_disk_collision"):
         print('Nothing to do')
         #Run_ParameterSweep_EDC(cfg)

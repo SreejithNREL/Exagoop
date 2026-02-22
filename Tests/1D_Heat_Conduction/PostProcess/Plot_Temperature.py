@@ -48,9 +48,10 @@ def main():
     x = data[:, 0]
     temp_idx = 46
     T_num = data[:, temp_idx+args.dim]
+    x_sorted = np.sort(x)
 
     # Compute exact solution
-    T_ex = Texact(x, args.T0, args.T1, args.time)
+    T_ex = Texact(x_sorted, args.T0, args.T1, args.time)
 
     # Compute errors
     abs_err = np.abs(T_num - T_ex)
@@ -66,7 +67,7 @@ def main():
     # Plot numerical vs exact
     plt.figure(figsize=(8, 6))
     plt.scatter(x, T_num, label="ExaGOOP", linewidth=2,color='black')
-    plt.plot(x, T_ex, "--", label="Exact", linewidth=2,color='red')
+    plt.plot(x_sorted, T_ex, "--", label="Exact", linewidth=2,color='red')
     plt.xlabel("x",fontsize=15)
     plt.ylabel("Temperature",fontsize=15)
     plt.title(f"Temperature vs X at t = {time_str}")

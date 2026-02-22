@@ -103,22 +103,22 @@ void PrintWelcomeMessage()
     // -----------------------------
     // Print Banner
     // -----------------------------
-    amrex::Print() << "\n======================================================"
+    amrex::Print() << "\n ======================================================"
                       "=========\n";
-    amrex::Print() << "                 Welcome to EXAGOOP MPM Solver\n";
+    amrex::Print() << "                  Welcome to EXAGOOP MPM Solver\n";
     amrex::Print()
         << "           Developed by SAMSers: Hari, Sree and Marc at NREL\n";
-    amrex::Print() << "--------------------------------------------------------"
+    amrex::Print() << " --------------------------------------------------------"
                       "---------\n";
-    amrex::Print() << "ExaGOOP Git commit: " << EXAGOOP_GIT_HASH << "\n";
-    amrex::Print() << "AMReX   Git commit: " << AMREX_GIT_HASH << "\n";
-    amrex::Print() << "Build: " << build_type << " | GPU: " << gpu_backend
-                   << " | MPI: " << mpi_status << " | OpenMP: " << omp_status
-                   << " | Precision: " << precision << "\n";
-    amrex::Print() << "Compiler: " << compiler << "\n";
-    amrex::Print() << "Hostname: " << hostname << "\n";
-    amrex::Print() << "Run started: " << timebuf << "\n";
-    amrex::Print() << "========================================================"
+    amrex::Print() << " ExaGOOP Git commit: " << EXAGOOP_GIT_HASH << "\n";
+    amrex::Print() << " AMReX   Git commit: " << AMREX_GIT_HASH << "\n";
+    amrex::Print() << " Build: " << build_type << " | GPU: " << gpu_backend
+                   << "  | MPI: " << mpi_status << " | OpenMP: " << omp_status
+                   << "  | Precision: " << precision << "\n";
+    amrex::Print() << " Compiler: " << compiler << "\n";
+    amrex::Print() << " Hostname: " << hostname << "\n";
+    amrex::Print() << " Run started: " << timebuf << "\n";
+    amrex::Print() << " ========================================================"
                       "=======\n\n";
 }
 
