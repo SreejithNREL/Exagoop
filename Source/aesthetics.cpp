@@ -249,3 +249,59 @@ void PrintSimParams(MPMParticleContainer *mpm_pc, MPMspecs *specs)
     msg = "\n     ";
     PrintMessage(msg, print_length, true, '*'); //* line
 }
+
+
+
+std::string FormatParticleCount(long long npart)
+{
+    std::ostringstream oss;
+
+    // Format the number depending on magnitude
+    if (npart < 1'000'000) {
+        oss << npart;  // normal integer
+    } else {
+        oss << std::scientific << std::uppercase
+            << std::setprecision(3) << static_cast<double>(npart);
+    }
+
+    std::string num_str = oss.str();
+
+    // Desired total width of the message (adjust as needed)
+    const int total_width = 15;
+
+    std::ostringstream final_msg;
+    final_msg << "\n    Read "
+              << std::setw(total_width - 10)  // ensures same total length
+              << std::right << num_str
+              << " material points";
+
+    return final_msg.str();
+}
+
+std::string FormatElapsedTime(double seconds)
+{
+    long long total_ms = static_cast<long long>(seconds * 1000.0);
+
+    long long hours = total_ms / (1000LL * 60 * 60);
+    total_ms %= (1000LL * 60 * 60);
+
+    long long minutes = total_ms / (1000LL * 60);
+    total_ms %= (1000LL * 60);
+
+    long long secs = total_ms / 1000LL;
+    long long ms   = total_ms % 1000LL;
+
+    std::ostringstream oss;
+    oss << "\n    Took "
+        << std::setw(2) << std::setfill('0') << hours   << "H "
+        << std::setw(2) << std::setfill('0') << minutes << "M "
+        << std::setw(2) << std::setfill('0') << secs    << "S "
+        << std::setw(3) << std::setfill('0') << ms      << "ms "
+        << "to read";
+
+    return oss.str();
+}
+
+
+
+

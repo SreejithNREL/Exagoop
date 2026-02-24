@@ -16,4 +16,8 @@ void PrintMessage(std::string msg, int print_length, bool begin, char c);
 
 void PrintSimParams(MPMParticleContainer *mpm_pc, MPMspecs *specs);
 
+std::string FormatParticleCount(long long npart);
+
+std::string FormatElapsedTime(double seconds);
+
 #endif

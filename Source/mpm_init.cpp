@@ -296,22 +296,37 @@ void Initialise_Domain(MPMspecs &specs,
 
 void Create_Output_Directories(MPMspecs &specs)
 {
+  std::string msg = "\n Creating output folders";
+  PrintMultiLineMessage(msg, print_length, true);
 
-    amrex::UtilCreateDirectory(specs.particle_output_folder, 0755);
-    amrex::UtilCreateDirectory(specs.grid_output_folder, 0755);
+  msg = "\n    Creating particle folder: "+specs.particle_output_folder;
+  PrintMultiLineMessage(msg, print_length, true);
+  amrex::UtilCreateDirectory(specs.particle_output_folder, 0755);
+
+  msg = "\n    Creating grid folder: "+specs.particle_output_folder;
+  PrintMultiLineMessage(msg, print_length, true);
+  amrex::UtilCreateDirectory(specs.grid_output_folder, 0755);
+
+  msg = "\n    Creating check point folder: "+specs.particle_output_folder;
+    PrintMultiLineMessage(msg, print_length, true);
     amrex::UtilCreateDirectory(specs.checkpoint_output_folder, 0755);
-    amrex::Print() << "\n\tCreating checkpoint folder " << specs.checkpoint_output_folder;
+
+    msg = "\n    Creating ascii folder: "+specs.particle_output_folder;
+        PrintMultiLineMessage(msg, print_length, true);
     amrex::UtilCreateDirectory(specs.ascii_output_folder, 0755);
-    amrex::Print() << "\n\tCreating ascii folder " << specs.ascii_output_folder;
+
     if (specs.levset_output)
     {
+	msg = "\n    Creating levelset folder: "+specs.particle_output_folder;
+	PrintMultiLineMessage(msg, print_length, true);
         amrex::UtilCreateDirectory(specs.levset_output_folder, 0755);
-        amrex::Print() << "\n\tCreating levelset folder " << specs.levset_output_folder;
     }
     if (specs.print_diagnostics)
     {
+	msg = "\n    Creating diagnostic folder: "+specs.particle_output_folder;
+		PrintMultiLineMessage(msg, print_length, true);
         amrex::UtilCreateDirectory(specs.diagnostic_output_folder, 0755);
-        amrex::Print() << "\n\tCreating diagnostic folder " << specs.diagnostic_output_folder;
+
     }
 }
 
@@ -477,17 +492,23 @@ void Initialise_Material_Points(MPMspecs &specs,
                 specs.total_rigid_mass, specs.no_of_rigidbodies_present,
                 specs.ifrigidnodespresent);
             auto io_time = amrex::second()-io_time_start;
-            amrex::Print()<<"\n\t Took "<<io_time<<" sec";
+            std::string msg = FormatElapsedTime(io_time);
+            PrintMessage(msg, print_length, true);
+
 #else
             amrex::Abort("ExaGOOP was built without HDF5 support.");
 #endif
         }
         else
         {
+            auto io_time_start = amrex::second();
             mpm_pc.InitParticles(specs.particlefilename, specs.total_mass,
                                  specs.total_vol, specs.total_rigid_mass,
                                  specs.no_of_rigidbodies_present,
                                  specs.ifrigidnodespresent);
+            auto io_time = amrex::second()-io_time_start;
+            std::string msg = FormatElapsedTime(io_time);
+            PrintMessage(msg, print_length, true);
         }
 
         PrintMultiLineMessage(msg, print_length, false);
@@ -854,7 +875,7 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
     H5Pclose(fapl);
 
     if (file_id < 0) {
-        amrex::Abort("ERROR: Could not open HDF5 particle file");
+        amrex::Abort("\n    ERROR: Could not open HDF5 particle file");
     }
 
     // ------------------------------------------------------------
@@ -873,6 +894,12 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
         H5Dread(dset, H5T_NATIVE_LONG, H5S_ALL, H5S_ALL, H5P_DEFAULT, &npart);
         H5Dclose(dset);
     }
+
+    if (ParallelDescriptor::IOProcessor())
+      {
+	std::string msg = FormatParticleCount(npart);
+	PrintMultiLineMessage(msg, print_length, true);
+      }
 
     // ------------------------------------------------------------
     // Per-rank hyperslab: start, count
@@ -1076,7 +1103,6 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
             std::copy(host_particles.begin(), host_particles.end(),
                       aos.begin() + old_size);
             host_particles.clear();
-            //Redistribute();
         }
     }
 
@@ -1086,7 +1112,6 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
         std::copy(host_particles.begin(), host_particles.end(),
                   aos.begin() + old_size);
         host_particles.clear();
-        //Redistribute();
     }
     Redistribute();
 }
@@ -1459,6 +1484,9 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
             amrex::Abort(
                 "mpm_particles.dat: Expected header line beginning with '#'");
         }
+
+        std::string msg = "\n    ASCII: Using ASCII reader";
+        PrintMultiLineMessage(msg, print_length, true);
 
         total_mass = 0.0;
         total_vol = 0.0;
