@@ -806,8 +806,284 @@ number_of_material_points");
 */
 
 #ifdef AMREX_USE_HDF5
-
 void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
+                                                 amrex::Real &total_mass,
+                                                 amrex::Real &total_vol,
+                                                 amrex::Real &total_rigid_mass,
+                                                 int &num_of_rigid_bodies,
+                                                 int &ifrigidnodespresent)
+{
+    BL_PROFILE("ReadHDF5Particles");
+
+    // ------------------------------------------------------------
+    // MPI info
+    // ------------------------------------------------------------
+    int my_rank = ParallelDescriptor::MyProc();
+    int n_ranks = ParallelDescriptor::NProcs();
+
+    // ------------------------------------------------------------
+    // Open file with Parallel HDF5 (MPI-IO)
+    // ------------------------------------------------------------
+    MPI_Comm comm = ParallelDescriptor::Communicator();
+    MPI_Info info = MPI_INFO_NULL;
+
+    hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
+    H5Pset_fapl_mpio(fapl, comm, info);
+
+    hid_t file_id = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, fapl);
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+        if (H5Pget_driver(fapl) == H5FD_MPIO)
+        {
+            amrex::Print() << "HDF5: Using Parallel HDF5 (MPI-IO backend)\n";
+        }
+        else
+        {
+            amrex::Print() << "HDF5: Using Serial HDF5 (no MPI-IO)\n";
+        }
+    }
+
+    H5Pclose(fapl);
+
+    if (file_id < 0) {
+        amrex::Abort("ERROR: Could not open HDF5 particle file");
+    }
+
+    // ------------------------------------------------------------
+    // Read dimension + number of particles (collectively)
+    // ------------------------------------------------------------
+    int dim;
+    {
+        hid_t dset = H5Dopen(file_id, "dim", H5P_DEFAULT);
+        H5Dread(dset, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &dim);
+        H5Dclose(dset);
+    }
+
+    long npart;
+    {
+        hid_t dset = H5Dopen(file_id, "number_of_material_points", H5P_DEFAULT);
+        H5Dread(dset, H5T_NATIVE_LONG, H5S_ALL, H5S_ALL, H5P_DEFAULT, &npart);
+        H5Dclose(dset);
+    }
+
+    // ------------------------------------------------------------
+    // Per-rank hyperslab: start, count
+    // ------------------------------------------------------------
+    long long total_particles = npart;
+    long long chunk = total_particles / n_ranks;
+    long long start = my_rank * chunk;
+    long long count = (my_rank == n_ranks - 1)
+                        ? (total_particles - start)
+                        : chunk;
+
+    // ------------------------------------------------------------
+    // Helper: read a 1D Real dataset into a Vector<Real> using hyperslab + collective I/O
+    // ------------------------------------------------------------
+    auto read_dset = [&](const char* name, amrex::Vector<amrex::Real>& vec)
+    {
+        vec.resize(count);
+
+        hid_t dset      = H5Dopen(file_id, name, H5P_DEFAULT);
+        if (dset < 0) {
+            amrex::Abort(std::string("Missing dataset: ") + name);
+        }
+
+        hid_t filespace = H5Dget_space(dset);
+
+        hsize_t offset[1] = { static_cast<hsize_t>(start) };
+        hsize_t size[1]   = { static_cast<hsize_t>(count) };
+
+        H5Sselect_hyperslab(filespace, H5S_SELECT_SET,
+                            offset, nullptr, size, nullptr);
+
+        hid_t memspace = H5Screate_simple(1, size, nullptr);
+
+        // collective transfer property list
+        hid_t dxpl = H5Pcreate(H5P_DATASET_XFER);
+        H5Pset_dxpl_mpio(dxpl, H5FD_MPIO_COLLECTIVE);
+
+        herr_t status = H5Dread(dset, H5T_NATIVE_DOUBLE,
+                                memspace, filespace, dxpl, vec.data());
+        if (status < 0) {
+            amrex::Abort(std::string("Failed to read dataset: ") + name);
+        }
+
+        H5Pclose(dxpl);
+        H5Sclose(memspace);
+        H5Sclose(filespace);
+        H5Dclose(dset);
+    };
+
+    // ------------------------------------------------------------
+    // Read mandatory datasets (each rank reads its slice)
+    // ------------------------------------------------------------
+    amrex::Vector<amrex::Real> x, y, z, vx, vy, vz, radius, density, cm_id, phase;
+
+    read_dset("phase", phase);
+    read_dset("x",     x);
+    if (dim >= 2) read_dset("y", y);
+    if (dim == 3) read_dset("z", z);
+
+    read_dset("vx", vx);
+    if (dim >= 2) read_dset("vy", vy);
+    if (dim == 3) read_dset("vz", vz);
+
+    read_dset("radius",  radius);
+    read_dset("density", density);
+    read_dset("cm_id",   cm_id);
+
+    // ------------------------------------------------------------
+    // Discover extra fields and read them similarly
+    // ------------------------------------------------------------
+    std::vector<std::string> extra_fields;
+    {
+        hid_t root = H5Gopen(file_id, "/", H5P_DEFAULT);
+        hsize_t nobj;
+        H5Gget_num_objs(root, &nobj);
+
+        for (hsize_t i = 0; i < nobj; ++i) {
+            char name[256];
+            H5Gget_objname_by_idx(root, i, name, sizeof(name));
+            std::string s(name);
+
+            if (s != "x" && s != "y" && s != "z" &&
+                s != "vx" && s != "vy" && s != "vz" &&
+                s != "radius" && s != "density" && s != "cm_id" &&
+                s != "dim" && s != "number_of_material_points")
+            {
+                extra_fields.push_back(s);
+            }
+        }
+        H5Gclose(root);
+    }
+
+    std::map<std::string, amrex::Vector<amrex::Real>> extra_data;
+    for (auto& f : extra_fields) {
+        read_dset(f.c_str(), extra_data[f]);
+    }
+
+    H5Fclose(file_id);
+
+    // ------------------------------------------------------------
+    // Fill AMReX ParticleContainer from this rank's slice
+    // ------------------------------------------------------------
+    const int lev = 0, grid = 0, tile1 = 0;
+    auto& tile = DefineAndReturnParticleTile(lev, grid, tile1);
+    auto& aos  = tile.GetArrayOfStructs();
+
+    const int CHUNK_SIZE = 100000;
+    Gpu::HostVector<ParticleType> host_particles;
+    host_particles.reserve(CHUNK_SIZE);
+
+    using PType = MPMParticleContainer::ParticleType;
+
+    for (long long local_i = 0; local_i < count; ++local_i)
+    {
+        long long global_i = start + local_i; // if you ever need it
+
+        PType p;
+
+        p.id()  = PType::NextID();
+        p.cpu() = my_rank;
+
+        p.idata(intData::phase) = static_cast<int>(phase[local_i]);
+
+        p.pos(0) = x[local_i];
+        if (dim >= 2) p.pos(1) = y[local_i];
+        if (dim == 3) p.pos(2) = z[local_i];
+
+        p.rdata(realData::radius)  = radius[local_i];
+        p.rdata(realData::density) = density[local_i];
+
+        for (int d = 0; d < 3; ++d) {
+            p.rdata(realData::xvel + d)        = 0.0;
+            p.rdata(realData::xvel_prime + d)  = 0.0;
+        }
+
+        p.rdata(realData::xvel + 0) = vx[local_i];
+        if (dim >= 2) p.rdata(realData::xvel + 1) = vy[local_i];
+        if (dim == 3) p.rdata(realData::xvel + 2) = vz[local_i];
+
+        p.idata(intData::constitutive_model) = static_cast<int>(cm_id[local_i]);
+
+        if (cm_id[local_i] == 0) {
+            p.rdata(realData::E)               = extra_data.at("E")[local_i];
+            p.rdata(realData::nu)              = extra_data.at("nu")[local_i];
+            p.rdata(realData::Bulk_modulus)    = 0.0;
+            p.rdata(realData::Gama_pressure)   = 0.0;
+            p.rdata(realData::Dynamic_viscosity)= 0.0;
+        } else if (cm_id[local_i] == 1) {
+            p.rdata(realData::E)               = 0.0;
+            p.rdata(realData::nu)              = 0.0;
+            p.rdata(realData::Bulk_modulus)    = extra_data.at("Bulk_modulus")[local_i];
+            p.rdata(realData::Gama_pressure)   = extra_data.at("Gamma_pressure")[local_i];
+            p.rdata(realData::Dynamic_viscosity)= extra_data.at("Dynamic_viscosity")[local_i];
+        }
+
+#if USE_TEMP
+        p.rdata(realData::temperature)          = extra_data.at("T")[local_i];
+        p.rdata(realData::specific_heat)        = extra_data.at("spheat")[local_i];
+        p.rdata(realData::thermal_conductivity) = extra_data.at("thermcond")[local_i];
+        p.rdata(realData::heat_source)          = extra_data.at("heatsrc")[local_i];
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+            p.rdata(realData::heat_flux + d) = 0.0;
+#endif
+
+        p.rdata(realData::volume) =
+            fourbythree * PI * std::pow(p.rdata(realData::radius), three);
+        p.rdata(realData::mass) =
+            p.rdata(realData::density) * p.rdata(realData::volume);
+
+        if (p.idata(intData::phase) == 0) {
+            total_mass += p.rdata(realData::mass);
+            total_vol  += p.rdata(realData::volume);
+        } else if (p.idata(intData::phase) == 1 &&
+                   p.idata(intData::rigid_body_id) == 0)
+        {
+            total_rigid_mass += p.rdata(realData::mass);
+        }
+
+        p.rdata(realData::jacobian) = 1.0;
+        p.rdata(realData::vol_init) = p.rdata(realData::volume);
+        p.rdata(realData::pressure) = 0.0;
+
+        for (int comp = 0; comp < NCOMP_FULLTENSOR; ++comp)
+            p.rdata(realData::deformation_gradient + comp) = 0.0;
+        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+            int diag = d * AMREX_SPACEDIM + d;
+            p.rdata(realData::deformation_gradient + diag) = 1.0;
+        }
+
+        for (int comp = 0; comp < NCOMP_TENSOR; ++comp) {
+            p.rdata(realData::strainrate + comp) = 0.0;
+            p.rdata(realData::strain + comp)     = 0.0;
+            p.rdata(realData::stress + comp)     = 0.0;
+        }
+
+        host_particles.push_back(p);
+
+        if ((int)host_particles.size() == CHUNK_SIZE) {
+            auto old_size = aos.size();
+            aos.resize(old_size + host_particles.size());
+            std::copy(host_particles.begin(), host_particles.end(),
+                      aos.begin() + old_size);
+            host_particles.clear();
+            Redistribute();
+        }
+    }
+
+    if (!host_particles.empty()) {
+        auto old_size = aos.size();
+        aos.resize(old_size + host_particles.size());
+        std::copy(host_particles.begin(), host_particles.end(),
+                  aos.begin() + old_size);
+        host_particles.clear();
+        Redistribute();
+    }
+}
+/*
+void MPMParticleContainer::InitParticlesFromHDF5old(const std::string &filename,
                                                  amrex::Real &total_mass,
                                                  amrex::Real &total_vol,
                                                  amrex::Real &total_rigid_mass,
@@ -824,8 +1100,19 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
 	hid_t plist_id = H5Pcreate(H5P_FILE_ACCESS);
 	// No H5Pset_fapl_mpio here: Homebrew HDF5 is serial-only
 
-	hid_t file_id = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, plist_id);
-	H5Pclose(plist_id);
+	//hid_t file_id = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, plist_id);
+	//H5Pclose(plist_id);
+
+	MPI_Comm comm = ParallelDescriptor::Communicator();
+	MPI_Info info = MPI_INFO_NULL;
+
+	hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
+	H5Pset_fapl_mpio(fapl, comm, info);
+
+	hid_t file_id = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, fapl);
+
+	H5Pclose(fapl);
+
 
 	if (file_id < 0)
 	    amrex::Abort("ERROR: Could not open HDF5 particle file");
@@ -847,31 +1134,49 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
 	    H5Dclose(dset);
 	}
 
-	/*if (ParallelDescriptor::IOProcessor())
-	    amrex::Print() << "Reading " << npart << " particles (dim=" << dim
-			   << ")\n";*/
+
 
 	// ------------------------------------------------------------
 	// Helper to read a dataset into a Vector<Real>
 	// ------------------------------------------------------------
-	auto read_dset =
-	    [&](const std::string &name, amrex::Vector<amrex::Real> &vec)
+
+
+	long long chunk = total_particles / n_ranks;
+	long long start = my_rank * chunk;
+	long long count = (my_rank == n_ranks - 1)
+	                    ? (total_particles - start)
+	                    : chunk;
+
+
+	auto read_dset = [&](const char* name, void* buffer, hid_t type)
 	{
-	    hid_t dset = H5Dopen(file_id, name.c_str(), H5P_DEFAULT);
-	    if (dset < 0)
-		amrex::Abort("Missing dataset: " + name);
+	    hid_t dset = H5Dopen(file, name, H5P_DEFAULT);
+	    hid_t filespace = H5Dget_space(dset);
 
-	    hid_t space = H5Dget_space(dset);
-	    hsize_t dims[1];
-	    H5Sget_simple_extent_dims(space, dims, nullptr);
-	    vec.resize(dims[0]);
+	    hsize_t offset[1] = { (hsize_t)start };
+	    hsize_t size[1]   = { (hsize_t)count };
 
-	    H5Dread(dset, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,
-		    vec.data());
+	    H5Sselect_hyperslab(filespace, H5S_SELECT_SET,
+	                        offset, nullptr, size, nullptr);
 
-	    H5Sclose(space);
+	    hid_t memspace = H5Screate_simple(1, size, nullptr);
+
+	    // collective read
+	    hid_t dxpl = H5Pcreate(H5P_DATASET_XFER);
+	    H5Pset_dxpl_mpio(dxpl, H5FD_MPIO_COLLECTIVE);
+
+	    herr_t status = H5Dread(dset, type, memspace, filespace, dxpl, buffer);
+	    if (status < 0) {
+	        amrex::Abort(std::string("Failed to read dataset: ") + name);
+	    }
+
+	    H5Pclose(dxpl);
+	    H5Sclose(memspace);
+	    H5Sclose(filespace);
 	    H5Dclose(dset);
 	};
+
+
 
 	// ------------------------------------------------------------
 	// Read mandatory datasets
@@ -1069,7 +1374,7 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
           // Non-IO ranks still need to participate in Redistribute()
           Redistribute();
       }
-}
+}*/
 #endif
 
 void MPMParticleContainer::InitParticles(const std::string &filename,

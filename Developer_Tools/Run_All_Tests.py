@@ -434,17 +434,20 @@ def Run_ParameterSweep_EDC(cfg):
         output_tag = make_auto_tag_from_params(desc)
 
         # Update generator script
-        gen_script_path = os.path.join(test_dir, "Generate_MPs_and_InputFiles.sh")
-        with open(gen_script_path, "w") as f:
-            f.write(f"python3 {cfg['generator_script']} \\\n")      
-            f.write(f"    --dimension {dim} \\\n")                   
-            f.write(f"    --no_of_cell_in_x 20 \\\n")
-            f.write(f"    --np_per_cell_x {npcx} \\\n")
-            f.write(f"    --alpha_pic_flip 1.00 \\\n")
-            f.write(f"    --order_scheme {order} \\\n")            
-            f.write(f"    --stress_update_scheme {sus} \\\n") 
-            f.write(f"    --CFL 0.1 \\\n")            
-            f.write(f"    --output_tag {output_tag}\n")
+        with open(os.path.join(test_dir, "./Preprocess/config.json")) as f:
+            config = json.load(f)
+
+        # 2. Modify config fields
+        config["ppc"] = [npcx, npcx]
+        config["order_scheme"] = order
+        config["stress_update_scheme"] = sus
+
+        # Auto-tag       
+        config["output_tag"] = output_tag
+
+        # 3. Write updated config.json
+        with open(os.path.join(test_dir, "./Preprocess/config.json"), "w") as f:
+            json.dump(config, f, indent=2)
 
 
         # Change gnumake file
@@ -558,9 +561,9 @@ TEST_CASES = {
             "./PostProcess/plot_energy.py"            
         ],
         "parameter_space": {     
-            "dimension": [2,3],        
-            "np_per_cell_x": [1],            
-            "order_scheme": [1,2,3],            
+            "dimension": [2],        
+            "np_per_cell_x": [4],            
+            "order_scheme": [3],            
             "stress_update_scheme": [1]            
         }
     },
@@ -648,11 +651,11 @@ for test_name, cfg in TEST_CASES.items():
         print('Nothing to do')        
         #Run_ParameterSweep_2D_HeatConduction(cfg)
     elif(test_name=="Dam_Break"):
-        #print('Nothing to do')        
-        Run_ParameterSweep_Dambreak(cfg)
+        print('Nothing to do')        
+        #Run_ParameterSweep_Dambreak(cfg)
     elif(test_name=="Elastic_disk_collision"):
         print('Nothing to do')
-        #Run_ParameterSweep_EDC(cfg)
+        Run_ParameterSweep_EDC(cfg)
         
     
 

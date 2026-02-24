@@ -23,9 +23,9 @@
       },
       "constitutive_model": {
         "type": "fluid",
-        "Bulk_modulus": 2.0e4,
+        "Bulk_modulus": 20000.0,
         "Gamma_pressure": 7.0,
-		"Dynamic_viscosity": 1e-3
+        "Dynamic_viscosity": 0.001
       },
       "initial_velocity": {
         "type": "uniform",
@@ -43,9 +43,9 @@
     }
   ],
   "CFL": 0.1,
-  "order_scheme": 1,
+  "order_scheme": 2,
   "stress_update_scheme": 1,
-  "output_tag": "Dam_Break__dim2_npcx1_ord1_sus1_1b498f",
+  "output_tag": "Dam_Break__dim2_npcx1_ord2_sus1_c2ed07",
   "input_filename": "Inputs_DamBreak.inp",
   "output_format": "hdf5",
   "materialpoint_filename": "mpm_particles.h5",

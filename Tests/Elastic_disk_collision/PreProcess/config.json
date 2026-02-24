@@ -1,0 +1,81 @@
+{
+  "dimensions": 2,
+  "grid": {
+    "xmin": 0.0,
+    "xmax": 1.0,
+    "nx": 40,
+    "ymin": 0.0,
+    "ymax": 1.0,
+    "ny": 40
+  },
+  "ppc": [
+    4,
+    4
+  ],
+  "bodies": [
+    {
+      "shape": {
+        "type": "circle",
+        "center": [
+          0.2,
+          0.2
+        ],
+        "radius": 0.2
+      },
+      "constitutive_model": {
+        "type": "elastic",
+        "E": 1000.0,
+        "nu": 0.3
+      },
+      "initial_velocity": {
+        "type": "uniform",
+        "vx": 0.1,
+        "vy": 0.1
+      },
+      "temperature": {
+        "enabled": false,
+        "type": "uniform",
+        "T": 0.0,
+        "spheat": 1.0,
+        "thermcond": 1.0,
+        "heatsrc": 0.0
+      }
+    },
+    {
+      "shape": {
+        "type": "circle",
+        "center": [
+          0.8,
+          0.8
+        ],
+        "radius": 0.2
+      },
+      "constitutive_model": {
+        "type": "elastic",
+        "E": 1000.0,
+        "nu": 0.3
+      },
+      "initial_velocity": {
+        "type": "uniform",
+        "vx": -0.1,
+        "vy": -0.1
+      },
+      "temperature": {
+        "enabled": false,
+        "type": "uniform",
+        "T": 0.0,
+        "spheat": 1.0,
+        "thermcond": 1.0,
+        "heatsrc": 0.0
+      }
+    }
+  ],
+  "CFL": 0.1,
+  "order_scheme": 3,
+  "stress_update_scheme": 1,
+  "output_tag": "Elastic_disk_collision__dim2_npcx4_ord3_sus1_266292",
+  "input_filename": "Inputs_ElasticDiskCollision.inp",
+  "output_format": "hdf5",
+  "materialpoint_filename": "mpm_particles.h5",
+  "plot_to_check": false
+}

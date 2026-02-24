@@ -64,6 +64,11 @@ void MPMParticleContainer::Calculate_Total_Energies(Real &TKE, Real &TSE)
 
                                return 0.5 * p.rdata(realData::volume) * se;
                            });
+
+#ifdef BL_USE_MPI
+    ParallelDescriptor::ReduceRealSum(TKE);
+    ParallelDescriptor::ReduceRealSum(TSE);
+#endif
     /*
         tmpExtremasFile.open(
                 tempFileName.c_str(),

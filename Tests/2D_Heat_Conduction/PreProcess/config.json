@@ -35,6 +35,7 @@
       }
     }
   ],
+  "CFL": 0.1,
   "order_scheme": 3,
   "stress_update_scheme": 1,
   "output_tag": "2D_Heat_Conduction_npcx1_ord3_sus1_da93ae",
