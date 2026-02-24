@@ -463,7 +463,7 @@ void Initialise_Material_Points(MPMspecs &specs,
     {
         std::string msg =
             "\n Acquiring particle data (Reading from particle file)";
-        PrintMessage(msg, print_length, true);
+        PrintMultiLineMessage(msg, print_length, true);
 
         // dimension‑aware InitParticles (file‑based)
         if (specs.particlefilename.size() >= 3 &&
@@ -490,7 +490,7 @@ void Initialise_Material_Points(MPMspecs &specs,
                                  specs.ifrigidnodespresent);
         }
 
-        PrintMessage(msg, print_length, false);
+        PrintMultiLineMessage(msg, print_length, false);
         mpm_pc.RedistributeLocal();
         mpm_pc.fillNeighbors();
 
@@ -839,11 +839,15 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
     {
         if (H5Pget_driver(fapl) == H5FD_MPIO)
         {
-            amrex::Print() << "\n\tHDF5: Using Parallel HDF5 (MPI-IO backend)\n";
+            std::string msg = "\n    HDF5: Using Parallel HDF5 (MPI-IO backend)";
+            PrintMultiLineMessage(msg, print_length, true);
+            //amrex::Print() << "\n\tHDF5: Using Parallel HDF5 (MPI-IO backend)\n";
         }
         else
         {
-            amrex::Print() << "\n\tHDF5: Using Serial HDF5 (no MPI-IO)\n";
+            std::string msg = "\n    HDF5: Using Serial HDF5 (no MPI-IO)";
+            PrintMultiLineMessage(msg, print_length, true);
+            //amrex::Print() << "\n\tHDF5: Using Serial HDF5 (no MPI-IO)\n";
         }
     }
 

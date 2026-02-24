@@ -149,6 +149,21 @@ void PrintMessage(std::string msg, int print_len, bool begin)
     }
 }
 
+void PrintMultiLineMessage(std::string msg, int print_len, bool begin)
+{
+    if (begin == true)
+    {
+        msg.append(print_len - msg.length(), '.');
+        //msg.append(1, '>');
+        amrex::Print() << msg;
+    }
+    else
+    {
+        msg = " Done";
+        amrex::Print() << msg;
+    }
+}
+
 /**
  * @brief Prints a formatted progress message using a custom fill character.
  *
