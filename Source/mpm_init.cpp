@@ -839,6 +839,8 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
 {
     BL_PROFILE("ReadHDF5Particles");
 
+
+
     // ------------------------------------------------------------
     // MPI info
     // ------------------------------------------------------------
@@ -914,6 +916,45 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
     // ------------------------------------------------------------
     // Helper: read a 1D Real dataset into a Vector<Real> using hyperslab + collective I/O
     // ------------------------------------------------------------
+    hid_t h5_real_type = (sizeof(amrex::Real) == sizeof(float))
+                         ? H5T_NATIVE_FLOAT
+                         : H5T_NATIVE_DOUBLE;
+
+    auto read_dset = [&](const char* name, amrex::Vector<amrex::Real>& vec)
+    {
+        vec.resize(count);
+
+        hid_t dset      = H5Dopen(file_id, name, H5P_DEFAULT);
+        if (dset < 0) {
+            amrex::Abort(std::string("Missing dataset: ") + name);
+        }
+
+        hid_t filespace = H5Dget_space(dset);
+
+        hsize_t offset[1] = { static_cast<hsize_t>(start) };
+        hsize_t size[1]   = { static_cast<hsize_t>(count) };
+
+        H5Sselect_hyperslab(filespace, H5S_SELECT_SET,
+                            offset, nullptr, size, nullptr);
+
+        hid_t memspace = H5Screate_simple(1, size, nullptr);
+
+        hid_t dxpl = H5Pcreate(H5P_DATASET_XFER);
+        H5Pset_dxpl_mpio(dxpl, H5FD_MPIO_COLLECTIVE);
+
+        herr_t status = H5Dread(dset, h5_real_type,
+                                memspace, filespace, dxpl, vec.data());
+        if (status < 0) {
+            amrex::Abort(std::string("Failed to read dataset: ") + name);
+        }
+
+        H5Pclose(dxpl);
+        H5Sclose(memspace);
+        H5Sclose(filespace);
+        H5Dclose(dset);
+    };
+
+/*
     auto read_dset = [&](const char* name, amrex::Vector<amrex::Real>& vec)
     {
         vec.resize(count);
@@ -947,7 +988,7 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
         H5Sclose(memspace);
         H5Sclose(filespace);
         H5Dclose(dset);
-    };
+    };*/
 
     // ------------------------------------------------------------
     // Read mandatory datasets (each rank reads its slice)
@@ -1100,19 +1141,38 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
         if ((int)host_particles.size() == CHUNK_SIZE) {
             auto old_size = aos.size();
             aos.resize(old_size + host_particles.size());
+        #ifdef AMREX_USE_GPU
+            Gpu::copy(Gpu::hostToDevice,
+                      host_particles.begin(), host_particles.end(),
+                      aos.begin() + old_size);
+        #else
             std::copy(host_particles.begin(), host_particles.end(),
                       aos.begin() + old_size);
+        #endif
             host_particles.clear();
         }
+
+
+
+
+
+
+
     }
 
     if (!host_particles.empty()) {
-        auto old_size = aos.size();
-        aos.resize(old_size + host_particles.size());
-        std::copy(host_particles.begin(), host_particles.end(),
-                  aos.begin() + old_size);
-        host_particles.clear();
-    }
+                auto old_size = aos.size();
+                aos.resize(old_size + host_particles.size());
+            #ifdef AMREX_USE_GPU
+                Gpu::copy(Gpu::hostToDevice,
+                          host_particles.begin(), host_particles.end(),
+                          aos.begin() + old_size);
+            #else
+                std::copy(host_particles.begin(), host_particles.end(),
+                          aos.begin() + old_size);
+            #endif
+                host_particles.clear();
+            }
     Redistribute();
 }
 /*
