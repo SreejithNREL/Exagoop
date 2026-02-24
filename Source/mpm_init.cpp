@@ -471,10 +471,13 @@ void Initialise_Material_Points(MPMspecs &specs,
                                            ".h5") == 0)
         {
 #ifdef AMREX_USE_HDF5
+            auto io_time_start = amrex::second();
             mpm_pc.InitParticlesFromHDF5(
                 specs.particlefilename, specs.total_mass, specs.total_vol,
                 specs.total_rigid_mass, specs.no_of_rigidbodies_present,
                 specs.ifrigidnodespresent);
+            auto io_time = amrex::second()-io_time_start;
+            amrex::Print()<<"\n\t Took "<<io_time<<" sec";
 #else
             amrex::Abort("ExaGOOP was built without HDF5 support.");
 #endif
@@ -836,11 +839,11 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
     {
         if (H5Pget_driver(fapl) == H5FD_MPIO)
         {
-            amrex::Print() << "HDF5: Using Parallel HDF5 (MPI-IO backend)\n";
+            amrex::Print() << "\n\tHDF5: Using Parallel HDF5 (MPI-IO backend)\n";
         }
         else
         {
-            amrex::Print() << "HDF5: Using Serial HDF5 (no MPI-IO)\n";
+            amrex::Print() << "\n\tHDF5: Using Serial HDF5 (no MPI-IO)\n";
         }
     }
 
