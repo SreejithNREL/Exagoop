@@ -1072,7 +1072,7 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
             std::copy(host_particles.begin(), host_particles.end(),
                       aos.begin() + old_size);
             host_particles.clear();
-            Redistribute();
+            //Redistribute();
         }
     }
 
@@ -1082,8 +1082,9 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
         std::copy(host_particles.begin(), host_particles.end(),
                   aos.begin() + old_size);
         host_particles.clear();
-        Redistribute();
+        //Redistribute();
     }
+    Redistribute();
 }
 /*
 void MPMParticleContainer::InitParticlesFromHDF5old(const std::string &filename,
