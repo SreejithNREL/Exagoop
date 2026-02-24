@@ -10,6 +10,7 @@ Tests/*/Backtrace.*
 Tests/*/Diagnostics/*
 Tests/*/Solution/*
 Tests/**/*.png
+Tests/**/*.h5
 Tests/**/*.ex
 Tests/**/tmp_build_dir/*
 Tests/**/*.sh
@@ -19,6 +20,9 @@ Tests/**/GNUmakefile
 Build_Cmake/**
 !Build_Cmake/cmake.sh
 !Build_Cmake/clean_build_files.sh
+
+Developer_Tools/sweep_results.json
+.settings/org.eclipse.core.resources.prefs
 
 Build_Gnumake/*.ex
 Build_Gnumake/Backtrace.*
