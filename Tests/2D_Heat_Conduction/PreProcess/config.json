@@ -3,14 +3,14 @@
   "grid": {
     "xmin": 0.0,
     "xmax": 1.0,
-    "nx": 100,
+    "nx": 128,
     "ymin": 0.0,
     "ymax": 1.0,
-    "ny": 100
+    "ny": 128
   },
   "ppc": [
-    1,
-    1
+    8,
+    8
   ],
   "bodies": [
     {
@@ -36,11 +36,11 @@
     }
   ],
   "CFL": 0.1,
-  "order_scheme": 3,
+  "order_scheme": 1,
   "stress_update_scheme": 1,
   "output_tag": "2D_Heat_Conduction_npcx1_ord3_sus1_da93ae",
   "input_filename": "Inputs_2DHeatConduction.inp",
-  "output_format": "hdf5",
-  "materialpoint_filename": "mpm_particles.h5",
+  "output_format": "ascii",
+  "materialpoint_filename": "mpm_particles.dat",
   "plot_to_check": false
 }

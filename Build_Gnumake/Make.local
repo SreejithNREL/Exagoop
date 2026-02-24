@@ -1,15 +1,29 @@
 #-------------------------------------
-# SET LOCAL CONFIGS HERE
+# SET KESTREL CONFIGS HERE
 #-------------------------------------
-
-HDF5_HOME = $(HOME)/hdf5-parallel
-HDF5_INC  = $(HDF5_HOME)/include
-HDF5_LIB  = $(HDF5_HOME)/lib
-
+# Enable HDF5 in AMReX + ExaGOOP
 USE_HDF5 = TRUE
 AMREX_USE_HDF5 = TRUE
 AMREX_USE_HDF5_PARALLEL = TRUE
 
-CXXFLAGS += -I$(HDF5_INC)
-LDFLAGS  += -L$(HDF5_LIB) -lhdf5 -lhdf5_hl
+# No need to set HDF5_HOME, HDF5_INC, HDF5_LIB
+# Cray modules automatically provide correct paths
 
+# Optional: if you want to be explicit
+CXXFLAGS += $(HDF5_CFLAGS)
+LDFLAGS  += $(HDF5_LDFLAGS)
+
+#-------------------------------------
+# SET MYMAKE CONFIGS HERE
+#-------------------------------------
+
+#HDF5_HOME = $(HOME)/hdf5-parallel
+#HDF5_INC  = $(HDF5_HOME)/include
+#HDF5_LIB  = $(HDF5_HOME)/lib
+
+#USE_HDF5 = TRUE
+#AMREX_USE_HDF5 = TRUE
+#AMREX_USE_HDF5_PARALLEL = TRUE
+
+#CXXFLAGS += -I$(HDF5_INC)
+#LDFLAGS  += -L$(HDF5_LIB) -lhdf5 -lhdf5_hl
