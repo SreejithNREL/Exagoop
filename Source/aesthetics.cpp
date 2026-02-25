@@ -103,13 +103,15 @@ void PrintWelcomeMessage()
     // -----------------------------
     // Print Banner
     // -----------------------------
-    amrex::Print() << "\n ======================================================"
-                      "=========\n";
+    amrex::Print()
+        << "\n ======================================================"
+           "=========\n";
     amrex::Print() << "                  Welcome to EXAGOOP MPM Solver\n";
     amrex::Print()
         << "           Developed by SAMSers: Hari, Sree and Marc at NREL\n";
-    amrex::Print() << " --------------------------------------------------------"
-                      "---------\n";
+    amrex::Print()
+        << " --------------------------------------------------------"
+           "---------\n";
     amrex::Print() << " ExaGOOP Git commit: " << EXAGOOP_GIT_HASH << "\n";
     amrex::Print() << " AMReX   Git commit: " << AMREX_GIT_HASH << "\n";
     amrex::Print() << " Build: " << build_type << " | GPU: " << gpu_backend
@@ -118,8 +120,9 @@ void PrintWelcomeMessage()
     amrex::Print() << " Compiler: " << compiler << "\n";
     amrex::Print() << " Hostname: " << hostname << "\n";
     amrex::Print() << " Run started: " << timebuf << "\n";
-    amrex::Print() << " ========================================================"
-                      "=======\n\n";
+    amrex::Print()
+        << " ========================================================"
+           "=======\n\n";
 }
 
 /**
@@ -154,7 +157,7 @@ void PrintMultiLineMessage(std::string msg, int print_len, bool begin)
     if (begin == true)
     {
         msg.append(print_len - msg.length(), '.');
-        //msg.append(1, '>');
+        // msg.append(1, '>');
         amrex::Print() << msg;
     }
     else
@@ -250,18 +253,19 @@ void PrintSimParams(MPMParticleContainer *mpm_pc, MPMspecs *specs)
     PrintMessage(msg, print_length, true, '*'); //* line
 }
 
-
-
 std::string FormatParticleCount(long long npart)
 {
     std::ostringstream oss;
 
     // Format the number depending on magnitude
-    if (npart < 1'000'000) {
-        oss << npart;  // normal integer
-    } else {
-        oss << std::scientific << std::uppercase
-            << std::setprecision(3) << static_cast<double>(npart);
+    if (npart < 1'000'000)
+    {
+        oss << npart; // normal integer
+    }
+    else
+    {
+        oss << std::scientific << std::uppercase << std::setprecision(3)
+            << static_cast<double>(npart);
     }
 
     std::string num_str = oss.str();
@@ -271,9 +275,8 @@ std::string FormatParticleCount(long long npart)
 
     std::ostringstream final_msg;
     final_msg << "\n    Read "
-              << std::setw(total_width - 10)  // ensures same total length
-              << std::right << num_str
-              << " material points";
+              << std::setw(total_width - 10) // ensures same total length
+              << std::right << num_str << " material points";
 
     return final_msg.str();
 }
@@ -289,19 +292,14 @@ std::string FormatElapsedTime(double seconds)
     total_ms %= (1000LL * 60);
 
     long long secs = total_ms / 1000LL;
-    long long ms   = total_ms % 1000LL;
+    long long ms = total_ms % 1000LL;
 
     std::ostringstream oss;
-    oss << "\n    Took "
-        << std::setw(2) << std::setfill('0') << hours   << "H "
-        << std::setw(2) << std::setfill('0') << minutes << "M "
-        << std::setw(2) << std::setfill('0') << secs    << "S "
-        << std::setw(3) << std::setfill('0') << ms      << "ms "
+    oss << "\n    Took " << std::setw(2) << std::setfill('0') << hours << "H "
+        << std::setw(2) << std::setfill('0') << minutes << "M " << std::setw(2)
+        << std::setfill('0') << secs << "S " << std::setw(3)
+        << std::setfill('0') << ms << "ms "
         << "to read";
 
     return oss.str();
 }
-
-
-
-

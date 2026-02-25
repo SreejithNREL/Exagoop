@@ -75,9 +75,13 @@ int main(int argc, char *argv[])
 
         auto run_time_start = amrex::second();
 
-        amrex::Print() << "\n ================================================================================================";
+        amrex::Print() << "\n "
+                          "===================================================="
+                          "============================================";
         amrex::Print() << "\n Timestepping begins";
-        amrex::Print() << "\n ================================================================================================\n";
+        amrex::Print() << "\n "
+                          "===================================================="
+                          "============================================\n";
 
         while ((steps < specs.maxsteps) and (time < specs.final_time))
         {
@@ -185,7 +189,7 @@ int main(int argc, char *argv[])
             }
         }
         auto time_per_run = amrex::second() - run_time_start;
-        amrex::Print()<<"\nSimulation run time = "<<time_per_run;
+        amrex::Print() << "\nSimulation run time = " << time_per_run;
 
         Write_Particle_Grid_Levset_Output(specs, mpm_pc, nodaldata, levset_data,
                                           nodaldata_names, geom, geom_levset,

@@ -44,7 +44,7 @@ class MPMParticleContainer
     void InitParticles(Real mincoords[AMREX_SPACEDIM],
                        Real maxcoords[AMREX_SPACEDIM],
                        Real vel[AMREX_SPACEDIM],
-		       int ppc[AMREX_SPACEDIM],
+                       int ppc[AMREX_SPACEDIM],
                        Real dens,
                        int constmodel,
                        Real E,
@@ -53,10 +53,10 @@ class MPMParticleContainer
                        Real Gama_pres,
                        Real visc,
 #if USE_TEMP
-					 amrex::Real T,
-					 amrex::Real thermcond,
-					 amrex::Real cp,
-					 amrex::Real heatsrc,
+                       amrex::Real T,
+                       amrex::Real thermcond,
+                       amrex::Real cp,
+                       amrex::Real heatsrc,
 #endif
                        int do_multi_part_per_cell,
                        Real &total_mass,
@@ -226,12 +226,12 @@ class MPMParticleContainer
                                    amrex::Real Gama_pres,
                                    amrex::Real visc
 #if USE_TEMP
-					,
-					amrex::Real T,
-					amrex::Real cp,
-					amrex::Real thermcond,
-					amrex::Real heatsrc
+                                   ,
+                                   amrex::Real T,
+                                   amrex::Real cp,
+                                   amrex::Real thermcond,
+                                   amrex::Real heatsrc
 #endif
-				   );
+    );
 };
 #endif
