@@ -1526,7 +1526,7 @@ def write_inputs_file(
 
         # Input Material Points
         write_block(f, [
-            ("mpm.use_autogen", "0"),
+            ("mpm.use_autogen", "1"),
             ("mpm.mincoords_autogen", "0.0 0.0 0.0"),
             ("mpm.maxcoords_autogen", "1.0 1.0 1.0"),
             ("mpm.vel_autogen", "0.0 0.0 0.0"),
@@ -1537,6 +1537,11 @@ def write_inputs_file(
             ("mpm.bulkmod_autogen", "2e6"),
             ("mpm.Gama_pres_autogen", "7"),
             ("mpm.visc_autogen", "0.001"),
+	    ("mpm.T_autogen", "0.0"),
+            ("mpm.cp_autogen", "1.0"),
+            ("mpm.ppc", "1 1 1"),
+            ("mpm.thermcond_autogen", "1.0"),
+            ("mpm.heatsrc_autogen", "0.0"),
             ("mpm.multi_part_per_cell_autogen", "1"),
             ("mpm.particle_file", f"\"{particle_filename}\"")
         ], comment="Input Material Points")

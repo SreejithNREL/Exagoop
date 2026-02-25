@@ -221,6 +221,12 @@ class MPMspecs
     Real autogen_bulkmod = 0.0;
     Real autogen_Gama_pres = 1.4;
     Real autogen_visc = 0.001;
+    Vector<int> autogen_ppc;
+
+    Real autogen_T = 0.001;
+    Real autogen_cp = 0.001;
+    Real autogen_heatsrc = 0.001;
+    Real autogen_thermcond = 0.001;
 
     int levelset_bc = 1; // no slip wall
     Real levelset_wall_mu = 0.1;
@@ -244,6 +250,7 @@ class MPMspecs
 
         autogen_mincoords.resize(AMREX_SPACEDIM);
         autogen_maxcoords.resize(AMREX_SPACEDIM);
+        autogen_ppc.resize(AMREX_SPACEDIM);
         autogen_vel.resize(AMREX_SPACEDIM);
 
         ParmParse pp1("amr");
@@ -328,11 +335,19 @@ class MPMspecs
             pp.getarr("vel_autogen", autogen_vel);
             pp.query("constmodel_autogen", autogen_constmodel);
             pp.query("dens_autogen", autogen_dens);
-            pp.query("E_autogen", autogen_constmodel);
-            pp.query("nu_autogen", autogen_constmodel);
+            pp.query("E_autogen", autogen_E);
+            pp.query("nu_autogen", autogen_nu);
             pp.query("bulkmod_autogen", autogen_bulkmod);
             pp.query("Gama_pres_autogen", autogen_Gama_pres);
             pp.query("visc_autogen", autogen_visc);
+            pp.queryarr("ppc", autogen_ppc);
+#if USE_TEMP
+            pp.query("T_autogen", autogen_T);
+            pp.query("cp_autogen", autogen_cp);
+            pp.query("thermcond_autogen", autogen_thermcond);
+            pp.query("heatsrc_autogen", autogen_heatsrc);
+#endif
+
             pp.query("multi_part_per_cell_autogen",
                      autogen_multi_part_per_cell);
         }

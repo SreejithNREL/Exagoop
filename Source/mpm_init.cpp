@@ -11,6 +11,17 @@
 
 // clang-format on
 
+
+std::vector<amrex::Real> make_ppc_offsets(int n)
+{
+    std::vector<amrex::Real> off(n);
+    for (int i = 0; i < n; ++i) {
+        off[i] = (i + 0.5) / n;   // centers of n equal sub‑intervals
+    }
+    return off;
+}
+
+
 /**
  * @brief Populates the list of nodal data variable names.
  *
@@ -529,12 +540,20 @@ void Initialise_Material_Points(MPMspecs &specs,
         std::string msg = "\n Acquiring particle data (using autogen)";
         PrintMessage(msg, print_length, true);
 
+        amrex::Print()<<"\n T = "<<specs.autogen_T<<" "<<" k = "<<specs.autogen_thermcond<<" cp = "<<specs.autogen_cp<<" heatsrc = "<<specs.autogen_heatsrc;
+
         // dimension‑aware InitParticles (autogen)
         mpm_pc.InitParticles(
             specs.autogen_mincoords.data(), specs.autogen_maxcoords.data(),
-            specs.autogen_vel.data(), specs.autogen_dens,
+            specs.autogen_vel.data(), specs.autogen_ppc.data(),specs.autogen_dens,
             specs.autogen_constmodel, specs.autogen_E, specs.autogen_nu,
             specs.autogen_bulkmod, specs.autogen_Gama_pres, specs.autogen_visc,
+#if USE_TEMP
+	    specs.autogen_T,
+	    specs.autogen_thermcond,
+	    specs.autogen_cp,
+	    specs.autogen_heatsrc,
+#endif
             specs.autogen_multi_part_per_cell, specs.total_mass,
             specs.total_vol);
 
@@ -1773,6 +1792,7 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
 void MPMParticleContainer::InitParticles(amrex::Real mincoords[AMREX_SPACEDIM],
                                          amrex::Real maxcoords[AMREX_SPACEDIM],
                                          amrex::Real vel[AMREX_SPACEDIM],
+					 int ppc[AMREX_SPACEDIM],
                                          amrex::Real dens,
                                          int constmodel,
                                          amrex::Real E,
@@ -1780,6 +1800,12 @@ void MPMParticleContainer::InitParticles(amrex::Real mincoords[AMREX_SPACEDIM],
                                          amrex::Real bulkmod,
                                          amrex::Real Gama_pres,
                                          amrex::Real visc,
+#if USE_TEMP
+					 amrex::Real T,
+					 amrex::Real thermcond,
+					 amrex::Real cp,
+					 amrex::Real heatsrc,
+#endif
                                          int do_multi_part_per_cell,
                                          amrex::Real &total_mass,
                                          amrex::Real &total_vol)
@@ -1797,6 +1823,43 @@ void MPMParticleContainer::InitParticles(amrex::Real mincoords[AMREX_SPACEDIM],
     {
         cell_vol *= dxA[d];
     }
+
+    // Precompute offsets for each dimension
+    int ppc_x = 1;
+    int ppc_y = 1;
+    int ppc_z = 1;
+
+    ppc_x = ppc[0];
+    if (AMREX_SPACEDIM == 1)
+      {
+	ppc_x=ppc[0];
+      }
+    else if(AMREX_SPACEDIM >= 2)
+      {
+	ppc_y=ppc[1];
+      }
+    else if(AMREX_SPACEDIM == 3)
+          {
+    	ppc_z=ppc[2];
+          }
+
+
+    std::vector<amrex::Real> offx = make_ppc_offsets(ppc_x);
+    std::vector<amrex::Real> offy, offz;
+    if (AMREX_SPACEDIM >= 2) offy = make_ppc_offsets(ppc_y);
+    if (AMREX_SPACEDIM == 3) offz = make_ppc_offsets(ppc_z);
+
+    // Total particles per cell
+    int np_cell = ppc_x;
+    if (AMREX_SPACEDIM >= 2) np_cell *= ppc_y;
+    if (AMREX_SPACEDIM == 3) np_cell *= ppc_z;
+
+    amrex::Print()<<"\nTotal number of cells = "<<np_cell;
+
+    // Volume per particle
+    amrex::Real vol_particle = cell_vol / np_cell;
+    long int npart=0;
+
 
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
@@ -1832,7 +1895,15 @@ void MPMParticleContainer::InitParticles(amrex::Real mincoords[AMREX_SPACEDIM],
                 {
                     ParticleType p = generate_particle(
                         coords, vel, dens, cell_vol, constmodel, E, nu, bulkmod,
-                        Gama_pres, visc);
+                        Gama_pres, visc
+#if USE_TEMP
+					,
+					T,
+					cp,
+					thermcond,
+					heatsrc
+#endif
+					);
 
                     total_mass += p.rdata(realData::mass);
                     total_vol += p.rdata(realData::volume);
@@ -1841,44 +1912,56 @@ void MPMParticleContainer::InitParticles(amrex::Real mincoords[AMREX_SPACEDIM],
             }
             else
             {
-                // Lower corner of the cell
-                amrex::Real base[AMREX_SPACEDIM];
-                for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                {
-                    base[d] = ploA[d] + iv[d] * dxA[d];
-                }
+        	amrex::Real base[AMREX_SPACEDIM];
+        	for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        	  {
+        	    base[d] = ploA[d] + iv[d] * dxA[d];
+        	  }
+        	for (int ix = 0; ix < ppc_x; ++ix)
+        	{
+        	    for (int iy = 0; iy < (AMREX_SPACEDIM >= 2 ? ppc_y : 1); ++iy)
+        	    {
+        	        for (int iz = 0; iz < (AMREX_SPACEDIM == 3 ? ppc_z : 1); ++iz)
+        	        {
+        	            amrex::Real coords[AMREX_SPACEDIM];
 
-                // Place 2^dim particles per cell at sub‑cell centers
-                const int corners = 1 << AMREX_SPACEDIM;
-                for (int c = 0; c < corners; ++c)
-                {
-                    amrex::Real coords[AMREX_SPACEDIM];
-                    for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                    {
-                        int bit = (c >> d) & 1; // 0 or 1 per dimension
-                        amrex::Real offset =
-                            (bit + HALF_CONST) * HALF_CONST * dxA[d];
-                        coords[d] = base[d] + offset;
-                    }
+        	            coords[0] = base[0] + offx[ix] * dxA[0];
+        	            if (AMREX_SPACEDIM >= 2)
+        	                coords[1] = base[1] + offy[iy] * dxA[1];
+        	            if (AMREX_SPACEDIM == 3)
+        	                coords[2] = base[2] + offz[iz] * dxA[2];
 
-                    bool inside = true;
-                    for (int d = 0; d < AMREX_SPACEDIM && inside; ++d)
-                    {
-                        inside = (coords[d] >= mincoords[d] &&
-                                  coords[d] <= maxcoords[d]);
-                    }
+        	            // bounding box check
+        	            bool inside = true;
+        	            for (int d = 0; d < AMREX_SPACEDIM && inside; ++d)
+        	                inside = (coords[d] >= mincoords[d] &&
+        	                          coords[d] <= maxcoords[d]);
 
-                    if (inside)
-                    {
-                        ParticleType p = generate_particle(
-                            coords, vel, dens, cell_vol / corners, constmodel,
-                            E, nu, bulkmod, Gama_pres, visc);
+        	            if (!inside) continue;
 
-                        total_mass += p.rdata(realData::mass);
-                        total_vol += p.rdata(realData::volume);
-                        host_particles.push_back(p);
-                    }
-                }
+        	            //amrex::Print()<<"\n Coords = "<<coords[0]<<" "<<coords[1];
+
+        	            ParticleType p = generate_particle(
+        	                coords, vel, dens, vol_particle,
+        	                constmodel, E, nu, bulkmod, Gama_pres, visc
+#if USE_TEMP
+					,
+					T,
+					cp,
+					thermcond,
+					heatsrc
+#endif
+					);
+        	            npart++;
+
+        	            total_mass += p.rdata(realData::mass);
+        	            total_vol  += p.rdata(realData::volume);
+
+        	            host_particles.push_back(p);
+        	        }
+        	    }
+        	}
+
             }
         }
 
@@ -1891,6 +1974,7 @@ void MPMParticleContainer::InitParticles(amrex::Real mincoords[AMREX_SPACEDIM],
 
     // Move particles to correct tiles if necessary
     Redistribute();
+    amrex::Print()<<"\nTotal number of particles = "<<npart;
 }
 
 /**
@@ -1929,7 +2013,15 @@ MPMParticleContainer::generate_particle(amrex::Real coords[AMREX_SPACEDIM],
                                         amrex::Real nu,
                                         amrex::Real bulkmod,
                                         amrex::Real Gama_pres,
-                                        amrex::Real visc)
+                                        amrex::Real visc
+#if USE_TEMP
+					,
+					amrex::Real T,
+					amrex::Real cp,
+					amrex::Real thermcond,
+					amrex::Real heatsrc
+#endif
+					)
 {
     ParticleType p;
     p.id() = ParticleType::NextID();
@@ -1947,6 +2039,12 @@ MPMParticleContainer::generate_particle(amrex::Real coords[AMREX_SPACEDIM],
 
     // Density and velocity components
     p.rdata(realData::density) = dens;
+
+    for (int d = 0; d < 3; ++d)
+      {
+	p.rdata(realData::xvel + d) = 0.0;
+	p.rdata(realData::xvel_prime + d) = 0.0;
+      }
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
     {
         p.rdata(realData::xvel + d) = vel[d];
@@ -1965,7 +2063,25 @@ MPMParticleContainer::generate_particle(amrex::Real coords[AMREX_SPACEDIM],
     p.rdata(realData::mass) = dens * vol;
     p.rdata(realData::jacobian) = 1.0;
     p.rdata(realData::pressure) = 0.0;
-    p.rdata(realData::vol_init) = 0.0;
+    p.rdata(realData::vol_init) = vol;
+
+#if USE_TEMP
+    p.rdata(realData::temperature) = T;
+    p.rdata(realData::specific_heat) = cp;
+    p.rdata(realData::thermal_conductivity) = thermcond;
+    p.rdata(realData::heat_source) = heatsrc;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                  p.rdata(realData::heat_flux + d) = 0.0;
+#endif
+
+    for (int comp = 0; comp < NCOMP_FULLTENSOR; ++comp)
+                    p.rdata(realData::deformation_gradient + comp) = 0.0;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                {
+                    int diag = d * AMREX_SPACEDIM + d;
+                    p.rdata(realData::deformation_gradient + diag) = 1.0;
+                }
+
 
     // Initialize tensor components
     for (int comp = 0; comp < NCOMP_TENSOR; ++comp)
