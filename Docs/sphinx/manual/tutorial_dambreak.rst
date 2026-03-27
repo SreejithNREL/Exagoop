@@ -79,13 +79,25 @@ The next step is to define how the material points, also referred to as particle
    mpm.bulkmod_autogen=2e6                         #Bulk modulous
    mpm.Gama_pres_autogen=7                         #Gamma
    mpm.visc_autogen=0.001                          #Viscosity
-   mpm.multi_part_per_cell_autogen=1               #Number of particles per cell
+   mpm.ppc = 2 2 1                                 #Particles per cell in each direction (x y z)
+   mpm.multi_part_per_cell_autogen=1               #Total particles per cell (uniform, overridden by mpm.ppc)
 
 In this context, ``mincoords_autogen`` and ``maxcoords_autogen`` define the lower and upper corners of a rectangular sub-domain within the background grid where the material points will be embedded. The variable ``vel_autogen`` represents the initial velocity components of the material points, while ``constmodel_autogen`` indicates the constitutive model used for these material points.
 
+ExaGOOP provides two ways to control particle density during autogeneration:
+
+* ``mpm.ppc`` — an array of length ``SPACEDIM`` that sets the number of particles per cell independently in each spatial direction (e.g., ``mpm.ppc = 2 2 1`` places 2 particles per cell in x and y, and 1 in z). This is the preferred form for non-uniform placement.
+* ``mpm.multi_part_per_cell_autogen`` — a scalar that sets the same count in all directions. It is used only when ``mpm.ppc`` is not provided.
+
 Alternatively, if the user opts to use an already existing particle file, the input statement ``mpm.particle_file=<particle filename>`` can be utilized to indicate the material point file.
 
-Next, the numerical parameters for the simulation are defined. ExaGOOP offers three options for specifying the nodal shape function: 1 for linear hat functions, 2 for quadratic B-splines, and 3 for cubic B-splines. These options are set using the command ``mpm.order_scheme=<shape function flag>``. The PIC-FLIP blending factor, defined previously as :math:`\alpha_{P-F}`, can be specified with ``mpm.alpha_pic_flip``, while the stress update scheme (either MUSL or USL) can be indicated using the variable ``mpm.stress_update_scheme=1``  (for MUSL) or ``mpm.stress_update_scheme=1`` for USL. ExaGOOP employs an Explicit Euler time integration scheme. The time step size can either be fixed, indicated by ``mpm.fixed_timestep = 1``, or adaptive, with ``mpm.fixed_timestep = 0`` followed by the specification of the CFL number using ``mpm.CFL=<CFL number>``.
+Next, the numerical parameters for the simulation are defined. ExaGOOP offers three options for specifying the nodal shape function, set using ``mpm.order_scheme``:
+
+* ``1`` — linear hat functions (2-point stencil per direction, default)
+* ``2`` — quadratic B-splines (3-point stencil per direction)
+* ``3`` — cubic B-splines (4-point stencil per direction)
+
+The requested order is applied per spatial direction. For each direction, the code checks whether the grid is large enough to support the chosen spline: at least 5 cells in that direction for non-periodic domains, or at least 3 cells for periodic domains. If a direction does not meet the minimum cell count, that direction automatically falls back to linear (``1``) regardless of the requested order. A warning is printed if all directions fall back to linear. The PIC-FLIP blending factor, defined previously as :math:`\alpha_{P-F}`, can be specified with ``mpm.alpha_pic_flip``, while the stress update scheme (either MUSL or USL) can be indicated using the variable ``mpm.stress_update_scheme=1``  (for MUSL) or ``mpm.stress_update_scheme=1`` for USL. ExaGOOP employs an Explicit Euler time integration scheme. The time step size can either be fixed, indicated by ``mpm.fixed_timestep = 1``, or adaptive, with ``mpm.fixed_timestep = 0`` followed by the specification of the CFL number using ``mpm.CFL=<CFL number>``.
 
 To prevent simulations from running into numerical instabilities, the parameters ``mpm.dt_min_limit`` and ``mpm.dt_max_limit`` can be set to constrain the time step values. The complete numerical setup block in the input file will appear as shown below:
 
@@ -99,11 +111,11 @@ To prevent simulations from running into numerical instabilities, the parameters
    mpm.dt_max_limit=1e-0                           #The maximum value of timestep. if(dt>dt_max_limit) dt=dt_max_limit
    
    #Numerical schemes
-   mpm.order_scheme=1                              #1->Linear shape func. 3->Spline shape function
+   mpm.order_scheme=1                              #1->Linear hat, 2->Quadratic B-spline, 3->Cubic B-spline
    mpm.alpha_pic_flip = 0.99                       #1.0->Pure FLIP scheme. 0.0->Pure PIC scheme. Recommended:(0.95-0.99)
    mpm.stress_update_scheme= 1                     #1->MUSL,0->USL
    mpm.mass_tolerance = 1e-18                      #Stability parameters to avoid zero mass on nodes. Recommended: 1e-18
-   mpm.mpm.calculate_strain_based_on_delta=0       #Stress calculation based on delta epsilon if this flag =1
+   mpm.calculate_strain_based_on_delta=0           #Stress calculation based on delta epsilon if this flag =1
    
    
 Problem-specific parameters are set next. ``mpm.final_time`` and ``mpm.max_steps`` specify the maximum duration of the simulation and the maximum number of iterations, with the simulation stopping when either condition is met first. ``screen_output_time`` indicates how often (in flow-time) the simulation log and diagnostics will be output, where as, ``write_output_time`` sets the frequency for writing output files.
@@ -121,10 +133,16 @@ Finally, the problems specific boundary conditions are specified using the Bound
 .. code-block:: bash
 	
 	#Boundary conditions
-	mpm.bc_lower= 2 2 0                      #0->Periodic 1->Noslipwall 2->Slipwall 3->Outflow
-	mpm.bc_upper= 2 2 0                      #0->Periodic 1->Noslipwall 2->Slipwall 3->Outflow
-	
-``bc_lower`` and ``bc_upper`` refer to the lower and higher three faces of the computational domain. The boundary flags are defined as follows: 0 for periodic, 1 for no-slip wall, 2 for slip wall, and 3 for outflow.
+	mpm.bc_lower= 2 2 0                      #0->Periodic 1->NoSlipWall 2->SlipWall 3->PartialSlipWall 4->Outflow
+	mpm.bc_upper= 2 2 0                      #0->Periodic 1->NoSlipWall 2->SlipWall 3->PartialSlipWall 4->Outflow
+
+``bc_lower`` and ``bc_upper`` set the boundary condition type on each face of the computational domain. Each array entry corresponds to one spatial direction (x, y, z). The five supported flags are:
+
+* ``0`` — Periodic (must match the corresponding ``mpm.is_it_periodic`` entry)
+* ``1`` — No-slip wall (zero velocity enforced at the boundary node)
+* ``2`` — Slip wall (zero normal velocity; tangential velocity unconstrained)
+* ``3`` — Partial-slip wall (Coulomb friction; requires ``mpm.wall_mu_lo`` / ``mpm.wall_mu_hi`` to set the friction coefficient)
+* ``4`` — Outflow (no velocity constraint applied at the boundary)
 	
 Generating initial material point file
 --------------------------------------

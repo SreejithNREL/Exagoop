@@ -575,13 +575,13 @@ TEST_CASES = {
 # ============================================================
 # Main Sweep Driver
 # ============================================================
-ROOT = "/Users/snadakka/Git_Repositories/ExaGOOP_Dev"
+ROOT = "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev"
 ERROR_TOL = 1e-1
 results = []
 
 
 
-sol_dir = "/Users/snadakka/Git_Repositories/ExaGOOP_Dev/Tests/1D_Axial_Bar_Vibration/Solution"
+
 
 
 
@@ -649,13 +649,13 @@ for test_name, cfg in TEST_CASES.items():
         #Run_ParameterSweep_1D_HeatConduction(cfg)
     elif(test_name=="2D_Heat_Conduction"):
         print('Nothing to do')        
-        Run_ParameterSweep_2D_HeatConduction(cfg)
+        #Run_ParameterSweep_2D_HeatConduction(cfg)
     elif(test_name=="Dam_Break"):
         print('Nothing to do')        
-        #Run_ParameterSweep_Dambreak(cfg)
+        Run_ParameterSweep_Dambreak(cfg)
     elif(test_name=="Elastic_disk_collision"):
         print('Nothing to do')
-        #Run_ParameterSweep_EDC(cfg)
+        Run_ParameterSweep_EDC(cfg)
         
     
 
