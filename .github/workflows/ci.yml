@@ -55,7 +55,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           python3 -m pip install --upgrade pip
-          pip3 install numpy
+          pip3 install numpy matplotlib h5py
 
       - name: Preprocess 1D Axial Bar Vibration
         working-directory: ./Tests/1D_Axial_Bar_Vibration
@@ -122,7 +122,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           python3 -m pip install --upgrade pip
-          pip3 install numpy
+          pip3 install numpy matplotlib h5py
 
       - name: Preprocess 1D Heat Conduction
         working-directory: ./Tests/1D_Heat_Conduction
@@ -190,7 +190,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           python3 -m pip install --upgrade pip
-          pip3 install numpy
+          pip3 install numpy matplotlib h5py
 
       - name: Prepare 2D Heat Conduction
         working-directory: ./Tests/2D_Heat_Conduction
