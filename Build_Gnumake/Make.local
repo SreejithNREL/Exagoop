@@ -16,14 +16,20 @@
 #-------------------------------------
 # SET MYMAC CONFIGS HERE
 #-------------------------------------
-
-HDF5_HOME = $(shell brew --prefix hdf5)
-HDF5_INC  = $(HDF5_HOME)/include
-HDF5_LIB  = $(HDF5_HOME)/lib
-
+UNAME := $(shell uname)
+ifeq ($(UNAME), Darwin)
+  HDF5_HOME = $(shell brew --prefix hdf5-mpi)
+  HDF5_INC  = $(HDF5_HOME)/include
+  HDF5_LIB  = $(HDF5_HOME)/lib
+  AMREX_USE_HDF5_PARALLEL = TRUE
+else
+  # Linux CI / HPC — use system HDF5 from apt or modules
+  HDF5_HOME = /usr
+  HDF5_INC  = /usr/include/hdf5/serial
+  HDF5_LIB  = /usr/lib/x86_64-linux-gnu/hdf5/serial
+  AMREX_USE_HDF5_PARALLEL = FALSE
+endif
 USE_HDF5 = TRUE
 AMREX_USE_HDF5 = TRUE
-AMREX_USE_HDF5_PARALLEL = TRUE
-
 CXXFLAGS += -I$(HDF5_INC)
 LDFLAGS  += -L$(HDF5_LIB) -lhdf5 -lhdf5_hl
