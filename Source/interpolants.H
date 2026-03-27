@@ -1542,18 +1542,13 @@ basisvalder(const int dir,
             const int *lo,
             const int *hi)
 {
-    amrex::Real dxinv[AMREX_SPACEDIM];
-    for (int d = 0; d < AMREX_SPACEDIM; ++d)
-    {
-        dxinv[d] = eka / dx[d];
-    }
-
     amrex::Real prod = eka;
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
     {
-        const int i = cell[d];
-        const int l = stencil[d];
+        const int i  = cell[d];
+        const int l  = stencil[d];
         const int od = order_scheme_directional[d];
+        const amrex::Real dxinv = eka / dx[d]; // computed once per dimension
 
         // Default: interior cubic shape
         int shapefunctype = 3;
@@ -1570,7 +1565,7 @@ basisvalder(const int dir,
             // Linear shape
             r = (xp[d] - (plo[d] + i * dx[d])) / dx[d];
             val_d = (l == 0) ? (eka - r) : r;
-            der_d = (l == 0) ? -dxinv[d] : dxinv[d];
+            der_d = (l == 0) ? -dxinv : dxinv;
         }
         else if (od == 2)
         {
@@ -1587,7 +1582,7 @@ basisvalder(const int dir,
 
             r = (xp[d] - (plo[d] + (i + l) * dx[d])) / dx[d];
             val_d = quadraticspline_1d(shapefunctype, r);
-            der_d = quadraticspline_1d_der(shapefunctype, r) * dxinv[d];
+            der_d = quadraticspline_1d_der(shapefunctype, r) * dxinv;
         }
         else
         {
@@ -1603,7 +1598,7 @@ basisvalder(const int dir,
 
             r = (xp[d] - (plo[d] + (i + l) * dx[d])) / dx[d];
             val_d = cubicspline_1d(shapefunctype, r);
-            der_d = cubicspline_1d_der(shapefunctype, r) * dxinv[d];
+            der_d = cubicspline_1d_der(shapefunctype, r) * dxinv;
         }
 
         // Multiply derivative in the requested direction; value otherwise

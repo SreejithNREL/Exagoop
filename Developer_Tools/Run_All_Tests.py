@@ -649,13 +649,13 @@ for test_name, cfg in TEST_CASES.items():
         #Run_ParameterSweep_1D_HeatConduction(cfg)
     elif(test_name=="2D_Heat_Conduction"):
         print('Nothing to do')        
-        #Run_ParameterSweep_2D_HeatConduction(cfg)
+        Run_ParameterSweep_2D_HeatConduction(cfg)
     elif(test_name=="Dam_Break"):
         print('Nothing to do')        
         #Run_ParameterSweep_Dambreak(cfg)
     elif(test_name=="Elastic_disk_collision"):
         print('Nothing to do')
-        Run_ParameterSweep_EDC(cfg)
+        #Run_ParameterSweep_EDC(cfg)
         
     
 

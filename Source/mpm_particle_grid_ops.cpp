@@ -514,8 +514,13 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
                         auto bounds = compute_bounds(iv[d], lo[d], hi[d],
                                                      order_scheme_directional[d],
                                                      periodic[d]);
-                        min_idx[d] = bounds.first;
-                        max_idx[d] = bounds.second;
+                        // Clamp to this tile's nodal box to avoid the
+                        // per-node nodalbox.contains() branch in the stencil
+                        // loop, eliminating warp divergence near tile edges.
+                        min_idx[d] = amrex::max(bounds.first,
+                                                nodalbox.smallEnd(d) - iv[d]);
+                        max_idx[d] = amrex::min(bounds.second,
+                                                nodalbox.bigEnd(d) - iv[d] + 1);
                     }
 
                     // Nested loops over stencil (specialized per dimension)
@@ -539,7 +544,6 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
                                                  iv[2] + n));
 
                                 IntVect stencil(AMREX_D_DECL(l, m, n));
-                                if (nodalbox.contains(ivlocal))
                                 {
 
                                     // When forces are needed, compute N and all
@@ -844,8 +848,12 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
                         auto bounds = compute_bounds(iv[d], lo[d], hi[d],
                                                      order_scheme_directional[d],
                                                      periodic[d]);
-                        min_idx[d] = bounds.first;
-                        max_idx[d] = bounds.second;
+                        // Clamp to this tile's nodal box to eliminate the
+                        // per-node nodalbox.contains() branch.
+                        min_idx[d] = amrex::max(bounds.first,
+                                                nodalbox.smallEnd(d) - iv[d]);
+                        max_idx[d] = amrex::min(bounds.second,
+                                                nodalbox.bigEnd(d) - iv[d] + 1);
                     }
 
                     // Nested loops over stencil (specialized per dimension)
@@ -868,7 +876,6 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
                                     AMREX_D_DECL(iv[0] + l, iv[1] + m,
                                                  iv[2] + n));
                                 IntVect stencil(AMREX_D_DECL(l, m, n));
-                                if (nodalbox.contains(ivlocal))
                                 {
                                     basisvalue =
                                         basisval(stencil, iv, xp, plo, dx,
@@ -1355,27 +1362,23 @@ void MPMParticleContainer::interpolate_from_grid(
 #endif
                             for (int l = min_index[0]; l < max_index[0]; ++l)
                             {
+                                IntVect stencil(AMREX_D_DECL(l, m, n));
                                 amrex::Real basisval_grad[AMREX_SPACEDIM];
-                                for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                                {
-                                    IntVect stencil(AMREX_D_DECL(l, m, n));
-                                    IntVect celliv(
-                                        AMREX_D_DECL(iv[0], iv[1], iv[2]));
-                                    basisval_grad[d] = basisvalder(
-                                        d, stencil, celliv, xp, plo, dx,
-                                        order_scheme_directional, periodic, lo,
-                                        hi);
-                                }
+                                basisval_and_grad(stencil, iv, xp, plo, dx,
+                                                  order_scheme_directional,
+                                                  periodic, lo, hi,
+                                                  basisval_grad);
+
+                                IntVect nodeindex(AMREX_D_DECL(
+                                    iv[0] + l, iv[1] + m, iv[2] + n));
                                 for (int d1 = 0; d1 < AMREX_SPACEDIM; ++d1)
                                 {
+                                    amrex::Real v_d1 = nodal_data_arr(
+                                        nodeindex, VELX_INDEX + d1);
                                     for (int d2 = 0; d2 < AMREX_SPACEDIM; ++d2)
                                     {
-                                        IntVect nodeindex(AMREX_D_DECL(
-                                            iv[0] + l, iv[1] + m, iv[2] + n));
                                         gradvp[d1][d2] +=
-                                            nodal_data_arr(nodeindex,
-                                                           VELX_INDEX + d1) *
-                                            basisval_grad[d2];
+                                            v_d1 * basisval_grad[d2];
                                     }
                                 }
                             }
@@ -1545,27 +1548,20 @@ void MPMParticleContainer::interpolate_from_grid_temperature(
 #endif
                             for (int l = min_index[0]; l < max_index[0]; ++l)
                             {
+                                IntVect stencil(AMREX_D_DECL(l, m, n));
                                 amrex::Real basisval_grad[AMREX_SPACEDIM];
-                                for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                                {
-                                    IntVect stencil(AMREX_D_DECL(l, m, n));
-                                    IntVect celliv(
-                                        AMREX_D_DECL(iv[0], iv[1], iv[2]));
-                                    basisval_grad[d] = basisvalder(
-                                        d, stencil, celliv, xp, plo, dx,
-                                        order_scheme_directional, periodic, lo,
-                                        hi);
-                                }
+                                basisval_and_grad(stencil, iv, xp, plo, dx,
+                                                  order_scheme_directional,
+                                                  periodic, lo, hi,
+                                                  basisval_grad);
+
+                                IntVect nodeindex(AMREX_D_DECL(
+                                    iv[0] + l, iv[1] + m, iv[2] + n));
+                                amrex::Real T_node =
+                                    nodal_data_arr(nodeindex, TEMPERATURE);
                                 for (int d1 = 0; d1 < AMREX_SPACEDIM; ++d1)
                                 {
-                                    IntVect nodeindex(AMREX_D_DECL(
-                                        iv[0] + l, iv[1] + m, iv[2] + n));
-                                    gradT[d1] +=
-                                        nodal_data_arr(nodeindex, TEMPERATURE) *
-                                        basisval_grad[d1];
-                                    // amrex::Print()<<"\n Temp = "<<d1<<"
-                                    // "<<nodal_data_arr(nodeindex,TEMPERATURE)<<"
-                                    // "<<basisval_grad[d1];
+                                    gradT[d1] += T_node * basisval_grad[d1];
                                 }
                             }
 #if (AMREX_SPACEDIM != 1)
@@ -1728,12 +1724,16 @@ void MPMParticleContainer::calculate_nodal_normal(
                                  if (nodalbox.contains(ivlocal))
                                  {
 
+                                     IntVect stencil(
+                                         AMREX_D_DECL(l, m, n));
                                      amrex::Real basisval_grad[AMREX_SPACEDIM];
                                      for (int d = 0; d < AMREX_SPACEDIM; d++)
                                      {
                                          basisval_grad[d] = basisvalder(
-                                             d, l, m, n, iv[XDIR], iv[YDIR],
-                                             iv[ZDIR], xp, plo, dx,
+                                             d, stencil,
+                                             IntVect(AMREX_D_DECL(
+                                                 iv[XDIR], iv[YDIR], iv[ZDIR])),
+                                             xp, plo, dx,
                                              order_scheme_directional, periodic,
                                              lo, hi);
                                      }
@@ -1749,8 +1749,7 @@ void MPMParticleContainer::calculate_nodal_normal(
                                      {
                                          amrex::Gpu::Atomic::AddNoRet(
                                              &nodal_data_arr(
-                                                 iv[XDIR] + l, iv[YDIR] + m,
-                                                 iv[ZDIR] + n, NORMALX + dim),
+                                                 ivlocal, NORMALX + dim),
                                              normal[dim]);
                                      }
                                  }
