@@ -24,7 +24,8 @@ jobs:
         exclude: '.'
         extensions: 'H,h,cpp'
         clangFormatVersion: 20
-  CPU-GNUmake:
+
+  CPU-1D-Bar-Vibration:
     needs: Formatting
     runs-on: ubuntu-latest
     steps:
@@ -32,6 +33,10 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: Setup
+        run: |
+          echo "NPROCS=$(nproc)" >> $GITHUB_ENV
 
       - name: Install Ccache
         run: |
@@ -46,28 +51,154 @@ jobs:
           key: ccache-${{github.workflow}}-${{github.job}}-git-${{github.sha}}
           restore-keys: |
                ccache-${{github.workflow}}-${{github.job}}-git-
+
       - name: Install Python dependencies
         run: |
           python3 -m pip install --upgrade pip
           pip3 install numpy
 
-      - name: Prepare DamBreak test
-        working-directory: ./Tests/Dam_Break
+      - name: Preprocess 1D Axial Bar Vibration
+        working-directory: ./Tests/1D_Axial_Bar_Vibration
         run: |
-          set -eu -o pipefail
+          cp ../../Build_Gnumake/GNUmakefile .
+          python3 ./PreProcess/Generate_MPs_Inputfile_Generic.py --config ./PreProcess/config.json
 
-          echo "Running Generate_MPs_and_InputFiles.sh..."
-          chmod +x Generate_MPs_and_InputFiles.sh
-          ./Generate_MPs_and_InputFiles.sh
+      - name: Build 1D Axial Bar Vibration (DEBUG=TRUE, DIM=1)
+        working-directory: ./Tests/1D_Axial_Bar_Vibration
+        run: |
+          ccache -z
+          make -j ${{env.NPROCS}} \
+            KEEP_BUILDINFO_CPP=TRUE \
+            USE_CCACHE=TRUE \
+            COMP=gnu \
+            USE_MPI=FALSE \
+            DEBUG=TRUE \
+            DIM=1 \
+            2>&1 | tee -a build-output.txt
 
-          echo "Copying GNUmakefile from Build_Gnumake..."
+      - name: Ccache Report
+        working-directory: ./Tests/1D_Axial_Bar_Vibration
+        run: |
+          ccache -s
+          du -hs ~/.cache/ccache
+
+      - name: Run 1D Axial Bar Vibration
+        working-directory: ./Tests/1D_Axial_Bar_Vibration
+        run: |
+          ./ExaGOOP1d.gnu.DEBUG.ex Inputs_1DAxialBarVibration.inp mpm.final_time=0.5 mpm.max_steps=100000 mpm.write_output_time=0.5 amr.plot_int=-1 amr.check_int=-1
+
+      - name: Validate 1D Axial Bar Vibration
+        working-directory: ./Tests/1D_Axial_Bar_Vibration
+        run: |
+          python3 ./PostProcess/validate.py
+
+  CPU-1D-Heat-Conduction:
+    needs: Formatting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup
+        run: |
+          echo "NPROCS=$(nproc)" >> $GITHUB_ENV
+
+      - name: Install Ccache
+        run: |
+          wget https://github.com/ccache/ccache/releases/download/v4.8/ccache-4.8-linux-x86_64.tar.xz
+          tar xvf ccache-4.8-linux-x86_64.tar.xz
+          sudo cp -f ccache-4.8-linux-x86_64/ccache /usr/local/bin/
+
+      - name: Set Up Ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ccache
+          key: ccache-${{github.workflow}}-${{github.job}}-git-${{github.sha}}
+          restore-keys: |
+               ccache-${{github.workflow}}-${{github.job}}-git-
+
+      - name: Install Python dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip3 install numpy
+
+      - name: Preprocess 1D Heat Conduction
+        working-directory: ./Tests/1D_Heat_Conduction
+        run: |
+          cp ../../Build_Gnumake/GNUmakefile .
+          python3 ./PreProcess/Generate_MPs_Inputfile_Generic.py --config ./PreProcess/config.json
+
+      - name: Build 1D Heat Conduction (DEBUG=TRUE, DIM=1, USE_TEMP=TRUE)
+        working-directory: ./Tests/1D_Heat_Conduction
+        run: |
+          ccache -z
+          make -j ${{env.NPROCS}} \
+            KEEP_BUILDINFO_CPP=TRUE \
+            USE_CCACHE=TRUE \
+            COMP=gnu \
+            USE_MPI=FALSE \
+            DEBUG=TRUE \
+            DIM=1 \
+            USE_TEMP=TRUE \
+            2>&1 | tee -a build-output.txt
+
+      - name: Ccache Report
+        working-directory: ./Tests/1D_Heat_Conduction
+        run: |
+          ccache -s
+          du -hs ~/.cache/ccache
+
+      - name: Run 1D Heat Conduction
+        working-directory: ./Tests/1D_Heat_Conduction
+        run: |
+          ./ExaGOOP1d.gnu.DEBUG.ex Inputs_1DHeatConduction.inp mpm.max_steps=5000 amr.plot_int=-1 amr.check_int=-1
+
+      - name: Validate 1D Heat Conduction
+        working-directory: ./Tests/1D_Heat_Conduction
+        run: |
+          python3 ./PostProcess/validate.py
+
+  CPU-2D-Heat-Conduction:
+    needs: Formatting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup
+        run: |
+          echo "NPROCS=$(nproc)" >> $GITHUB_ENV
+
+      - name: Install Ccache
+        run: |
+          wget https://github.com/ccache/ccache/releases/download/v4.8/ccache-4.8-linux-x86_64.tar.xz
+          tar xvf ccache-4.8-linux-x86_64.tar.xz
+          sudo cp -f ccache-4.8-linux-x86_64/ccache /usr/local/bin/
+
+      - name: Set Up Ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ccache
+          key: ccache-${{github.workflow}}-${{github.job}}-git-${{github.sha}}
+          restore-keys: |
+               ccache-${{github.workflow}}-${{github.job}}-git-
+
+      - name: Install Python dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip3 install numpy
+
+      - name: Prepare 2D Heat Conduction
+        working-directory: ./Tests/2D_Heat_Conduction
+        run: |
           cp ../../Build_Gnumake/GNUmakefile .
 
-          echo "Generated files:"
-          ls -l
-
-      - name: Build DamBreak (DEBUG=TRUE, DIM=2)
-        working-directory: ./Tests/Dam_Break
+      - name: Build 2D Heat Conduction (DEBUG=TRUE, DIM=2, USE_TEMP=TRUE)
+        working-directory: ./Tests/2D_Heat_Conduction
         run: |
           ccache -z
           make -j ${{env.NPROCS}} \
@@ -77,27 +208,33 @@ jobs:
             USE_MPI=FALSE \
             DEBUG=TRUE \
             DIM=2 \
+            USE_TEMP=TRUE \
             2>&1 | tee -a build-output.txt
 
       - name: Ccache Report
-        working-directory: ./Tests/Dam_Break
+        working-directory: ./Tests/2D_Heat_Conduction
         run: |
           ccache -s
           du -hs ~/.cache/ccache
 
-      - name: Run DamBreak test
-        working-directory: ./Tests/Dam_Break
+      - name: Run 2D Heat Conduction
+        working-directory: ./Tests/2D_Heat_Conduction
         run: |
-          echo "Running executable..."
-          ./ExaGOOP2d.gnu.DEBUG.ex Inputs_DamBreak.inp mpm.max_steps=10 amr.plot_int=-1 amr.check_int=-1
+          ./ExaGOOP2d.gnu.DEBUG.ex Inputs_2DHeatConduction.inp mpm.max_steps=5000 amr.plot_int=-1 amr.check_int=-1
+
+      - name: Validate 2D Heat Conduction
+        working-directory: ./Tests/2D_Heat_Conduction
+        run: |
+          python3 ./PostProcess/validate.py
+
   GPU-Nvidia:
     name: GPU-CUDA
-    needs: [Formatting, CPU-GNUmake]
+    needs: [Formatting, CPU-1D-Bar-Vibration, CPU-1D-Heat-Conduction, CPU-2D-Heat-Conduction]
     runs-on: ubuntu-latest
     strategy:
       matrix:
         enable_eb: [EB-ON]
-        include:          
+        include:
           - enable_eb: EB-ON
             use_eb: "ON"
       fail-fast: false
@@ -161,9 +298,10 @@ jobs:
         run: |
           ccache -s
           du -hs ~/.cache/ccache
+
   GPU-AMD:
     name: GPU-HIP
-    needs: [Formatting, CPU-GNUmake]
+    needs: [Formatting, CPU-1D-Bar-Vibration, CPU-1D-Heat-Conduction, CPU-2D-Heat-Conduction]
     runs-on: ubuntu-latest
     steps:
       - name: Clone
@@ -232,9 +370,10 @@ jobs:
         run: |
           ccache -s
           du -hs ~/.cache/ccache
+
   GPU-Intel:
     name: GPU-SYCL
-    needs: [Formatting, CPU-GNUmake]
+    needs: [Formatting, CPU-1D-Bar-Vibration, CPU-1D-Heat-Conduction, CPU-2D-Heat-Conduction]
     runs-on: ubuntu-latest
     steps:
       - name: Clone
@@ -296,6 +435,7 @@ jobs:
         run: |
           ccache -s
           du -hs ~/.cache/ccache
+
   Lint-codeql:
     needs: Formatting
     runs-on: ubuntu-latest

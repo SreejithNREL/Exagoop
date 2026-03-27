@@ -97,11 +97,11 @@ def Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg):
 
         print("Output tag = ",output_tag)
         
-        with open(os.path.join(test_dir, "./Preprocess/config.json")) as f:
+        with open(os.path.join(test_dir, "./PreProcess/config.json")) as f:
             config = json.load(f)
 
         # 2. Modify config fields
-        config["ppc"] = [npcx, npcx]
+        config["ppc"] = [npcx]
         config["order_scheme"] = order
         config["stress_update_scheme"] = sus
         config["alpha_pic_flip"] = flip        
@@ -109,7 +109,7 @@ def Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg):
         config["output_tag"] = output_tag
         
         # 3. Write updated config.json
-        with open(os.path.join(test_dir, "./Preprocess/config.json"), "w") as f:
+        with open(os.path.join(test_dir, "./PreProcess/config.json"), "w") as f:
             json.dump(config, f, indent=2)
 
     
@@ -207,7 +207,7 @@ def Run_ParameterSweep_1D_HeatConduction(cfg):
         output_tag = make_auto_tag_from_params(desc)
 
         # 1. Load template config
-        with open(os.path.join(test_dir, "./Preprocess/config.json")) as f:
+        with open(os.path.join(test_dir, "./PreProcess/config.json")) as f:
             config = json.load(f)
 
         # 2. Modify config fields
@@ -219,7 +219,7 @@ def Run_ParameterSweep_1D_HeatConduction(cfg):
         config["output_tag"] = output_tag
         
         # 3. Write updated config.json
-        with open(os.path.join(test_dir, "./Preprocess/config.json"), "w") as f:
+        with open(os.path.join(test_dir, "./PreProcess/config.json"), "w") as f:
             json.dump(config, f, indent=2)
 
         # Change gnumake file
@@ -291,7 +291,7 @@ def Run_ParameterSweep_2D_HeatConduction(cfg):
         
         
         # 1. Load template config
-        with open(os.path.join(test_dir, "./Preprocess/config.json")) as f:
+        with open(os.path.join(test_dir, "./PreProcess/config.json")) as f:
             config = json.load(f)
 
         # 2. Modify config fields
@@ -303,7 +303,7 @@ def Run_ParameterSweep_2D_HeatConduction(cfg):
         config["output_tag"] = output_tag
 
         # 3. Write updated config.json
-        with open(os.path.join(test_dir, "./Preprocess/config.json"), "w") as f:
+        with open(os.path.join(test_dir, "./PreProcess/config.json"), "w") as f:
             json.dump(config, f, indent=2)
 
         # Change gnumake file
@@ -369,7 +369,7 @@ def Run_ParameterSweep_Dambreak(cfg):
         output_tag = make_auto_tag_from_params(desc)
 
         # Update generator script
-        with open(os.path.join(test_dir, "./Preprocess/config.json")) as f:
+        with open(os.path.join(test_dir, "./PreProcess/config.json")) as f:
             config = json.load(f)
 
         # 2. Modify config fields
@@ -381,7 +381,7 @@ def Run_ParameterSweep_Dambreak(cfg):
         config["output_tag"] = output_tag
 
         # 3. Write updated config.json
-        with open(os.path.join(test_dir, "./Preprocess/config.json"), "w") as f:
+        with open(os.path.join(test_dir, "./PreProcess/config.json"), "w") as f:
             json.dump(config, f, indent=2)
 
 
@@ -438,7 +438,7 @@ def Run_ParameterSweep_EDC(cfg):
         output_tag = make_auto_tag_from_params(desc)
 
         # Update generator script
-        with open(os.path.join(test_dir, "./Preprocess/config.json")) as f:
+        with open(os.path.join(test_dir, "./PreProcess/config.json")) as f:
             config = json.load(f)
 
         # 2. Modify config fields
@@ -450,7 +450,7 @@ def Run_ParameterSweep_EDC(cfg):
         config["output_tag"] = output_tag
 
         # 3. Write updated config.json
-        with open(os.path.join(test_dir, "./Preprocess/config.json"), "w") as f:
+        with open(os.path.join(test_dir, "./PreProcess/config.json"), "w") as f:
             json.dump(config, f, indent=2)
 
 
@@ -579,7 +579,7 @@ TEST_CASES = {
 # ============================================================
 # Main Sweep Driver
 # ============================================================
-ROOT = "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev"
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ERROR_TOL = 1e-1
 results = []
 
@@ -650,7 +650,7 @@ for test_name, cfg in TEST_CASES.items():
         #Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg)
     elif(test_name=="1D_Heat_Conduction"):
         print('Nothing to do')        
-        #Run_ParameterSweep_1D_HeatConduction(cfg)
+        Run_ParameterSweep_1D_HeatConduction(cfg)
     elif(test_name=="2D_Heat_Conduction"):
         print('Nothing to do')        
         #Run_ParameterSweep_2D_HeatConduction(cfg)
