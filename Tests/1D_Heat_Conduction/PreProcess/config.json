@@ -9,7 +9,6 @@
     "ny": 100
   },
   "ppc": [
-    4,
     4
   ],
   "bodies": [
@@ -36,6 +35,7 @@
     }
   ],
   "CFL": 0.1,
+  "alpha_pic_flip": 1.0,
   "order_scheme": 3,
   "stress_update_scheme": 1,
   "output_tag": "1D_Heat_Conduction_npcx4_ord3_sus1_cd48aa",
