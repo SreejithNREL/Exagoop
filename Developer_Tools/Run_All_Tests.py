@@ -95,20 +95,24 @@ def Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg):
         desc = f"{test_name}_dim{dim}_npcx{npcx}_ord{order}_flip{flip}_sus{sus}_CFL{cfl}"
         output_tag = make_auto_tag_from_params(desc)
 
-        # Update generator script
-        gen_script_path = os.path.join(test_dir, "Generate_MPs_and_InputFiles.sh")
-        with open(gen_script_path, "w") as f:
-            f.write(f"python3 {cfg['generator_script']} \\\n")
-            f.write(f"    --dimension {dim} \\\n")
-            f.write(f"    --no_of_cell_in_x 25 \\\n")
-            f.write(f"    --buffery 5 \\\n")
-            f.write(f"    --periodic 0 \\\n")
-            f.write(f"    --np_per_cell_x {npcx} \\\n")
-            f.write(f"    --order_scheme {order} \\\n")
-            f.write(f"    --alpha_pic_flip {flip} \\\n")
-            f.write(f"    --stress_update_scheme {sus} \\\n")
-            f.write(f"    --CFL {cfl} \\\n")
-            f.write(f"    --output_tag {output_tag}\n")
+        print("Output tag = ",output_tag)
+        
+        with open(os.path.join(test_dir, "./Preprocess/config.json")) as f:
+            config = json.load(f)
+
+        # 2. Modify config fields
+        config["ppc"] = [npcx, npcx]
+        config["order_scheme"] = order
+        config["stress_update_scheme"] = sus
+        config["alpha_pic_flip"] = flip        
+        config["CFL"] = cfl
+        config["output_tag"] = output_tag
+        
+        # 3. Write updated config.json
+        with open(os.path.join(test_dir, "./Preprocess/config.json"), "w") as f:
+            json.dump(config, f, indent=2)
+
+    
 
         # change gnumakefile
         update_makefile_dim(os.path.join(test_dir,"GNUmakefile"),dim)
@@ -491,7 +495,7 @@ def Run_ParameterSweep_EDC(cfg):
 # ============================================================
 TEST_CASES = {
     "1D_Axial_Bar_Vibration": {
-        "generator_script": "./PreProcess/generate_particle_and_inputfiles.py",
+        "generator_script": "./PreProcess/Generate_MPs_Inputfile_Generic.py",
         "input_file": "Inputs_1DAxialBarVibration.inp",
         "postproc_scripts": [
             "./PostProcess/Calculate_Error.py",
@@ -500,7 +504,7 @@ TEST_CASES = {
             "./PostProcess/AnimateVelocity.py"
         ],
         "parameter_space": {
-            "dimension": [1,2,3],
+            "dimension": [1],
             "np_per_cell_x": [1],
             "order_scheme": [1,2,3],
             "alpha_pic_flip": [1.0],
@@ -513,7 +517,7 @@ TEST_CASES = {
     # ADD YOUR OTHER TEST CASES HERE
     # ========================================================
     "1D_Heat_Conduction": {
-        "generator_script": "./PreProcess/generate_particle_and_inputfiles.py",
+        "generator_script": "./PreProcess/Generate_MPs_Inputfile_Generic.py",
         "input_file": "Inputs_1DHeatConduction.inp",
         "postproc_scripts": [
             "./PostProcess/Plot_Temperature.py"            
@@ -546,9 +550,9 @@ TEST_CASES = {
             "./PostProcess/plot_waterfront.py"            
         ],
         "parameter_space": {     
-            "dimension": [2,3], 
+            "dimension": [2], 
             "no_of_cell_in_x": [100],      
-            "np_per_cell_x": [1],            
+            "np_per_cell_x": [2],            
             "order_scheme": [1,2,3],            
             "stress_update_scheme": [1]            
         }
@@ -563,7 +567,7 @@ TEST_CASES = {
         "parameter_space": {     
             "dimension": [2],        
             "np_per_cell_x": [4],            
-            "order_scheme": [3],            
+            "order_scheme": [1,2,3],            
             "stress_update_scheme": [1]            
         }
     },
@@ -652,10 +656,10 @@ for test_name, cfg in TEST_CASES.items():
         #Run_ParameterSweep_2D_HeatConduction(cfg)
     elif(test_name=="Dam_Break"):
         print('Nothing to do')        
-        Run_ParameterSweep_Dambreak(cfg)
+        #Run_ParameterSweep_Dambreak(cfg)
     elif(test_name=="Elastic_disk_collision"):
         print('Nothing to do')
-        Run_ParameterSweep_EDC(cfg)
+        #Run_ParameterSweep_EDC(cfg)
         
     
 

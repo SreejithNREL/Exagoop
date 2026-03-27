@@ -123,6 +123,7 @@ def make_shape(shape_cfg: Optional[dict], dimensions: int) -> Optional[ShapeBase
     # 1D interval shape
     # ------------------------------------------------------------
     if dimensions == 1 and t == "interval":
+        print(f"shape_cfg = {shape_cfg}")
         x0 = shape_cfg["x_start"]
         x1 = shape_cfg["x_end"]
 
@@ -443,6 +444,8 @@ def generate_particle_chunks(
 
     import numpy as np
 
+    print("Sreejith: Starting generate_particle_chunks",shape_cfg)
+
     # ------------------------------------------------------------
     # Grid setup
     # ------------------------------------------------------------
@@ -528,6 +531,8 @@ def generate_particle_chunks(
         # If shape_cfg defines x_start/x_end, use them
         x_start = shape_cfg.get("x_start", None)
         x_end   = shape_cfg.get("x_end", None)
+
+        print(f"x_start = {x_start}, x_end = {x_end}")
     
         if x_start is not None and x_end is not None:
             mask = (PX >= x_start) & (PX <= x_end)
@@ -1373,7 +1378,7 @@ def plot_1d(x, grid):
     ax.grid(False)
 
     plt.tight_layout()
-    #plt.show()
+    plt.show()
 
 
 # ------------------------------------------------------------
@@ -1402,7 +1407,7 @@ def plot_2d(x, y, grid):
     ax.set_xlabel("x")
     ax.set_ylabel("y")
     ax.set_aspect("equal")
-    #plt.show()
+   #plt.show()
 
 
 # ------------------------------------------------------------
@@ -1480,6 +1485,7 @@ def write_inputs_file(
     grid: dict,
     dimensions: int,
     order_scheme: int,
+    alpha_pic_flip: float,
     CFL: float,
     stress_update_scheme: int,
     output_tag: str,
@@ -1526,7 +1532,7 @@ def write_inputs_file(
 
         # Input Material Points
         write_block(f, [
-            ("mpm.use_autogen", "1"),
+            ("mpm.use_autogen", "0"),
             ("mpm.mincoords_autogen", "0.0 0.0 0.0"),
             ("mpm.maxcoords_autogen", "1.0 1.0 1.0"),
             ("mpm.vel_autogen", "0.0 0.0 0.0"),
@@ -1537,11 +1543,6 @@ def write_inputs_file(
             ("mpm.bulkmod_autogen", "2e6"),
             ("mpm.Gama_pres_autogen", "7"),
             ("mpm.visc_autogen", "0.001"),
-	    ("mpm.T_autogen", "0.0"),
-            ("mpm.cp_autogen", "1.0"),
-            ("mpm.ppc", "1 1 1"),
-            ("mpm.thermcond_autogen", "1.0"),
-            ("mpm.heatsrc_autogen", "0.0"),
             ("mpm.multi_part_per_cell_autogen", "1"),
             ("mpm.particle_file", f"\"{particle_filename}\"")
         ], comment="Input Material Points")
@@ -1560,16 +1561,16 @@ def write_inputs_file(
 
         # Simulation Run Parameters
         write_block(f, [
-            ("mpm.final_time", "0.05"),
+            ("mpm.final_time", "50.0"),
             ("mpm.max_steps", "5000000"),
-            ("mpm.screen_output_time", "0.0001"),
-            ("mpm.write_output_time", "0.01"),
+            ("mpm.screen_output_time", "0.001"),
+            ("mpm.write_output_time", "0.5"),
             ("mpm.num_redist", "1")
         ], comment="Simulation Run Parameters")
 
         # Timestepping
         write_block(f, [
-            ("mpm.fixed_timestep", "1"),
+            ("mpm.fixed_timestep", "0"),
             ("mpm.timestep", "1.0e-5"),
             ("mpm.CFL", f"{CFL}"),
             ("mpm.dt_min_limit", "1e-12"),
@@ -1586,7 +1587,7 @@ def write_inputs_file(
         # Numerical Schemes
         write_block(f, [
             ("mpm.order_scheme", f"{order_scheme}"),
-            ("mpm.alpha_pic_flip", "1.0"),
+            ("mpm.alpha_pic_flip", f"{alpha_pic_flip}"),
             ("mpm.stress_update_scheme", f"{stress_update_scheme}"),
             ("mpm.mass_tolerance", "1e-18")
         ], comment="Numerical Schemes")
@@ -1607,10 +1608,10 @@ def write_inputs_file(
         write_block(f, [
             ("mpm.bc_lower", "1 0 0"),
             ("mpm.bc_upper", "1 0 0"),
-            ("mpm.bc_lower_temp", "1 1 0"),
-            ("mpm.bc_upper_temp", "1 1 0"),
-            ("mpm.bc_lower_tempval", "1.0 1.0 0"),
-            ("mpm.bc_upper_tempval", "1.0 1.0 0"),
+            ("mpm.bc_lower_temp", "1 0 0"),
+            ("mpm.bc_upper_temp", "1 0 0"),
+            ("mpm.bc_lower_tempval", "0.0 0.0 0"),
+            ("mpm.bc_upper_tempval", "1.0 0.0 0"),
             ("mpm.levelset_bc", "2 0 0"),
             ("mpm.levelset_wall_mu", "2 0 0"),
             ("mpm.wall_mu_lo", "2 0 0"),
@@ -1621,9 +1622,9 @@ def write_inputs_file(
 
         # Diagnostics
         write_block(f, [
-            ("mpm.print_diagnostics", "0"),
-            ("mpm.do_calculate_tke_tse", "0"),
-            ("mpm.do_calculate_mwa_velcomp", "0"),
+            ("mpm.print_diagnostics", "1"),
+            ("mpm.do_calculate_tke_tse", "1"),
+            ("mpm.do_calculate_mwa_velcomp", "1"),
             ("mpm.do_calculate_mwa_velmag", "0"),
             ("mpm.do_calculate_minmaxpos", "0"),
             ("mpm.write_diag_output_time", "0.01")
@@ -1837,12 +1838,13 @@ def write_particles_hdf5(filename, particles):
 # Main
 # ------------------------------------------------------------
 def main():
-    args = parse_cli()
+    args = parse_cli()    
 
     with open(args.config, "r") as f:
         cfg = json.load(f)
 
     dimensions = cfg["dimensions"]
+    alpha_pic_flip = cfg["alpha_pic_flip"]
     grid = cfg["grid"]
     ppc = tuple(cfg["ppc"])
 
@@ -1954,6 +1956,7 @@ def main():
         grid=grid,
         dimensions=dimensions,
         order_scheme=order_scheme,
+        alpha_pic_flip=alpha_pic_flip,
         CFL = CFL,
         stress_update_scheme=stress_update_scheme,
         output_tag=output_tag,

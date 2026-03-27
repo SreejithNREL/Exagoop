@@ -1,0 +1,462 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Temperature Module (USE_TEMP) &mdash; ExaGOOP 22.12 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/theme.css?v=df66b05f" />
+      <link rel="stylesheet" type="text/css" href="_static/css/custom.css" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=d09052ea"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="References" href="references.html" />
+    <link rel="prev" title="Build Options Reference" href="build_options.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            ExaGOOP
+              <img src="_static/ExaGOOP_Logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">The ExaGOOP MPM Solver:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="intro.html">Key Features</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Theory:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="theory.html">Governing equations of continuum mechanics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mpm_equations.html">Governing Equations of MPM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mpm_equations.html#mpm-discretisation-steps">MPM discretisation steps</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Validation and Verification:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="validation.html">Axial vibration of an elastic bar</a></li>
+<li class="toctree-l1"><a class="reference internal" href="validation.html#collision-of-two-dimensional-elastic-disks">Collision of two-dimensional elastic disks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="validation.html#dam-break-simulation">Dam break simulation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_dambreak.html">Setting up the simulation folder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_dambreak.html#setting-up-the-input-file">Setting up the input file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_dambreak.html#generating-initial-material-point-file">Generating initial material point file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_dambreak.html#running-exagoop-and-viewing-output-files">Running ExaGOOP and viewing output files</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Build Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="build_options.html">Build Options Reference</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Physics Modules:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Temperature Module (<code class="docutils literal notranslate"><span class="pre">USE_TEMP</span></code>)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#enabling-the-module-at-build-time">Enabling the module at build time</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#autogeneration-parameters">Autogeneration parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#temperature-boundary-conditions">Temperature boundary conditions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#nodal-fields-added-by-the-temperature-module">Nodal fields added by the temperature module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#per-particle-thermal-fields">Per-particle thermal fields</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#time-step-sequence-for-the-thermal-solve">Time-step sequence for the thermal solve</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#minimal-input-file-snippet">Minimal input file snippet</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">References:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ExaGOOP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Temperature Module (<code class="docutils literal notranslate"><span class="pre">USE_TEMP</span></code>)</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/temperature_module.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="temperature-module-use-temp">
+<span id="temperature-module"></span><h1>Temperature Module (<code class="docutils literal notranslate"><span class="pre">USE_TEMP</span></code>)<a class="headerlink" href="#temperature-module-use-temp" title="Link to this heading"></a></h1>
+<p>ExaGOOP includes an optional coupled heat-transfer module that solves a
+Lagrangian energy equation alongside the momentum equation.  When enabled,
+each material point carries thermal state (temperature, specific heat,
+thermal conductivity, heat flux, and internal heat source), and the nodal
+grid carries five additional fields that are deposited and interpolated
+every time step.</p>
+<p>The module is compiled in or out at build time through the <code class="docutils literal notranslate"><span class="pre">USE_TEMP</span></code>
+preprocessor flag.  It is <strong>enabled by default</strong> in both the CMake and
+GNUmake build systems.</p>
+<section id="enabling-the-module-at-build-time">
+<h2>Enabling the module at build time<a class="headerlink" href="#enabling-the-module-at-build-time" title="Link to this heading"></a></h2>
+<p><strong>CMake</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cmake<span class="w"> </span>-DEXAGOOP_USE_TEMP<span class="o">=</span>ON<span class="w">  </span>..<span class="w">   </span><span class="c1"># ON  → compiles temperature module (default)</span>
+cmake<span class="w"> </span>-DEXAGOOP_USE_TEMP<span class="o">=</span>OFF<span class="w"> </span>..<span class="w">   </span><span class="c1"># OFF → omits temperature module</span>
+</pre></div>
+</div>
+<p>The option defaults to <code class="docutils literal notranslate"><span class="pre">ON</span></code>.  When <code class="docutils literal notranslate"><span class="pre">ON</span></code>, the preprocessor symbol
+<code class="docutils literal notranslate"><span class="pre">USE_TEMP=1</span></code> is injected; when <code class="docutils literal notranslate"><span class="pre">OFF</span></code>, <code class="docutils literal notranslate"><span class="pre">USE_TEMP=0</span></code> is injected.</p>
+<p><strong>GNUmake</strong></p>
+<p>In the relevant <code class="docutils literal notranslate"><span class="pre">GNUmakefile</span></code> (e.g., <code class="docutils literal notranslate"><span class="pre">Build_Gnumake/GNUmakefile</span></code> or a
+test-specific makefile), set the flag before including <code class="docutils literal notranslate"><span class="pre">Make.defs</span></code>:</p>
+<div class="highlight-makefile notranslate"><div class="highlight"><pre><span></span><span class="nv">USE_TEMP</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>TRUE<span class="w">   </span><span class="c1"># enables temperature module  (default in build system)</span>
+<span class="nv">USE_TEMP</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>FALSE<span class="w">  </span><span class="c1"># disables temperature module</span>
+</pre></div>
+</div>
+<p>The macro <code class="docutils literal notranslate"><span class="pre">-DUSE_TEMP=$(USE_TEMP)</span></code> is passed to the compiler automatically
+by <code class="docutils literal notranslate"><span class="pre">Build_Gnumake/GNUmakefile</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">TRUE</span></code> and <code class="docutils literal notranslate"><span class="pre">FALSE</span></code> are defined by the build system as <code class="docutils literal notranslate"><span class="pre">1</span></code> and <code class="docutils literal notranslate"><span class="pre">0</span></code>
+respectively, so <code class="docutils literal notranslate"><span class="pre">#if</span> <span class="pre">USE_TEMP</span></code> guards in the source work correctly for
+both build paths.</p>
+</div>
+</section>
+<section id="autogeneration-parameters">
+<h2>Autogeneration parameters<a class="headerlink" href="#autogeneration-parameters" title="Link to this heading"></a></h2>
+<p>When <code class="docutils literal notranslate"><span class="pre">mpm.use_autogen</span> <span class="pre">=</span> <span class="pre">1</span></code> and the temperature module is compiled in,
+four additional material properties must be supplied for the autogenerated
+particle block.  All four are optional and fall back to the defaults listed
+below.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 32.0%" />
+<col style="width: 12.0%" />
+<col style="width: 14.0%" />
+<col style="width: 42.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mpm.T_autogen</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Real</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.001</span></code></p></td>
+<td><p>Initial temperature <span class="math notranslate nohighlight">\(T_p^0\)</span> of all autogenerated particles.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">mpm.cp_autogen</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Real</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.001</span></code></p></td>
+<td><p>Specific heat capacity <span class="math notranslate nohighlight">\(c_p\)</span> (energy per unit mass per
+degree).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mpm.thermcond_autogen</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Real</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.001</span></code></p></td>
+<td><p>Thermal conductivity <span class="math notranslate nohighlight">\(\kappa\)</span> (treated as a scalar; units
+consistent with the rest of the input).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">mpm.heatsrc_autogen</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Real</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.001</span></code></p></td>
+<td><p>Volumetric internal heat source <span class="math notranslate nohighlight">\(\dot{q}\)</span>.</p></td>
+</tr>
+</tbody>
+</table>
+<p>When particles are loaded from an external file (<code class="docutils literal notranslate"><span class="pre">mpm.particle_file</span></code>),
+each particle line must include the four thermal fields in the order:
+<code class="docutils literal notranslate"><span class="pre">temperature</span></code>, <code class="docutils literal notranslate"><span class="pre">specific_heat</span></code>, <code class="docutils literal notranslate"><span class="pre">thermal_conductivity</span></code>,
+<code class="docutils literal notranslate"><span class="pre">heat_source</span></code>.  The heat-flux vector components are initialised to zero
+by the reader regardless of what the file contains.</p>
+</section>
+<section id="temperature-boundary-conditions">
+<h2>Temperature boundary conditions<a class="headerlink" href="#temperature-boundary-conditions" title="Link to this heading"></a></h2>
+<p>Two arrays control the thermal boundary condition at each face of the
+domain.  Each array has <code class="docutils literal notranslate"><span class="pre">SPACEDIM</span></code> entries, one per spatial direction.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 32.0%" />
+<col style="width: 12.0%" />
+<col style="width: 14.0%" />
+<col style="width: 42.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mpm.bc_lower_temp</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int[SPACEDIM]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[1</span> <span class="pre">1</span> <span class="pre">1]</span></code></p></td>
+<td><p>BC type at each lower face (see flag table below).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">mpm.bc_upper_temp</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int[SPACEDIM]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[1</span> <span class="pre">1</span> <span class="pre">1]</span></code></p></td>
+<td><p>BC type at each upper face (see flag table below).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mpm.bc_lower_tempval</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Real[SPACEDIM]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[0.0</span> <span class="pre">0.0</span> <span class="pre">0.0]</span></code></p></td>
+<td><p>Dirichlet temperature value at each lower face.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">mpm.bc_upper_tempval</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Real[SPACEDIM]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[0.0</span> <span class="pre">0.0</span> <span class="pre">0.0]</span></code></p></td>
+<td><p>Dirichlet temperature value at each upper face.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The temperature BC system currently implements <strong>Dirichlet conditions
+only</strong>.  At every time step, <code class="docutils literal notranslate"><span class="pre">nodal_bcs_temperature()</span></code> overwrites the
+nodal temperature on the domain boundary planes with the values in
+<code class="docutils literal notranslate"><span class="pre">bc_lower_tempval</span></code> / <code class="docutils literal notranslate"><span class="pre">bc_upper_tempval</span></code>.  The <code class="docutils literal notranslate"><span class="pre">bc_lower_temp</span></code> and
+<code class="docutils literal notranslate"><span class="pre">bc_upper_temp</span></code> flag arrays are read and stored but are not yet used
+to select different BC types at individual faces; all faces receive the
+Dirichlet treatment unconditionally.  Adiabatic (zero-flux) walls are
+the effective behaviour when no <code class="docutils literal notranslate"><span class="pre">bcval</span></code> entries are set (the default
+value of <code class="docutils literal notranslate"><span class="pre">0.0</span></code> prescribes <span class="math notranslate nohighlight">\(T = 0\)</span> on those faces, so non-zero
+Dirichlet temperatures must be specified explicitly).</p>
+</div>
+</section>
+<section id="nodal-fields-added-by-the-temperature-module">
+<h2>Nodal fields added by the temperature module<a class="headerlink" href="#nodal-fields-added-by-the-temperature-module" title="Link to this heading"></a></h2>
+<p>When <code class="docutils literal notranslate"><span class="pre">USE_TEMP=1</span></code>, the nodal <code class="docutils literal notranslate"><span class="pre">MultiFab</span></code> grows from 20 to 25 components
+(<code class="docutils literal notranslate"><span class="pre">NUM_STATES</span> <span class="pre">=</span> <span class="pre">25</span></code>).  The five additional components, their integer
+indices, and their physical meaning are:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 16.0%" />
+<col style="width: 32.0%" />
+<col style="width: 52.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Index</p></th>
+<th class="head"><p>Name (<code class="docutils literal notranslate"><span class="pre">constants.H</span></code> macro)</p></th>
+<th class="head"><p>Physical quantity</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>20</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MASS_SPHEAT</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(\sum_p m_p c_p N_I(\mathbf{x}_p)\)</span> — thermal mass at node
+<span class="math notranslate nohighlight">\(I\)</span>, used as the denominator when normalising the nodal
+temperature.</p></td>
+</tr>
+<tr class="row-odd"><td><p>21</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MASS_SPHEAT_TEMP</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(\sum_p m_p c_p T_p N_I(\mathbf{x}_p)\)</span> — mass-weighted
+temperature sum; divided by <code class="docutils literal notranslate"><span class="pre">MASS_SPHEAT</span></code> to obtain the nodal
+temperature after deposition.</p></td>
+</tr>
+<tr class="row-even"><td><p>22</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TEMPERATURE</span></code></p></td>
+<td><p>Nodal temperature <span class="math notranslate nohighlight">\(T_I\)</span> after normalisation and boundary
+condition enforcement.</p></td>
+</tr>
+<tr class="row-odd"><td><p>23</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_TEMP_INDEX</span></code></p></td>
+<td><p>Net nodal heat source <span class="math notranslate nohighlight">\(S_I = \sum_p (-\nabla N_I \cdot
+\mathbf{q}_p + \dot{q}_p N_I) V_p\)</span>, accumulated during the
+particle-to-grid pass.</p></td>
+</tr>
+<tr class="row-even"><td><p>24</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DELTA_TEMPERATURE</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(\Delta T_I = T_I^{t+\Delta t} - T_I^t\)</span>, computed after the
+nodal temperature advance and used during the grid-to-particle
+interpolation step (analogous to <code class="docutils literal notranslate"><span class="pre">DELTA_VEL</span></code> in the momentum
+update).</p></td>
+</tr>
+</tbody>
+</table>
+<p>These field names are visible in ParaView when loading grid output files.</p>
+</section>
+<section id="per-particle-thermal-fields">
+<h2>Per-particle thermal fields<a class="headerlink" href="#per-particle-thermal-fields" title="Link to this heading"></a></h2>
+<p>The following real-data slots are appended to the particle struct when
+<code class="docutils literal notranslate"><span class="pre">USE_TEMP=1</span></code> (indices continue from the non-thermal fields; they are
+<strong>not</strong> contiguous with the non-thermal fields in memory — see
+<code class="docutils literal notranslate"><span class="pre">realData</span></code> enum in <code class="docutils literal notranslate"><span class="pre">mpm_specs.H</span></code> for absolute indices):</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Field (<code class="docutils literal notranslate"><span class="pre">realData</span></code> name)</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">temperature</span></code></p></td>
+<td><p>Current particle temperature <span class="math notranslate nohighlight">\(T_p\)</span>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">specific_heat</span></code></p></td>
+<td><p>Specific heat <span class="math notranslate nohighlight">\(c_p\)</span>; constant per particle throughout
+the simulation.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">thermal_conductivity</span></code></p></td>
+<td><p>Scalar thermal conductivity <span class="math notranslate nohighlight">\(\kappa\)</span>; constant per particle.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">heat_flux</span></code></p></td>
+<td><p>Heat-flux vector <span class="math notranslate nohighlight">\(\mathbf{q}_p\)</span> (<code class="docutils literal notranslate"><span class="pre">SPACEDIM</span></code> components);
+updated during the grid-to-particle pass by
+<code class="docutils literal notranslate"><span class="pre">interpolate_from_grid_temperature</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">heat_source</span></code></p></td>
+<td><p>Volumetric internal heat source <span class="math notranslate nohighlight">\(\dot{q}_p\)</span>; constant per
+particle.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="time-step-sequence-for-the-thermal-solve">
+<h2>Time-step sequence for the thermal solve<a class="headerlink" href="#time-step-sequence-for-the-thermal-solve" title="Link to this heading"></a></h2>
+<p>Each time step, the thermal module executes the following operations
+inside the main integration loop (after the momentum update):</p>
+<ol class="arabic">
+<li><p><strong>Particle-to-grid (P2G) — mass and source deposition</strong>
+<code class="docutils literal notranslate"><span class="pre">deposit_onto_grid_temperature()</span></code> scatters <code class="docutils literal notranslate"><span class="pre">MASS_SPHEAT</span></code>,
+<code class="docutils literal notranslate"><span class="pre">MASS_SPHEAT_TEMP</span></code>, and <code class="docutils literal notranslate"><span class="pre">SOURCE_TEMP_INDEX</span></code> from particles to grid
+nodes.</p></li>
+<li><p><strong>Nodal temperature normalisation</strong>
+For nodes where <code class="docutils literal notranslate"><span class="pre">MASS_SPHEAT</span> <span class="pre">≥</span> <span class="pre">mass_tolerance</span></code>, the nodal temperature
+is computed as:</p>
+<div class="math notranslate nohighlight">
+\[T_I = \frac{\sum_p m_p c_p T_p N_I(\mathbf{x}_p)}
+           {\sum_p m_p c_p N_I(\mathbf{x}_p)}\]</div>
+</li>
+<li><p><strong>Backup nodal temperature</strong> — <code class="docutils literal notranslate"><span class="pre">backup_current_temperature()</span></code> copies
+<code class="docutils literal notranslate"><span class="pre">TEMPERATURE</span></code> into <code class="docutils literal notranslate"><span class="pre">DELTA_TEMPERATURE</span></code> for use in step 6.</p></li>
+<li><p><strong>Boundary condition enforcement</strong> — <code class="docutils literal notranslate"><span class="pre">nodal_bcs_temperature()</span></code> applies
+Dirichlet values from <code class="docutils literal notranslate"><span class="pre">bc_lower_tempval</span></code> / <code class="docutils literal notranslate"><span class="pre">bc_upper_tempval</span></code> at
+the domain boundary nodes.</p></li>
+<li><p><strong>Nodal temperature advance</strong> — <code class="docutils literal notranslate"><span class="pre">advance_nodal_temperature()</span></code> updates
+each node:</p>
+<div class="math notranslate nohighlight">
+\[T_I^{t+\Delta t} = T_I^t +
+  \frac{S_I}{\sum_p m_p c_p N_I} \, \Delta t\]</div>
+</li>
+<li><p><strong>Store</strong> <span class="math notranslate nohighlight">\(\Delta T\)</span> — <code class="docutils literal notranslate"><span class="pre">store_delta_temperature()</span></code> computes
+<code class="docutils literal notranslate"><span class="pre">DELTA_TEMPERATURE</span> <span class="pre">=</span> <span class="pre">T_I^{new}</span> <span class="pre">−</span> <span class="pre">T_I^{old}</span></code>.</p></li>
+<li><p><strong>Grid-to-particle (G2P) — temperature and heat-flux interpolation</strong>
+<code class="docutils literal notranslate"><span class="pre">interpolate_from_grid_temperature()</span></code> interpolates
+<code class="docutils literal notranslate"><span class="pre">DELTA_TEMPERATURE</span></code> back to each particle to update <span class="math notranslate nohighlight">\(T_p\)</span>, and
+computes the new particle heat-flux vector
+<span class="math notranslate nohighlight">\(\mathbf{q}_p = -\kappa_p \nabla T(\mathbf{x}_p)\)</span> by
+interpolating the gradient of <code class="docutils literal notranslate"><span class="pre">TEMPERATURE</span></code>.</p></li>
+</ol>
+</section>
+<section id="minimal-input-file-snippet">
+<h2>Minimal input file snippet<a class="headerlink" href="#minimal-input-file-snippet" title="Link to this heading"></a></h2>
+<p>The block below shows the additional lines required on top of the standard
+input file to activate a uniform-temperature elastic-solid simulation with
+fixed temperatures at the lower and upper <span class="math notranslate nohighlight">\(y\)</span>-faces:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># -------------------------------------------------------------------</span>
+<span class="c1"># Autogeneration: thermal properties</span>
+<span class="c1"># (only needed when mpm.use_autogen = 1)</span>
+<span class="c1"># -------------------------------------------------------------------</span>
+mpm.T_autogen<span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="m">300</span>.0<span class="w">     </span><span class="c1"># initial temperature (K)</span>
+mpm.cp_autogen<span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="m">500</span>.0<span class="w">     </span><span class="c1"># specific heat  (J / kg K)</span>
+mpm.thermcond_autogen<span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">50</span>.0<span class="w">     </span><span class="c1"># thermal conductivity  (W / m K)</span>
+mpm.heatsrc_autogen<span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="m">0</span>.0<span class="w">       </span><span class="c1"># volumetric heat source (W / m^3)</span>
+
+<span class="c1"># -------------------------------------------------------------------</span>
+<span class="c1"># Temperature boundary conditions</span>
+<span class="c1"># One value per spatial direction (x  y  z)</span>
+<span class="c1"># -------------------------------------------------------------------</span>
+mpm.bc_lower_tempval<span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0</span>.0<span class="w">  </span><span class="m">400</span>.0<span class="w">  </span><span class="m">0</span>.0<span class="w">   </span><span class="c1"># Dirichlet T at lower faces (K)</span>
+mpm.bc_upper_tempval<span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0</span>.0<span class="w">  </span><span class="m">300</span>.0<span class="w">  </span><span class="m">0</span>.0<span class="w">   </span><span class="c1"># Dirichlet T at upper faces (K)</span>
+
+<span class="c1"># bc_lower_temp / bc_upper_temp flag arrays are read but currently</span>
+<span class="c1"># all faces receive Dirichlet treatment; leave at default or omit.</span>
+mpm.bc_lower_temp<span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="m">1</span><span class="w">  </span><span class="m">1</span><span class="w">  </span><span class="m">1</span>
+mpm.bc_upper_temp<span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="m">1</span><span class="w">  </span><span class="m">1</span><span class="w">  </span><span class="m">1</span>
+</pre></div>
+</div>
+<p>In this example the <span class="math notranslate nohighlight">\(x\)</span>- and <span class="math notranslate nohighlight">\(z\)</span>-faces have a prescribed
+temperature of 0 K (effectively insulated when the domain temperature is
+initialised to 300 K), while the lower <span class="math notranslate nohighlight">\(y\)</span>-face is held at 400 K
+and the upper <span class="math notranslate nohighlight">\(y\)</span>-face at 300 K, imposing a temperature gradient in
+the <span class="math notranslate nohighlight">\(y\)</span>-direction.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The default values for <code class="docutils literal notranslate"><span class="pre">bc_lower_tempval</span></code> and <code class="docutils literal notranslate"><span class="pre">bc_upper_tempval</span></code>
+are <code class="docutils literal notranslate"><span class="pre">0.0</span></code> in all directions.  Any face for which these are not
+explicitly set in the input file will have its boundary nodes forced to
+<span class="math notranslate nohighlight">\(T = 0\)</span> each step.  Always specify all six values (three lower,
+three upper) when running with <code class="docutils literal notranslate"><span class="pre">USE_TEMP=1</span></code>.</p>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="build_options.html" class="btn btn-neutral float-left" title="Build Options Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="references.html" class="btn btn-neutral float-right" title="References" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2022, ExaGOOPTeam.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,36 +1,33 @@
 {
-  "dimensions": 2,
+  "dimensions": 1,
   "grid": {
     "xmin": 0.0,
-    "xmax": 0.4,
-    "nx": 100,
+    "xmax": 30.0,
+    "nx": 30,
     "ymin": 0.0,
-    "ymax": 0.4,
+    "ymax": 1.0,
     "ny": 100
   },
   "ppc": [
-    2,
-    2
+    1,
+    1
   ],
   "bodies": [
     {
       "shape": {
-        "type": "rectangle",
-        "xmin": 0.0,
-        "xmax": 0.1,
-        "ymin": 0.0,
-        "ymax": 0.2
+        "type": "interval",
+        "x_start": 0.0,
+        "x_end": 25.0
       },
       "constitutive_model": {
-        "type": "fluid",
-        "Bulk_modulus": 20000.0,
-        "Gamma_pressure": 7.0,
-        "Dynamic_viscosity": 0.001
+        "type": "elastic",
+        "E": 100.0,
+        "nu": 0.0
       },
       "initial_velocity": {
-        "type": "uniform",
-        "vx": 0.0,
-        "vy": 0.0
+        "type": "function",
+        "module": "./PreProcess/velocity_udf.py",
+        "function": "velocity_field"
       },
       "temperature": {
         "enabled": false,
@@ -43,11 +40,12 @@
     }
   ],
   "CFL": 0.1,
+  "alpha_pic_flip": 1.0,
   "order_scheme": 3,
   "stress_update_scheme": 1,
-  "output_tag": "Dam_Break__dim2_npcx2_ord3_sus1_f99aa6",
-  "input_filename": "Inputs_DamBreak.inp",
+  "output_tag": "1D_Axial_Bar_Vibration_dim1_npcx1_ord3_flip1.0_sus1_CFL0.1_8825d8",
+  "input_filename": "Inputs_1DAxialBarVibration.inp",
   "output_format": "hdf5",
   "materialpoint_filename": "mpm_particles.h5",
-  "plot_to_check": false
+  "plot_to_check": true
 }

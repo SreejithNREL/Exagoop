@@ -27,3 +27,5 @@ Developer_Tools/sweep_results.json
 Build_Gnumake/*.ex
 Build_Gnumake/Backtrace.*
 Build_Gnumake/tmp_build_dir/*
+
+Developer_Tools/sweep_results.json
