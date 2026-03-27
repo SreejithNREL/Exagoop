@@ -1217,6 +1217,110 @@ basisvalder(const int dir,
 }
 
 /**
+ * @brief Evaluates a tensor-product basis function and all its spatial
+ * derivatives in a single pass over dimensions.
+ *
+ * Computes the per-dimension 1D basis value N_d and derivative dN_d once,
+ * then assembles:
+ *   N        = N_0 * N_1 * ... * N_{SPACEDIM-1}
+ *   dN/dx_d  = N_0 * ... * dN_d * ... * N_{SPACEDIM-1}
+ *
+ * This replaces one call to basisval() plus SPACEDIM calls to basisvalder(),
+ * each of which would independently re-evaluate all 1D basis contributions.
+ *
+ * @param[in]  stencil                    Stencil offset per dimension
+ * @param[in]  cell                       Base cell index
+ * @param[in]  xp                         Particle position
+ * @param[in]  plo                        Domain lower bounds
+ * @param[in]  dx                         Grid spacing
+ * @param[in]  order_scheme_directional   Basis order per dimension
+ * @param[in]  periodic                   Periodicity flags per dimension
+ * @param[in]  lo                         Lower boundary indices
+ * @param[in]  hi                         Upper boundary indices
+ * @param[out] grad                       dN/dx_d for each direction d
+ *
+ * @return Basis function value N at xp.
+ */
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+basisval_and_grad(const IntVect stencil,
+                  const IntVect cell,
+                  const amrex::Real xp[AMREX_SPACEDIM],
+                  const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> &plo,
+                  const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> &dx,
+                  const GpuArray<int, AMREX_SPACEDIM> &order_scheme_directional,
+                  const GpuArray<int, AMREX_SPACEDIM> &periodic,
+                  const int *lo,
+                  const int *hi,
+                  amrex::Real grad[AMREX_SPACEDIM])
+{
+    amrex::Real val1d[AMREX_SPACEDIM];
+    amrex::Real der1d[AMREX_SPACEDIM];
+
+    // Compute 1D basis value and derivative for each dimension once
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        const int i   = cell[d];
+        const int l   = stencil[d];
+        const int od  = order_scheme_directional[d];
+        const amrex::Real dxinv = eka / dx[d];
+
+        if (od == 1)
+        {
+            amrex::Real r = (xp[d] - (plo[d] + i * dx[d])) / dx[d];
+            val1d[d] = (l == 0) ? (eka - r) : r;
+            der1d[d] = (l == 0) ? -dxinv : dxinv;
+        }
+        else if (od == 2)
+        {
+            int shapefunctype = 3;
+            int idx = i + l;
+            if (periodic[d] == 0)
+            {
+                shapefunctype =
+                    3 + (idx == lo[d] || idx == hi[d] + 1) * (1 - 3)
+                    + (idx == lo[d] + 1) * (2 - 3)
+                    + (idx == hi[d]) * (4 - 3);
+            }
+            amrex::Real r = (xp[d] - (plo[d] + (i + l) * dx[d])) / dx[d];
+            val1d[d] = quadraticspline_1d(shapefunctype, r);
+            der1d[d] = quadraticspline_1d_der(shapefunctype, r) * dxinv;
+        }
+        else // od == 3
+        {
+            int shapefunctype = 3;
+            int idx = i + l;
+            if (periodic[d] == 0)
+            {
+                shapefunctype =
+                    3 + (idx == lo[d] || idx == hi[d] + 1) * (1 - 3)
+                    + (idx == lo[d] + 1) * (2 - 3)
+                    + (idx == hi[d]) * (4 - 3);
+            }
+            amrex::Real r = (xp[d] - (plo[d] + (i + l) * dx[d])) / dx[d];
+            val1d[d] = cubicspline_1d(shapefunctype, r);
+            der1d[d] = cubicspline_1d_der(shapefunctype, r) * dxinv;
+        }
+    }
+
+    // Assemble N = product of all 1D basis values
+    amrex::Real N = eka;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        N *= val1d[d];
+
+    // Assemble dN/dx_dir: replace val1d[dir] with der1d[dir] in the product
+    for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
+    {
+        amrex::Real g = eka;
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+            g *= (d == dir) ? der1d[d] : val1d[d];
+        grad[dir] = g;
+    }
+
+    return N;
+}
+
+/**
  * @brief Extracts a symmetric tensor stored in particle rdata into a full
  * matrix.
  *

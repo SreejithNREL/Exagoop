@@ -17,7 +17,7 @@
 # SET MYMAC CONFIGS HERE
 #-------------------------------------
 
-HDF5_HOME = $(HOME)/hdf5-parallel
+HDF5_HOME = $(shell brew --prefix hdf5)
 HDF5_INC  = $(HDF5_HOME)/include
 HDF5_LIB  = $(HDF5_HOME)/lib
 
