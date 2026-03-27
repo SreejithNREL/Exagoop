@@ -1299,54 +1299,45 @@ void MPMParticleContainer::interpolate_from_grid(
 
                 if (update_vel)
                 {
+                    // Interpolate vel_grid (VELX) and delta_vel_grid
+                    // (DELTA_VELX) in a single stencil traversal per dimension.
+                    // Both fields share identical basis weights — computing them
+                    // together halves the number of spline evaluations.
+                    amrex::Real interp_vals[2];
                     for (int dim = 0; dim < AMREX_SPACEDIM; dim++)
                     {
 
                         if (order_scheme_directional[dim] == 1)
                         {
-                            p.rdata(realData::xvel_prime + dim) =
-                                bilin_interp(xp, iv, plo, dx, nodal_data_arr,
-                                             VELX_INDEX + dim);
-                            p.rdata(realData::xvel + dim) =
-                                alpha_pic_flip * p.rdata(realData::xvel + dim) +
-                                alpha_pic_flip *
-                                    bilin_interp(xp, iv, plo, dx,
-                                                 nodal_data_arr,
-                                                 DELTA_VELX_INDEX + dim) +
-                                (1 - alpha_pic_flip) *
-                                    p.rdata(realData::xvel_prime + dim);
+                            bilin_interp_two(xp, iv, plo, dx, nodal_data_arr,
+                                             VELX_INDEX + dim,
+                                             DELTA_VELX_INDEX + dim,
+                                             interp_vals);
                         }
                         else if (order_scheme_directional[dim] == 2)
                         {
-                            p.rdata(realData::xvel_prime + dim) =
-                                quadratic_interp(xp, iv, min_index, max_index,
+                            quadratic_interp_two(xp, iv, min_index, max_index,
                                                  plo, dx, nodal_data_arr,
-                                                 VELX_INDEX + dim, lo, hi);
-                            p.rdata(realData::xvel + dim) =
-                                alpha_pic_flip * p.rdata(realData::xvel + dim) +
-                                alpha_pic_flip *
-                                    quadratic_interp(
-                                        xp, iv, min_index, max_index, plo, dx,
-                                        nodal_data_arr, DELTA_VELX_INDEX + dim,
-                                        lo, hi) +
-                                (1 - alpha_pic_flip) *
-                                    p.rdata(realData::xvel_prime + dim);
+                                                 VELX_INDEX + dim,
+                                                 DELTA_VELX_INDEX + dim,
+                                                 lo, hi, interp_vals);
                         }
                         else if (order_scheme_directional[dim] == 3)
                         {
-                            p.rdata(realData::xvel_prime + dim) = cubic_interp(
-                                xp, iv, min_index, max_index, plo, dx,
-                                nodal_data_arr, VELX_INDEX + dim, lo, hi);
-                            p.rdata(realData::xvel + dim) =
-                                alpha_pic_flip * p.rdata(realData::xvel + dim) +
-                                alpha_pic_flip *
-                                    cubic_interp(xp, iv, min_index, max_index,
-                                                 plo, dx, nodal_data_arr,
-                                                 DELTA_VELX_INDEX + dim, lo,
-                                                 hi) +
-                                (1 - alpha_pic_flip) *
-                                    p.rdata(realData::xvel_prime + dim);
+                            cubic_interp_two(xp, iv, min_index, max_index,
+                                             plo, dx, nodal_data_arr,
+                                             VELX_INDEX + dim,
+                                             DELTA_VELX_INDEX + dim,
+                                             lo, hi, interp_vals);
                         }
+
+                        // interp_vals[0] = v_grid,  interp_vals[1] = Δv_grid
+                        p.rdata(realData::xvel_prime + dim) = interp_vals[0];
+                        p.rdata(realData::xvel + dim) =
+                            alpha_pic_flip *
+                                p.rdata(realData::xvel + dim) +
+                            alpha_pic_flip * interp_vals[1] +
+                            (1 - alpha_pic_flip) * interp_vals[0];
                     }
                 }
 
