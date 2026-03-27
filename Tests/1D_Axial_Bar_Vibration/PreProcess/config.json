@@ -45,7 +45,7 @@
   "stress_update_scheme": 1,
   "output_tag": "1D_Axial_Bar_Vibration_dim1_npcx1_ord3_flip1.0_sus1_CFL0.1_8825d8",
   "input_filename": "Inputs_1DAxialBarVibration.inp",
-  "output_format": "hdf5",
-  "materialpoint_filename": "mpm_particles.h5",
+  "output_format": "ascii",
+  "materialpoint_filename": "mpm_particles.dat",
   "plot_to_check": true
 }

@@ -54,7 +54,6 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          sudo apt-get install -y libhdf5-dev
           python3 -m pip install --upgrade pip
           pip3 install numpy matplotlib h5py
 
@@ -75,6 +74,8 @@ jobs:
             USE_MPI=FALSE \
             DEBUG=TRUE \
             DIM=1 \
+            USE_HDF5=FALSE \
+            AMREX_USE_HDF5=FALSE \
             2>&1 | tee -a build-output.txt
 
       - name: Ccache Report
@@ -122,15 +123,8 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          sudo apt-get install -y libhdf5-dev
           python3 -m pip install --upgrade pip
           pip3 install numpy matplotlib h5py
-
-      - name: Diagnose HDF5
-        run: |
-          find /usr -name "hdf5.h" 2>/dev/null
-          find /usr -name "libhdf5*" 2>/dev/null
-          dpkg -L libhdf5-dev | head -20
 
       - name: Preprocess 1D Heat Conduction
         working-directory: ./Tests/1D_Heat_Conduction
@@ -150,6 +144,8 @@ jobs:
             DEBUG=TRUE \
             DIM=1 \
             USE_TEMP=TRUE \
+            USE_HDF5=FALSE \
+            AMREX_USE_HDF5=FALSE \
             2>&1 | tee -a build-output.txt
 
       - name: Ccache Report
@@ -197,7 +193,6 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          sudo apt-get install -y libhdf5-dev
           python3 -m pip install --upgrade pip
           pip3 install numpy matplotlib h5py
 
@@ -218,6 +213,8 @@ jobs:
             DEBUG=TRUE \
             DIM=2 \
             USE_TEMP=TRUE \
+            USE_HDF5=FALSE \
+            AMREX_USE_HDF5=FALSE \
             2>&1 | tee -a build-output.txt
 
       - name: Ccache Report
