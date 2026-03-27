@@ -442,9 +442,10 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
             });
     }
 
-    // Color stride per dimension: linear stencil has width 2, quad/cubic width 4.
-    // Particles with the same color are separated by >= stride cells in every
-    // dimension, so their stencil supports are disjoint — plain += is safe.
+    // Color stride per dimension: linear stencil has width 2, quad/cubic
+    // width 4. Particles with the same color are separated by >= stride cells
+    // in every dimension, so their stencil supports are disjoint — plain += is
+    // safe.
     amrex::GpuArray<int, AMREX_SPACEDIM> color_stride;
     int ncolors = 1;
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
@@ -511,9 +512,9 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
 
                     for (int d = 0; d < AMREX_SPACEDIM; ++d)
                     {
-                        auto bounds = compute_bounds(iv[d], lo[d], hi[d],
-                                                     order_scheme_directional[d],
-                                                     periodic[d]);
+                        auto bounds = compute_bounds(
+                            iv[d], lo[d], hi[d], order_scheme_directional[d],
+                            periodic[d]);
                         // Clamp to this tile's nodal box to avoid the
                         // per-node nodalbox.contains() branch in the stencil
                         // loop, eliminating warp divergence near tile edges.
@@ -539,9 +540,8 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
 #endif
                             for (int l = min_idx[0]; l < max_idx[0]; l++)
                             {
-                                ivlocal = IntVect(
-                                    AMREX_D_DECL(iv[0] + l, iv[1] + m,
-                                                 iv[2] + n));
+                                ivlocal = IntVect(AMREX_D_DECL(
+                                    iv[0] + l, iv[1] + m, iv[2] + n));
 
                                 IntVect stencil(AMREX_D_DECL(l, m, n));
                                 {
@@ -567,7 +567,8 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
                                     if (update_mass)
                                     {
                                         amrex::Real mass_contrib =
-                                            p.rdata(realData::mass) * basisvalue;
+                                            p.rdata(realData::mass) *
+                                            basisvalue;
                                         nodal_data_arr(ivlocal, MASS_INDEX) +=
                                             mass_contrib;
                                     }
@@ -586,8 +587,8 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
                                                     p.rdata(realData::zvel) *
                                                     basisvalue)};
 
-                                        for (int dim = 0;
-                                             dim < AMREX_SPACEDIM; dim++)
+                                        for (int dim = 0; dim < AMREX_SPACEDIM;
+                                             dim++)
                                         {
                                             nodal_data_arr(ivlocal,
                                                            VELX_INDEX + dim) +=
@@ -640,17 +641,18 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
                                                           basisval_grad,
                                                           tensvect);
 
-                                        amrex::Real intforce_contrib
-                                            [AMREX_SPACEDIM] = {AMREX_D_DECL(
-                                                -p.rdata(realData::volume) *
-                                                    tensvect[XDIR],
-                                                -p.rdata(realData::volume) *
-                                                    tensvect[YDIR],
-                                                -p.rdata(realData::volume) *
-                                                    tensvect[ZDIR])};
+                                        amrex::Real
+                                            intforce_contrib[AMREX_SPACEDIM] = {
+                                                AMREX_D_DECL(
+                                                    -p.rdata(realData::volume) *
+                                                        tensvect[XDIR],
+                                                    -p.rdata(realData::volume) *
+                                                        tensvect[YDIR],
+                                                    -p.rdata(realData::volume) *
+                                                        tensvect[ZDIR])};
 
-                                        for (int dim = 0;
-                                             dim < AMREX_SPACEDIM; dim++)
+                                        for (int dim = 0; dim < AMREX_SPACEDIM;
+                                             dim++)
                                         {
                                             nodal_data_arr(ivlocal,
                                                            FRCX_INDEX + dim) +=
@@ -786,7 +788,8 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
         }
     }
 
-    // Color stride per dimension: linear stencil has width 2, quad/cubic width 4.
+    // Color stride per dimension: linear stencil has width 2, quad/cubic
+    // width 4.
     amrex::GpuArray<int, AMREX_SPACEDIM> color_stride;
     int ncolors = 1;
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
@@ -845,9 +848,9 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
 
                     for (int d = 0; d < AMREX_SPACEDIM; ++d)
                     {
-                        auto bounds = compute_bounds(iv[d], lo[d], hi[d],
-                                                     order_scheme_directional[d],
-                                                     periodic[d]);
+                        auto bounds = compute_bounds(
+                            iv[d], lo[d], hi[d], order_scheme_directional[d],
+                            periodic[d]);
                         // Clamp to this tile's nodal box to eliminate the
                         // per-node nodalbox.contains() branch.
                         min_idx[d] = amrex::max(bounds.first,
@@ -872,9 +875,8 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
 #endif
                             for (int l = min_idx[0]; l < max_idx[0]; l++)
                             {
-                                ivlocal = IntVect(
-                                    AMREX_D_DECL(iv[0] + l, iv[1] + m,
-                                                 iv[2] + n));
+                                ivlocal = IntVect(AMREX_D_DECL(
+                                    iv[0] + l, iv[1] + m, iv[2] + n));
                                 IntVect stencil(AMREX_D_DECL(l, m, n));
                                 {
                                     basisvalue =
@@ -902,8 +904,8 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
 
                                     if (update_source)
                                     {
-                                        for (int dim = 0;
-                                             dim < AMREX_SPACEDIM; dim++)
+                                        for (int dim = 0; dim < AMREX_SPACEDIM;
+                                             dim++)
                                         {
                                             basisval_grad[dim] = basisvalder(
                                                 dim, stencil, iv, xp, plo, dx,
@@ -919,8 +921,8 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
                                         get_vector(p, realData::heat_flux,
                                                    heat_flux_vect);
 
-                                        for (int dim = 0;
-                                             dim < AMREX_SPACEDIM; dim++)
+                                        for (int dim = 0; dim < AMREX_SPACEDIM;
+                                             dim++)
                                         {
                                             net_heatflux +=
                                                 heat_flux_vect[dim] *
@@ -1308,8 +1310,8 @@ void MPMParticleContainer::interpolate_from_grid(
                 {
                     // Interpolate vel_grid (VELX) and delta_vel_grid
                     // (DELTA_VELX) in a single stencil traversal per dimension.
-                    // Both fields share identical basis weights — computing them
-                    // together halves the number of spline evaluations.
+                    // Both fields share identical basis weights — computing
+                    // them together halves the number of spline evaluations.
                     amrex::Real interp_vals[2];
                     for (int dim = 0; dim < AMREX_SPACEDIM; dim++)
                     {
@@ -1323,26 +1325,23 @@ void MPMParticleContainer::interpolate_from_grid(
                         }
                         else if (order_scheme_directional[dim] == 2)
                         {
-                            quadratic_interp_two(xp, iv, min_index, max_index,
-                                                 plo, dx, nodal_data_arr,
-                                                 VELX_INDEX + dim,
-                                                 DELTA_VELX_INDEX + dim,
-                                                 lo, hi, interp_vals);
+                            quadratic_interp_two(
+                                xp, iv, min_index, max_index, plo, dx,
+                                nodal_data_arr, VELX_INDEX + dim,
+                                DELTA_VELX_INDEX + dim, lo, hi, interp_vals);
                         }
                         else if (order_scheme_directional[dim] == 3)
                         {
-                            cubic_interp_two(xp, iv, min_index, max_index,
-                                             plo, dx, nodal_data_arr,
-                                             VELX_INDEX + dim,
-                                             DELTA_VELX_INDEX + dim,
-                                             lo, hi, interp_vals);
+                            cubic_interp_two(
+                                xp, iv, min_index, max_index, plo, dx,
+                                nodal_data_arr, VELX_INDEX + dim,
+                                DELTA_VELX_INDEX + dim, lo, hi, interp_vals);
                         }
 
                         // interp_vals[0] = v_grid,  interp_vals[1] = Δv_grid
                         p.rdata(realData::xvel_prime + dim) = interp_vals[0];
                         p.rdata(realData::xvel + dim) =
-                            alpha_pic_flip *
-                                p.rdata(realData::xvel + dim) +
+                            alpha_pic_flip * p.rdata(realData::xvel + dim) +
                             alpha_pic_flip * interp_vals[1] +
                             (1 - alpha_pic_flip) * interp_vals[0];
                     }
