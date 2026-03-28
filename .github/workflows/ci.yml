@@ -159,6 +159,26 @@ jobs:
         run: |
           ./ExaGOOP1d.gnu.DEBUG.ex Inputs_1DHeatConduction.inp mpm.max_steps=5000 amr.plot_int=-1 amr.check_int=-1
 
+      - name: Print Backtrace if exists
+        if: always()
+        working-directory: ./Tests/1D_Heat_Conduction
+        run: |
+          if [ -f Backtrace.0 ]; then
+            echo "=== Backtrace.0 ==="
+            cat Backtrace.0
+          else
+            echo "No backtrace file found"
+          fi
+
+      - name: List output directories
+        if: always()
+        working-directory: ./Tests/1D_Heat_Conduction
+        run: |
+          echo "=== Directory contents ==="
+          ls -la
+          echo "=== Output folders ==="
+          ls -la 1D_Heat_Conduction_npcx4_ord3_sus1_cd48aa/ 2>/dev/null || echo "Output tag folder not found"
+
       - name: Validate 1D Heat Conduction
         working-directory: ./Tests/1D_Heat_Conduction
         run: |
