@@ -21,9 +21,9 @@ ifeq ($(UNAME), Darwin)
   HDF5_HOME = $(shell brew --prefix hdf5-mpi)
   HDF5_INC  = $(HDF5_HOME)/include
   HDF5_LIB  = $(HDF5_HOME)/lib
-  USE_HDF5 = TRUE
-  AMREX_USE_HDF5 = TRUE
-  AMREX_USE_HDF5_PARALLEL = TRUE
+  USE_HDF5 = FALSE
+  AMREX_USE_HDF5 = FALSE
+  AMREX_USE_HDF5_PARALLEL = FALSE
   CXXFLAGS += -I$(HDF5_INC)
   LDFLAGS  += -L$(HDF5_LIB) -lhdf5 -lhdf5_hl
 endif

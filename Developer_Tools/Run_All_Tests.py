@@ -84,6 +84,7 @@ def Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg):
     flip_vals = cfg["parameter_space"]["alpha_pic_flip"]
     sus_vals = cfg["parameter_space"]["stress_update_scheme"]
     cfl_vals = cfg["parameter_space"]["CFL"]
+    cfl_vals = cfg["parameter_space"]["CFL"]
 
     for dim, npcx, order, flip, sus, cfl in itertools.product(
         dims, npcx_vals, order_vals, flip_vals, sus_vals, cfl_vals
@@ -506,10 +507,10 @@ TEST_CASES = {
         "parameter_space": {
             "dimension": [1],
             "np_per_cell_x": [1],
-            "order_scheme": [1,2,3],
+            "order_scheme": [1],
             "alpha_pic_flip": [1.0],
             "stress_update_scheme": [1],
-            "CFL": [0.1]
+            "CFL": [0.1]                        
         }
     },
 
@@ -524,8 +525,8 @@ TEST_CASES = {
         ],
         "parameter_space": {
             "dimension": [1],
-            "np_per_cell_x": [1,2,4],            
-            "order_scheme": [1,2,3],            
+            "np_per_cell_x": [1],            
+            "order_scheme": [1],            
             "stress_update_scheme": [1]            
         }
     },
@@ -538,7 +539,7 @@ TEST_CASES = {
         ],
         "parameter_space": {            
             "np_per_cell_x": [1],            
-            "order_scheme": [1,2,3],            
+            "order_scheme": [1],            
             "stress_update_scheme": [1]            
         }
     },
@@ -552,8 +553,8 @@ TEST_CASES = {
         "parameter_space": {     
             "dimension": [2], 
             "no_of_cell_in_x": [100],      
-            "np_per_cell_x": [2],            
-            "order_scheme": [1,2,3],            
+            "np_per_cell_x": [1],            
+            "order_scheme": [1],            
             "stress_update_scheme": [1]            
         }
     },
@@ -567,7 +568,7 @@ TEST_CASES = {
         "parameter_space": {     
             "dimension": [2],        
             "np_per_cell_x": [4],            
-            "order_scheme": [1,2,3],            
+            "order_scheme": [1],            
             "stress_update_scheme": [1]            
         }
     },
@@ -653,13 +654,13 @@ for test_name, cfg in TEST_CASES.items():
         Run_ParameterSweep_1D_HeatConduction(cfg)
     elif(test_name=="2D_Heat_Conduction"):
         print('Nothing to do')        
-        #Run_ParameterSweep_2D_HeatConduction(cfg)
+        Run_ParameterSweep_2D_HeatConduction(cfg)
     elif(test_name=="Dam_Break"):
         print('Nothing to do')        
-        #Run_ParameterSweep_Dambreak(cfg)
+        Run_ParameterSweep_Dambreak(cfg)
     elif(test_name=="Elastic_disk_collision"):
         print('Nothing to do')
-        #Run_ParameterSweep_EDC(cfg)
+        Run_ParameterSweep_EDC(cfg)
         
     
 

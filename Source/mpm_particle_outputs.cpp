@@ -360,7 +360,7 @@ void MPMParticleContainer::WriteHeader(const std::string &name,
                                        bool is_checkpoint,
                                        amrex::Real cur_time,
                                        int nstep,
-                                       int EB_generate_max_level,
+                                       [[maybe_unused]] int EB_generate_max_level,
                                        int output_it) const
 {
     if (ParallelDescriptor::IOProcessor())
@@ -439,11 +439,8 @@ void MPMParticleContainer::writeCheckpointFile(
 
     amrex::Vector<std::string> real_data_names;
 
-    // Basic scalars
     real_data_names.push_back("radius");
 
-    // Dimension‑aware velocities
-    real_data_names.push_back("radius");
     real_data_names.push_back("xvel");
     real_data_names.push_back("yvel");
     real_data_names.push_back("zvel");
@@ -490,11 +487,10 @@ void MPMParticleContainer::writeCheckpointFile(
     real_data_names.push_back("temperature");
     real_data_names.push_back("specific_heat");
     real_data_names.push_back("thermal_conductivity");
+    real_data_names.push_back("heat_flux_0");
+    real_data_names.push_back("heat_flux_1");
+    real_data_names.push_back("heat_flux_2");
     real_data_names.push_back("heat_source");
-    for (int d = 0; d < AMREX_SPACEDIM; ++d)
-    {
-        real_data_names.push_back(amrex::Concatenate("heat_flux_", d, 1));
-    }
 #endif
 
     amrex::Vector<std::string> int_data_names;

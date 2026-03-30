@@ -96,8 +96,6 @@ void backup_current_temperature(MultiFab &nodaldata)
 
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
-        const Box &bx = mfi.validbox();
-        // Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
         Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 
         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
@@ -277,8 +275,6 @@ void store_delta_temperature(MultiFab &nodaldata)
 
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
-        const Box &bx = mfi.validbox();
-        // Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
         Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 
         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
@@ -374,8 +370,6 @@ void Nodal_Time_Update_Temperature(MultiFab &nodaldata,
 
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
-        const Box &bx = mfi.validbox();
-        // Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
         Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 
         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
@@ -804,8 +798,6 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
 
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
-        const Box &bx = mfi.validbox();
-        // Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
         Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 
         Array4<amrex::Real> nodal_data_arr = nodaldata.array(mfi);
@@ -813,6 +805,7 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
         amrex::ParallelFor(nodalbox,
                            [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
                            {
+                               (void)j; (void)k;
                                IntVect nodeid(AMREX_D_DECL(i, j, k));
 
                                // Loop over each dimension

@@ -517,8 +517,8 @@ void Initialise_Material_Points(MPMspecs &specs,
                                  specs.no_of_rigidbodies_present,
                                  specs.ifrigidnodespresent);
             auto io_time = amrex::second() - io_time_start;
-            std::string msg = FormatElapsedTime(io_time);
-            PrintMessage(msg, print_length, true);
+            std::string elapsed_msg = FormatElapsedTime(io_time);
+            PrintMessage(elapsed_msg, print_length, true);
         }
 
         PrintMultiLineMessage(msg, print_length, false);
@@ -1603,8 +1603,6 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
 
         int rigid_bodies_seen[32] = {-1};
         int rigid_count = 0;
-
-        auto &particle_tile = DefineAndReturnParticleTile(lev, grid, tile);
 
         for (int i = 0; i < np; ++i)
         {

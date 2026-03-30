@@ -9,8 +9,8 @@
     "ny": 100
   },
   "ppc": [
-    2,
-    2
+    1,
+    1
   ],
   "bodies": [
     {
@@ -43,9 +43,9 @@
     }
   ],
   "CFL": 0.1,
-  "order_scheme": 3,
+  "order_scheme": 1,
   "stress_update_scheme": 1,
-  "output_tag": "Dam_Break__dim2_npcx2_ord3_sus1_f99aa6",
+  "output_tag": "Dam_Break__dim2_npcx1_ord1_sus1_1b498f",
   "input_filename": "Inputs_DamBreak.inp",
   "output_format": "hdf5",
   "materialpoint_filename": "mpm_particles.h5",

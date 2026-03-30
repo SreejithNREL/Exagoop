@@ -217,19 +217,18 @@ void MPMParticleContainer::moveParticles(
     const amrex::Real &dt,
     int bclo[AMREX_SPACEDIM],
     int bchi[AMREX_SPACEDIM],
-    int lsetbc,
+    [[maybe_unused]] int lsetbc,
     amrex::Real wall_mu_lo[AMREX_SPACEDIM],
     amrex::Real wall_mu_hi[AMREX_SPACEDIM],
     amrex::Real wall_vel_lo[AMREX_SPACEDIM * AMREX_SPACEDIM],
     amrex::Real wall_vel_hi[AMREX_SPACEDIM * AMREX_SPACEDIM],
-    amrex::Real lset_wall_mu)
+    [[maybe_unused]] amrex::Real lset_wall_mu)
 {
     BL_PROFILE("MPMParticleContainer::moveParticles");
 
     const int lev = 0;
     const auto plo = Geom(lev).ProbLoArray();
     const auto phi = Geom(lev).ProbHiArray();
-    const auto dx = Geom(lev).CellSizeArray();
     auto &plev = GetParticles(lev);
 
 #if USE_EB

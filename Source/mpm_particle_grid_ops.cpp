@@ -1444,7 +1444,7 @@ void MPMParticleContainer::interpolate_from_grid_temperature(
     bool update_heatflux,
     GpuArray<int, AMREX_SPACEDIM> order_scheme_directional,
     GpuArray<int, AMREX_SPACEDIM> periodic,
-    amrex::Real alpha_pic_flip)
+    [[maybe_unused]] amrex::Real alpha_pic_flip)
 {
     const int lev = 0;
     const Geometry &geom = Geom(lev);

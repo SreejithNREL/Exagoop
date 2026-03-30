@@ -223,7 +223,7 @@ void Apply_Nodal_BCs(amrex::Geometry &geom,
 void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
                                  amrex::MultiFab &nodaldata,
                                  MPMspecs &specs,
-                                 amrex::Real dt)
+                                 [[maybe_unused]] amrex::Real dt)
 {
     amrex::Array<amrex::Real, AMREX_SPACEDIM> temp_lo;
     amrex::Array<amrex::Real, AMREX_SPACEDIM> temp_hi;
@@ -289,7 +289,7 @@ void G2P_Temperature(MPMspecs &specs,
                      amrex::MultiFab &nodaldata,
                      int update_temperature,
                      int update_heatflux,
-                     amrex::Real dt)
+                     [[maybe_unused]] amrex::Real dt)
 {
     if (testing == 1)
         amrex::Print() << "\n Doing G2P \n";
