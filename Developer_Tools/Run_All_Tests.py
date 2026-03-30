@@ -88,7 +88,6 @@ def Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg):
     flip_vals = cfg["parameter_space"]["alpha_pic_flip"]
     sus_vals = cfg["parameter_space"]["stress_update_scheme"]
     cfl_vals = cfg["parameter_space"]["CFL"]
-    cfl_vals = cfg["parameter_space"]["CFL"]
 
     for dim, npcx, order, flip, sus, cfl in itertools.product(
         dims, npcx_vals, order_vals, flip_vals, sus_vals, cfl_vals
@@ -100,9 +99,8 @@ def Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg):
         desc = f"{test_name}_dim{dim}_npcx{npcx}_ord{order}_flip{flip}_sus{sus}_CFL{cfl}"
         output_tag = make_auto_tag_from_params(desc)
 
-        print("Output tag = ",output_tag)
-        
-        with open(os.path.join(test_dir, "./PreProcess/config.json")) as f:
+        # 1. Load template config
+        with open(os.path.join(test_dir, "./Preprocess/config.json")) as f:
             config = json.load(f)
 
         # 2. Modify config fields
@@ -116,8 +114,6 @@ def Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg):
         # 3. Write updated config.json
         with open(os.path.join(test_dir, "./PreProcess/config.json"), "w") as f:
             json.dump(config, f, indent=2)
-
-    
 
         # change gnumakefile
         update_makefile_dim(os.path.join(test_dir,"GNUmakefile"),dim)
@@ -898,8 +894,9 @@ TEST_CASES = {
             "np_per_cell_x": [1],
             "order_scheme": [1],
             "alpha_pic_flip": [1.0],
+            "order_scheme": [1,2,3],
             "stress_update_scheme": [1],
-            "CFL": [0.1]                        
+            "CFL": [0.1]
         }
     },
 
@@ -1121,4 +1118,5 @@ if __name__ == "__main__":
                       f"(0–{len(bm_results) - 1})")
     else:
         _run_parameter_sweeps()
+
 

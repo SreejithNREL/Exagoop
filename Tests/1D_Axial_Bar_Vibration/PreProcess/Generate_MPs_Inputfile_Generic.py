@@ -123,7 +123,6 @@ def make_shape(shape_cfg: Optional[dict], dimensions: int) -> Optional[ShapeBase
     # 1D interval shape
     # ------------------------------------------------------------
     if dimensions == 1 and t == "interval":
-        print(f"shape_cfg = {shape_cfg}")
         x0 = shape_cfg["x_start"]
         x1 = shape_cfg["x_end"]
 
@@ -444,8 +443,6 @@ def generate_particle_chunks(
 
     import numpy as np
 
-    print("Sreejith: Starting generate_particle_chunks",shape_cfg)
-
     # ------------------------------------------------------------
     # Grid setup
     # ------------------------------------------------------------
@@ -531,8 +528,6 @@ def generate_particle_chunks(
         # If shape_cfg defines x_start/x_end, use them
         x_start = shape_cfg.get("x_start", None)
         x_end   = shape_cfg.get("x_end", None)
-
-        print(f"x_start = {x_start}, x_end = {x_end}")
     
         if x_start is not None and x_end is not None:
             mask = (PX >= x_start) & (PX <= x_end)
@@ -1407,7 +1402,8 @@ def plot_2d(x, y, grid):
     ax.set_xlabel("x")
     ax.set_ylabel("y")
     ax.set_aspect("equal")
-   #plt.show()
+    #plt.show()
+
 
 
 # ------------------------------------------------------------
@@ -1607,7 +1603,7 @@ def write_inputs_file(
         # Boundary Conditions
         write_block(f, [
             ("mpm.bc_lower", "1 0 0"),
-            ("mpm.bc_upper", "1 0 0"),
+            ("mpm.bc_upper", "2 0 0"),
             ("mpm.bc_lower_temp", "1 0 0"),
             ("mpm.bc_upper_temp", "1 0 0"),
             ("mpm.bc_lower_tempval", "0.0 0.0 0"),
@@ -1845,6 +1841,7 @@ def main():
 
     dimensions = cfg["dimensions"]
     alpha_pic_flip = cfg["alpha_pic_flip"]
+
     grid = cfg["grid"]
     ppc = tuple(cfg["ppc"])
 
