@@ -356,12 +356,13 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
  *
  * @return None.
  */
-void MPMParticleContainer::WriteHeader(const std::string &name,
-                                       bool is_checkpoint,
-                                       amrex::Real cur_time,
-                                       int nstep,
-                                       [[maybe_unused]] int EB_generate_max_level,
-                                       int output_it) const
+void MPMParticleContainer::WriteHeader(
+    const std::string &name,
+    bool is_checkpoint,
+    amrex::Real cur_time,
+    int nstep,
+    [[maybe_unused]] int EB_generate_max_level,
+    int output_it) const
 {
     if (ParallelDescriptor::IOProcessor())
     {

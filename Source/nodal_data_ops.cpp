@@ -805,7 +805,8 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
         amrex::ParallelFor(nodalbox,
                            [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
                            {
-                               (void)j; (void)k;
+                               (void)j;
+                               (void)k;
                                IntVect nodeid(AMREX_D_DECL(i, j, k));
 
                                // Loop over each dimension
