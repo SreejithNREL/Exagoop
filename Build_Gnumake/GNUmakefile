@@ -12,7 +12,7 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 DIM     = 2
 COMP       = gnu
 PRECISION  = DOUBLE
-USE_EB     = FALSE
+USE_EB     = TRUE
 USE_HYPRE  = FALSE
 
 # ===============================================================

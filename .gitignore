@@ -29,3 +29,6 @@ Build_Gnumake/Backtrace.*
 Build_Gnumake/tmp_build_dir/*
 
 Developer_Tools/sweep_results.json
+
+build_matrix_*.json
+build_matrix_*.txt
