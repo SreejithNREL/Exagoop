@@ -184,10 +184,12 @@ jobs:
         if: always()
         working-directory: ./Tests/1D_Heat_Conduction
         run: |
-          echo "=== Directory contents ==="
-          ls -la
-          echo "=== Output folders ==="
-          ls -la 1D_Heat_Conduction_npcx4_ord3_sus1_cd48aa/ 2>/dev/null || echo "Output tag folder not found"
+          echo "=== CI_Output contents ==="
+          ls -la CI_Output/ 2>/dev/null || echo "CI_Output not found"
+          echo "=== Search for matpnt files ==="
+          find . -name "matpnt*" 2>/dev/null | head -20
+          echo "=== Search for ascii files ==="
+          find . -name "*.dat" -newer Inputs_1DHeatConduction.inp 2>/dev/null | head -20
 
       - name: Validate 1D Heat Conduction
         working-directory: ./Tests/1D_Heat_Conduction
