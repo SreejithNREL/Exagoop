@@ -1,5 +1,6 @@
 import sys
 import os
+import glob
 import numpy as np
 
 def Texact_2D(x, y, T0, T1, L, H, t, N_terms=25):
@@ -20,11 +21,19 @@ L = 1.0
 H = 1.0
 N_terms = 25
 RMS_TOL = 1e-2
-FILEPATH = "CI_Output/matpnt_t0.050000"
+matches = glob.glob("Solution/ascii_files/*/matpnt_t0.050000")
+if not matches:
+    matches = glob.glob("CI_Output/matpnt_t0.050000")
+if not matches:
+    matches = glob.glob("*/matpnt_t0.050000")
 
-if not os.path.exists(FILEPATH):
-    print(f"FAIL: output file not found: {FILEPATH}")
+if not matches:
+    print("FAIL: no matpnt_t0.050000 found anywhere")
+    print("Searched: Solution/ascii_files/*/matpnt_t0.050000")
     sys.exit(1)
+
+FILEPATH = matches[0]
+print(f"Found output file: {FILEPATH}")
 
 data = np.loadtxt(FILEPATH, skiprows=5)
 assert data.shape[1] >= 49, f"Expected at least 49 columns, got {data.shape[1]}"

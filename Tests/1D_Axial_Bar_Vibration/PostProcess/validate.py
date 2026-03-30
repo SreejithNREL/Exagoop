@@ -1,5 +1,6 @@
 import sys
 import os
+import glob
 import numpy as np
 
 def exact_velocity(x, t, V0=0.1, L=25.0, E=100, rho=1):
@@ -8,11 +9,19 @@ def exact_velocity(x, t, V0=0.1, L=25.0, E=100, rho=1):
 
 T = 0.5
 RMS_TOL = 1e-3
-FILEPATH = "CI_Output/matpnt_t0.500000"
+matches = glob.glob("Solution/ascii_files/*/matpnt_t0.500000")
+if not matches:
+    matches = glob.glob("CI_Output/matpnt_t0.500000")
+if not matches:
+    matches = glob.glob("*/matpnt_t0.500000")
 
-if not os.path.exists(FILEPATH):
-    print(f"FAIL: output file not found: {FILEPATH}")
+if not matches:
+    print("FAIL: no matpnt_t0.500000 found anywhere")
+    print("Searched: Solution/ascii_files/*/matpnt_t0.500000")
     sys.exit(1)
+
+FILEPATH = matches[0]
+print(f"Found output file: {FILEPATH}")
 
 data = np.loadtxt(FILEPATH, skiprows=5)
 assert data.shape[1] == 59, f"Expected 59 columns, got {data.shape[1]}"
