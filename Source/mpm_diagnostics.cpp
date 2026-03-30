@@ -209,3 +209,46 @@ void MPMParticleContainer::Calculate_MinMaxPos(
             { return p.pos(dim); });
     }
 }
+
+/**
+ * @brief Estimates the normal contact force at the top and bottom surfaces.
+ *
+ * Computes Fy_top = Σ(m * a_y) + |Σ(m * g_y)| + |Fy_bottom| using a
+ * GPU‑parallel reduction over all particles. The vertical acceleration
+ * a_y is read from @c realData::yacceleration and gravity from the
+ * passed‑in array. Fy_bottom is set to zero (placeholder for a future
+ * boundary integral).
+ *
+ * @param[in]  gravity     Gravitational acceleration vector.
+ * @param[out] Fy_top      Estimated upward reaction force at the top surface.
+ * @param[out] Fy_bottom   Estimated downward reaction force at the bottom
+ *                         surface (currently always zero).
+ *
+ * @return None.
+ */
+void MPMParticleContainer::CalculateSurfaceIntegralTop(
+    Array<Real, AMREX_SPACEDIM> gravity, Real &Fy_top, Real &Fy_bottom)
+{
+    Real Mvy = 0.0;
+    Real Fg = 0.0;
+    Fy_bottom = 0.0;
+
+    using PType = typename MPMParticleContainer::SuperParticleType;
+    Mvy = amrex::ReduceSum(*this,
+                           [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
+                           {
+                               return (p.rdata(realData::mass) *
+                                       p.rdata(realData::yacceleration));
+                           });
+
+    Fg = amrex::ReduceSum(
+        *this, [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
+        { return (p.rdata(realData::mass) * gravity[YDIR]); });
+
+#ifdef BL_USE_MPI
+    ParallelDescriptor::ReduceRealSum(Mvy);
+    ParallelDescriptor::ReduceRealSum(Fg);
+#endif
+
+    Fy_top = Mvy + fabs(Fg) + fabs(Fy_bottom);
+}

@@ -174,7 +174,6 @@ get_levelset_grad(amrex::Array4<amrex::Real> phi,
         lsgrad[d] = 0.0;
     }
 
-    // loop over 2^dim corners
     int cornerCount = 1 << AMREX_SPACEDIM;
     for (int corner = 0; corner < cornerCount; ++corner)
     {

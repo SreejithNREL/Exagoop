@@ -25,6 +25,7 @@ struct QuadraticSplineDerCoeff
 {
     amrex::Real a, b;
 };
+
 #ifdef AMREX_USE_GPU
 AMREX_GPU_DEVICE AMREX_GPU_CONSTANT
 #endif

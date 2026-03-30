@@ -3,9 +3,6 @@
 
 #include <mpm_particle_container.H>
 
-// using namespace std;
-// using namespace amrex;
-
 void PrintWelcomeMessage();
 
 void PrintMessage(std::string msg, int print_length, bool begin);

@@ -117,7 +117,7 @@ void Initialise_Domain(MPMspecs &specs,
 {
     PrintMessage("\n Setting up problem variables", print_length, true);
 
-    // RealBox from specs (dimension-aware)
+    // RealBox from specs
     int coord = 0;
     RealBox real_box;
     for (int n = 0; n < AMREX_SPACEDIM; ++n)
@@ -126,7 +126,7 @@ void Initialise_Domain(MPMspecs &specs,
         real_box.setHi(n, specs.phi[n]);
     }
 
-    // Index-space domain (dimension-aware)
+    // Index-space domain
     IntVect domain_lo{AMREX_D_DECL(0, 0, 0)};
     IntVect domain_hi;
     {
@@ -269,7 +269,7 @@ void Initialise_Domain(MPMspecs &specs,
         amrex::Abort("Order scheme not implemented yet (use 1 or 3).");
     }
 
-    // Nodal layout convert (dimension-aware IntVect of ones)
+    // Nodal layout convert
 #if (AMREX_SPACEDIM == 1)
     const IntVect nodal_iv(1);
 #elif (AMREX_SPACEDIM == 2)
@@ -286,9 +286,7 @@ void Initialise_Domain(MPMspecs &specs,
     // Level-set geometry and data (refined domain)
     Box dom_levset = geom.Domain();
     dom_levset.refine(specs.levset_gridratio);
-    // Note: real_box/periodicity for levset geom is inherited from parent
-    // domain in many setups; if you need distinct real_box or periodic flags,
-    // pass them explicitly via another define overload.
+
     geom_levset.define(dom_levset);
 
     if (specs.levset_output)
@@ -440,7 +438,7 @@ void Initialise_Internal_Forces(MPMspecs &specs,
 
         backup_current_temperature(nodaldata);
 
-        // Apply nodal boundary conditions (ensure correct Geometry is passed)
+        // Apply nodal boundary conditions
         const Geometry &geom = mpm_pc.Geom(0);
         nodal_bcs_temperature(geom, nodaldata, specs.bclo.data(),
                               specs.bchi.data(), temp_lo.data(),
@@ -501,7 +499,6 @@ void Initialise_Material_Points(MPMspecs &specs,
             "\n Acquiring particle data (Reading from particle file)";
         PrintMultiLineMessage(msg, print_length, true);
 
-        // dimension‑aware InitParticles (file‑based)
         if (specs.particlefilename.size() >= 3 &&
             specs.particlefilename.compare(specs.particlefilename.size() - 3, 3,
                                            ".h5") == 0)
@@ -541,8 +538,6 @@ void Initialise_Material_Points(MPMspecs &specs,
             amrex::Print() << "\n specs.no_of_rigidbodies_present= "
                            << specs.no_of_rigidbodies_present << " "
                            << numrigidbodies;
-            // amrex::Abort("Mismatch in rigid body count between file and
-            // constants.H");
         }
     }
     else
@@ -550,9 +545,7 @@ void Initialise_Material_Points(MPMspecs &specs,
         std::string msg = "\n Acquiring particle data (using autogen)";
         PrintMessage(msg, print_length, true);
 
-        // dimension‑aware InitParticles (autogen)
         auto io_time_start = amrex::second();
-
         mpm_pc.InitParticles(
             specs.autogen_mincoords.data(), specs.autogen_maxcoords.data(),
             specs.autogen_vel.data(), specs.autogen_ppc.data(),
@@ -569,8 +562,6 @@ void Initialise_Material_Points(MPMspecs &specs,
         msg = FormatElapsedTime(io_time);
         PrintMessage(msg, print_length, true);
         PrintMultiLineMessage(msg, print_length, false);
-
-        // PrintMessage(msg, print_length, false);
     }
 
     // remove particles inside EB if levelset geometry is active
@@ -614,15 +605,9 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
 {
     BL_PROFILE("ReadHDF5Particles");
 
-    // ------------------------------------------------------------
-    // MPI info
-    // ------------------------------------------------------------
     int my_rank = ParallelDescriptor::MyProc();
     int n_ranks = ParallelDescriptor::NProcs();
 
-    // ------------------------------------------------------------
-    // Open file with Parallel HDF5 (MPI-IO)
-    // ------------------------------------------------------------
     MPI_Comm comm = ParallelDescriptor::Communicator();
     MPI_Info info = MPI_INFO_NULL;
 
@@ -638,14 +623,11 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
             std::string msg =
                 "\n    HDF5: Using Parallel HDF5 (MPI-IO backend)";
             PrintMultiLineMessage(msg, print_length, true);
-            // amrex::Print() << "\n\tHDF5: Using Parallel HDF5 (MPI-IO
-            // backend)\n";
         }
         else
         {
             std::string msg = "\n    HDF5: Using Serial HDF5 (no MPI-IO)";
             PrintMultiLineMessage(msg, print_length, true);
-            // amrex::Print() << "\n\tHDF5: Using Serial HDF5 (no MPI-IO)\n";
         }
     }
 
@@ -656,9 +638,6 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
         amrex::Abort("\n    ERROR: Could not open HDF5 particle file");
     }
 
-    // ------------------------------------------------------------
-    // Read dimension + number of particles (collectively)
-    // ------------------------------------------------------------
     int dim;
     {
         hid_t dset = H5Dopen(file_id, "dim", H5P_DEFAULT);
@@ -679,19 +658,12 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
         PrintMultiLineMessage(msg, print_length, true);
     }
 
-    // ------------------------------------------------------------
-    // Per-rank hyperslab: start, count
-    // ------------------------------------------------------------
     long long total_particles = npart;
     long long chunk = total_particles / n_ranks;
     long long start = my_rank * chunk;
     long long count =
         (my_rank == n_ranks - 1) ? (total_particles - start) : chunk;
 
-    // ------------------------------------------------------------
-    // Helper: read a 1D Real dataset into a Vector<Real> using hyperslab +
-    // collective I/O
-    // ------------------------------------------------------------
     hid_t h5_real_type = (sizeof(amrex::Real) == sizeof(float))
                              ? H5T_NATIVE_FLOAT
                              : H5T_NATIVE_DOUBLE;
@@ -732,9 +704,6 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
         H5Dclose(dset);
     };
 
-    // ------------------------------------------------------------
-    // Read mandatory datasets (each rank reads its slice)
-    // ------------------------------------------------------------
     amrex::Vector<amrex::Real> x, y, z, vx, vy, vz, radius, density, cm_id,
         phase;
 
@@ -755,9 +724,6 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
     read_dset("density", density);
     read_dset("cm_id", cm_id);
 
-    // ------------------------------------------------------------
-    // Discover extra fields and read them similarly
-    // ------------------------------------------------------------
     std::vector<std::string> extra_fields;
     {
         hid_t root = H5Gopen(file_id, "/", H5P_DEFAULT);
@@ -788,9 +754,6 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
 
     H5Fclose(file_id);
 
-    // ------------------------------------------------------------
-    // Fill AMReX ParticleContainer from this rank's slice
-    // ------------------------------------------------------------
     const int lev = 0, grid = 0, tile1 = 0;
     auto &tile = DefineAndReturnParticleTile(lev, grid, tile1);
     auto &aos = tile.GetArrayOfStructs();
@@ -958,6 +921,7 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
  *
  * @return None.
  */
+
 void MPMParticleContainer::InitParticles(const std::string &filename,
                                          amrex::Real &total_mass,
                                          amrex::Real &total_vol,
@@ -978,7 +942,7 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
         long np = -1;
 
         // ------------------------------------------------------------
-        // 1. Read "dim: <value>"
+        // 1. Read dimension
         // ------------------------------------------------------------
         std::string label;
         int file_dim = -1;
@@ -1001,7 +965,7 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
         }
 
         // ------------------------------------------------------------
-        // 2. Read "number_of_material_points: <value>"
+        // 2. Read number of materail points
         // ------------------------------------------------------------
         std::string label2;
 
@@ -1026,7 +990,6 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
         std::getline(ifs, header_line); // finish line 2
         std::getline(ifs, header_line); // read line 3 (column names)
 
-        // header_line should start with '#'
         if (header_line.empty() || header_line[0] != '#')
         {
             amrex::Abort(
@@ -1127,7 +1090,6 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
             }
             else
             {
-
                 amrex::Abort("Incorrect constitutive model");
             }
 
@@ -1180,50 +1142,21 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
 
             host_particles.push_back(p);
 
-            // If chunk is full → insert + redistribute
-            if ((int)host_particles.size() == CHUNK_SIZE)
+            if (!ifs.good())
             {
-                auto old_size = aos.size();
-                aos.resize(old_size + host_particles.size());
-
-                // host-to-host copy
-                std::copy(host_particles.begin(), host_particles.end(),
-                          aos.begin() + old_size);
-
-                host_particles.clear();
-
-                // redistribute immediately
-                Redistribute();
+                amrex::Abort("Error initializing particles from Ascii file.\n");
             }
         }
 
-        // Final partial chunk
-
-        if (!host_particles.empty())
-        {
-            auto old_size = aos.size();
-            aos.resize(old_size + host_particles.size());
-
-            std::copy(host_particles.begin(), host_particles.end(),
-                      aos.begin() + old_size);
-
-            host_particles.clear();
-
-            Redistribute();
-        }
-
         num_of_rigid_bodies = rigid_count;
-        /*auto old_size = particle_tile.GetArrayOfStructs().size();
+        auto old_size = particle_tile.GetArrayOfStructs().size();
         particle_tile.resize(old_size + host_particles.size());
         Gpu::copy(Gpu::hostToDevice, host_particles.begin(),
                   host_particles.end(),
-                  particle_tile.GetArrayOfStructs().begin() + old_size);*/
+                  particle_tile.GetArrayOfStructs().begin() + old_size);
     }
-    else
-    {
-        // Non-IO ranks still need to participate in Redistribute()
-        Redistribute();
-    }
+
+    Redistribute();
 }
 
 /**
@@ -1285,14 +1218,12 @@ void MPMParticleContainer::InitParticles(amrex::Real mincoords[AMREX_SPACEDIM],
     total_mass = 0.0;
     total_vol = 0.0;
 
-    // Precompute cell volume = product(dx[d])
     amrex::Real cell_vol = 1.0;
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
     {
         cell_vol *= dxA[d];
     }
 
-    // Precompute offsets for each dimension
     int ppc_x = 1;
     int ppc_y = 1;
     int ppc_z = 1;
@@ -1318,7 +1249,6 @@ void MPMParticleContainer::InitParticles(amrex::Real mincoords[AMREX_SPACEDIM],
     if (AMREX_SPACEDIM == 3)
         offz = make_ppc_offsets(ppc_z);
 
-    // Total particles per cell
     int np_cell = ppc_x;
     if (AMREX_SPACEDIM >= 2)
         np_cell *= ppc_y;
@@ -1413,9 +1343,6 @@ void MPMParticleContainer::InitParticles(amrex::Real mincoords[AMREX_SPACEDIM],
                             if (!inside)
                                 continue;
 
-                            // amrex::Print()<<"\n Coords = "<<coords[0]<<"
-                            // "<<coords[1];
-
                             ParticleType p = generate_particle(
                                 coords, vel, dens, vol_particle, constmodel, E,
                                 nu, bulkmod, Gama_pres, visc
@@ -1443,7 +1370,6 @@ void MPMParticleContainer::InitParticles(amrex::Real mincoords[AMREX_SPACEDIM],
                   particle_tile.GetArrayOfStructs().begin() + old_size);
     }
 
-    // Move particles to correct tiles if necessary
     Redistribute();
     std::string msg = FormatParticleCount(npart);
     PrintMultiLineMessage(msg, print_length, true);
@@ -1617,7 +1543,6 @@ void MPMParticleContainer::removeParticlesInsideEB()
                            {
                                ParticleType &p = pstruct[i];
 
-                               // Build position array dimension‑aware
                                amrex::Real xp[AMREX_SPACEDIM];
                                for (int d = 0; d < AMREX_SPACEDIM; ++d)
                                {
@@ -1629,7 +1554,7 @@ void MPMParticleContainer::removeParticlesInsideEB()
 
                                if (lsval < TINYVAL)
                                {
-                                   p.id() = -1; // mark particle for removal
+                                   p.id() = -1;
                                }
                            });
     }

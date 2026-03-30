@@ -254,17 +254,16 @@ void PrintSimParams(MPMParticleContainer *mpm_pc, MPMspecs *specs)
 }
 
 /**
- * @brief The total number of material points in a nice format
- * @param npart        Total number of material points
- * If less than 1 million, prints the number as it is. Otherwise, prints in
- * decimal format+"millions"
+ * @brief Prints the total number of material points read from file
+ *
+ * This function prints:
+ *  - Total number of material points read from file
  */
 
 std::string FormatParticleCount(long long npart)
 {
     std::ostringstream oss;
 
-    // Format the number depending on magnitude
     if (npart < 1'000'000)
     {
         oss << npart; // normal integer
@@ -277,21 +276,20 @@ std::string FormatParticleCount(long long npart)
 
     std::string num_str = oss.str();
 
-    // Desired total width of the message (adjust as needed)
     const int total_width = 15;
 
     std::ostringstream final_msg;
-    final_msg << "\n    Read "
-              << std::setw(total_width - 10) // ensures same total length
-              << std::right << num_str << " material points";
+    final_msg << "\n    Read " << std::setw(total_width - 10) << std::right
+              << num_str << " material points";
 
     return final_msg.str();
 }
 
 /**
- * @brief Prints the total elapsed time in the format HH:MM:SS::MS.
- * @param seconds        Total time (in seconds)
+ * @brief Prints the total time in HH MM SS ms format
  *
+ * This function prints:
+ *  - The total time elapsed in HH MM SS ms format
  */
 
 std::string FormatElapsedTime(double seconds)

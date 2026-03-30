@@ -830,34 +830,6 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
 }
 #endif
 
-/*void CalculateSurfaceIntegralOnBG(const amrex::Geometry geom,
-                                  amrex::MultiFab &nodaldata,
-                                  int nodaldataindex,
-                                  amrex::Real &integral_value)
-{
-    // For the time being, calculate the surface integral of y-velocity on the
-    // bottom surface ie y=0 and validate the code
-    integral_value = 0.0;
-
-    for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
-    {
-        const Box &bx = mfi.validbox();
-        Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
-
-        Array4<Real> nodal_data_arr = nodaldata.array(mfi);
-
-        // amrex::ParallelFor(nodalbox,[=,&integral_value]AMREX_GPU_DEVICE (int
-        // i,int j,int k) noexcept
-        //{
-        //
-integral_value+=(nodal_data_arr(i,j,k,nodaldataindex)+nodal_data_arr(i+1,j,k,nodaldataindex)+nodal_data_arr(i,j,k+1,nodaldataindex)+nodal_data_arr(i+1,j,k+1,nodaldataindex))/4.0*dx[0]*dx[2];
-        //	});
-    }
-#ifdef BL_USE_MPI
-    ParallelDescriptor::ReduceRealSum(integral_value);
-#endif
-}*/
-
 /**
  * @brief Computes interpolation error for a manufactured cosine velocity field.
  *
