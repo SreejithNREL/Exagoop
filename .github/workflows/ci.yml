@@ -93,7 +93,7 @@ jobs:
       - name: Run 1D Axial Bar Vibration
         working-directory: ./Tests/1D_Axial_Bar_Vibration
         run: |
-          ./ExaGOOP1d.gnu.DEBUG.ex Inputs_1DAxialBarVibration.inp mpm.final_time=50.0 mpm.max_steps=1000000 mpm.write_output_time=0.5 amr.plot_int=-1 amr.check_int=-1 mpm.fixed_timestep=1 mpm.timestep=1.0e-4
+          ./ExaGOOP1d.gnu.DEBUG.ex Inputs_1DAxialBarVibration.inp mpm.final_time=50.0 mpm.max_steps=1000000 mpm.write_output_time=0.5 amr.plot_int=-1 amr.check_int=-1 mpm.fixed_timestep=1 mpm.timestep=1.0e-4 mpm.screen_output_time=1
 
       - name: Validate 1D Axial Bar Vibration
         working-directory: ./Tests/1D_Axial_Bar_Vibration

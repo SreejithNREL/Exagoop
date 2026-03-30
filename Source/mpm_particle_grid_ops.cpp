@@ -985,6 +985,30 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
 
 #endif
 
+/**
+ * @brief Deposits rigid‑body particle quantities onto the Eulerian grid
+ *        (stub — body currently disabled).
+ *
+ * This function is intended to perform a P2G transfer using only the rigid
+ * (phase = 1) particles, segregating their mass and momentum onto the nodal
+ * MultiFab independently of the material‑point contribution. The full
+ * implementation is currently commented out; the function is a no‑op
+ * placeholder for future use.
+ *
+ * @param[in,out] nodaldata               Nodal MultiFab (unused in stub).
+ * @param[in]     gravity                 Gravitational acceleration vector.
+ * @param[in]     external_loads_present  Flag enabling external body forces.
+ * @param[in]     force_slab_lo           Lower corner of the body‑force slab.
+ * @param[in]     force_slab_hi           Upper corner of the body‑force slab.
+ * @param[in]     extforce                External force vector.
+ * @param[in]     update_massvel          Flag to update nodal mass/velocity.
+ * @param[in]     update_forces           Flag to update nodal forces.
+ * @param[in]     mass_tolerance          Minimum nodal mass threshold.
+ * @param[in]     order_scheme_directional Per‑dimension interpolation order.
+ * @param[in]     periodic                Per‑dimension periodicity flags.
+ *
+ * @return None.
+ */
 void MPMParticleContainer::deposit_onto_grid_rigidnodesonly(
     MultiFab & /*nodaldata*/,
     Array<Real, AMREX_SPACEDIM> /*gravity*/,

@@ -11,6 +11,17 @@
 
 // clang-format on
 
+/**
+ * @brief Computes sub‑cell offsets for multi‑particle‑per‑cell initialisation.
+ *
+ * Divides the unit interval [0, 1) into n equal sub‑intervals and returns the
+ * centre of each sub‑interval. Used to place n particles per cell along one
+ * spatial dimension so that they are evenly distributed within a grid cell.
+ *
+ * @param[in] n  Number of particles per cell in one dimension.
+ *
+ * @return std::vector<amrex::Real>  Vector of n offsets in (0, 1).
+ */
 std::vector<amrex::Real> make_ppc_offsets(int n)
 {
     std::vector<amrex::Real> off(n);
@@ -851,6 +862,25 @@ number_of_material_points");
 */
 
 #ifdef AMREX_USE_HDF5
+/**
+ * @brief Initializes particles by reading from an HDF5 particle file.
+ *
+ * Requires the code to be compiled with @c AMREX_USE_HDF5. The HDF5 file
+ * must contain per‑particle datasets for position, radius, density, velocity,
+ * constitutive model parameters, deformation gradient, strain, stress, and
+ * (if @c USE_TEMP is enabled) thermal fields. Particles are read on the IO
+ * processor, assembled into host vectors, and then redistributed across MPI
+ * ranks using chunked Redistribute() calls.
+ *
+ * @param[in]  filename              Path to the HDF5 particle file.
+ * @param[out] total_mass            Total mass of MPM (phase=0) particles.
+ * @param[out] total_vol             Total volume of MPM particles.
+ * @param[out] total_rigid_mass      Total mass of rigid body 0 particles.
+ * @param[out] num_of_rigid_bodies   Number of distinct rigid bodies found.
+ * @param[out] ifrigidnodespresent   Set to 1 if any rigid particles exist.
+ *
+ * @return None.
+ */
 void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
                                                  amrex::Real &total_mass,
                                                  amrex::Real &total_vol,
@@ -1510,6 +1540,30 @@ host_particles.end(), aos().begin() + old_size); host_particles.clear();
 }*/
 #endif
 
+/**
+ * @brief Initializes particles by reading from an ASCII particle file
+ *        using a chunked, streaming reader.
+ *
+ * Reads the particle file sequentially on the IO processor in batches of up to
+ * @c CHUNK_SIZE particles. After each full chunk is assembled the particles are
+ * immediately inserted into the AMReX particle tile and Redistribute() is
+ * called to spread them across MPI ranks, keeping peak memory usage bounded.
+ *
+ * The file format is the same as the legacy reader: a @c '#' header line
+ * followed by per‑particle lines encoding phase, rigid‑body ID, position,
+ * radius, density, velocity, constitutive model parameters, and (if
+ * @c USE_TEMP is active) thermal fields.
+ *
+ * @param[in]  filename              Path to the ASCII particle file.
+ * @param[out] total_mass            Accumulated mass of MPM (phase=0)
+ * particles.
+ * @param[out] total_vol             Accumulated volume of MPM particles.
+ * @param[out] total_rigid_mass      Accumulated mass of rigid body 0.
+ * @param[out] num_of_rigid_bodies   Number of distinct rigid body IDs found.
+ * @param[out] ifrigidnodespresent   Set to 1 if any rigid particles were read.
+ *
+ * @return None.
+ */
 void MPMParticleContainer::InitParticles(const std::string &filename,
                                          amrex::Real &total_mass,
                                          amrex::Real &total_vol,

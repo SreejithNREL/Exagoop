@@ -247,6 +247,22 @@ void MPMParticleContainer::Calculate_MinMaxPos(
     }
 }
 
+/**
+ * @brief Estimates the normal contact force at the top and bottom surfaces.
+ *
+ * Computes Fy_top = Σ(m * a_y) + |Σ(m * g_y)| + |Fy_bottom| using a
+ * GPU‑parallel reduction over all particles. The vertical acceleration
+ * a_y is read from @c realData::yacceleration and gravity from the
+ * passed‑in array. Fy_bottom is set to zero (placeholder for a future
+ * boundary integral).
+ *
+ * @param[in]  gravity     Gravitational acceleration vector.
+ * @param[out] Fy_top      Estimated upward reaction force at the top surface.
+ * @param[out] Fy_bottom   Estimated downward reaction force at the bottom
+ *                         surface (currently always zero).
+ *
+ * @return None.
+ */
 void MPMParticleContainer::CalculateSurfaceIntegralTop(
     Array<Real, AMREX_SPACEDIM> gravity, Real &Fy_top, Real &Fy_bottom)
 {
@@ -282,6 +298,20 @@ void MPMParticleContainer::CalculateSurfaceIntegralTop(
     Fy_top = Mvy + fabs(Fg) + fabs(Fy_bottom);
 }
 
+/**
+ * @brief Computes the effective spring constant from particle strain energy.
+ *
+ * Uses the relation k = 2U / δ², where U is the total elastic strain energy
+ * (Σ σ:ε V / 2 over all particles) and δ = L0 − V_total / Area is the
+ * axial compression. Also computes and returns the restoring force
+ * F = 2U / δ, and writes k to @c SpringConst.out.
+ *
+ * @param[in] Area  Cross‑sectional area of the specimen.
+ * @param[in] L0    Reference (undeformed) length of the specimen.
+ *
+ * @return amrex::Real  Restoring force F = 2U / δ (zero if deflection is
+ *                      negligible).
+ */
 amrex::Real
 MPMParticleContainer::CalculateEffectiveSpringConstant(amrex::Real Area,
                                                        amrex::Real L0)

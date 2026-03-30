@@ -422,6 +422,15 @@ amrex::Real MPMParticleContainer::GetPosSpring()
     return (ymin);
 }
 
+/**
+ * @brief Returns the minimum Y‑coordinate among all rigid‑body‑0 particles.
+ *
+ * Performs a GPU‑parallel reduction over all particles with phase = 1 and
+ * rigid_body_id = 0 (the piston), returning the lowest Y position. All
+ * other particles contribute +∞ to the reduction so they are ignored.
+ *
+ * @return amrex::Real  Minimum Y‑position of the piston rigid body.
+ */
 amrex::Real MPMParticleContainer::GetPosPiston()
 {
     // const int lev = 0;
