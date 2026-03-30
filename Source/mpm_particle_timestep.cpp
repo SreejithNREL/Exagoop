@@ -229,6 +229,7 @@ void MPMParticleContainer::moveParticles(
     const int lev = 0;
     const auto plo = Geom(lev).ProbLoArray();
     const auto phi = Geom(lev).ProbHiArray();
+    const auto dx = Geom(lev).CellSizeArray();
     auto &plev = GetParticles(lev);
 
 #if USE_EB
