@@ -897,6 +897,15 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
 }
 #endif
 
+template <typename T>
+inline void safe_read(std::istream &is, T &val, const char *msg)
+{
+    if (!(is >> val))
+    {
+        amrex::Abort(msg);
+    }
+}
+
 /**
  * @brief Initializes particles by reading from an ASCII particle file
  *        using a chunked, streaming reader.
@@ -929,7 +938,7 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
                                          int &num_of_rigid_bodies,
                                          int &ifrigidnodespresent)
 {
-    const int CHUNK_SIZE = 100000; // tune as needed
+    const int CHUNK_SIZE = 100000;
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -947,7 +956,8 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
         std::string label;
         int file_dim = -1;
 
-        ifs >> label >> file_dim; // label = "dim:", file_dim = 1/2/3
+        safe_read(ifs, label, "Error reading 'dim:' label");
+        safe_read(ifs, file_dim, "Error reading dimension");
 
         if (label != "dim:")
         {
@@ -956,48 +966,37 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
 
         if (file_dim != AMREX_SPACEDIM)
         {
-            amrex::Print() << "ERROR: Particle file dimension = " << file_dim
-                           << "\n"
-                           << "       AMREX_SPACEDIM        = "
-                           << AMREX_SPACEDIM << "\n";
-            amrex::Abort(
-                "Dimension mismatch between particle file and ExaGOOP build");
+            amrex::Abort("Dimension mismatch between particle file and build");
         }
 
         // ------------------------------------------------------------
-        // 2. Read number of materail points
+        // 2. Read number of material points
         // ------------------------------------------------------------
         std::string label2;
-
-        ifs >> label2 >> np; // label2 = "number_of_material_points:"
+        safe_read(ifs, label2, "Error reading 'number_of_material_points:'");
+        safe_read(ifs, np, "Error reading number_of_material_points");
 
         if (label2 != "number_of_material_points:")
         {
-            amrex::Abort("mpm_particles.dat: Expected "
-                         "'number_of_material_points:' at line 2");
+            amrex::Abort("Expected 'number_of_material_points:' at line 2");
         }
 
         if (np <= 0)
         {
-            amrex::Abort(
-                "mpm_particles.dat: Invalid number_of_material_points");
+            amrex::Abort("Invalid number_of_material_points");
         }
 
         // ------------------------------------------------------------
-        // 3. Skip the header line beginning with '#'
+        // 3. Skip header line beginning with '#'
         // ------------------------------------------------------------
         std::string header_line;
         std::getline(ifs, header_line); // finish line 2
-        std::getline(ifs, header_line); // read line 3 (column names)
+        std::getline(ifs, header_line); // read line 3
 
         if (header_line.empty() || header_line[0] != '#')
         {
-            amrex::Abort(
-                "mpm_particles.dat: Expected header line beginning with '#'");
+            amrex::Abort("Expected header line beginning with '#'");
         }
-
-        std::string msg = "\n    ASCII: Using ASCII reader";
-        PrintMultiLineMessage(msg, print_length, true);
 
         total_mass = 0.0;
         total_vol = 0.0;
@@ -1006,30 +1005,40 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
         num_of_rigid_bodies = 0;
 
         const int lev = 0, grid = 0, tile = 0;
-        auto &ptile = DefineAndReturnParticleTile(lev, grid, tile);
-        auto &aos = ptile.GetArrayOfStructs();
+        auto &particle_tile = DefineAndReturnParticleTile(lev, grid, tile);
 
         Gpu::HostVector<ParticleType> host_particles;
         host_particles.reserve(CHUNK_SIZE);
 
-        int rigid_bodies_seen[32] = {-1};
+        int rigid_bodies_seen[32];
+        for (int i = 0; i < 32; ++i)
+            rigid_bodies_seen[i] = -99999;
         int rigid_count = 0;
 
+        // ------------------------------------------------------------
+        // 4. Read particles safely
+        // ------------------------------------------------------------
         for (int i = 0; i < np; ++i)
         {
+            if (ifs.peek() == EOF)
+            {
+                amrex::Abort("Unexpected EOF while reading particle data");
+            }
+
             ParticleType p;
 
-            // id/cpu
             p.id() = ParticleType::NextID();
             p.cpu() = ParallelDescriptor::MyProc();
 
             // phase
-            ifs >> p.idata(intData::phase);
+            safe_read(ifs, p.idata(intData::phase), "Error reading phase");
 
             if (p.idata(intData::phase) == 1)
             {
                 ifrigidnodespresent = 1;
-                ifs >> p.idata(intData::rigid_body_id);
+
+                safe_read(ifs, p.idata(intData::rigid_body_id),
+                          "Error reading rigid_body_id");
 
                 bool found = false;
                 for (int j = 0; j < rigid_count; ++j)
@@ -1048,14 +1057,12 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
             // positions
             for (int d = 0; d < AMREX_SPACEDIM; ++d)
             {
-                amrex::Real coord;
-                ifs >> coord;
-                p.pos(d) = coord;
+                safe_read(ifs, p.pos(d), "Error reading particle position");
             }
 
             // radius & density
-            ifs >> p.rdata(realData::radius);
-            ifs >> p.rdata(realData::density);
+            safe_read(ifs, p.rdata(realData::radius), "Error reading radius");
+            safe_read(ifs, p.rdata(realData::density), "Error reading density");
 
             // velocities
             for (int d = 0; d < 3; ++d)
@@ -1065,17 +1072,18 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
             }
             for (int d = 0; d < AMREX_SPACEDIM; ++d)
             {
-                amrex::Real v;
-                ifs >> v;
-                p.rdata(realData::xvel + d) = v;
+                safe_read(ifs, p.rdata(realData::xvel + d),
+                          "Error reading velocity");
             }
 
             // constitutive model
-            ifs >> p.idata(intData::constitutive_model);
+            safe_read(ifs, p.idata(intData::constitutive_model),
+                      "Error reading constitutive_model");
+
             if (p.idata(intData::constitutive_model) == 0)
             {
-                ifs >> p.rdata(realData::E);
-                ifs >> p.rdata(realData::nu);
+                safe_read(ifs, p.rdata(realData::E), "Error reading E");
+                safe_read(ifs, p.rdata(realData::nu), "Error reading nu");
                 p.rdata(realData::Bulk_modulus) = 0.0;
                 p.rdata(realData::Gama_pressure) = 0.0;
                 p.rdata(realData::Dynamic_viscosity) = 0.0;
@@ -1084,9 +1092,12 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
             {
                 p.rdata(realData::E) = 0.0;
                 p.rdata(realData::nu) = 0.0;
-                ifs >> p.rdata(realData::Bulk_modulus);
-                ifs >> p.rdata(realData::Gama_pressure);
-                ifs >> p.rdata(realData::Dynamic_viscosity);
+                safe_read(ifs, p.rdata(realData::Bulk_modulus),
+                          "Error reading Bulk_modulus");
+                safe_read(ifs, p.rdata(realData::Gama_pressure),
+                          "Error reading Gama_pressure");
+                safe_read(ifs, p.rdata(realData::Dynamic_viscosity),
+                          "Error reading Dynamic_viscosity");
             }
             else
             {
@@ -1094,10 +1105,14 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
             }
 
 #if USE_TEMP
-            ifs >> p.rdata(realData::temperature);
-            ifs >> p.rdata(realData::specific_heat);
-            ifs >> p.rdata(realData::thermal_conductivity);
-            ifs >> p.rdata(realData::heat_source);
+            safe_read(ifs, p.rdata(realData::temperature),
+                      "Error reading temperature");
+            safe_read(ifs, p.rdata(realData::specific_heat),
+                      "Error reading specific_heat");
+            safe_read(ifs, p.rdata(realData::thermal_conductivity),
+                      "Error reading thermal_conductivity");
+            safe_read(ifs, p.rdata(realData::heat_source),
+                      "Error reading heat_source");
             for (int d = 0; d < AMREX_SPACEDIM; ++d)
                 p.rdata(realData::heat_flux + d) = 0.0;
 #endif
@@ -1141,19 +1156,21 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
             }
 
             host_particles.push_back(p);
+        }
 
-            if (!ifs.good())
-            {
-                amrex::Abort("Error initializing particles from Ascii file.\n");
-            }
+        // Final sanity check
+        if (host_particles.size() != static_cast<size_t>(np))
+        {
+            amrex::Abort("Particle count mismatch: file ended early");
         }
 
         num_of_rigid_bodies = rigid_count;
-        /*auto old_size = particle_tile.GetArrayOfStructs().size();
+
+        auto old_size = particle_tile.GetArrayOfStructs().size();
         particle_tile.resize(old_size + host_particles.size());
         Gpu::copy(Gpu::hostToDevice, host_particles.begin(),
                   host_particles.end(),
-                  particle_tile.GetArrayOfStructs().begin() + old_size);*/
+                  particle_tile.GetArrayOfStructs().begin() + old_size);
     }
 
     Redistribute();

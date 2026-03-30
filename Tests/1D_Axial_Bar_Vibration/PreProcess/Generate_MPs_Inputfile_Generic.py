@@ -1285,55 +1285,75 @@ def read_grid_from_input(filename):
 
 def read_particles_ascii(filename):
     """
-    Read ASCII particle file written by write_particles_ascii_streaming().
+    Robust reader for ASCII particle files written by write_particles_ascii_streaming().
     Returns:
-        dim, data_dict
-    where data_dict maps column names -> NumPy arrays.
+        dim (int)
+        data (dict[str, np.ndarray])
     """
 
     import numpy as np
 
+    def try_float(x):
+        """Return float(x) if possible, else return original string."""
+        try:
+            return float(x)
+        except ValueError:
+            return x
+
     with open(filename, "r") as f:
         # ------------------------------------------------------------
-        # Read header
+        # Header
         # ------------------------------------------------------------
         line = f.readline().strip()
-        assert line.startswith("dim:")
-        dim = int(line.split(":")[1])
+        if not line.startswith("dim:"):
+            raise ValueError("Expected 'dim:' header")
+        dim = int(line.split(":", 1)[1])
 
         line = f.readline().strip()
-        assert line.startswith("number_of_material_points:")
-        npart = int(line.split(":")[1])
+        if not line.startswith("number_of_material_points:"):
+            raise ValueError("Expected 'number_of_material_points:' header")
+        npart = int(line.split(":", 1)[1])
 
         # ------------------------------------------------------------
-        # Read column names
+        # Column names
         # ------------------------------------------------------------
         line = f.readline().strip()
-        assert line.startswith("#")
+        if not line.startswith("#"):
+            raise ValueError("Expected column header starting with '#'")
         cols = line[1:].strip().split()
 
         # Prepare storage
-        data = {c: [] for c in cols}
+        raw = {c: [] for c in cols}
 
         # ------------------------------------------------------------
-        # Read particle rows
+        # Particle rows
         # ------------------------------------------------------------
         for line in f:
             if not line.strip():
                 continue
             vals = line.split()
+            if len(vals) != len(cols):
+                raise ValueError(
+                    f"Row has {len(vals)} values but expected {len(cols)}"
+                )
             for c, v in zip(cols, vals):
-                # float or int?
-                if v.replace(".", "", 1).replace("e", "", 1).replace("-", "", 1).isdigit():
-                    data[c].append(float(v))
-                else:
-                    data[c].append(v)
+                raw[c].append(try_float(v))
 
-    # Convert lists → NumPy arrays
-    for c in data:
-        data[c] = np.asarray(data[c])
+    # ------------------------------------------------------------
+    # Convert lists → NumPy arrays with best possible dtype
+    # ------------------------------------------------------------
+    data = {}
+    for c, lst in raw.items():
+        # Try to convert entire column to float
+        try:
+            arr = np.asarray(lst, dtype=float)
+        except ValueError:
+            # Mixed or non-numeric → keep as object/string
+            arr = np.asarray(lst, dtype=object)
+        data[c] = arr
 
     return dim, data
+
 
 
 # ------------------------------------------------------------
@@ -1351,18 +1371,27 @@ def read_particles_h5(filename):
 def plot_1d(x, grid):
     import matplotlib.pyplot as plt
     import numpy as np
+    
+    print("\n Plotting grid")
 
     xmin, xmax, nx = grid["xmin"], grid["xmax"], grid["nx"]
     dx = (xmax - xmin) / nx
+    
+    print("xmin = ",xmin)
+    print("xmax = ",xmax)
+    print("nx = ",nx)
+    print("dx = ",dx)
 
     fig, ax = plt.subplots(figsize=(12, 3))
 
     # Plot material points
     ax.scatter(x, np.zeros_like(x), s=20, c="blue", alpha=0.7, label="Material Points")
+    print('matpt = ',x)
 
     # Plot grid cell boundaries
     for i in range(nx + 1):
         xc = xmin + i * dx
+        print(xc)
         ax.axvline(x=xc, color="gray", lw=0.5)
 
     # Formatting
@@ -1373,7 +1402,7 @@ def plot_1d(x, grid):
     ax.grid(False)
 
     plt.tight_layout()
-    plt.show()
+    #plt.show()
 
 
 # ------------------------------------------------------------
@@ -1603,7 +1632,7 @@ def write_inputs_file(
         # Boundary Conditions
         write_block(f, [
             ("mpm.bc_lower", "1 0 0"),
-            ("mpm.bc_upper", "2 0 0"),
+            ("mpm.bc_upper", "1 0 0"),
             ("mpm.bc_lower_temp", "1 0 0"),
             ("mpm.bc_upper_temp", "1 0 0"),
             ("mpm.bc_lower_tempval", "0.0 0.0 0"),
@@ -1993,6 +2022,7 @@ def main():
             x = data["x"]
             y = data.get("y")   # None in 1D
             z = data.get("z")   # None in 1D/2D
+            print(data)
     
             
     

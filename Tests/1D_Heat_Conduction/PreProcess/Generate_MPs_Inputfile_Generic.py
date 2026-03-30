@@ -1373,7 +1373,7 @@ def plot_1d(x, grid):
     ax.grid(False)
 
     plt.tight_layout()
-    plt.show()
+    #plt.show()
 
 
 # ------------------------------------------------------------

@@ -37,6 +37,7 @@
 
 amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
 {
+
     if (specs.fixed_timestep == 1)
     {
         return specs.timestep;
@@ -61,6 +62,7 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
                 }
                 else if (p.idata(intData::constitutive_model) == 0)
                 {
+
                     amrex::Real lambda = p.rdata(realData::E) *
                                          p.rdata(realData::nu) /
                                          ((1 + p.rdata(realData::nu)) *
@@ -69,6 +71,9 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
                                      (2.0 * (1 + p.rdata(realData::nu)));
                     Cs = std::sqrt((lambda + 2.0 * mu) /
                                    p.rdata(realData::density));
+                    // amrex::Print()<<"\n Inside dt calc
+                    // "<<p.rdata(realData::E)<<" "<<p.rdata(realData::nu)<<"
+                    // "<<Cs;
                 }
 
                 // Dimension‑aware velocity magnitude

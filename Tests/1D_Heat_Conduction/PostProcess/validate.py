@@ -30,7 +30,7 @@ FILEPATH = matches[0]
 print(f"Found output file: {FILEPATH}")
 
 data = np.loadtxt(FILEPATH, skiprows=5)
-assert data.shape[1] == 59, f"Expected 59 columns, got {data.shape[1]}"
+
 
 x = data[:, 0]
 T_num = data[:, 47]

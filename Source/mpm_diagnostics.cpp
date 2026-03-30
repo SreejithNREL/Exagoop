@@ -208,6 +208,15 @@ void MPMParticleContainer::Calculate_MinMaxPos(
             *this, [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
             { return p.pos(dim); });
     }
+
+#ifdef BL_USE_MPI
+    // for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        amrex::ParallelDescriptor::ReduceRealMax(maxpos.data(), AMREX_SPACEDIM);
+        amrex::ParallelDescriptor::ReduceRealMin(minpos.data(), AMREX_SPACEDIM);
+        // amrex::ParallelDescriptor::ReduceRealMax(minpos);
+    }
+#endif
 }
 
 /**
