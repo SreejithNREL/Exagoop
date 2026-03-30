@@ -40,7 +40,7 @@
   ],
   "CFL": 0.1,
   "alpha_pic_flip": 1.0,
-  "order_scheme": 1,
+  "order_scheme": 2,
   "stress_update_scheme": 1,
   "output_tag": "1D_Axial_Bar_Vibration_dim1_npcx1_ord1_flip1.0_sus1_CFL0.1_10a27d",
   "input_filename": "Inputs_1DAxialBarVibration.inp",
