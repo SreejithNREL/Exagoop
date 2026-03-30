@@ -254,10 +254,10 @@ void PrintSimParams(MPMParticleContainer *mpm_pc, MPMspecs *specs)
 }
 
 /**
- * @brief Prints the total number of material points read from file
- *
- * This function prints:
- *  - Total number of material points read from file
+ * @brief The total number of material points in a nice format
+ * @param npart        Total number of material points
+ * If less than 1 million, prints the number as it is. Otherwise, prints in
+ * decimal format+"millions"
  */
 
 std::string FormatParticleCount(long long npart)

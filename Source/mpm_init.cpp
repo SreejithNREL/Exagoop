@@ -1149,11 +1149,11 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
         }
 
         num_of_rigid_bodies = rigid_count;
-        auto old_size = particle_tile.GetArrayOfStructs().size();
+        /*auto old_size = particle_tile.GetArrayOfStructs().size();
         particle_tile.resize(old_size + host_particles.size());
         Gpu::copy(Gpu::hostToDevice, host_particles.begin(),
                   host_particles.end(),
-                  particle_tile.GetArrayOfStructs().begin() + old_size);
+                  particle_tile.GetArrayOfStructs().begin() + old_size);*/
     }
 
     Redistribute();
