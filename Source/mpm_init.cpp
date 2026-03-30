@@ -1679,6 +1679,7 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
             }
             else
             {
+
                 amrex::Abort("Incorrect constitutive model");
             }
 

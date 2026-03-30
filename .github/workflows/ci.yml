@@ -79,6 +79,7 @@ jobs:
             USE_MPI=FALSE \
             DEBUG=TRUE \
             DIM=1 \
+            USE_TEMP=FALSE \
             USE_HDF5=FALSE \
             AMREX_USE_HDF5=FALSE \
             2>&1 | tee -a build-output.txt
@@ -232,6 +233,7 @@ jobs:
         working-directory: ./Tests/2D_Heat_Conduction
         run: |
           cp ../../Build_Gnumake/GNUmakefile .
+          python3 ./PreProcess/Generate_MPs_Inputfile_Generic.py --config ./PreProcess/config.json
 
       - name: Create output directories
         working-directory: ./Tests/2D_Heat_Conduction

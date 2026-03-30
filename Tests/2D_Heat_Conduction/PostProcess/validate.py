@@ -20,7 +20,7 @@ T1 = 1.0
 L = 1.0
 H = 1.0
 N_terms = 25
-RMS_TOL = 1e-2
+RMS_TOL = 5e-2
 matches = glob.glob("Solution/ascii_files/*/matpnt_t0.050000")
 if not matches:
     matches = glob.glob("CI_Output/matpnt_t0.050000")

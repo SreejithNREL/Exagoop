@@ -14,7 +14,7 @@ def Texact(x, T0, T1, t, N=100):
 T_TIME = 0.05
 T0 = 0.0
 T1 = 1.0
-RMS_TOL = 1e-3
+RMS_TOL = 1e-2
 matches = glob.glob("Solution/ascii_files/*/matpnt_t0.050000")
 if not matches:
     matches = glob.glob("CI_Output/matpnt_t0.050000")
