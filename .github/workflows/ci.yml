@@ -66,7 +66,7 @@ jobs:
       - name: Create output directories
         working-directory: ./Tests/1D_Axial_Bar_Vibration
         run: |
-          mkdir -p 1D_Axial_Bar_Vibration_dim1_npcx1_ord3_flip1.0_sus1_CFL0.1_8825d8
+          mkdir -p CI_Output
 
       - name: Build 1D Axial Bar Vibration (DEBUG=TRUE, DIM=1)
         working-directory: ./Tests/1D_Axial_Bar_Vibration
@@ -140,8 +140,7 @@ jobs:
       - name: Create output directories
         working-directory: ./Tests/1D_Heat_Conduction
         run: |
-          mkdir -p 1D_Heat_Conduction_npcx4_ord3_sus1_cd48aa
-          mkdir -p Solution/particle_files
+          mkdir -p CI_Output
 
       - name: Build 1D Heat Conduction (DEBUG=TRUE, DIM=1, USE_TEMP=TRUE)
         working-directory: ./Tests/1D_Heat_Conduction
@@ -235,7 +234,7 @@ jobs:
       - name: Create output directories
         working-directory: ./Tests/2D_Heat_Conduction
         run: |
-          mkdir -p 2D_Heat_Conduction_npcx1_ord3_sus1_da93ae
+          mkdir -p CI_Output
 
       - name: Build 2D Heat Conduction (DEBUG=TRUE, DIM=2, USE_TEMP=TRUE)
         working-directory: ./Tests/2D_Heat_Conduction

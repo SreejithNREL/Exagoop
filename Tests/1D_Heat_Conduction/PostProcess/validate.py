@@ -14,7 +14,7 @@ T_TIME = 0.05
 T0 = 0.0
 T1 = 1.0
 RMS_TOL = 1e-3
-FILEPATH = "1D_Heat_Conduction_npcx4_ord3_sus1_cd48aa/matpnt_t0.050000"
+FILEPATH = "CI_Output/matpnt_t0.050000"
 
 if not os.path.exists(FILEPATH):
     print(f"FAIL: output file not found: {FILEPATH}")

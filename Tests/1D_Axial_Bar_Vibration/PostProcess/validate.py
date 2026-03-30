@@ -8,7 +8,7 @@ def exact_velocity(x, t, V0=0.1, L=25.0, E=100, rho=1):
 
 T = 0.5
 RMS_TOL = 1e-3
-FILEPATH = "1D_Axial_Bar_Vibration_dim1_npcx1_ord3_flip1.0_sus1_CFL0.1_8825d8/matpnt_t0.500000"
+FILEPATH = "CI_Output/matpnt_t0.500000"
 
 if not os.path.exists(FILEPATH):
     print(f"FAIL: output file not found: {FILEPATH}")

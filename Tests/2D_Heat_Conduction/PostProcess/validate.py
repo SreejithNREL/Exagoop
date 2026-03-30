@@ -20,7 +20,7 @@ L = 1.0
 H = 1.0
 N_terms = 25
 RMS_TOL = 1e-2
-FILEPATH = "2D_Heat_Conduction_npcx1_ord3_sus1_da93ae/matpnt_t0.050000"
+FILEPATH = "CI_Output/matpnt_t0.050000"
 
 if not os.path.exists(FILEPATH):
     print(f"FAIL: output file not found: {FILEPATH}")
