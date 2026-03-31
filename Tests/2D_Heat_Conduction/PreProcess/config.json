@@ -1,0 +1,47 @@
+{
+  "dimensions": 2,
+  "grid": {
+    "xmin": 0.0,
+    "xmax": 1.0,
+    "nx": 32,
+    "ymin": 0.0,
+    "ymax": 1.0,
+    "ny": 32
+  },
+  "ppc": [
+    1,
+    1
+  ],
+  "bodies": [
+    {
+      "shape": null,
+      "constitutive_model": {
+        "type": "elastic",
+        "E": 1000000.0,
+        "nu": 0.3
+      },
+      "initial_velocity": {
+        "type": "uniform",
+        "vx": 0.0,
+        "vy": 0.0
+      },
+      "temperature": {
+        "enabled": true,
+        "type": "uniform",
+        "T": 0.0,
+        "spheat": 1.0,
+        "thermcond": 1.0,
+        "heatsrc": 0.0
+      }
+    }
+  ],
+  "CFL": 0.1,
+  "alpha_pic_flip": 1.0,
+  "order_scheme": 2,
+  "stress_update_scheme": 1,
+  "output_tag": "2D_Heat_Conduction_npcx1_ord2_sus1_USEHDFFalse_OFORMascii_e0a3ff",
+  "input_filename": "Inputs_2DHeatConduction.inp",
+  "output_format": "ascii",
+  "materialpoint_filename": "mpm_particles.dat",
+  "plot_to_check": false
+}

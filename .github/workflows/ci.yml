@@ -24,7 +24,8 @@ jobs:
         exclude: '.'
         extensions: 'H,h,cpp'
         clangFormatVersion: 20
-  CPU-GNUmake:
+
+  CPU-1D-Bar-Vibration:
     needs: Formatting
     runs-on: ubuntu-latest
     steps:
@@ -32,11 +33,17 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: Setup
+        run: |
+          echo "NPROCS=$(nproc)" >> $GITHUB_ENV
+
       - name: Install Ccache
         run: |
           wget https://github.com/ccache/ccache/releases/download/v4.8/ccache-4.8-linux-x86_64.tar.xz
           tar xvf ccache-4.8-linux-x86_64.tar.xz
           sudo cp -f ccache-4.8-linux-x86_64/ccache /usr/local/bin/
+
       - name: Set Up Ccache
         uses: actions/cache@v4
         with:
@@ -44,39 +51,235 @@ jobs:
           key: ccache-${{github.workflow}}-${{github.job}}-git-${{github.sha}}
           restore-keys: |
                ccache-${{github.workflow}}-${{github.job}}-git-
-      - name: DamBreak debug make
-        working-directory: ./Tests/Dam_Break
+
+      - name: Install Python dependencies
         run: |
-          # echo "::add-matcher::.github/problem-matchers/gcc.json"
-          set -eu -o pipefail
+          python3 -m pip install --upgrade pip
+          pip3 install numpy matplotlib h5py
+
+      - name: Preprocess 1D Axial Bar Vibration
+        working-directory: ./Tests/1D_Axial_Bar_Vibration
+        run: |
+          cp ../../Build_Gnumake/GNUmakefile .
+          python3 ./PreProcess/Generate_MPs_Inputfile_Generic.py --config ./PreProcess/config.json
+
+      - name: Create output directories
+        working-directory: ./Tests/1D_Axial_Bar_Vibration
+        run: |
+          mkdir -p CI_Output
+
+      - name: Build 1D Axial Bar Vibration (DEBUG=TRUE, DIM=1)
+        working-directory: ./Tests/1D_Axial_Bar_Vibration
+        run: |
           ccache -z
-          make -j ${{env.NPROCS}} KEEP_BUILDINFO_CPP=TRUE USE_CCACHE=TRUE COMP=gnu USE_MPI=FALSE DEBUG=TRUE 2>&1 | tee -a build-output.txt
-      - name: DamBreak ccache report
-        working-directory: ./Tests/Dam_Break
+          make -j ${{env.NPROCS}} \
+            KEEP_BUILDINFO_CPP=TRUE \
+            USE_CCACHE=TRUE \
+            COMP=gnu \
+            USE_MPI=FALSE \
+            DEBUG=TRUE \
+            DIM=1 \
+            USE_TEMP=FALSE \
+            USE_HDF5=FALSE \
+            AMREX_USE_HDF5=FALSE \
+            2>&1 | tee -a build-output.txt
+
+      - name: Ccache Report
+        working-directory: ./Tests/1D_Axial_Bar_Vibration
         run: |
           ccache -s
           du -hs ~/.cache/ccache
-      - name: DamBreak debug test
-        working-directory: ./Tests/Dam_Break
-        run: ./ExaGOOP3d.gnu.DEBUG.ex inputs_dambreak.in amr.max_step=1 amr.plot_int=-1 amr.check_int=-1
-      #- name: DamBreak debug report
-      #  working-directory: ./Tests/Dam_Break
-      #  run: |
-      #    egrep "Warning:|Error:|warning:|error:" build-output.txt \
-      #      | egrep -v "Submodules/amrex|GNUmakefile" \
-      #      | egrep -v "ld: warning:" | sort | uniq \
-      #      | awk 'BEGIN{i=0}{print $0}{i++}END{print "Warnings: "i}' > warnings.txt
-      #    cat warnings.txt
-      #    export return=$(tail -n 1 warnings.txt | awk '{print $2}')
-      #    exit ${return}
+
+      - name: Run 1D Axial Bar Vibration
+        working-directory: ./Tests/1D_Axial_Bar_Vibration
+        run: |
+          ./ExaGOOP1d.gnu.DEBUG.ex Inputs_1DAxialBarVibration.inp mpm.final_time=50.0 mpm.max_steps=1000000 mpm.write_output_time=10.0 amr.plot_int=-1 amr.check_int=-1 mpm.fixed_timestep=1 mpm.timestep=1.0e-4 mpm.screen_output_time=10
+
+      - name: Validate 1D Axial Bar Vibration
+        working-directory: ./Tests/1D_Axial_Bar_Vibration
+        run: |
+          python3 ./PostProcess/validate.py
+
+  CPU-1D-Heat-Conduction:
+    needs: Formatting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup
+        run: |
+          echo "NPROCS=$(nproc)" >> $GITHUB_ENV
+
+      - name: Install Ccache
+        run: |
+          wget https://github.com/ccache/ccache/releases/download/v4.8/ccache-4.8-linux-x86_64.tar.xz
+          tar xvf ccache-4.8-linux-x86_64.tar.xz
+          sudo cp -f ccache-4.8-linux-x86_64/ccache /usr/local/bin/
+
+      - name: Set Up Ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ccache
+          key: ccache-${{github.workflow}}-${{github.job}}-git-${{github.sha}}
+          restore-keys: |
+               ccache-${{github.workflow}}-${{github.job}}-git-
+
+      - name: Install Python dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip3 install numpy matplotlib h5py
+
+      - name: Preprocess 1D Heat Conduction
+        working-directory: ./Tests/1D_Heat_Conduction
+        run: |
+          cp ../../Build_Gnumake/GNUmakefile .
+          python3 ./PreProcess/Generate_MPs_Inputfile_Generic.py --config ./PreProcess/config.json
+
+      - name: Create output directories
+        working-directory: ./Tests/1D_Heat_Conduction
+        run: |
+          mkdir -p CI_Output
+
+      - name: Build 1D Heat Conduction (DEBUG=TRUE, DIM=1, USE_TEMP=TRUE)
+        working-directory: ./Tests/1D_Heat_Conduction
+        run: |
+          ccache -z
+          make -j ${{env.NPROCS}} \
+            KEEP_BUILDINFO_CPP=TRUE \
+            USE_CCACHE=TRUE \
+            COMP=gnu \
+            USE_MPI=FALSE \
+            DEBUG=TRUE \
+            DIM=1 \
+            USE_TEMP=TRUE \
+            USE_HDF5=FALSE \
+            AMREX_USE_HDF5=FALSE \
+            2>&1 | tee -a build-output.txt
+
+      - name: Ccache Report
+        working-directory: ./Tests/1D_Heat_Conduction
+        run: |
+          ccache -s
+          du -hs ~/.cache/ccache
+
+      - name: Run 1D Heat Conduction
+        working-directory: ./Tests/1D_Heat_Conduction
+        run: |
+          ./ExaGOOP1d.gnu.DEBUG.ex Inputs_1DHeatConduction.inp mpm.max_steps=5000 amr.plot_int=-1 amr.check_int=-1
+
+      - name: Print Backtrace if exists
+        if: always()
+        working-directory: ./Tests/1D_Heat_Conduction
+        run: |
+          if [ -f Backtrace.0 ]; then
+            echo "=== Backtrace.0 ==="
+            cat Backtrace.0
+          else
+            echo "No backtrace file found"
+          fi
+
+      - name: List output directories
+        if: always()
+        working-directory: ./Tests/1D_Heat_Conduction
+        run: |
+          echo "=== CI_Output contents ==="
+          ls -la CI_Output/ 2>/dev/null || echo "CI_Output not found"
+          echo "=== Search for matpnt files ==="
+          find . -name "matpnt*" 2>/dev/null | head -20
+          echo "=== Search for ascii files ==="
+          find . -name "*.dat" -newer Inputs_1DHeatConduction.inp 2>/dev/null | head -20
+
+      - name: Validate 1D Heat Conduction
+        working-directory: ./Tests/1D_Heat_Conduction
+        run: |
+          python3 ./PostProcess/validate.py
+
+  CPU-2D-Heat-Conduction:
+    needs: Formatting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup
+        run: |
+          echo "NPROCS=$(nproc)" >> $GITHUB_ENV
+
+      - name: Install Ccache
+        run: |
+          wget https://github.com/ccache/ccache/releases/download/v4.8/ccache-4.8-linux-x86_64.tar.xz
+          tar xvf ccache-4.8-linux-x86_64.tar.xz
+          sudo cp -f ccache-4.8-linux-x86_64/ccache /usr/local/bin/
+
+      - name: Set Up Ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ccache
+          key: ccache-${{github.workflow}}-${{github.job}}-git-${{github.sha}}
+          restore-keys: |
+               ccache-${{github.workflow}}-${{github.job}}-git-
+
+      - name: Install Python dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip3 install numpy matplotlib h5py
+
+      - name: Prepare 2D Heat Conduction
+        working-directory: ./Tests/2D_Heat_Conduction
+        run: |
+          cp ../../Build_Gnumake/GNUmakefile .
+          python3 ./PreProcess/Generate_MPs_Inputfile_Generic.py --config ./PreProcess/config.json
+
+      - name: Create output directories
+        working-directory: ./Tests/2D_Heat_Conduction
+        run: |
+          mkdir -p CI_Output
+
+      - name: Build 2D Heat Conduction (DEBUG=TRUE, DIM=2, USE_TEMP=TRUE)
+        working-directory: ./Tests/2D_Heat_Conduction
+        run: |
+          ccache -z
+          make -j ${{env.NPROCS}} \
+            KEEP_BUILDINFO_CPP=TRUE \
+            USE_CCACHE=TRUE \
+            COMP=gnu \
+            USE_MPI=FALSE \
+            DEBUG=TRUE \
+            DIM=2 \
+            USE_TEMP=TRUE \
+            USE_HDF5=FALSE \
+            AMREX_USE_HDF5=FALSE \
+            2>&1 | tee -a build-output.txt
+
+      - name: Ccache Report
+        working-directory: ./Tests/2D_Heat_Conduction
+        run: |
+          ccache -s
+          du -hs ~/.cache/ccache
+
+      - name: Run 2D Heat Conduction
+        working-directory: ./Tests/2D_Heat_Conduction
+        run: |
+          ./ExaGOOP2d.gnu.DEBUG.ex Inputs_2DHeatConduction.inp mpm.max_steps=5000 amr.plot_int=-1 amr.check_int=-1 mpm.screen_output_time=0.01
+
+      - name: Validate 2D Heat Conduction
+        working-directory: ./Tests/2D_Heat_Conduction
+        run: |
+          python3 ./PostProcess/validate.py
+
   GPU-Nvidia:
     name: GPU-CUDA
-    needs: [Formatting, CPU-GNUmake]
+    needs: [Formatting, CPU-1D-Bar-Vibration, CPU-1D-Heat-Conduction, CPU-2D-Heat-Conduction]
     runs-on: ubuntu-latest
     strategy:
       matrix:
         enable_eb: [EB-ON]
-        include:          
+        include:
           - enable_eb: EB-ON
             use_eb: "ON"
       fail-fast: false
@@ -126,6 +329,7 @@ jobs:
             -DEXAGOOP_ENABLE_MPI:BOOL=OFF \
             -DEXAGOOP_ENABLE_CUDA:BOOL=ON \
             -DEXAGOOP_ENABLE_EB:BOOL=${{matrix.use_eb}} \
+            -DEXAGOOP_DIM=2 \
             -DAMReX_CUDA_ERROR_CAPTURE_THIS:BOOL=ON \
             -DCMAKE_CUDA_ARCHITECTURES:STRING=80 \
             -DCMAKE_CUDA_COMPILER_LAUNCHER:STRING=ccache \
@@ -139,9 +343,10 @@ jobs:
         run: |
           ccache -s
           du -hs ~/.cache/ccache
+
   GPU-AMD:
     name: GPU-HIP
-    needs: [Formatting, CPU-GNUmake]
+    needs: [Formatting, CPU-1D-Bar-Vibration, CPU-1D-Heat-Conduction, CPU-2D-Heat-Conduction]
     runs-on: ubuntu-latest
     steps:
       - name: Clone
@@ -210,9 +415,10 @@ jobs:
         run: |
           ccache -s
           du -hs ~/.cache/ccache
+
   GPU-Intel:
     name: GPU-SYCL
-    needs: [Formatting, CPU-GNUmake]
+    needs: [Formatting, CPU-1D-Bar-Vibration, CPU-1D-Heat-Conduction, CPU-2D-Heat-Conduction]
     runs-on: ubuntu-latest
     steps:
       - name: Clone
@@ -274,6 +480,7 @@ jobs:
         run: |
           ccache -s
           du -hs ~/.cache/ccache
+
   Lint-codeql:
     needs: Formatting
     runs-on: ubuntu-latest

@@ -4,10 +4,11 @@
 #include <AMReX.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFab.H>
+
+#if USE_EB
 #include <AMReX_EB2_IF_Cylinder.H>
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_EBFabFactory.H>
-#include <AMReX_PlotFileUtil.H>
 
 #include <AMReX_EB2.H>
 #include <AMReX_EB2_IF.H>
@@ -19,113 +20,183 @@
 #include <AMReX_EB2_IF_Translation.H>
 
 #include <AMReX_EB_utils.H>
+#endif
+
+#include <AMReX_PlotFileUtil.H>
 #include <constants.H>
 #include <interpolants.H>
 // clang-format on
 
 using namespace amrex;
 
-namespace mpm_ebtools {
+#if USE_EB
+namespace mpm_ebtools
+{
 extern EBFArrayBoxFactory *ebfactory;
 extern MultiFab *lsphi;
 extern int ls_refinement;
 extern bool using_levelset_geometry;
-void init_eb(const Geometry &geom, const BoxArray &ba,
+void init_eb(const Geometry &geom,
+             const BoxArray &ba,
              const DistributionMapping &dm);
-void make_wedge_hopper_levelset(const Geometry &geom, const BoxArray &ba,
+void make_wedge_hopper_levelset(const Geometry &geom,
+                                const BoxArray &ba,
                                 const DistributionMapping &dm);
 } // namespace mpm_ebtools
+#endif
 
-AMREX_GPU_DEVICE
-AMREX_FORCE_INLINE
-amrex::Real
+/**
+ * @brief Evaluates the level‑set field at an arbitrary physical point.
+ *
+ * Computes the interpolated level‑set value φ(x) at a particle or query
+ * location using multilinear basis functions. The function:
+ *   1. Computes the refined‑grid spacing (dx / lsref)
+ *   2. Determines the cell index containing the query point
+ *   3. Loops over all 2^D corners of the cell
+ *   4. Accumulates φ * basisval for each corner
+ *
+ * @param[in] phi      Nodal Array4 containing the level‑set field.
+ * @param[in] problo   Physical lower bounds of the domain.
+ * @param[in] dx       Coarse grid spacing.
+ * @param[in] ptxyz    Physical coordinates of the query point.
+ * @param[in] lsref    Refinement factor used for the level‑set grid.
+ *
+ * @return Interpolated level‑set value at ptxyz.
+ */
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 get_levelset_value(amrex::Array4<amrex::Real> phi,
                    const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> problo,
                    const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> dx,
-                   amrex::Real ptxyz[AMREX_SPACEDIM], amrex::Real lsref) {
-  // assuming a redistribute was done and no
-  // particle is outside of the tilebox
-  //
-  amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> ls_dx;
-  const int lo[AMREX_SPACEDIM] = {0};
-  const int hi[AMREX_SPACEDIM] = {0};
-  const GpuArray<int, AMREX_SPACEDIM> order_scheme_pseudo = {1, 1, 1};
-  const GpuArray<int, AMREX_SPACEDIM> periodic_pseudo = {1, 1, 1};
+                   amrex::Real ptxyz[AMREX_SPACEDIM],
+                   amrex::Real lsref)
+{
+    amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> ls_dx;
+    const int lo[AMREX_SPACEDIM] = {0};
+    const int hi[AMREX_SPACEDIM] = {0};
+    const amrex::GpuArray<int, AMREX_SPACEDIM> order_scheme_pseudo = {
+        AMREX_D_DECL(1, 1, 1)};
+    const amrex::GpuArray<int, AMREX_SPACEDIM> periodic_pseudo = {
+        AMREX_D_DECL(1, 1, 1)};
 
-  ls_dx[XDIR] = dx[XDIR] / lsref;
-  ls_dx[YDIR] = dx[YDIR] / lsref;
-  ls_dx[ZDIR] = dx[ZDIR] / lsref;
-
-  int i =
-      amrex::Math::floor((ptxyz[XDIR] - problo[XDIR] + TINYVAL) / ls_dx[XDIR]);
-  int j =
-      amrex::Math::floor((ptxyz[YDIR] - problo[YDIR] + TINYVAL) / ls_dx[YDIR]);
-  int k =
-      amrex::Math::floor((ptxyz[ZDIR] - problo[ZDIR] + TINYVAL) / ls_dx[ZDIR]);
-
-  amrex::Real lsval = 0.0;
-  for (int n = 0; n < 2; n++) {
-    for (int m = 0; m < 2; m++) {
-      for (int l = 0; l < 2; l++) {
-        lsval += phi(i + l, j + m, k + n) *
-                 basisval(l, m, n, i, j, k, ptxyz, problo, ls_dx,
-                          order_scheme_pseudo, periodic_pseudo, lo, hi);
-      }
+    // scale dx by lsref
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        ls_dx[d] = dx[d] / lsref;
     }
-  }
 
-  return (lsval);
+    // compute cell indices in each dimension
+    IntVect idx;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        idx[d] = static_cast<int>(
+            amrex::Math::floor((ptxyz[d] - problo[d] + TINYVAL) / ls_dx[d]));
+    }
+
+    amrex::Real lsval = 0.0;
+
+    // nested loops over dimensions (generalized)
+    // we use recursion or iterative product to cover 2^AMREX_SPACEDIM corners
+    int cornerCount = 1 << AMREX_SPACEDIM; // 2^dim
+    for (int corner = 0; corner < cornerCount; ++corner)
+    {
+        IntVect offset;
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        {
+            offset[d] = (corner >> d) & 1; // 0 or 1
+        }
+
+        // gather indices
+        int ii = idx[0] + offset[0];
+        int jj = (AMREX_SPACEDIM > 1) ? idx[1] + offset[1] : 0;
+        int kk = (AMREX_SPACEDIM > 2) ? idx[2] + offset[2] : 0;
+
+        lsval += phi(ii, jj, kk) * basisval(offset, idx, ptxyz, problo, ls_dx,
+                                            order_scheme_pseudo,
+                                            periodic_pseudo, lo, hi);
+    }
+
+    return lsval;
 }
 
-AMREX_GPU_DEVICE
-AMREX_FORCE_INLINE
-void get_levelset_grad(
-    amrex::Array4<amrex::Real> phi,
-    const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> problo,
-    const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> dx,
-    amrex::Real ptxyz[AMREX_SPACEDIM], amrex::Real lsref,
-    amrex::Real lsgrad[AMREX_SPACEDIM]) {
-  // assuming a redistribute was done and no
-  // particle is outside of the tilebox
-  //
-  amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> ls_dx;
-  const int lo[AMREX_SPACEDIM] = {0};
-  const int hi[AMREX_SPACEDIM] = {0};
+/**
+ * @brief Computes the gradient of the level‑set field at a physical point.
+ *
+ * Evaluates ∇φ(x) using multilinear basis‑function derivatives. The procedure:
+ *   1. Computes refined grid spacing (dx / lsref)
+ *   2. Determines the cell index containing the query point
+ *   3. Loops over all 2^D corners of the cell
+ *   4. Accumulates φ * ∂basis/∂x_d for each dimension d
+ *
+ * @param[in]  phi      Nodal Array4 containing the level‑set field.
+ * @param[in]  problo   Physical lower bounds of the domain.
+ * @param[in]  dx       Coarse grid spacing.
+ * @param[in]  ptxyz    Physical coordinates of the query point.
+ * @param[in]  lsref    Refinement factor used for the level‑set grid.
+ * @param[out] lsgrad   Output gradient vector ∇φ evaluated at ptxyz.
+ *
+ * @return None.
+ */
 
-  const GpuArray<int, AMREX_SPACEDIM> order_scheme_pseudo = {1, 1, 1};
-  const GpuArray<int, AMREX_SPACEDIM> periodic_pseudo = {1, 1, 1};
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+get_levelset_grad(amrex::Array4<amrex::Real> phi,
+                  const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> problo,
+                  const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> dx,
+                  amrex::Real ptxyz[AMREX_SPACEDIM],
+                  amrex::Real lsref,
+                  amrex::Real lsgrad[AMREX_SPACEDIM])
+{
+    amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> ls_dx;
+    const int lo[AMREX_SPACEDIM] = {AMREX_D_DECL(0, 0, 0)};
+    const int hi[AMREX_SPACEDIM] = {AMREX_D_DECL(0, 0, 0)};
+    const amrex::GpuArray<int, AMREX_SPACEDIM> order_scheme_pseudo = {
+        AMREX_D_DECL(1, 1, 1)};
+    const amrex::GpuArray<int, AMREX_SPACEDIM> periodic_pseudo = {
+        AMREX_D_DECL(1, 1, 1)};
 
-  ls_dx[XDIR] = dx[XDIR] / lsref;
-  ls_dx[YDIR] = dx[YDIR] / lsref;
-  ls_dx[ZDIR] = dx[ZDIR] / lsref;
-
-  int i =
-      amrex::Math::floor((ptxyz[XDIR] - problo[XDIR] + TINYVAL) / ls_dx[XDIR]);
-  int j =
-      amrex::Math::floor((ptxyz[YDIR] - problo[YDIR] + TINYVAL) / ls_dx[YDIR]);
-  int k =
-      amrex::Math::floor((ptxyz[ZDIR] - problo[ZDIR] + TINYVAL) / ls_dx[ZDIR]);
-
-  lsgrad[XDIR] = 0.0;
-  lsgrad[YDIR] = 0.0;
-  lsgrad[ZDIR] = 0.0;
-  for (int n = 0; n < 2; n++) {
-    for (int m = 0; m < 2; m++) {
-      for (int l = 0; l < 2; l++) {
-        lsgrad[XDIR] +=
-            phi(i + l, j + m, k + n) *
-            basisvalder(XDIR, l, m, n, i, j, k, ptxyz, problo, ls_dx,
-                        order_scheme_pseudo, periodic_pseudo, lo, hi);
-        lsgrad[YDIR] +=
-            phi(i + l, j + m, k + n) *
-            basisvalder(YDIR, l, m, n, i, j, k, ptxyz, problo, ls_dx,
-                        order_scheme_pseudo, periodic_pseudo, lo, hi);
-        lsgrad[ZDIR] +=
-            phi(i + l, j + m, k + n) *
-            basisvalder(ZDIR, l, m, n, i, j, k, ptxyz, problo, ls_dx,
-                        order_scheme_pseudo, periodic_pseudo, lo, hi);
-      }
+    // scale dx by lsref
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        ls_dx[d] = dx[d] / lsref;
     }
-  }
+
+    // compute cell indices
+    IntVect idx;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        idx[d] = static_cast<int>(
+            amrex::Math::floor((ptxyz[d] - problo[d] + TINYVAL) / ls_dx[d]));
+    }
+
+    // initialize gradient
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        lsgrad[d] = 0.0;
+    }
+
+    int cornerCount = 1 << AMREX_SPACEDIM;
+    for (int corner = 0; corner < cornerCount; ++corner)
+    {
+        IntVect offset;
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        {
+            offset[d] = (corner >> d) & 1; // 0 or 1
+        }
+
+        // gather indices (safe for lower dims)
+        int ii = idx[0] + offset[0];
+        int jj = (AMREX_SPACEDIM > 1) ? idx[1] + offset[1] : 0;
+        int kk = (AMREX_SPACEDIM > 2) ? idx[2] + offset[2] : 0;
+
+        // accumulate gradient contributions for each dimension
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        {
+            lsgrad[d] +=
+                phi(ii, jj, kk) * basisvalder(d, offset, idx, ptxyz, problo,
+                                              ls_dx, order_scheme_pseudo,
+                                              periodic_pseudo, lo, hi);
+        }
+    }
 }
+
 #endif

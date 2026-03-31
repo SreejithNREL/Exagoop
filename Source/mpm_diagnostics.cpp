@@ -3,404 +3,257 @@
 #include <interpolants.H>
 // clang-format on
 
-void MPMParticleContainer::CalculateEnergies(Real &TKE, Real &TSE) {
-  const int lev = 0;
-  const Geometry &geom = Geom(lev);
-  auto &plev = GetParticles(lev);
-  const auto dxi = geom.InvCellSizeArray();
-  const auto dx = geom.CellSizeArray();
-  const auto plo = geom.ProbLoArray();
-  const auto domain = geom.Domain();
+/**
+ * @brief Computes the total kinetic and strain energies of all material points.
+ *
+ * Performs a parallel reduction over all particles to compute:
+ *  - Total kinetic energy:  TKE = 0.5 * m * |v|²
+ *  - Total strain energy:   TSE = 0.5 * V * (σ : ε)
+ *
+ * The function launches two AMReX reductions, one for kinetic energy and one
+ * for strain energy. The results are summed across MPI ranks if applicable.
+ *
+ * @param[out] TKE  Total kinetic energy of all particles (Joules)
+ * @param[out] TSE  Total strain energy of all particles (Joules)
+ *
+ * @note This routine does not modify particle data. It only reads particle
+ *       mass, velocity, stress, strain, and volume.
+ */
 
-  TKE = 0.0;
-  TSE = 0.0;
+void MPMParticleContainer::Calculate_Total_Energies(Real &TKE, Real &TSE)
+{
+    TKE = 0.0;
+    TSE = 0.0;
 
-  using PType = typename MPMParticleContainer::SuperParticleType;
-  TKE = amrex::ReduceSum(
-      *this, [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real {
-        return (0.5 * p.rdata(realData::mass) *
-                (p.rdata(realData::xvel) * p.rdata(realData::xvel) +
-                 p.rdata(realData::yvel) * p.rdata(realData::yvel) +
-                 p.rdata(realData::zvel) * p.rdata(realData::zvel)));
-      });
+    using PType = typename MPMParticleContainer::SuperParticleType;
 
-  TSE = amrex::ReduceSum(
-      *this, [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real {
-        return (
-            0.5 * p.rdata(realData::volume) *
-            (p.rdata(realData::stress + XX) * p.rdata(realData::strain + XX) +
-             p.rdata(realData::stress + YY) * p.rdata(realData::strain + YY) +
-             p.rdata(realData::stress + ZZ) * p.rdata(realData::strain + ZZ) +
-             p.rdata(realData::stress + XY) * p.rdata(realData::strain + XY) *
-                 2.0 +
-             p.rdata(realData::stress + YZ) * p.rdata(realData::strain + YZ) *
-                 2.0 +
-             p.rdata(realData::stress + XZ) * p.rdata(realData::strain + XZ) *
-                 2.0));
-      });
+    TKE = amrex::ReduceSum(*this,
+                           [] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
+                           {
+                               Real v2 = 0.0;
+                               for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                               {
+                                   v2 += p.rdata(realData::xvel + d) *
+                                         p.rdata(realData::xvel + d);
+                               }
+                               return 0.5 * p.rdata(realData::mass) * v2;
+                           });
+
+    TSE = amrex::ReduceSum(*this,
+                           [] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
+                           {
+                               Real se = 0.0;
+
+#if (AMREX_SPACEDIM == 1)
+                               se = p.rdata(realData::stress + XX) *
+                                    p.rdata(realData::strain + XX);
+
+#elif (AMREX_SPACEDIM == 2)
+            se = p.rdata(realData::stress + XX) * p.rdata(realData::strain + XX)
+               + p.rdata(realData::stress + YY) * p.rdata(realData::strain + YY)
+               + 2.0 * p.rdata(realData::stress + XY) * p.rdata(realData::strain + XY);
+
+#elif (AMREX_SPACEDIM == 3)
+            se = p.rdata(realData::stress + XX) * p.rdata(realData::strain + XX)
+               + p.rdata(realData::stress + YY) * p.rdata(realData::strain + YY)
+               + p.rdata(realData::stress + ZZ) * p.rdata(realData::strain + ZZ)
+               + 2.0 * (p.rdata(realData::stress + XY) * p.rdata(realData::strain + XY)
+                      + p.rdata(realData::stress + YZ) * p.rdata(realData::strain + YZ)
+                      + p.rdata(realData::stress + XZ) * p.rdata(realData::strain + XZ));
+#endif
+
+                               return 0.5 * p.rdata(realData::volume) * se;
+                           });
 
 #ifdef BL_USE_MPI
-  ParallelDescriptor::ReduceRealSum(TKE);
-  ParallelDescriptor::ReduceRealSum(TSE);
+    ParallelDescriptor::ReduceRealSum(TKE);
+    ParallelDescriptor::ReduceRealSum(TSE);
 #endif
 }
 
-amrex::Real
-MPMParticleContainer::CalculateExactVelocity(int modenumber, amrex::Real E,
-                                             amrex::Real rho, amrex::Real v0,
-                                             amrex::Real L, amrex::Real time) {
-  const amrex::Real pi = 4.0 * atan(1.0);
-  Real beta_n = (2 * modenumber - 1.0) / 2 * pi / L;
-  Real w_n = sqrt(E / rho) * beta_n;
-  amrex::Real Vmex = v0 / (beta_n * L) * cos(w_n * time);
-  return (Vmex);
-}
+/**
+ * @brief Computes the mass‑weighted average velocity components of all
+ * particles.
+ *
+ * Performs AMReX reductions to compute:
+ *   momentum_tot[d] = Σ (m * v_d)
+ *   mass_tot        = Σ m
+ *
+ * The center‑of‑mass velocity is then:
+ *   Vcm[d] = momentum_tot[d] / mass_tot
+ *
+ * @param[out] Vcm  Array of size AMREX_SPACEDIM containing the mass‑weighted
+ *                  average velocity components.
+ *
+ * @note MPI reductions are performed when running in parallel.
+ */
 
-void MPMParticleContainer::CalculateVelocity(Real &Vcm) {
-  const int lev = 0;
-  const Geometry &geom = Geom(lev);
-  auto &plev = GetParticles(lev);
-  const auto dxi = geom.InvCellSizeArray();
-  const auto dx = geom.CellSizeArray();
-  const auto plo = geom.ProbLoArray();
-  const auto domain = geom.Domain();
+void MPMParticleContainer::Calculate_MWA_VelocityComponents(
+    amrex::GpuArray<Real, AMREX_SPACEDIM> &Vcm)
+{
+    using PType = typename MPMParticleContainer::SuperParticleType;
 
-  Real Vcmx = 0.0;
-  Real mass_tot = 0.0;
+    amrex::GpuArray<Real, AMREX_SPACEDIM> momentum_tot;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        momentum_tot[d] = 0.0;
+    }
+    Real mass_tot = 0.0;
 
-  using PType = typename MPMParticleContainer::SuperParticleType;
-  Vcmx = amrex::ReduceSum(
-      *this, [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real {
-        return (p.rdata(realData::mass) * p.rdata(realData::xvel));
-      });
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        momentum_tot[d] = amrex::ReduceSum(
+            *this, [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
+            { return p.rdata(realData::mass) * p.rdata(realData::xvel + d); });
+    }
 
-  mass_tot = amrex::ReduceSum(
-      *this, [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real {
-        return (p.rdata(realData::mass));
-      });
-
-#ifdef BL_USE_MPI
-  ParallelDescriptor::ReduceRealSum(Vcmx);
-  ParallelDescriptor::ReduceRealSum(mass_tot);
-#endif
-
-  Vcm = Vcmx / mass_tot;
-}
-
-void MPMParticleContainer::WriteDeflectionCantilever() {
-  // Works only for serial runs
-
-  const int lev = 0;
-  auto &plev = GetParticles(lev);
-
-  for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
-    const amrex::Box &box = mfi.tilebox();
-    Box nodalbox = convert(box, {1, 1, 1});
-
-    int gid = mfi.index();
-    int tid = mfi.LocalTileIndex();
-    auto index = std::make_pair(gid, tid);
-    auto &ptile = plev[index];
-    auto &aos = ptile.GetArrayOfStructs();
-    int np = aos.numRealParticles();
-    int ng = aos.numNeighborParticles();
-    int nt = np + ng;
-
-    ParticleType *pstruct = aos().dataPtr();
-    amrex::ParallelFor(nt, [=] AMREX_GPU_DEVICE(int i) noexcept {
-      ParticleType &p = pstruct[i];
-
-      amrex::Real xp[AMREX_SPACEDIM];
-
-      xp[XDIR] = p.pos(XDIR);
-      xp[YDIR] = p.pos(YDIR);
-      // PrintToFile("CantileverDeflection.out")<<xp[XDIR]<<"\t"<<xp[YDIR]<<"\n";
-    });
-  }
-}
-
-void MPMParticleContainer::CalculateVelocityCantilever(Real &Vcm) {
-  const int lev = 0;
-  const Geometry &geom = Geom(lev);
-  auto &plev = GetParticles(lev);
-  const auto dxi = geom.InvCellSizeArray();
-  const auto dx = geom.CellSizeArray();
-  const auto plo = geom.ProbLoArray();
-  const auto domain = geom.Domain();
-
-  Real Vcmx = 0.0;
-  Real mass_tot = 0.0;
-
-  using PType = typename MPMParticleContainer::SuperParticleType;
-  Vcmx = amrex::ReduceSum(
-      *this, [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real {
-        return (p.rdata(realData::mass) * p.rdata(realData::yvel));
-      });
-
-  mass_tot = amrex::ReduceSum(
-      *this, [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real {
-        return (p.rdata(realData::mass));
-      });
+    mass_tot =
+        amrex::ReduceSum(*this, [] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
+                         { return p.rdata(realData::mass); });
 
 #ifdef BL_USE_MPI
-  ParallelDescriptor::ReduceRealSum(Vcmx);
-  ParallelDescriptor::ReduceRealSum(mass_tot);
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        ParallelDescriptor::ReduceRealSum(momentum_tot[d]);
+    }
+    ParallelDescriptor::ReduceRealSum(mass_tot);
 #endif
 
-  Vcm = Vcmx / mass_tot;
+    // Mass-weighted average velocity components
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        Vcm[d] = momentum_tot[d] / mass_tot;
+    }
 }
 
+/**
+ * @brief Computes the mass‑weighted average velocity magnitude of all
+ * particles.
+ *
+ * Performs reductions to compute:
+ *   massvelmag = Σ (m * |v|)
+ *   mass_tot   = Σ m
+ *
+ * The mass‑weighted average velocity magnitude is:
+ *   Vcm = massvelmag / mass_tot
+ *
+ * @param[out] Vcm  Scalar mass‑weighted average velocity magnitude.
+ *
+ * @note Uses AMReX parallel reductions and MPI reductions when enabled.
+ */
+
+void MPMParticleContainer::Calculate_MWA_VelocityMagnitude(amrex::Real &Vcm)
+{
+    using PType = typename MPMParticleContainer::SuperParticleType;
+
+    Real massvelmag = 0.0;
+    Real mass_tot = 0.0;
+
+    massvelmag =
+        amrex::ReduceSum(*this,
+                         [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
+                         {
+                             Real vmag = 0.0;
+                             for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                             {
+                                 vmag += p.rdata(realData::xvel + d) *
+                                         p.rdata(realData::xvel + d);
+                             }
+                             return p.rdata(realData::mass) * sqrt(vmag);
+                         });
+
+    mass_tot =
+        amrex::ReduceSum(*this, [] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
+                         { return p.rdata(realData::mass); });
+
+#ifdef BL_USE_MPI
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        ParallelDescriptor::ReduceRealSum(massvelmag);
+    }
+    ParallelDescriptor::ReduceRealSum(mass_tot);
+#endif
+
+    Vcm = massvelmag / mass_tot;
+}
+
+/**
+ * @brief Computes the minimum and maximum particle positions in each dimension.
+ *
+ * Performs AMReX ReduceMin and ReduceMax operations over all particles to find
+ * the bounding box of the particle cloud.
+ *
+ * @param[out] minpos  Minimum particle position per dimension.
+ * @param[out] maxpos  Maximum particle position per dimension.
+ *
+ * @note This function does not modify particle data.
+ */
+
+void MPMParticleContainer::Calculate_MinMaxPos(
+    amrex::GpuArray<Real, AMREX_SPACEDIM> &minpos,
+    amrex::GpuArray<Real, AMREX_SPACEDIM> &maxpos)
+{
+    using PType = typename MPMParticleContainer::SuperParticleType;
+
+    for (int dim = 0; dim < AMREX_SPACEDIM; dim++)
+    {
+        minpos[dim] = amrex::ReduceMin(
+            *this, [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
+            { return p.pos(dim); });
+    }
+
+    for (int dim = 0; dim < AMREX_SPACEDIM; dim++)
+    {
+        maxpos[dim] = amrex::ReduceMax(
+            *this, [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
+            { return p.pos(dim); });
+    }
+
+#ifdef BL_USE_MPI
+    amrex::ParallelDescriptor::ReduceRealMax(maxpos.data(), AMREX_SPACEDIM);
+    amrex::ParallelDescriptor::ReduceRealMin(minpos.data(), AMREX_SPACEDIM);
+#endif
+}
+
+/**
+ * @brief Estimates the normal contact force at the top and bottom surfaces.
+ *
+ * Computes Fy_top = Σ(m * a_y) + |Σ(m * g_y)| + |Fy_bottom| using a
+ * GPU‑parallel reduction over all particles. The vertical acceleration
+ * a_y is read from @c realData::yacceleration and gravity from the
+ * passed‑in array. Fy_bottom is set to zero (placeholder for a future
+ * boundary integral).
+ *
+ * @param[in]  gravity     Gravitational acceleration vector.
+ * @param[out] Fy_top      Estimated upward reaction force at the top surface.
+ * @param[out] Fy_bottom   Estimated downward reaction force at the bottom
+ *                         surface (currently always zero).
+ *
+ * @return None.
+ */
 void MPMParticleContainer::CalculateSurfaceIntegralTop(
-    Array<Real, AMREX_SPACEDIM> gravity, Real &Fy_top, Real &Fy_bottom) {
-  const int lev = 0;
-  const Geometry &geom = Geom(lev);
-  auto &plev = GetParticles(lev);
-  const auto dxi = geom.InvCellSizeArray();
-  const auto dx = geom.CellSizeArray();
-  const auto plo = geom.ProbLoArray();
-  const auto domain = geom.Domain();
+    Array<Real, AMREX_SPACEDIM> gravity, Real &Fy_top, Real &Fy_bottom)
+{
+    Real Mvy = 0.0;
+    Real Fg = 0.0;
+    Fy_bottom = 0.0;
 
-  Real Mvy = 0.0;
-  Real Fg = 0.0;
-  Fy_bottom = 0.0;
+    using PType = typename MPMParticleContainer::SuperParticleType;
+    Mvy = amrex::ReduceSum(*this,
+                           [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
+                           {
+                               return (p.rdata(realData::mass) *
+                                       p.rdata(realData::yacceleration));
+                           });
 
-  using PType = typename MPMParticleContainer::SuperParticleType;
-  Mvy = amrex::ReduceSum(
-      *this, [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real {
-        return (p.rdata(realData::mass) * p.rdata(realData::yacceleration));
-      });
-
-  Fg = amrex::ReduceSum(*this,
-                        [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real {
-                          return (p.rdata(realData::mass) * gravity[YDIR]);
-                        });
+    Fg = amrex::ReduceSum(
+        *this, [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
+        { return (p.rdata(realData::mass) * gravity[YDIR]); });
 
 #ifdef BL_USE_MPI
-  ParallelDescriptor::ReduceRealSum(Mvy);
-  ParallelDescriptor::ReduceRealSum(Fg);
+    ParallelDescriptor::ReduceRealSum(Mvy);
+    ParallelDescriptor::ReduceRealSum(Fg);
 #endif
 
-  Fy_top = Mvy + fabs(Fg) + fabs(Fy_bottom);
-}
-
-void MPMParticleContainer::FindWaterFront(Real &Xwf) {
-  const int lev = 0;
-  const Geometry &geom = Geom(lev);
-  auto &plev = GetParticles(lev);
-  const auto dxi = geom.InvCellSizeArray();
-  const auto dx = geom.CellSizeArray();
-  const auto plo = geom.ProbLoArray();
-  const auto domain = geom.Domain();
-
-  Real wf_x = 0.0;
-  Real mass_tot = 0.0;
-
-  using PType = typename MPMParticleContainer::SuperParticleType;
-  wf_x = amrex::ReduceMax(*this,
-                          [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real {
-                            return (p.pos(XDIR));
-                          });
-
-#ifdef BL_USE_MPI
-  ParallelDescriptor::ReduceRealMax(wf_x);
-#endif
-
-  Xwf = wf_x;
-}
-
-void MPMParticleContainer::CalculateErrorTVB(Real tvb_E, Real tvb_v0,
-                                             Real tvb_L, Real tvb_rho,
-                                             Real err) {
-  const Real pi = atan(1.0) * 4.0;
-  Real c = sqrt(tvb_E / tvb_rho);
-  Real w0 = c * pi / tvb_L;
-}
-
-void MPMParticleContainer::CalculateErrorP2G(MultiFab &nodaldata,
-                                             amrex::Real p2g_L,
-                                             amrex::Real p2g_f, int ncell) {
-  const int lev = 0;
-  const Geometry &geom = Geom(lev);
-  auto &plev = GetParticles(lev);
-  const auto dxi = geom.InvCellSizeArray();
-  const auto dx = geom.CellSizeArray();
-  const auto plo = geom.ProbLoArray();
-  const auto domain = geom.Domain();
-  std::string outputfile;
-
-  const int *loarr = domain.loVect();
-  const int *hiarr = domain.hiVect();
-
-  int lo[] = {loarr[0], loarr[1], loarr[2]};
-  int hi[] = {hiarr[0], hiarr[1], hiarr[2]};
-
-  outputfile = amrex::Concatenate("P2GTest1", ncell, 3);
-
-  for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi) {
-    // already nodal as mfi is from nodaldata
-    const Box &nodalbox = mfi.validbox();
-
-    Array4<Real> nodal_data_arr = nodaldata.array(mfi);
-
-    amrex::ParallelFor(nodalbox,
-                       [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-                         amrex::Real x, v;
-                         x = lo[0] + i * dx[0];
-                         v = nodal_data_arr(i, 0, 0, VELY_INDEX);
-                         if (j == 0 and k == 0) {
-                           // PrintToFile(outputfile)<<x<<"\t"<<v<<"\n";
-                         }
-                       });
-  }
-  outputfile = amrex::Concatenate("P2GTest2", ncell, 3);
-  // std::ofstream ofs(outputfile, std::ofstream::out);
-
-  /*amrex::Print(ofs)
-    << "L, rho, umax, p, T, gamma, mu, k, Re, Ma, Pr, dpdx, G, radius"
-    << std::endl;
-  amrex::Print(ofs).SetPrecision(17)
-    << L << "," << PeleC::h_prob_parm_device->rho << ","
-    << PeleC::h_prob_parm_device->umax << "," << PeleC::h_prob_parm_device->p
-    << "," << PeleC::h_prob_parm_device->T << "," << eos.gamma << ","
-    << trans_parm.const_viscosity << "," << trans_parm.const_conductivity << ","
-    << PeleC::h_prob_parm_device->Re << "," << PeleC::h_prob_parm_device->Ma
-    << "," << PeleC::h_prob_parm_device->Pr << ","
-    << PeleC::h_prob_parm_device->dpdx << "," << PeleC::h_prob_parm_device->G
-    << "," << PeleC::h_prob_parm_device->radius << std::endl;*/
-
-  for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
-    const amrex::Box &box = mfi.tilebox();
-    Box nodalbox = convert(box, {1, 1, 1});
-
-    int gid = mfi.index();
-    int tid = mfi.LocalTileIndex();
-    auto index = std::make_pair(gid, tid);
-    auto &ptile = plev[index];
-    auto &aos = ptile.GetArrayOfStructs();
-    int np = aos.numRealParticles();
-    int ng = aos.numNeighborParticles();
-    int nt = np + ng;
-
-    ParticleType *pstruct = aos().dataPtr();
-    amrex::ParallelFor(nt, [=] AMREX_GPU_DEVICE(int i) noexcept {
-      ParticleType &p = pstruct[i];
-      Real y_exact;
-
-      amrex::Real xp[AMREX_SPACEDIM];
-
-      xp[XDIR] = p.pos(XDIR);
-
-      y_exact = p.rdata(realData::yvel);
-      // PrintToFile(outputfile).SetPrecision(17)<<xp[XDIR]<<"\t"<<y_exact<<"\n";
-      // amrex::Print(ofs).SetPrecision(17)<<xp[XDIR]<<"\t"<<y_exact<<"\n";
-    });
-  }
-}
-
-void MPMParticleContainer::WriteDeflectionTVB(Real tvb_E, Real tvb_v0,
-                                              Real tvb_L, Real tvb_rho,
-                                              Real time, int output_it) {
-  // Works only for serial runs
-
-  const int lev = 0;
-  auto &plev = GetParticles(lev);
-  Real c = sqrt(tvb_E / (tvb_rho));
-  const Real pi = atan(1.0) * 4.0;
-  Real w0 = c * pi / tvb_L;
-  Real Amplitude = tvb_v0 * tvb_L / (c * pi) * sin(w0 * time);
-  std::string outputfile;
-  int num_of_digits_in_filenames = 5;
-  outputfile = amrex::Concatenate("TVB_Deflection_", output_it,
-                                  num_of_digits_in_filenames);
-  // amrex::Print()<<"\nE = "<<tvb_E<<" "<<tvb_rho<<" "<<c<<" "<<w0;
-
-  for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
-    const amrex::Box &box = mfi.tilebox();
-    Box nodalbox = convert(box, {1, 1, 1});
-
-    int gid = mfi.index();
-    int tid = mfi.LocalTileIndex();
-    auto index = std::make_pair(gid, tid);
-    auto &ptile = plev[index];
-    auto &aos = ptile.GetArrayOfStructs();
-    int np = aos.numRealParticles();
-    int ng = aos.numNeighborParticles();
-    int nt = np + ng;
-
-    ParticleType *pstruct = aos().dataPtr();
-    amrex::ParallelFor(nt, [=] AMREX_GPU_DEVICE(int i) noexcept {
-      ParticleType &p = pstruct[i];
-      Real y_exact;
-
-      amrex::Real xp[AMREX_SPACEDIM];
-
-      xp[XDIR] = p.pos(XDIR);
-      xp[YDIR] = p.pos(YDIR);
-      y_exact = Amplitude * sin(pi * xp[XDIR] / tvb_L);
-      // PrintToFile(outputfile)<<xp[XDIR]<<"\t"<<xp[YDIR]<<"\t"<<y_exact<<"\n";
-    });
-  }
-}
-
-amrex::Real
-MPMParticleContainer::CalculateEffectiveSpringConstant(amrex::Real Area,
-                                                       amrex::Real L0) {
-  // First calculate the total strain energy
-  const int lev = 0;
-  const Geometry &geom = Geom(lev);
-  auto &plev = GetParticles(lev);
-  const auto dxi = geom.InvCellSizeArray();
-  const auto dx = geom.CellSizeArray();
-  const auto plo = geom.ProbLoArray();
-  const auto domain = geom.Domain();
-
-  amrex::Real TSE = 0.0;
-  amrex::Real Total_vol = 0.0;
-  amrex::Real deflection = 0.0;
-  amrex::Real Restoring_force = 0.0;
-  amrex::Real smallval = 1e-10;
-  amrex::Real Calculated_Spring_Const = 0.0;
-
-  using PType = typename MPMParticleContainer::SuperParticleType;
-
-  TSE = amrex::ReduceSum(
-      *this, [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real {
-        return (
-            0.5 * p.rdata(realData::volume) *
-            (p.rdata(realData::stress + XX) * p.rdata(realData::strain + XX) +
-             p.rdata(realData::stress + YY) * p.rdata(realData::strain + YY) +
-             p.rdata(realData::stress + ZZ) * p.rdata(realData::strain + ZZ) +
-             p.rdata(realData::stress + XY) * p.rdata(realData::strain + XY) *
-                 2.0 +
-             p.rdata(realData::stress + YZ) * p.rdata(realData::strain + YZ) *
-                 2.0 +
-             p.rdata(realData::stress + XZ) * p.rdata(realData::strain + XZ) *
-                 2.0));
-      });
-
-#ifdef BL_USE_MPI
-  ParallelDescriptor::ReduceRealSum(TSE);
-#endif
-
-  // Then Calculate the total volume at this instant
-  Total_vol = amrex::ReduceSum(
-      *this, [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real {
-        return (p.rdata(realData::volume));
-      });
-
-  // Calculate the deflection
-  deflection = L0 - Total_vol / Area;
-
-  // Calculate the spring constant
-  if (fabs(deflection) <= smallval) {
-    Restoring_force = 0.0;
-  } else {
-    Restoring_force = 2 * TSE / deflection;
-    Calculated_Spring_Const = 2 * TSE / (deflection * deflection);
-  }
-
-  PrintToFile("SpringConst.out") << Calculated_Spring_Const << "\n";
-
-  // Calculate and return the restoring force
-  return (Restoring_force);
+    Fy_top = Mvy + fabs(Fg) + fabs(Fy_bottom);
 }

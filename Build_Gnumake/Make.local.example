@@ -1,0 +1,9 @@
+# Keeping codebase and machine specific params separate
+
+AMREX_USE_HDF5 = FALSE
+AMREX_USE_HDF5_PARALLEL = FALSE
+HDF5_HOME = /path/to/hdf5
+
+CXXFLAGS += -I$(HDF5_HOME)/include
+LDFLAGS  += -L$(HDF5_HOME)/lib -lhdf5 -lhdf5_hl
+

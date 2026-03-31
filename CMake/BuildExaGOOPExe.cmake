@@ -2,15 +2,23 @@ function(build_exagoop_exe exagoop_exe_name)
 
   set(SRC_DIR ${CMAKE_SOURCE_DIR}/Source)
 
-  add_executable(${exagoop_exe_name} "")
+  #add_executable(${exagoop_exe_name} "")
+  
+  add_executable(${EXAGOOP_EXE_NAME} "")
+  set_target_properties(${EXAGOOP_EXE_NAME} PROPERTIES OUTPUT_NAME ${EXAGOOP_EXE_NAME})
+  
 
-  target_include_directories(${exagoop_exe_name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-  target_include_directories(${exagoop_exe_name} PRIVATE ${SRC_DIR})
-  target_include_directories(${exagoop_exe_name} PRIVATE ${CMAKE_BINARY_DIR})
+  target_include_directories(${EXAGOOP_EXE_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+  target_include_directories(${EXAGOOP_EXE_NAME} PRIVATE ${SRC_DIR})
+  target_include_directories(${EXAGOOP_EXE_NAME} PRIVATE ${CMAKE_BINARY_DIR})
 
-  target_sources(${exagoop_exe_name}
+  target_sources(${EXAGOOP_EXE_NAME}
      PRIVATE
        ${SRC_DIR}/constants.H
+       ${SRC_DIR}/aesthetics.H
+       ${SRC_DIR}/aesthetics.cpp
+       ${SRC_DIR}/utilities.H
+       ${SRC_DIR}/utilities.cpp
        ${SRC_DIR}/mpm_diagnostics.cpp
        ${SRC_DIR}/mpm_init.cpp
        ${SRC_DIR}/mpm_init.cpp
@@ -43,9 +51,9 @@ function(build_exagoop_exe exagoop_exe_name)
     target_compile_options(${exagoop_exe_name} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xptxas --disable-optimizer-constants>)
   endif()
 
-  target_link_libraries(${exagoop_exe_name} PRIVATE amrex)
+  target_link_libraries(${EXAGOOP_EXE_NAME} PRIVATE amrex)
 
-  install(TARGETS ${exagoop_exe_name}
+  install(TARGETS ${EXAGOOP_EXE_NAME}
           RUNTIME DESTINATION bin
           ARCHIVE DESTINATION lib
           LIBRARY DESTINATION lib)

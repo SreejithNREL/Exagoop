@@ -1,0 +1,34 @@
+#-------------------------------------
+# SET KESTREL CONFIGS HERE
+#-------------------------------------
+# Enable HDF5 in AMReX + ExaGOOP
+#USE_HDF5 = TRUE
+#AMREX_USE_HDF5 = TRUE
+#AMREX_USE_HDF5_PARALLEL = TRUE
+
+# No need to set HDF5_HOME, HDF5_INC, HDF5_LIB
+# Cray modules automatically provide correct paths
+
+# Optional: if you want to be explicit
+#CXXFLAGS += $(HDF5_CFLAGS)
+#LDFLAGS  += $(HDF5_LDFLAGS)
+
+#-------------------------------------
+# SET MYMAC CONFIGS HERE
+#-------------------------------------
+UNAME := $(shell uname)
+ifeq ($(UNAME), Darwin)
+  #HDF5_HOME = $(shell brew --prefix hdf5-mpi)
+  HDF5_HOME = $(HOME)/hdf5-parallel
+  HDF5_INC  = $(HDF5_HOME)/include
+  HDF5_LIB  = $(HDF5_HOME)/lib
+  USE_HDF5 = TRUE
+  AMREX_USE_HDF5 = TRUE
+  AMREX_USE_HDF5_PARALLEL = TRUE
+  CXXFLAGS += -I$(HDF5_INC)
+  LDFLAGS  += -L$(HDF5_LIB) -lhdf5 -lhdf5_hl
+endif
+# On Linux: HDF5 disabled by default (USE_HDF5 defaults to FALSE)
+# On Kestrel: HDF5 provided by Cray modules — see Kestrel section above
+
+# USE_CCACHE = TRUE

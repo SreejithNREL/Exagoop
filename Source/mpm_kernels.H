@@ -8,64 +8,131 @@
 #include <AMReX_MultiFabUtil.H>
 // clang-format on
 
+/**
+ * @brief Applies particle–wall boundary conditions to a relative velocity
+ * vector.
+ *
+ * This kernel decomposes the incoming relative velocity into normal and
+ * tangential components with respect to the wall normal, then applies one of
+ * several boundary‑condition models:
+ *
+ *  - **BC_NOSLIPWALL**
+ *      Sets the outgoing relative velocity to zero (full sticking).
+ *
+ *  - **BC_SLIPWALL**
+ *      Removes the normal component but preserves tangential velocity.
+ *
+ *  - **BC_PARTIALSLIPWALL**
+ *      Implements a Coulomb‑like friction model:
+ *        - If vel_n ≤ 0 (approaching wall), friction may reduce tangential
+ * velocity.
+ *        - If |v_t| ≤ −μ * vel_n, the particle sticks.
+ *        - Otherwise, tangential velocity is reduced proportionally.
+ *
+ *  - **BC_PERIODIC**
+ *      No modification is applied.
+ *
+ * The function returns a flag indicating whether the particle’s position
+ * should be modified (e.g., projected out of the wall).
+ *
+ * @param[in]  relvel_in   Incoming relative velocity vector (particle minus
+ * wall).
+ * @param[out] relvel_out  Outgoing relative velocity after applying BC.
+ * @param[in]  wall_mu     Friction coefficient for partial‑slip walls.
+ * @param[in]  normaldir   Unit normal vector of the wall surface.
+ * @param[in]  bc          Boundary‑condition type (BC_* enum).
+ *
+ * @return int
+ *         1 if the particle position should be corrected,
+ *         0 otherwise.
+ */
+
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE int
-applybc(Real relvel_in[AMREX_SPACEDIM], Real relvel_out[AMREX_SPACEDIM],
-        Real wall_mu, Real normaldir[AMREX_SPACEDIM], int bc) {
+applybc(amrex::Real relvel_in[AMREX_SPACEDIM],
+        amrex::Real relvel_out[AMREX_SPACEDIM],
+        amrex::Real wall_mu,
+        amrex::Real normaldir[AMREX_SPACEDIM],
+        int bc)
+{
+    int modify_pos = false;
 
-  // look at section 8
-  // Stomakhin et al., "A material point method for snow simulation",
-  // ACS Trans. Graphics, 32, 4, 102, 2013
-  // Warning!(Sreejith): veln
-  int modify_pos = false;
-  Real velt[AMREX_SPACEDIM], velt_hat[AMREX_SPACEDIM];
-  Real veln = relvel_in[XDIR] * normaldir[XDIR] +
-              relvel_in[YDIR] * normaldir[YDIR] +
-              relvel_in[ZDIR] * normaldir[ZDIR];
+    amrex::Real velt[AMREX_SPACEDIM];
+    amrex::Real velt_hat[AMREX_SPACEDIM];
 
-  velt[XDIR] = relvel_in[XDIR] - veln * normaldir[XDIR];
-  velt[YDIR] = relvel_in[YDIR] - veln * normaldir[YDIR];
-  velt[ZDIR] = relvel_in[ZDIR] - veln * normaldir[ZDIR];
-
-  Real veltmag = std::sqrt(velt[XDIR] * velt[XDIR] + velt[YDIR] * velt[YDIR] +
-                           velt[ZDIR] * velt[ZDIR]);
-
-  velt_hat[XDIR] = velt[XDIR] / (veltmag + TINYVAL);
-  velt_hat[YDIR] = velt[YDIR] / (veltmag + TINYVAL);
-  velt_hat[ZDIR] = velt[ZDIR] / (veltmag + TINYVAL);
-
-  if (bc == BC_NOSLIPWALL) {
-    modify_pos = true;
-    relvel_out[XDIR] = zero;
-    relvel_out[YDIR] = zero;
-    relvel_out[ZDIR] = zero;
-  } else if (bc == BC_SLIPWALL) {
-    // normal is into the domain
-    modify_pos = true;
-    relvel_out[XDIR] = velt[XDIR];
-    relvel_out[YDIR] = velt[YDIR];
-    relvel_out[ZDIR] = velt[ZDIR];
-  } else if (bc == BC_PARTIALSLIPWALL) {
-    if (veln <= zero) {
-      modify_pos = true;
-
-      if (veltmag <= -wall_mu * veln) {
-        relvel_out[XDIR] = zero;
-        relvel_out[YDIR] = zero;
-        relvel_out[ZDIR] = zero;
-      } else {
-        relvel_out[XDIR] = (veltmag + wall_mu * veln) * velt_hat[XDIR];
-        relvel_out[YDIR] = (veltmag + wall_mu * veln) * velt_hat[YDIR];
-        relvel_out[ZDIR] = (veltmag + wall_mu * veln) * velt_hat[ZDIR];
-      }
+    // Compute normal component of velocity
+    amrex::Real veln = 0.0;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        veln += relvel_in[d] * normaldir[d];
     }
-  } else if (bc == BC_PERIODIC) // nothing to do if periodic/outflow
-  {
 
-  } else {
-    amrex::Abort("\nUnknown boundary condition");
-  }
+    // Tangential component = relvel_in - veln * normal
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        velt[d] = relvel_in[d] - veln * normaldir[d];
+    }
 
-  return (modify_pos);
+    // Magnitude of tangential velocity
+    amrex::Real veltmag = 0.0;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        veltmag += velt[d] * velt[d];
+    }
+    veltmag = std::sqrt(veltmag);
+
+    // Unit tangential direction
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        velt_hat[d] = velt[d] / (veltmag + TINYVAL);
+    }
+
+    if (bc == BC_NOSLIPWALL)
+    {
+        modify_pos = true;
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        {
+            relvel_out[d] = shunya;
+        }
+    }
+    else if (bc == BC_SLIPWALL)
+    {
+        modify_pos = true;
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        {
+            relvel_out[d] = velt[d];
+        }
+    }
+    else if (bc == BC_PARTIALSLIPWALL)
+    {
+        if (veln <= shunya)
+        {
+            modify_pos = true;
+            if (veltmag <= -wall_mu * veln)
+            {
+                for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                {
+                    relvel_out[d] = shunya;
+                }
+            }
+            else
+            {
+                for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                {
+                    relvel_out[d] = (veltmag + wall_mu * veln) * velt_hat[d];
+                }
+            }
+        }
+    }
+    else if (bc == BC_PERIODIC)
+    {
+        // nothing to do
+    }
+    else
+    {
+        amrex::Abort("\nUnknown boundary condition");
+    }
+
+    return modify_pos;
 }
 
 #endif

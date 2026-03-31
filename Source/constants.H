@@ -1,30 +1,42 @@
 #ifndef _CONSTANTS_H_
 #define _CONSTANTS_H_
 
-#define numrigidbodies 2
+#define numrigidbodies 0
 
 #define XDIR 0
 #define YDIR 1
 #define ZDIR 2
 
 #define fourbythree 1.3333333333
-#define half 0.5
+#define HALF_CONST 0.5
 #define PI 3.141592654
 #define three 3.0
 #define two 2.0
-#define one 1.0
+#define eka                                                                    \
+    1.0 // one in sanskrit. naming as 'one' creates problems during cuda
+        // compilation
 #define four 4.0
+#define onebysix 0.16666666666667
+#define onebythree 0.333333333333
 #define twobyfive 0.4
+#define twobythree 0.6666666666667
 #define fourth 0.25
 #define eighth 0.125
-#define zero 0.0
+#define shunya 0.0 // zero in sanskrit.
 #define TINYVAL 1e-20
 #define BIGVAL 1e20
 
 #define NCOMP_TENSOR 6
 #define NCOMP_FULLTENSOR 9
 
+#if USE_TEMP
+#define NUM_STATES 25
+#else
 #define NUM_STATES 20
+#endif
+
+#define testing 0
+
 #define MASS_INDEX 0
 #define VELX_INDEX 1
 #define VELY_INDEX 2
@@ -32,7 +44,6 @@
 #define FRCX_INDEX 4
 #define FRCY_INDEX 5
 #define FRCZ_INDEX 6
-// Difference in velocity between two successive time steps Vx(t+dt)-Vx(t)
 #define DELTA_VELX_INDEX 7
 #define DELTA_VELY_INDEX 8
 #define DELTA_VELZ_INDEX 9
@@ -47,12 +58,36 @@
 #define NORMALY 18
 #define NORMALZ 19
 
+#if USE_TEMP
+#define MASS_SPHEAT 20       // \sigma m_p c_p N_I(x_p)
+#define MASS_SPHEAT_TEMP 21  // \sigma m_p c_p N_I(x_p)
+#define TEMPERATURE 22       // T_I
+#define SOURCE_TEMP_INDEX 23 // Source terms in temperature equation
+#define DELTA_TEMPERATURE 24 // T_I
+#endif
+
+#if (AMREX_SPACEDIM == 1)
 #define XX 0
 #define XY 1
 #define XZ 2
 #define YY 3
 #define YZ 4
 #define ZZ 5
+#elif (AMREX_SPACEDIM == 2)
+#define XX 0
+#define XY 1
+#define YY 2
+#define XZ 3
+#define YZ 4
+#define ZZ 5
+#elif (AMREX_SPACEDIM == 3)
+#define XX 0
+#define XY 1
+#define XZ 2
+#define YY 3
+#define YZ 4
+#define ZZ 5
+#endif
 
 #define BC_PERIODIC 0
 #define BC_NOSLIPWALL 1
@@ -61,5 +96,7 @@
 #define BC_OUTFLOW 4
 
 #define ACCG 9.81
+
+const int print_length = 60;
 
 #endif
