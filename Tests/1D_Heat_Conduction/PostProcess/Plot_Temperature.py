@@ -5,6 +5,67 @@ import numpy as np
 import matplotlib.pyplot as plt
 import string
 
+
+USE_TEMP = True
+AMREX_SPACEDIM=1
+
+CXX_ENUM = {
+    "radius": 0,
+    "xvel": 1,
+    "yvel": 2,
+    "zvel": 3,
+    "xvel_prime": 4,
+    "yvel_prime": 5,
+    "zvel_prime": 6,
+    "strainrate": 7,
+    "strain": 13,
+    "stress": 19,
+    "deformation_gradient": 25,
+    "volume": 34,
+    "mass": 35,
+    "density": 36,
+    "jacobian": 37,
+    "pressure": 38,
+    "vol_init": 39,
+    "E": 40,
+    "nu": 41,
+    "Bulk_modulus": 42,
+    "Gama_pressure": 43,
+    "Dynamic_viscosity": 44,
+    "yacceleration": 45,
+    "temperature": 46,
+    "specific_heat": 47,
+    "thermal_conductivity": 48,
+    "heat_flux": 49,
+    "heat_source": 52,
+}
+
+def build_field_dict(AMREX_SPACEDIM: int, USE_TEMP: bool):
+    if AMREX_SPACEDIM not in (1, 2, 3):
+        raise ValueError("AMREX_SPACEDIM must be 1, 2, or 3")
+
+    # Prepend pos fields
+    fields = {}
+    for d in range(AMREX_SPACEDIM):
+        fields[f"pos{'xyz'[d]}"] = d
+
+    # Shift all enum indices by AMREX_SPACEDIM
+    for name, enum_idx in CXX_ENUM.items():
+        if not USE_TEMP and name in (
+            "temperature", "specific_heat",
+            "thermal_conductivity", "heat_flux", "heat_source"
+        ):
+            continue
+        fields[name] = enum_idx + AMREX_SPACEDIM
+
+    return fields
+
+def logical_index(name, fields):
+    if name not in fields:
+        raise KeyError(f"{name} not in dictionary")
+    return fields[name]
+
+
 # ---------------------------------------------------------
 # Exact solution function (section 10.3.3 Ngyuen's book)
 # ---------------------------------------------------------
@@ -46,15 +107,22 @@ def main():
     # Load data
     data = np.loadtxt(filename,skiprows=5)
     x = data[:, 0]
-    temp_idx = 46
-    T_num = data[:, temp_idx+args.dim]
-    x_sorted = np.sort(x)
+    fields = build_field_dict(1, True)
+    print(fields["temperature"])
+    temperature_idx = fields["temperature"]
+    
+    T_num = data[:, temperature_idx]   
+    
+    order = np.argsort(x)
+    x_sorted = x[order]
+    T_sorted = T_num[order]
+
 
     # Compute exact solution
     T_ex = Texact(x_sorted, args.T0, args.T1, args.time)
 
     # Compute errors
-    abs_err = np.abs(T_num - T_ex)
+    abs_err = np.abs(T_sorted - T_ex)
     min_err = np.min(abs_err)
     max_err = np.max(abs_err)
     rms_err = np.sqrt(np.mean(abs_err**2))
@@ -66,7 +134,7 @@ def main():
 
     # Plot numerical vs exact
     plt.figure(figsize=(8, 6))
-    plt.scatter(x, T_num, label="ExaGOOP", linewidth=2,color='black')
+    plt.scatter(x_sorted, T_sorted, label="ExaGOOP", linewidth=2,color='black')
     plt.plot(x_sorted, T_ex, "--", label="Exact", linewidth=2,color='red')
     plt.xlabel("x",fontsize=15)
     plt.ylabel("Temperature",fontsize=15)

@@ -157,7 +157,6 @@ void PrintMultiLineMessage(std::string msg, int print_len, bool begin)
     if (begin == true)
     {
         msg.append(print_len - msg.length(), '.');
-        // msg.append(1, '>');
         amrex::Print() << msg;
     }
     else

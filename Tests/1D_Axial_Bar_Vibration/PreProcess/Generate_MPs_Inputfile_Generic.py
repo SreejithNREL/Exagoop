@@ -1372,26 +1372,21 @@ def plot_1d(x, grid):
     import matplotlib.pyplot as plt
     import numpy as np
     
-    print("\n Plotting grid")
+    
 
     xmin, xmax, nx = grid["xmin"], grid["xmax"], grid["nx"]
     dx = (xmax - xmin) / nx
     
-    print("xmin = ",xmin)
-    print("xmax = ",xmax)
-    print("nx = ",nx)
-    print("dx = ",dx)
+    
 
     fig, ax = plt.subplots(figsize=(12, 3))
 
     # Plot material points
-    ax.scatter(x, np.zeros_like(x), s=20, c="blue", alpha=0.7, label="Material Points")
-    print('matpt = ',x)
+    ax.scatter(x, np.zeros_like(x), s=20, c="blue", alpha=0.7, label="Material Points")    
 
     # Plot grid cell boundaries
     for i in range(nx + 1):
-        xc = xmin + i * dx
-        print(xc)
+        xc = xmin + i * dx        
         ax.axvline(x=xc, color="gray", lw=0.5)
 
     # Formatting

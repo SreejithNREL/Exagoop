@@ -4,6 +4,65 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
+USE_TEMP = True
+AMREX_SPACEDIM=1
+
+CXX_ENUM = {
+    "radius": 0,
+    "xvel": 1,
+    "yvel": 2,
+    "zvel": 3,
+    "xvel_prime": 4,
+    "yvel_prime": 5,
+    "zvel_prime": 6,
+    "strainrate": 7,
+    "strain": 13,
+    "stress": 19,
+    "deformation_gradient": 25,
+    "volume": 34,
+    "mass": 35,
+    "density": 36,
+    "jacobian": 37,
+    "pressure": 38,
+    "vol_init": 39,
+    "E": 40,
+    "nu": 41,
+    "Bulk_modulus": 42,
+    "Gama_pressure": 43,
+    "Dynamic_viscosity": 44,
+    "yacceleration": 45,
+    "temperature": 46,
+    "specific_heat": 47,
+    "thermal_conductivity": 48,
+    "heat_flux": 49,
+    "heat_source": 52,
+}
+
+def build_field_dict(AMREX_SPACEDIM: int, USE_TEMP: bool):
+    if AMREX_SPACEDIM not in (1, 2, 3):
+        raise ValueError("AMREX_SPACEDIM must be 1, 2, or 3")
+
+    # Prepend pos fields
+    fields = {}
+    for d in range(AMREX_SPACEDIM):
+        fields[f"pos{'xyz'[d]}"] = d
+
+    # Shift all enum indices by AMREX_SPACEDIM
+    for name, enum_idx in CXX_ENUM.items():
+        if not USE_TEMP and name in (
+            "temperature", "specific_heat",
+            "thermal_conductivity", "heat_flux", "heat_source"
+        ):
+            continue
+        fields[name] = enum_idx + AMREX_SPACEDIM
+
+    return fields
+
+def logical_index(name, fields):
+    if name not in fields:
+        raise KeyError(f"{name} not in dictionary")
+    return fields[name]
+
 # ---------------------------------------------------------
 # Exact 2D solution (your function, unchanged)
 # ---------------------------------------------------------
@@ -38,9 +97,7 @@ def main():
     parser.add_argument("--T1", type=float, default=1.0)
     parser.add_argument("--L", type=float, default=1.0)
     parser.add_argument("--H", type=float, default=1.0)
-    parser.add_argument("--N_terms", type=int, default=25)
-    parser.add_argument("--Tcol", type=int, default=48,
-                        help="Column index for temperature")
+    parser.add_argument("--N_terms", type=int, default=25)    
     args = parser.parse_args()
 
     # ---------------------------------------------------------
@@ -63,9 +120,10 @@ def main():
     # ---------------------------------------------------------
     data = np.loadtxt(filename, skiprows=args.skiprows)
     x = data[:, 0]
-    y = data[:, 1]
-    T_num = data[:, args.Tcol]
-
+    y = data[:, 1]    
+    fields = build_field_dict(2, True)    
+    temperature_idx = fields["temperature"]    
+    T_num = data[:, temperature_idx]
     # ---------------------------------------------------------
     # Compute exact solution
     # ---------------------------------------------------------

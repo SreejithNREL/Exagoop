@@ -1195,26 +1195,27 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
  *
  * @return None.
  */
-void MPMParticleContainer::InitParticles(amrex::Real mincoords[AMREX_SPACEDIM],
-                                         amrex::Real maxcoords[AMREX_SPACEDIM],
-                                         amrex::Real vel[AMREX_SPACEDIM],
-                                         int ppc[AMREX_SPACEDIM],
-                                         amrex::Real dens,
-                                         int constmodel,
-                                         amrex::Real E,
-                                         amrex::Real nu,
-                                         amrex::Real bulkmod,
-                                         amrex::Real Gama_pres,
-                                         amrex::Real visc,
+void MPMParticleContainer::InitParticles(
+    const amrex::Array<amrex::Real, AMREX_SPACEDIM> &mincoords,
+    const amrex::Array<amrex::Real, AMREX_SPACEDIM> &maxcoords,
+    amrex::Real vel[AMREX_SPACEDIM],
+    int ppc[AMREX_SPACEDIM],
+    amrex::Real dens,
+    int constmodel,
+    amrex::Real E,
+    amrex::Real nu,
+    amrex::Real bulkmod,
+    amrex::Real Gama_pres,
+    amrex::Real visc,
 #if USE_TEMP
-                                         amrex::Real T,
-                                         amrex::Real thermcond,
-                                         amrex::Real cp,
-                                         amrex::Real heatsrc,
+    amrex::Real T,
+    amrex::Real thermcond,
+    amrex::Real cp,
+    amrex::Real heatsrc,
 #endif
-                                         int do_multi_part_per_cell,
-                                         amrex::Real &total_mass,
-                                         amrex::Real &total_vol)
+    int do_multi_part_per_cell,
+    amrex::Real &total_mass,
+    amrex::Real &total_vol)
 {
     const int lev = 0;
     const auto dxA = Geom(lev).CellSizeArray(); // dimension-aware dx

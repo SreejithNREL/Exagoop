@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
         int steps = 0;
         Real dt;
         Real time = 0.0;
-        // int num_of_rigid_bodies = 0;
+
         int output_it = 0;
         std::string pltfile;
         Real output_time = shunya;
@@ -155,7 +155,6 @@ int main(int argc, char *argv[])
 
             if (diag_timePrint >= specs.write_diag_output_time)
             {
-                // amrex::Print()<<"\n Writing diagnostic files..";
                 Do_All_Diagnostics(specs, mpm_pc, steps, time);
                 diag_timePrint = shunya;
             }

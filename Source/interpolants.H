@@ -248,8 +248,7 @@ cubicspline_1d_der(int shapefunctiontype, amrex::Real zi)
  * @brief Evaluates a 1D quadratic B‑spline basis function.
  *
  * Supports two evaluation modes:
- *   - Coefficient-based evaluation (method == 1)
- *   - Explicit piecewise polynomial formulas (method == 0)
+ *   - Coefficient-based evaluation
  *
  * Handles boundary, near-boundary, and interior spline types.
  *
@@ -263,103 +262,13 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 quadraticspline_1d(int shapefunctiontype, amrex::Real zi)
 {
     amrex::Real value = 0.0;
-    int method = 0;
-    if (method == 1)
-    {
-        amrex::Real zi_squared = zi * zi;
-        int interval = interval_idx_quadratic(shapefunctiontype, zi);
-        if (interval < 0)
-            return 0.0;
-        const auto &c = quad_spline_coeffs[shapefunctiontype][interval];
-        value = c.a * zi_squared + c.b * zi + c.c;
-    }
-    else
-    {
-        if (shapefunctiontype == 1) // Boundary node, low end and high end
-        {
-            if (zi >= -1.5 && zi <= -0.5)
-            {
-                value = (2.0 * zi / 3.0 + 1.0) * (zi + 3.0 / 2.0);
-            }
-            else if (zi >= -0.5 && zi <= 0)
-            {
-                value = 1 - zi * zi * 4.0 / 3.0;
-            }
-            else if (zi >= 0 && zi <= 0.5)
-            {
-                value = 1 - zi * zi * 4.0 / 3.0;
-            }
-            else if (zi >= 0.5 && zi <= 1.5)
-            {
-                value = (2.0 * zi / 3.0 - 1.0) * (zi - 1.5);
-            }
-            else
-            {
-                value = 0.0;
-            }
-        }
-        else if (shapefunctiontype == 2) // Near Boundary node, low end
-        {
-            if (zi >= -1.0 && zi <= -0.5)
-            {
-                value = 4.0 * (zi + 1.0) * (zi + 1.0) / 3.0;
-            }
-            else if (zi >= -0.5 && zi <= 0.5)
-            {
-                value = (zi / 6.0 - 7.0 * zi * zi / 6.0 + 17.0 / 24.0);
-            }
-            else if (zi >= 0.5 && zi <= 1.5)
-            {
-                value = (zi / 2.0 - 3.0 / 4.0) * (zi - 3.0 / 2.0);
-            }
-            else
-            {
-                value = 0.0;
-            }
-        }
-        else if (shapefunctiontype == 3) // Interior node
-        {
-            if (zi >= -1.5 && zi <= -0.5)
-            {
-                value = (2.0 * zi + 3.0) * (2.0 * zi + 3.0) / 8.0;
-            }
-            else if (zi >= -0.5 && zi <= 0.5)
-            {
-                value = (-8.0 * zi * zi + 6.0) / 8.0;
-            }
-            else if (zi >= 0.5 && zi <= 1.5)
-            {
-                value = (2.0 * zi - 3.0) * (2.0 * zi - 3.0) / 8.0;
-            }
-            else
-            {
-                value = 0.0;
-            }
-        }
-        else if (shapefunctiontype == 4) // near boundary node, high end
-        {
-            if (zi >= -1.5 && zi <= -0.5)
-            {
-                value = (zi / 2.0 + 3.0 / 4.0) * (zi + 3.0 / 2.0);
-            }
-            else if (zi >= -0.5 && zi <= 0.5)
-            {
-                value = 17.0 / 24.0 - 7.0 * zi * zi / 6.0 - zi / 6;
-            }
-            else if (zi >= 0.5 && zi <= 1.0)
-            {
-                value = (2.0 * zi - 2.0) * (2.0 * zi / 3.0 - 2.0 / 3.0);
-            }
-            else
-            {
-                value = 0.0;
-            }
-        }
-        else
-        {
-            amrex::Abort("\n Incorrect shape function type in cubicspline_1d");
-        }
-    }
+    int method = 1;
+    amrex::Real zi_squared = zi * zi;
+    int interval = interval_idx_quadratic(shapefunctiontype, zi);
+    if (interval < 0)
+        return 0.0;
+    const auto &c = quad_spline_coeffs[shapefunctiontype][interval];
+    value = c.a * zi_squared + c.b * zi + c.c;
     return value;
 }
 

@@ -1058,7 +1058,7 @@ TEST_CASES = {
         "parameter_space": {
             "dimension": [1],
             "np_per_cell_x": [1],
-            "order_scheme": [1],
+            "order_scheme": [2],
             "alpha_pic_flip": [1.0],
             "order_scheme": [1],
             "stress_update_scheme": [1],
@@ -1076,12 +1076,12 @@ TEST_CASES = {
         "generator_script": "./PreProcess/Generate_MPs_Inputfile_Generic.py",
         "input_file": "Inputs_1DHeatConduction.inp",
         "postproc_scripts": [
-            "./PostProcess/Plot_Temperature.py"            
+            "./PostProcess/Plot_Temperature.py"             
         ],
         "parameter_space": {
             "dimension": [1],
             "np_per_cell_x": [1],            
-            "order_scheme": [1],            
+            "order_scheme": [2],            
             "stress_update_scheme": [1],
             "build_with_hdf": [True,False],
             "output_format": ["ascii","hdf5"],
@@ -1097,7 +1097,7 @@ TEST_CASES = {
         ],
         "parameter_space": {            
             "np_per_cell_x": [1],            
-            "order_scheme": [1],            
+            "order_scheme": [2],            
             "stress_update_scheme": [1],
             "build_with_hdf": [True,False],
             "output_format": ["ascii","hdf5"],
@@ -1115,7 +1115,7 @@ TEST_CASES = {
             "dimension": [2], 
             "no_of_cell_in_x": [100],      
             "np_per_cell_x": [1],            
-            "order_scheme": [1],            
+            "order_scheme": [2],            
             "stress_update_scheme": [1],
             "build_with_hdf": [True,False],
             "output_format": ["ascii","hdf5"],
@@ -1132,7 +1132,7 @@ TEST_CASES = {
         "parameter_space": {     
             "dimension": [2],        
             "np_per_cell_x": [4],            
-            "order_scheme": [1],            
+            "order_scheme": [2],            
             "stress_update_scheme": [1],
             "build_with_hdf": [True,False],
             "output_format": ["ascii","hdf5"],
@@ -1150,6 +1150,66 @@ TEST_CASES = {
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ERROR_TOL = 1e-1
 results = []
+
+import json
+
+# ANSI colors
+GREEN = "\033[92m"
+RED = "\033[91m"
+RESET = "\033[0m"
+
+def print_dynamic_test_table(json_file):
+    # Load JSON
+    with open(json_file, "r") as f:
+        results = json.load(f)
+
+    if not results:
+        print("No test results found.")
+        return
+
+    # Collect all keys across all entries
+    all_keys = set()
+    for entry in results:
+        all_keys.update(entry.keys())
+
+    # Ensure "test" is first and "pass" is last if present
+    ordered_keys = []
+    if "test" in all_keys:
+        ordered_keys.append("test")
+
+    for k in sorted(all_keys):
+        if k not in ("test", "pass"):
+            ordered_keys.append(k)
+
+    if "pass" in all_keys:
+        ordered_keys.append("pass")
+
+    # Compute column widths
+    col_widths = {}
+    for key in ordered_keys:
+        max_len = max(len(str(entry.get(key, ""))) for entry in results)
+        col_widths[key] = max(max_len, len(key)) + 2
+
+    # Print header
+    header = ""
+    for key in ordered_keys:
+        header += f"{key:<{col_widths[key]}}"
+    print(header)
+    print("-" * len(header))
+
+    # Print rows
+    for entry in results:
+        row = ""
+        for key in ordered_keys:
+            value = entry.get(key, "")
+
+            if key == "pass":
+                icon = f"{GREEN}✔{RESET}" if value else f"{RED}✘{RESET}"
+                row += f"{icon:<{col_widths[key]}}"
+            else:
+                row += f"{str(value):<{col_widths[key]}}"
+
+        print(row)
 
 
 def _run_parameter_sweeps():
@@ -1218,10 +1278,10 @@ def _run_parameter_sweeps():
             Run_ParameterSweep_2D_HeatConduction(cfg)
         elif test_name == "Dam_Break":
             print('Nothing to do')
-            Run_ParameterSweep_Dambreak(cfg)
+            #Run_ParameterSweep_Dambreak(cfg)
         elif test_name == "Elastic_disk_collision":
             print('Nothing to do')
-            Run_ParameterSweep_EDC(cfg)
+            #Run_ParameterSweep_EDC(cfg)
 
     # Save results
     with open("sweep_results.json", "w") as f:
@@ -1299,5 +1359,6 @@ if __name__ == "__main__":
                       f"(0–{len(bm_results) - 1})")
     else:
         _run_parameter_sweeps()
+        print_dynamic_test_table('sweep_results.json')
 
 

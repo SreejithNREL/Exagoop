@@ -21,9 +21,9 @@ class MPMParticleContainer
      * @param[in] ba        BoxArray defining the grid decomposition.
      * @param[in] numcells  Neighbour stencil half‑width in grid cells.
      */
-    MPMParticleContainer(const amrex::Geometry geom,
-                         const amrex::DistributionMapping dmap,
-                         const amrex::BoxArray ba,
+    MPMParticleContainer(const amrex::Geometry &geom,
+                         const amrex::DistributionMapping &dmap,
+                         const amrex::BoxArray &ba,
                          int numcells)
 
         : NeighborParticleContainer<realData::count, intData::count>(
@@ -579,8 +579,8 @@ class MPMParticleContainer
      */
     void move_particles_from_nodevel(MultiFab &nodaldata,
                                      const amrex::Real &dt,
-                                     int bclo[AMREX_SPACEDIM],
-                                     int bchi[AMREX_SPACEDIM],
+                                     GpuArray<int, AMREX_SPACEDIM> bclo,
+                                     GpuArray<int, AMREX_SPACEDIM> bchi,
                                      int order_scheme);
 
     /**
