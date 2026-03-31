@@ -210,8 +210,8 @@ void MPMParticleContainer::Calculate_MinMaxPos(
     }
 
 #ifdef BL_USE_MPI
-        amrex::ParallelDescriptor::ReduceRealMax(maxpos.data(), AMREX_SPACEDIM);
-        amrex::ParallelDescriptor::ReduceRealMin(minpos.data(), AMREX_SPACEDIM);
+    amrex::ParallelDescriptor::ReduceRealMax(maxpos.data(), AMREX_SPACEDIM);
+    amrex::ParallelDescriptor::ReduceRealMin(minpos.data(), AMREX_SPACEDIM);
 #endif
 }
 

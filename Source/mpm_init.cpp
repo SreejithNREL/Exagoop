@@ -980,7 +980,6 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
             amrex::Abort("Invalid number_of_material_points");
         }
 
-
         std::string header_line;
         std::getline(ifs, header_line); // finish line 2
         std::getline(ifs, header_line); // read line 3
@@ -1006,7 +1005,6 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
         for (int i = 0; i < 32; ++i)
             rigid_bodies_seen[i] = -99999;
         int rigid_count = 0;
-
 
         for (int i = 0; i < np; ++i)
         {

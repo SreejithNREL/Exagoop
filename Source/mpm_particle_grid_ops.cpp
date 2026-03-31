@@ -454,7 +454,6 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
         ncolors *= color_stride[d];
     }
 
-
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
 
@@ -780,7 +779,6 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
         ncolors *= color_stride[d];
     }
 
-
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
 
@@ -1002,7 +1000,8 @@ void MPMParticleContainer::deposit_onto_grid_rigidnodesonly(
     GpuArray<int, AMREX_SPACEDIM> /*periodic*/)
 { /*
 
-     For now, we are holding off rigid particle implementation. We will add this feature in the upcoming version of ExaGOOP
+     For now, we are holding off rigid particle implementation. We will add this
+     feature in the upcoming version of ExaGOOP
 
      const int lev = 0;
      const Geometry &geom = Geom(lev);
@@ -1611,14 +1610,11 @@ void MPMParticleContainer::calculate_nodal_normal(
     GpuArray<int, AMREX_SPACEDIM> /*order_scheme_directional*/,
     GpuArray<int, AMREX_SPACEDIM> /*periodic*/)
 { /*
-     For now, we are holding off rigid particle implementation. We will add this feature in the upcoming version of ExaGOOP
-     const int lev = 0;
-     const Geometry &geom = Geom(lev);
-     auto &plev = GetParticles(lev);
-     const auto dxi = geom.InvCellSizeArray();
-     const auto dx = geom.CellSizeArray();
-     const auto plo = geom.ProbLoArray();
-     const auto domain = geom.Domain();
+     For now, we are holding off rigid particle implementation. We will add this
+     feature in the upcoming version of ExaGOOP const int lev = 0; const
+     Geometry &geom = Geom(lev); auto &plev = GetParticles(lev); const auto dxi
+     = geom.InvCellSizeArray(); const auto dx = geom.CellSizeArray(); const auto
+     plo = geom.ProbLoArray(); const auto domain = geom.Domain();
 
      const int *loarr = domain.loVect();
      const int *hiarr = domain.hiVect();
