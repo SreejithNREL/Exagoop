@@ -71,9 +71,6 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
                                      (2.0 * (1 + p.rdata(realData::nu)));
                     Cs = std::sqrt((lambda + 2.0 * mu) /
                                    p.rdata(realData::density));
-                    // amrex::Print()<<"\n Inside dt calc
-                    // "<<p.rdata(realData::E)<<" "<<p.rdata(realData::nu)<<"
-                    // "<<Cs;
                 }
 
                 // Dimension‑aware velocity magnitude
@@ -289,8 +286,6 @@ void MPMParticleContainer::moveParticles(
                 for (int d = 0; d < AMREX_SPACEDIM; ++d)
                 {
                     p.pos(d) += p.rdata(realData::xvel_prime + d) * dt;
-                    // amrex::Print()<<"\n Position and vel = "<<d<<"
-                    // "<<p.pos(d)<<" "<<p.rdata(realData::xvel_prime + d);
                 }
 
                 // Build relvel arrays
@@ -408,12 +403,7 @@ void MPMParticleContainer::moveParticles(
 
 amrex::Real MPMParticleContainer::GetPosSpring()
 {
-    // const int lev = 0;
-    /*const Geometry &geom = Geom(lev);
-    const auto plo = Geom(lev).ProbLoArray();
-    const auto phi = Geom(lev).ProbHiArray();
-    const auto dx = Geom(lev).CellSizeArray();
-    auto &plev = GetParticles(lev);*/
+
     amrex::Real ymin = 0.0;
 
     using PType = typename MPMParticleContainer::SuperParticleType;
@@ -438,12 +428,6 @@ amrex::Real MPMParticleContainer::GetPosSpring()
  */
 amrex::Real MPMParticleContainer::GetPosPiston()
 {
-    // const int lev = 0;
-    /*const Geometry &geom = Geom(lev);
-    const auto plo = Geom(lev).ProbLoArray();
-    const auto phi = Geom(lev).ProbHiArray();
-    const auto dx = Geom(lev).CellSizeArray();
-    auto &plev = GetParticles(lev);*/
     amrex::Real ymin = std::numeric_limits<amrex::Real>::max();
 
     using PType = typename MPMParticleContainer::SuperParticleType;
@@ -489,10 +473,6 @@ void MPMParticleContainer::UpdateRigidParticleVelocities(
     BL_PROFILE("MPMParticleContainer::GetVelPiston");
 
     const int lev = 0;
-    /*const Geometry &geom = Geom(lev);
-    const auto plo = Geom(lev).ProbLoArray();
-    const auto phi = Geom(lev).ProbHiArray();
-    const auto dx = Geom(lev).CellSizeArray();*/
     auto &plev = GetParticles(lev);
 
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)

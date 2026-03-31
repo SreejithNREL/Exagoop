@@ -950,9 +950,6 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
 
         long np = -1;
 
-        // ------------------------------------------------------------
-        // 1. Read dimension
-        // ------------------------------------------------------------
         std::string label;
         int file_dim = -1;
 
@@ -969,9 +966,6 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
             amrex::Abort("Dimension mismatch between particle file and build");
         }
 
-        // ------------------------------------------------------------
-        // 2. Read number of material points
-        // ------------------------------------------------------------
         std::string label2;
         safe_read(ifs, label2, "Error reading 'number_of_material_points:'");
         safe_read(ifs, np, "Error reading number_of_material_points");
@@ -986,9 +980,7 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
             amrex::Abort("Invalid number_of_material_points");
         }
 
-        // ------------------------------------------------------------
-        // 3. Skip header line beginning with '#'
-        // ------------------------------------------------------------
+
         std::string header_line;
         std::getline(ifs, header_line); // finish line 2
         std::getline(ifs, header_line); // read line 3
@@ -1015,9 +1007,7 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
             rigid_bodies_seen[i] = -99999;
         int rigid_count = 0;
 
-        // ------------------------------------------------------------
-        // 4. Read particles safely
-        // ------------------------------------------------------------
+
         for (int i = 0; i < np; ++i)
         {
             if (ifs.peek() == EOF)

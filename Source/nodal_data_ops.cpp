@@ -681,8 +681,6 @@ void nodal_bcs(const amrex::Geometry geom,
 
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
-        // const Box &bx = mfi.validbox();
-        //  Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
         Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 
         Array4<amrex::Real> nodal_data_arr = nodaldata.array(mfi);
@@ -851,14 +849,12 @@ void CalculateInterpolationError(const amrex::Geometry geom,
                                  int nodaldataindex)
 {
     const int *domloarr = geom.Domain().loVect();
-    // const int *domhiarr = geom.Domain().hiVect();
+
     const auto dx = geom.CellSizeArray();
     const auto Pi = 4.0 * atan(1.0);
 
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
-        // const Box &bx = mfi.validbox();
-        //  Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
         Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 
         Array4<Real> nodal_data_arr = nodaldata.array(mfi);

@@ -167,11 +167,6 @@ void MPMParticleContainer::update_phase_field(MultiFab &phasedata,
 #endif
             });
     }
-
-    // Optional boundary min-reduction (AMReX lacks min boundary sum),
-    // but with sufficiently larger levset grid than particle radii
-    // (dx > 3 * radius), this often isn’t required.
-    // phasedata.SumBoundary(geom.periodicity());
 }
 
 /**

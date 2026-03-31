@@ -454,14 +454,10 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
         ncolors *= color_stride[d];
     }
 
-    // Deposit particle contributions.
-    // Each color pass activates only particles whose cell index satisfies
-    // iv[d] % color_stride[d] == color_idx[d] for all d.  Within a pass no
-    // two active particles share a stencil node, so writes are conflict-free.
+
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
 
-        // Box nodalbox = convert(mfi.tilebox(), {AMREX_D_DECL(1, 1, 1)});
         Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 
         auto &ptile = plev[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
@@ -497,9 +493,6 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
 
                     auto iv = getParticleCell(p, plo, dxi, domain);
 
-                    // Skip particles not belonging to the current color pass.
-                    // Assumes domain lo[] >= 0; for negative lo use
-                    // (iv[d] - lo[d]) % color_stride[d] instead.
                     for (int d = 0; d < AMREX_SPACEDIM; ++d)
                     {
                         if (iv[d] % color_stride[d] != color_idx[d])
@@ -515,9 +508,6 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
                         auto bounds = compute_bounds(
                             iv[d], lo[d], hi[d], order_scheme_directional[d],
                             periodic[d]);
-                        // Clamp to this tile's nodal box to avoid the
-                        // per-node nodalbox.contains() branch in the stencil
-                        // loop, eliminating warp divergence near tile edges.
                         min_idx[d] = amrex::max(bounds.first,
                                                 nodalbox.smallEnd(d) - iv[d]);
                         max_idx[d] = amrex::min(bounds.second,
@@ -546,9 +536,6 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
                                 IntVect stencil(AMREX_D_DECL(l, m, n));
                                 {
 
-                                    // When forces are needed, compute N and all
-                                    // dN/dx_d in a single dimension sweep.
-                                    // Otherwise evaluate N alone.
                                     if (update_forces)
                                     {
                                         basisvalue = basisval_and_grad(
@@ -672,7 +659,6 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
         }
     }
 
-    // if(testing==1)	amrex::Print()<<"\n B4 Normalizing nodal data at node ";
     // Normalize velocities and stresses
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
@@ -685,9 +671,6 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
             [=] AMREX_GPU_DEVICE(AMREX_D_DECL(int i, int j, int k)) noexcept
             {
                 IntVect nodeindex(AMREX_D_DECL(i, j, k));
-                // if(testing==1)	amrex::Print()<<"\n Normalizing nodal
-                // data at node "<<i<<" "<<j<<" "<<nodal_data_arr(nodeindex,
-                // MASS_INDEX);
                 if (update_vel && nodal_data_arr(nodeindex, MASS_INDEX) > 0.0)
                 {
                     for (int d = 0; d < AMREX_SPACEDIM; ++d)
@@ -751,7 +734,6 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
     GpuArray<int, AMREX_SPACEDIM> order_scheme_directional,
     GpuArray<int, AMREX_SPACEDIM> periodic)
 {
-    // if(testing==1) amrex::Print()<<"\n Entered deposit_onto_grid_momentum";
 
     const int lev = 0;
     const Geometry &geom = Geom(lev);
@@ -798,11 +780,10 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
         ncolors *= color_stride[d];
     }
 
-    // Deposit particle contributions — conflict-free via cell coloring.
+
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
 
-        // Box nodalbox = convert(mfi.tilebox(), {AMREX_D_DECL(1, 1, 1)});
         Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
         auto &ptile = plev[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
         auto &aos = ptile.GetArrayOfStructs();
@@ -851,8 +832,7 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
                         auto bounds = compute_bounds(
                             iv[d], lo[d], hi[d], order_scheme_directional[d],
                             periodic[d]);
-                        // Clamp to this tile's nodal box to eliminate the
-                        // per-node nodalbox.contains() branch.
+
                         min_idx[d] = amrex::max(bounds.first,
                                                 nodalbox.smallEnd(d) - iv[d]);
                         max_idx[d] = amrex::min(bounds.second,
@@ -954,7 +934,6 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
 
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
-        // Box nodalbox = convert(mfi.tilebox(), {AMREX_D_DECL(1, 1, 1)});
         Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
         auto nodal_data_arr = nodaldata.array(mfi);
         amrex::ParallelFor(
@@ -1022,6 +1001,9 @@ void MPMParticleContainer::deposit_onto_grid_rigidnodesonly(
     GpuArray<int, AMREX_SPACEDIM> /*order_scheme_directional*/,
     GpuArray<int, AMREX_SPACEDIM> /*periodic*/)
 { /*
+
+     For now, we are holding off rigid particle implementation. We will add this feature in the upcoming version of ExaGOOP
+
      const int lev = 0;
      const Geometry &geom = Geom(lev);
      auto &plev = GetParticles(lev);
@@ -1629,6 +1611,7 @@ void MPMParticleContainer::calculate_nodal_normal(
     GpuArray<int, AMREX_SPACEDIM> /*order_scheme_directional*/,
     GpuArray<int, AMREX_SPACEDIM> /*periodic*/)
 { /*
+     For now, we are holding off rigid particle implementation. We will add this feature in the upcoming version of ExaGOOP
      const int lev = 0;
      const Geometry &geom = Geom(lev);
      auto &plev = GetParticles(lev);
