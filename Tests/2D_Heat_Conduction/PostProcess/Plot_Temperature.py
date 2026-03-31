@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 USE_TEMP = True
-AMREX_SPACEDIM=1
+AMREX_SPACEDIM=2
 
 CXX_ENUM = {
     "radius": 0,
@@ -121,7 +121,7 @@ def main():
     data = np.loadtxt(filename, skiprows=args.skiprows)
     x = data[:, 0]
     y = data[:, 1]    
-    fields = build_field_dict(2, True)    
+    fields = build_field_dict(AMREX_SPACEDIM, True)    
     temperature_idx = fields["temperature"]    
     T_num = data[:, temperature_idx]
     # ---------------------------------------------------------

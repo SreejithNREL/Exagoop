@@ -107,7 +107,7 @@ def main():
     # Load data
     data = np.loadtxt(filename,skiprows=5)
     x = data[:, 0]
-    fields = build_field_dict(1, True)
+    fields = build_field_dict(AMREX_SPACEDIM, True)
     print(fields["temperature"])
     temperature_idx = fields["temperature"]
     

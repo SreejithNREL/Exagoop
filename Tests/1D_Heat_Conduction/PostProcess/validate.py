@@ -6,79 +6,60 @@ import numpy as np
 USE_TEMP = True
 AMREX_SPACEDIM=1
 
-BASE_SCALAR_FIELDS = {
-    "radius": None,   # index assigned later
-    "xvel": None,
-    "yvel": None,
-    "zvel": None,
-    "xvel_prime": None,
-    "yvel_prime": None,
-    "zvel_prime": None,
-    "strainrate": None,
-    "strain": None,
-    "stress": None,
-    "deformation_gradient": None,
-    "volume": None,
-    "mass": None,
-    "density": None,
-    "jacobian": None,
-    "pressure": None,
-    "vol_init": None,
-    "E": None,
-    "nu": None,
-    "Bulk_modulus": None,
-    "Gama_pressure": None,
-    "Dynamic_viscosity": None,
-    "yacceleration": None,
-}
-TEMP_FIELDS = {
-    "temperature": None,
-    "specific_heat": None,
-    "thermal_conductivity": None,
-    "heat_flux": None,
-    "heat_source": None,
-}
-INT_FIELDS = {
-    "phase": None,
-    "rigid_body_id": None,
-    "constitutive_model": None,
+CXX_ENUM = {
+    "radius": 0,
+    "xvel": 1,
+    "yvel": 2,
+    "zvel": 3,
+    "xvel_prime": 4,
+    "yvel_prime": 5,
+    "zvel_prime": 6,
+    "strainrate": 7,
+    "strain": 13,
+    "stress": 19,
+    "deformation_gradient": 25,
+    "volume": 34,
+    "mass": 35,
+    "density": 36,
+    "jacobian": 37,
+    "pressure": 38,
+    "vol_init": 39,
+    "E": 40,
+    "nu": 41,
+    "Bulk_modulus": 42,
+    "Gama_pressure": 43,
+    "Dynamic_viscosity": 44,
+    "yacceleration": 45,
+    "temperature": 46,
+    "specific_heat": 47,
+    "thermal_conductivity": 48,
+    "heat_flux": 49,
+    "heat_source": 52,
 }
 
-def build_field_dict(dim: int, use_temp: bool):
-    if dim not in (1, 2, 3):
+def build_field_dict(AMREX_SPACEDIM: int, USE_TEMP: bool):
+    if AMREX_SPACEDIM not in (1, 2, 3):
         raise ValueError("AMREX_SPACEDIM must be 1, 2, or 3")
 
+    # Prepend pos fields
     fields = {}
-    idx = 0
+    for d in range(AMREX_SPACEDIM):
+        fields[f"pos{'xyz'[d]}"] = d
 
-    # 1. Position fields
-    for d in range(dim):
-        fields[f"pos{'xyz'[d]}"] = idx
-        idx += 1
-
-    # 2. Scalar fields (dimension‑independent)
-    for name in BASE_SCALAR_FIELDS:
-        fields[name] = idx
-        idx += 1
-
-    # 3. Temperature fields (conditional)
-    if use_temp:
-        for name in TEMP_FIELDS:
-            fields[name] = idx
-            idx += 1
-
-    # 4. Integer fields appended at the end
-    for name in INT_FIELDS:
-        fields[name] = idx
-        idx += 1
+    # Shift all enum indices by AMREX_SPACEDIM
+    for name, enum_idx in CXX_ENUM.items():
+        if not USE_TEMP and name in (
+            "temperature", "specific_heat",
+            "thermal_conductivity", "heat_flux", "heat_source"
+        ):
+            continue
+        fields[name] = enum_idx + AMREX_SPACEDIM
 
     return fields
 
-def field_index(name: str, fields: dict) -> int:
+def logical_index(name, fields):
     if name not in fields:
-        raise KeyError(
-            f"Field '{name}' not available. Valid fields: {list(fields.keys())}"
-        )
+        raise KeyError(f"{name} not in dictionary")
     return fields[name]
 
 
@@ -110,15 +91,10 @@ FILEPATH = matches[0]
 print(f"Found output file: {FILEPATH}")
 
 data = np.loadtxt(FILEPATH, skiprows=5)
-
-
-x = data[:, 0]
-FIELDS = build_field_dict(dim=AMREX_SPACEDIM, use_temp=USE_TEMP)
-temperature_idx = FIELDS["temperature"]
-
-print("Temperature index = ",temperature_idx)
-
-T_num = data[:, temperature_idx]
+fields = build_field_dict(AMREX_SPACEDIM, True)
+temperature_idx = fields["temperature"]
+x=data[:,0]
+T_num = data[:, temperature_idx]  
 
 T_ex = Texact(x, T0, T1, T_TIME)
 rms = np.sqrt(np.mean((T_num - T_ex) ** 2))

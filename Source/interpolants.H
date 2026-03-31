@@ -262,7 +262,6 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
 quadraticspline_1d(int shapefunctiontype, amrex::Real zi)
 {
     amrex::Real value = 0.0;
-    int method = 1;
     amrex::Real zi_squared = zi * zi;
     int interval = interval_idx_quadratic(shapefunctiontype, zi);
     if (interval < 0)
