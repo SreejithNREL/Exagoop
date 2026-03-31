@@ -546,18 +546,18 @@ void Initialise_Material_Points(MPMspecs &specs,
         PrintMessage(msg, print_length, true);
 
         auto io_time_start = amrex::second();
-        mpm_pc.InitParticles(
-            specs.autogen_mincoords.data(), specs.autogen_maxcoords.data(),
-            specs.autogen_vel.data(), specs.autogen_ppc.data(),
-            specs.autogen_dens, specs.autogen_constmodel, specs.autogen_E,
-            specs.autogen_nu, specs.autogen_bulkmod, specs.autogen_Gama_pres,
-            specs.autogen_visc,
+        mpm_pc.InitParticles(specs.autogen_mincoords, specs.autogen_maxcoords,
+                             specs.autogen_vel.data(), specs.autogen_ppc.data(),
+                             specs.autogen_dens, specs.autogen_constmodel,
+                             specs.autogen_E, specs.autogen_nu,
+                             specs.autogen_bulkmod, specs.autogen_Gama_pres,
+                             specs.autogen_visc,
 #if USE_TEMP
-            specs.autogen_T, specs.autogen_thermcond, specs.autogen_cp,
-            specs.autogen_heatsrc,
+                             specs.autogen_T, specs.autogen_thermcond,
+                             specs.autogen_cp, specs.autogen_heatsrc,
 #endif
-            specs.autogen_multi_part_per_cell, specs.total_mass,
-            specs.total_vol);
+                             specs.autogen_multi_part_per_cell,
+                             specs.total_mass, specs.total_vol);
         auto io_time = amrex::second() - io_time_start;
         msg = FormatElapsedTime(io_time);
         PrintMessage(msg, print_length, true);

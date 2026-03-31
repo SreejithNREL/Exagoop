@@ -210,8 +210,8 @@ class MPMspecs
         AMREX_D_DECL(1, 1, 1)};
 
     int use_autogen = 0;
-    Vector<Real> autogen_mincoords;
-    Vector<Real> autogen_maxcoords;
+    amrex::Array<amrex::Real, AMREX_SPACEDIM> autogen_mincoords;
+    amrex::Array<amrex::Real, AMREX_SPACEDIM> autogen_maxcoords;
     Vector<Real> autogen_vel;
     int autogen_multi_part_per_cell = 1;
     Real autogen_dens = 1000.0;
@@ -248,8 +248,8 @@ class MPMspecs
         bchi_temp.resize(AMREX_SPACEDIM);
 #endif
 
-        autogen_mincoords.resize(AMREX_SPACEDIM);
-        autogen_maxcoords.resize(AMREX_SPACEDIM);
+        // autogen_mincoords.resize(AMREX_SPACEDIM);
+        // autogen_maxcoords.resize(AMREX_SPACEDIM);
         autogen_ppc.resize(AMREX_SPACEDIM);
         autogen_vel.resize(AMREX_SPACEDIM);
 
@@ -330,8 +330,8 @@ class MPMspecs
         }
         else
         {
-            pp.getarr("mincoords_autogen", autogen_mincoords);
-            pp.getarr("maxcoords_autogen", autogen_maxcoords);
+            pp.get("mincoords_autogen", autogen_mincoords);
+            pp.get("maxcoords_autogen", autogen_maxcoords);
             pp.getarr("vel_autogen", autogen_vel);
             pp.query("constmodel_autogen", autogen_constmodel);
             pp.query("dens_autogen", autogen_dens);

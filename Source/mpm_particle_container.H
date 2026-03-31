@@ -127,26 +127,27 @@ class MPMParticleContainer
      *
      * @return None.
      */
-    void InitParticles(Real mincoords[AMREX_SPACEDIM],
-                       Real maxcoords[AMREX_SPACEDIM],
-                       Real vel[AMREX_SPACEDIM],
-                       int ppc[AMREX_SPACEDIM],
-                       Real dens,
-                       int constmodel,
-                       Real E,
-                       Real nu,
-                       Real bulkMod,
-                       Real Gama_pres,
-                       Real visc,
+    void
+    InitParticles(const amrex::Array<amrex::Real, AMREX_SPACEDIM> &mincoords,
+                  const amrex::Array<amrex::Real, AMREX_SPACEDIM> &maxcoords,
+                  Real vel[AMREX_SPACEDIM],
+                  int ppc[AMREX_SPACEDIM],
+                  Real dens,
+                  int constmodel,
+                  Real E,
+                  Real nu,
+                  Real bulkMod,
+                  Real Gama_pres,
+                  Real visc,
 #if USE_TEMP
-                       amrex::Real T,
-                       amrex::Real thermcond,
-                       amrex::Real cp,
-                       amrex::Real heatsrc,
+                  amrex::Real T,
+                  amrex::Real thermcond,
+                  amrex::Real cp,
+                  amrex::Real heatsrc,
 #endif
-                       int do_multi_part_per_cell,
-                       Real &total_mass,
-                       Real &total_vol);
+                  int do_multi_part_per_cell,
+                  Real &total_mass,
+                  Real &total_vol);
 
     /**
      * @brief Advances particle positions and applies boundary conditions.

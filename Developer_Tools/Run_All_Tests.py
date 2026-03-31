@@ -551,7 +551,19 @@ def Run_ParameterSweep_Dambreak(cfg):
             os.makedirs(MovieFolder, exist_ok=True)           
             err_script = os.path.join(test_dir,cfg["postproc_scripts"][0])                     
             err_cmd = f"python3 {err_script} --folder {ascii_folder} --outputpic {PicsFolder}/WaterFront.png --expdata {expdata} --outputmovie {MovieFolder}/Water.mp4 --minmaxfile {minmaxfile}"
-            error_output = subprocess.check_output(err_cmd, shell=True, text=True)     
+            error_output = subprocess.check_output(err_cmd, shell=True, text=True) 
+            
+        #dim, npcx, order, sus, bwh, of
+        results.append({
+            "test": test_name,      
+            "dim":dim,      
+            "npcx": npcx,
+            "order": order,            
+            "sus": sus,
+            "built_with_hdf": bwh,
+            "fileformat": of,
+            "pass": True
+        })    
             
 
 def Run_ParameterSweep_EDC(cfg):
@@ -654,6 +666,18 @@ def Run_ParameterSweep_EDC(cfg):
             err_cmd = f"python3 {err_script} --folder {ascii_folder} --outputpic {PicsFolder}/Energy.png --outputmovie {MovieFolder}/Disks.mp4 --energyfile {energyfile}"
             error_output = subprocess.check_output(err_cmd, shell=True, text=True) 
             print("Done")    
+            
+        
+        results.append({
+            "test": test_name,      
+            "dim":dim,      
+            "npcx": npcx,
+            "order": order,            
+            "sus": sus,
+            "built_with_hdf": bwh,
+            "fileformat": of,
+            "pass": True
+        })
               
 
 
@@ -1154,7 +1178,7 @@ results = []
 import json
 
 # ANSI colors
-GREEN = "\033[92m"
+BLACK_TICK = "✔"  
 RED = "\033[91m"
 RESET = "\033[0m"
 
@@ -1204,7 +1228,7 @@ def print_dynamic_test_table(json_file):
             value = entry.get(key, "")
 
             if key == "pass":
-                icon = f"{GREEN}✔{RESET}" if value else f"{RED}✘{RESET}"
+                icon = "✔" if value else f"{RED}✘{RESET}"
                 row += f"{icon:<{col_widths[key]}}"
             else:
                 row += f"{str(value):<{col_widths[key]}}"
