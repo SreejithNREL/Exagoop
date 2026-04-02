@@ -117,96 +117,125 @@ void backup_current_temperature(MultiFab &nodaldata)
 /**
  * @brief Applies level‑set‑based boundary conditions to nodal velocities.
  *
- * For each node:
- *   1. Maps the node to the refined level‑set grid.
- *   2. If φ(node) < 0 and mass > 0:
- *        - Computes ∇φ at the node.
- *        - Normalizes the gradient to obtain the wall normal.
- *        - Applies applybc() to nodal velocity.
+ * For each node with mass > 0 whose level‑set value φ < 0 (i.e. inside or on
+ * the EB surface):
+ *   1. Maps the node to its location on the refined level‑set grid.
+ *   2. Computes the physical position of the node.
+ *   3. Evaluates ∇φ via multilinear interpolation and normalises to get the
+ *      outward wall normal n̂.
+ *   4. Subtracts the prescribed wall velocity to form the relative velocity.
+ *   5. Calls applybc() with lsetbc and lset_wall_mu — exactly mirroring the
+ *      treatment in nodal_bcs() — to enforce one of:
+ *        - lsetbc == 0 : no BC (pass-through, useful for debugging)
+ *        - lsetbc == 1 : no-slip  (kill all relative velocity)
+ *        - lsetbc == 2 : no-penetration / free-slip
+ *        - lsetbc == 3 : Coulomb friction (μ = lset_wall_mu)
+ *   6. Restores the wall velocity to give the final nodal velocity.
  *
- * This enforces embedded‑boundary constraints directly on nodal velocities.
+ * The wall velocity is currently zero (static EB). For a moving EB extend
+ * lset_wall_vel[] via ParmParse and pass it in — the restore step already
+ * handles it correctly.
  *
- * @param[in,out] nodaldata  Nodal MultiFab containing velocity fields.
- * @param[in]     geom       Geometry describing the domain.
- * @param[in]     dt         Time step (unused).
- * @param[in]     lsetbc     Boundary condition type for EB.
- * @param[in]     lset_wall_mu  Friction coefficient for EB.
+ * @param[in,out] nodaldata     Nodal MultiFab containing velocity fields.
+ * @param[in]     geom          Geometry describing the domain.
+ * @param[in]     dt            Time step (reserved for future use).
+ * @param[in]     lsetbc        BC type integer
+ * (0=none,1=noslip,2=slip,3=Coulomb).
+ * @param[in]     lset_wall_mu  Friction coefficient μ (used when lsetbc == 3).
  *
  * @return None.
  */
 void nodal_levelset_bcs(MultiFab &nodaldata,
                         const Geometry geom,
                         amrex::Real & /*dt*/,
-                        int /*lsetbc*/,
-                        amrex::Real /*lset_wall_mu*/)
+                        int lsetbc,
+                        amrex::Real lset_wall_mu)
 {
-    // need something more sophisticated
-    // but lets get it working!
-    //
     int lsref = mpm_ebtools::ls_refinement;
     const auto plo = geom.ProbLoArray();
-    // const auto phi = geom.ProbHiArray();
     const auto dx = geom.CellSizeArray();
+
+    // Wall velocity for a static EB is zero.
+    // For a moving EB, replace with the prescribed surface velocity.
+    amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> wall_vel = {
+        AMREX_D_DECL(0.0, 0.0, 0.0)};
+
+    // ── Coarsen lsphi to match nodaldata's BoxArray
+    // ─────────────────────────── lsphi lives on a refined nodal BoxArray
+    // (coarse × lsref). nodaldata lives on the coarse nodal BoxArray. Calling
+    // lsphi->array(mfi) with a coarse MFIter gives the wrong tile. Fix:
+    // average_down_nodal produces a coarse copy that shares the same BoxArray
+    // as nodaldata, making array(mfi) correct and safe. get_levelset_value/grad
+    // are then called with lsref=1 since the array is already at coarse
+    // resolution.
+    MultiFab lsphi_coarse(nodaldata.boxArray(), nodaldata.DistributionMap(),
+                          1,  // ncomp
+                          1); // nghost
+
+    amrex::average_down_nodal(*mpm_ebtools::lsphi, lsphi_coarse,
+                              amrex::IntVect(lsref));
 
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
-        const Box &bx = mfi.validbox();
-        Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
+        Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 
         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
-        Array4<Real> lsarr = mpm_ebtools::lsphi->array(mfi);
+
+        // lsphi_coarse shares BoxArray with nodaldata — array(mfi) is correct
+        Array4<Real> lsarr = lsphi_coarse.array(mfi);
 
         amrex::ParallelFor(
             nodalbox,
             [=] AMREX_GPU_DEVICE(AMREX_D_DECL(int i, int j, int k)) noexcept
             {
                 IntVect nodeid(AMREX_D_DECL(i, j, k));
-                IntVect refined_nodeid(
-                    AMREX_D_DECL(i * lsref, j * lsref, k * lsref));
 
-                if (lsarr(refined_nodeid) < TINYVAL &&
-                    nodal_data_arr(nodeid, MASS_INDEX) > shunya)
+                // Physical position of this node on the coarse grid
+                amrex::Real xp[AMREX_SPACEDIM] = {AMREX_D_DECL(
+                    plo[XDIR] + i * dx[XDIR], plo[YDIR] + j * dx[YDIR],
+                    plo[ZDIR] + k * dx[ZDIR])};
+
+                // Sample phi at this node using lsref=1 (coarse array)
+                amrex::Real lsval = get_levelset_value(lsarr, plo, dx, xp, 1);
+
+                // Only act on nodes with material mass that are inside/on EB
+                if (lsval >= 0.0 ||
+                    nodal_data_arr(nodeid, MASS_INDEX) <= shunya)
+                    return;
+
+                // --- Compute outward wall normal from ∇φ ---
+                amrex::Real normaldir[AMREX_SPACEDIM] = {
+                    AMREX_D_DECL(1.0, 0.0, 0.0)};
+
+                // lsref=1 since lsphi_coarse is at coarse resolution
+                get_levelset_grad(lsarr, plo, dx, xp, 1, normaldir);
+
+                amrex::Real gradmag = 0.0;
+                for (int d = 0; d < AMREX_SPACEDIM; d++)
+                    gradmag += normaldir[d] * normaldir[d];
+                gradmag = std::sqrt(gradmag);
+
+                for (int d = 0; d < AMREX_SPACEDIM; d++)
+                    normaldir[d] /= (gradmag + TINYVAL);
+
+                // --- Form relative velocity (node vel minus wall vel) ---
+                amrex::Real relvel_in[AMREX_SPACEDIM];
+                amrex::Real relvel_out[AMREX_SPACEDIM];
+                for (int d = 0; d < AMREX_SPACEDIM; d++)
                 {
-                    Real relvel_in[AMREX_SPACEDIM];
-                    Real relvel_out[AMREX_SPACEDIM];
-                    for (int d = 0; d < AMREX_SPACEDIM; d++)
-                    {
-                        relvel_in[d] = nodal_data_arr(nodeid, VELX_INDEX + d);
-                        relvel_out[d] = relvel_in[d];
-                    }
-
-                    // amrex::Real eps = 0.00001;
-                    amrex::Real xp[AMREX_SPACEDIM] = {AMREX_D_DECL(
-                        plo[XDIR] + i * dx[XDIR], plo[YDIR] + j * dx[YDIR],
-                        plo[ZDIR] + k * dx[ZDIR])};
-
-                    // amrex::Real
-                    // dist=get_levelset_value(lsarr,plo,dx,xp,lsref);
-                    // dist=amrex::Math::abs(dist);
-
-                    amrex::Real normaldir[AMREX_SPACEDIM] = {
-                        AMREX_D_DECL(1.0, 0.0, 0.0)};
-
-                    get_levelset_grad(lsarr, plo, dx, xp, lsref, normaldir);
-
-                    amrex::Real gradmag = 0.0;
-                    for (int d = 0; d < AMREX_SPACEDIM; d++)
-                    {
-                        gradmag += normaldir[d] * normaldir[d];
-                    }
-
-                    gradmag = std::sqrt(gradmag);
-
-                    for (int d = 0; d < AMREX_SPACEDIM; d++)
-                    {
-                        normaldir[d] = normaldir[d] / (gradmag + TINYVAL);
-                    }
-
-                    for (int d = 0; d < AMREX_SPACEDIM; d++)
-                    {
-                        nodal_data_arr(nodeid, VELX_INDEX + d) = relvel_out[d];
-                    }
+                    relvel_in[d] =
+                        nodal_data_arr(nodeid, VELX_INDEX + d) - wall_vel[d];
+                    relvel_out[d] = relvel_in[d];
                 }
+
+                // --- Apply BC ---
+                // lsetbc: 0=none, 1=no-slip, 2=free-slip, 3=Coulomb friction
+                applybc(relvel_in, relvel_out, lset_wall_mu, normaldir, lsetbc);
+
+                // --- Restore wall velocity and write back ---
+                for (int d = 0; d < AMREX_SPACEDIM; d++)
+                    nodal_data_arr(nodeid, VELX_INDEX + d) =
+                        relvel_out[d] + wall_vel[d];
             });
     }
 }

@@ -1,0 +1,71 @@
+@echo off
+:: exagoop-build-udf.bat
+:: ─────────────────────────────────────────────────────────────────────────────
+:: Compiles a user-defined level-set .cpp into a .dll that ExaGOOP can load
+:: at runtime without recompilation.
+::
+:: Paths below are baked in by CMake at install time.
+::
+:: Usage:
+::   exagoop-build-udf.bat <source.cpp> <output_dir>
+::
+:: Example:
+::   exagoop-build-udf.bat my_geometry.cpp .\run01
+::   Produces: .\run01\udf_build\levelset_udf.dll
+::
+:: Then in your input file:
+::   eb2.geom_type   = udf_cpp
+::   eb2.udf_so_file = .\run01\udf_build\levelset_udf.dll
+:: ─────────────────────────────────────────────────────────────────────────────
+setlocal EnableDelayedExpansion
+
+:: ── Paths baked in by CMake ───────────────────────────────────────────────────
+set "EXAGOOP_CMAKE_DIR=@EXAGOOP_CMAKE_DIR@"
+set "AMREX_DIR=@EXAGOOP_AMREX_DIR@"
+
+:: ── Argument parsing ──────────────────────────────────────────────────────────
+if "%~1"=="" goto usage
+if "%~2"=="" goto usage
+
+set "UDF_SRC=%~f1"
+set "OUT_DIR=%~f2"
+
+if not exist "%UDF_SRC%" (
+    echo [ExaGOOP] ERROR: source file not found: %UDF_SRC%
+    exit /b 1
+)
+
+set "BUILD_DIR=%OUT_DIR%\udf_build"
+if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
+
+echo [ExaGOOP] Building UDF: %UDF_SRC%
+echo [ExaGOOP] Output dir : %BUILD_DIR%
+echo.
+
+:: ── Configure ─────────────────────────────────────────────────────────────────
+cmake -S "%EXAGOOP_CMAKE_DIR%" ^
+      -B "%BUILD_DIR%"         ^
+      -DCMAKE_BUILD_TYPE=Release ^
+      -DUDF_SOURCE_FILE="%UDF_SRC%" ^
+      -DAMReX_DIR="%AMREX_DIR%"
+if errorlevel 1 ( echo [ExaGOOP] CMake configure failed & exit /b 1 )
+
+:: ── Build ─────────────────────────────────────────────────────────────────────
+cmake --build "%BUILD_DIR%" --config Release --parallel
+if errorlevel 1 ( echo [ExaGOOP] Build failed & exit /b 1 )
+
+echo.
+echo [ExaGOOP] Done. Add this to your input file:
+echo     eb2.geom_type   = udf_cpp
+echo     eb2.udf_so_file = %BUILD_DIR%\levelset_udf.dll
+exit /b 0
+
+:usage
+echo Usage: exagoop-build-udf.bat ^<source.cpp^> ^<output_dir^>
+echo.
+echo   source.cpp   -- your level-set UDF source file
+echo   output_dir   -- directory where udf_build\ will be created
+echo.
+echo Templates are installed at:
+echo   @CMAKE_INSTALL_PREFIX@\share\exagoop\udf_templates\
+exit /b 1

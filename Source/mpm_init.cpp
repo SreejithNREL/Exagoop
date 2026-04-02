@@ -568,7 +568,12 @@ void Initialise_Material_Points(MPMspecs &specs,
 #if USE_EB
     if (mpm_ebtools::using_levelset_geometry)
     {
+        int tmpi;
+        mpm_pc.Calculate_Total_Number_of_MaterialParticles(tmpi);
+        amrex::Print() << " \nNumber of matpoints before " << tmpi;
         mpm_pc.removeParticlesInsideEB();
+        mpm_pc.Calculate_Total_Number_of_MaterialParticles(tmpi);
+        amrex::Print() << " \nNumber of matpoints after" << tmpi;
     }
 #endif
 
@@ -1526,9 +1531,30 @@ void MPMParticleContainer::removeParticlesInsideEB()
     const auto dx = geom.CellSizeArray();
     const auto plo = geom.ProbLoArray();
 
-#if USE_EB
     int lsref = mpm_ebtools::ls_refinement;
-#endif
+
+    // ── The problem with the original code ───────────────────────────────────
+    // lsphi is defined on a REFINED nodal BoxArray (ba refined by lsref).
+    // MakeMFIter(lev) iterates over the COARSE particle BoxArray.
+    // Calling lsphi->array(mfi) with a coarse MFIter tile index into a
+    // refined MultiFab returns the wrong tile — all particles read the same
+    // node and get a constant phi value.
+    //
+    // ── Fix: coarsen lsphi down to the coarse nodal grid first ───────────────
+    // average_down_nodal maps refined phi → coarse nodal phi, which shares
+    // the same BoxArray as the particle container. Then array(mfi) is safe.
+
+    BoxArray coarse_nodal_ba =
+        amrex::convert(ParticleBoxArray(lev), IntVect::TheNodeVector());
+
+    MultiFab lsphi_coarse(coarse_nodal_ba, ParticleDistributionMap(lev),
+                          1,  // ncomp
+                          1); // nghost
+    amrex::Print() << "\n lsphi min = " << mpm_ebtools::lsphi->min(0)
+                   << "  max = " << mpm_ebtools::lsphi->max(0) << "\n";
+
+    amrex::average_down_nodal(*mpm_ebtools::lsphi, lsphi_coarse,
+                              amrex::IntVect(lsref));
 
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
@@ -1538,12 +1564,13 @@ void MPMParticleContainer::removeParticlesInsideEB()
 
         auto &ptile = plev[index];
         auto &aos = ptile.GetArrayOfStructs();
-
         int np = aos.numRealParticles();
         ParticleType *pstruct = aos().dataPtr();
 
-        amrex::Array4<amrex::Real> lsetarr = mpm_ebtools::lsphi->array(mfi);
+        // lsphi_coarse shares BoxArray with MakeMFIter(lev) — safe to access
+        amrex::Array4<amrex::Real> lsetarr = lsphi_coarse.array(mfi);
 
+        // Pass lsref=1 because lsphi_coarse is already at coarse resolution
         amrex::ParallelFor(np,
                            [=] AMREX_GPU_DEVICE(int i) noexcept
                            {
@@ -1551,17 +1578,14 @@ void MPMParticleContainer::removeParticlesInsideEB()
 
                                amrex::Real xp[AMREX_SPACEDIM];
                                for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                               {
                                    xp[d] = p.pos(d);
-                               }
 
-                               amrex::Real lsval = get_levelset_value(
-                                   lsetarr, plo, dx, xp, lsref);
+                               amrex::Real lsval =
+                                   get_levelset_value(lsetarr, plo, dx, xp, 1);
 
-                               if (lsval < TINYVAL)
-                               {
+                               // Remove particles inside the solid (phi < 0)
+                               if (lsval < 0.0)
                                    p.id() = -1;
-                               }
                            });
     }
 

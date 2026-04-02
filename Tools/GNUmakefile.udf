@@ -1,0 +1,70 @@
+# GNUmakefile.udf
+# ─────────────────────────────────────────────────────────────────────────────
+# Builds a user-defined level-set shared library for use with ExaGOOP's
+# eb2.geom_type = udf_cpp option.
+#
+# For users on the AMReX GNUmake build path (no CMake required).
+#
+# Usage:
+#   make -f /path/to/GNUmakefile.udf          \
+#        UDF_SRC=my_geometry.cpp               \
+#        AMREX_HOME=/path/to/amrex             \
+#        [OUT=levelset_udf.so]                 \
+#        [COMP=g++]
+#
+# Then in your input file:
+#   eb2.geom_type   = udf_cpp
+#   eb2.udf_so_file = /path/to/levelset_udf.so
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Required: set on command line ─────────────────────────────────────────────
+UDF_SRC   ?= $(error Set UDF_SRC=/path/to/my_geometry.cpp)
+AMREX_HOME ?= $(error Set AMREX_HOME=/path/to/amrex)
+
+# ── Optional overrides ────────────────────────────────────────────────────────
+COMP      ?= g++
+OUT       ?= levelset_udf.so
+DEBUG     ?= FALSE
+
+# ── Compiler flags ────────────────────────────────────────────────────────────
+CXXFLAGS  := -std=c++17 -fPIC -shared
+ifeq ($(DEBUG),TRUE)
+  CXXFLAGS += -g -O0
+else
+  CXXFLAGS += -O2
+endif
+
+# ── AMReX include paths (covers Base, EB, and common Extern headers) ──────────
+AMREX_INCLUDES := \
+  -I$(AMREX_HOME)/Src/Base      \
+  -I$(AMREX_HOME)/Src/EB        \
+  -I$(AMREX_HOME)/Src/Boundary  \
+  -I$(AMREX_HOME)/Src/GeometryShop
+
+# ── Targets ───────────────────────────────────────────────────────────────────
+.PHONY: all clean help
+
+all: $(OUT)
+
+$(OUT): $(UDF_SRC)
+	@echo "[ExaGOOP UDF] Compiling $< → $@"
+	$(COMP) $(CXXFLAGS) $(AMREX_INCLUDES) $(EXTRA_FLAGS) $< -o $@
+	@echo "[ExaGOOP UDF] Done."
+	@echo ""
+	@echo "Add to your input file:"
+	@echo "  eb2.geom_type   = udf_cpp"
+	@echo "  eb2.udf_so_file = $(abspath $(OUT))"
+
+clean:
+	rm -f $(OUT)
+
+help:
+	@echo "Usage: make -f GNUmakefile.udf UDF_SRC=<file.cpp> AMREX_HOME=<path>"
+	@echo ""
+	@echo "Variables:"
+	@echo "  UDF_SRC     — your geometry source file (required)"
+	@echo "  AMREX_HOME  — path to AMReX source tree (required)"
+	@echo "  OUT         — output filename (default: levelset_udf.so)"
+	@echo "  COMP        — C++ compiler (default: g++)"
+	@echo "  DEBUG       — TRUE for debug build (default: FALSE)"
+	@echo "  EXTRA_FLAGS — additional compiler flags"

@@ -5,6 +5,9 @@
 .clang-format
 /paper/
 
+.clangd
+.cproject
+
 Tests/*/mpm_particles.dat
 Tests/*/Backtrace.*
 Tests/*/Diagnostics/*

@@ -131,3 +131,37 @@ VPATH_LOCATIONS   += $(MPM_HOME)/Source
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
 
+
+# ===============================================================
+# UDF level-set target
+# ===============================================================
+# Builds a user-defined level-set shared library without recompiling ExaGOOP.
+#
+# Usage (from the Build_Gnumake directory):
+#   make udf UDF_SRC=/path/to/my_geometry.cpp
+#   make udf UDF_SRC=/path/to/my_geometry.cpp OUT=/path/to/levelset_udf.so
+#   make udf UDF_SRC=/path/to/my_geometry.cpp EXTRA_FLAGS="-I/my/extra/headers"
+#
+# The .so/.dylib is placed alongside UDF_SRC by default.
+# Copy a template to get started:
+#   cp $(MPM_HOME)/Exec/udf_templates/levelset_simple_template.cpp my_geometry.cpp
+#
+.PHONY: udf udf-help
+
+udf:
+ifndef UDF_SRC
+	$(error UDF_SRC is not set. Usage: make udf UDF_SRC=/path/to/my_geometry.cpp)
+endif
+	$(MAKE) -f $(MPM_HOME)/Tools/GNUmakefile.udf \
+	    UDF_SRC=$(UDF_SRC)                        \
+	    MPM_HOME=$(MPM_HOME)                       \
+	    AMREX_HOME=$(AMREX_HOME)                   \
+	    COMP=$(COMP)                               \
+	    DEBUG=$(DEBUG)                             \
+	    USE_MPI=$(USE_MPI)                         \
+	    $(if $(OUT),OUT=$(OUT),)                   \
+	    $(if $(EXTRA_FLAGS),EXTRA_FLAGS="$(EXTRA_FLAGS)",)
+
+udf-help:
+	$(MAKE) -f $(MPM_HOME)/Tools/GNUmakefile.udf help \
+	    MPM_HOME=$(MPM_HOME)

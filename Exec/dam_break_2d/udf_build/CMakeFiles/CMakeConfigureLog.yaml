@@ -1,0 +1,2035 @@
+
+---
+events:
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeDetermineSystem.cmake:204 (message)"
+      - "CMakeLists.txt:18 (project)"
+    message: |
+      The system is: Darwin - 25.4.0 - arm64
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:18 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" succeeded.
+      Compiler: /opt/homebrew/opt/ccache/libexec/cc 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      0
+      
+      
+      Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "a.out"
+      
+      The C compiler identification is AppleClang, found in:
+        /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/3.26.4/CompilerIdC/a.out
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:18 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+      Compiler: /opt/homebrew/opt/ccache/libexec/c++ 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      0
+      
+      
+      Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "a.out"
+      
+      The CXX compiler identification is AppleClang, found in:
+        /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/3.26.4/CompilerIdCXX/a.out
+      
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:57 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:18 (project)"
+    checks:
+      - "Detecting C compiler ABI info"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-QzRWJj"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-QzRWJj"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "CMAKE_C_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-QzRWJj
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_a31b7/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_a31b7.dir/build.make CMakeFiles/cmTC_a31b7.dir/build
+        Building C object CMakeFiles/cmTC_a31b7.dir/CMakeCCompilerABI.c.o
+        /opt/homebrew/opt/ccache/libexec/cc   -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk   -v -Wl,-v -MD -MT CMakeFiles/cmTC_a31b7.dir/CMakeCCompilerABI.c.o -MF CMakeFiles/cmTC_a31b7.dir/CMakeCCompilerABI.c.o.d -o CMakeFiles/cmTC_a31b7.dir/CMakeCCompilerABI.c.o -c /opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeCCompilerABI.c
+        Apple clang version 21.0.0 (clang-2100.0.123.102)
+        Target: arm64-apple-darwin25.4.0
+        Thread model: posix
+        InstalledDir: /Library/Developer/CommandLineTools/usr/bin
+        clang: warning: -Wl,-v: 'linker' input unused [-Wunused-command-line-argument]
+         "/Library/Developer/CommandLineTools/usr/bin/clang" -cc1 -triple arm64-apple-macosx26.0.0 -Wundef-prefix=TARGET_OS_ -Wdeprecated-objc-isa-usage -Werror=deprecated-objc-isa-usage -Werror=implicit-function-declaration -emit-obj -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name CMakeCCompilerABI.c -mrelocation-model pic -pic-level 2 -mframe-pointer=non-leaf -fno-strict-return -ffp-contract=on -fno-rounding-math -funwind-tables=1 -fobjc-msgsend-selector-stubs -fno-sized-deallocation -target-sdk-version=26.4 -fvisibility-inlines-hidden-static-local-var -fno-modulemap-allow-subdirectory-search -fdefine-target-os-macros -fno-assume-unique-vtables -fno-modulemap-allow-subdirectory-search -enable-tlsdesc -target-cpu apple-m1 -target-feature +v8.5a -target-feature +aes -target-feature +altnzcv -target-feature +ccdp -target-feature +ccpp -target-feature +complxnum -target-feature +crc -target-feature +dotprod -target-feature +flagm -target-feature +fp-armv8 -target-feature +fp16fml -target-feature +fptoint -target-feature +fullfp16 -target-feature +jsconv -target-feature +lse -target-feature +neon -target-feature +pauth -target-feature +perfmon -target-feature +predres -target-feature +ras -target-feature +rcpc -target-feature +rdm -target-feature +sb -target-feature +sha2 -target-feature +sha3 -target-feature +specrestrict -target-feature +ssbs -target-abi darwinpcs -debugger-tuning=lldb -fdebug-compilation-dir=/private/var/folders/yh/tfs5z0rn6vq_x3qzdjj426br0000gn/T/exagoop_bm_6p20mcy8/CMakeFiles/CMakeScratch/TryCompile-cIlF6F -target-linker-version 1266.8 -v -fcoverage-compilation-dir=/private/var/folders/yh/tfs5z0rn6vq_x3qzdjj426br0000gn/T/exagoop_bm_6p20mcy8/CMakeFiles/CMakeScratch/TryCompile-cIlF6F -resource-dir /Library/Developer/CommandLineTools/usr/lib/clang/21 -dependency-file CMakeFiles/cmTC_a7a74.dir/CMakeCCompilerABI.c.o.d -skip-unused-modulemap-deps -MT CMakeFiles/cmTC_a7a74.dir/CMakeCCompilerABI.c.o -sys-header-deps -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -internal-isystem /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/local/include -internal-isystem /Library/Developer/CommandLineTools/usr/lib/clang/21/include -internal-externc-isystem /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/include -internal-externc-isystem /Library/Developer/CommandLineTools/usr/include -internal-iframework /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/System/Library/Frameworks -internal-iframework /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/System/Library/SubFrameworks -internal-iframework /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/Library/Frameworks -Wno-elaborated-enum-base -ferror-limit 19 -stack-protector 1 -fstack-check -mdarwin-stkchk-strong-link -fblocks -fencode-extended-block-signature -fregister-global-dtors-with-atexit -fgnuc-version=4.2.1 -fskip-odr-check-in-gmf -fmax-type-align=16 -fcommon -fcolor-diagnostics -clang-vendor-feature=+disableNonDependentMemberExprInCurrentInstantiation -fno-odr-hash-protocols -clang-vendor-feature=+enableAggressiveVLAFolding -clang-vendor-feature=+revert09abecef7bbf -clang-vendor-feature=+thisNoAlignAttr -clang-vendor-feature=+thisNoNullAttr -clang-vendor-feature=+disableAtImportPrivateFrameworkInImplementationError -Wno-error=allocator-wrappers -fdwarf2-cfi-asm -o CMakeFiles/cmTC_a7a74.dir/CMakeCCompilerABI.c.o -x c /opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeCCompilerABI.c
+        clang -cc1 version 21.0.0 (clang-2100.0.123.102) default target arm64-apple-darwin25.4.0
+        ignoring nonexistent directory "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/local/include"
+        ignoring nonexistent directory "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/Library/Frameworks"
+        #include "..." search starts here:
+        #include <...> search starts here:
+         /Library/Developer/CommandLineTools/usr/lib/clang/21/include
+         /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/include
+         /Library/Developer/CommandLineTools/usr/include
+         /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/System/Library/Frameworks (framework directory)
+         /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/System/Library/SubFrameworks (framework directory)
+        End of search list.
+        Linking C executable cmTC_a31b7
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_a31b7.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/cc  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names  -v -Wl,-v CMakeFiles/cmTC_a31b7.dir/CMakeCCompilerABI.c.o -o cmTC_a31b7 
+        Apple clang version 21.0.0 (clang-2100.0.123.102)
+        Target: arm64-apple-darwin25.4.0
+        Thread model: posix
+        InstalledDir: /Library/Developer/CommandLineTools/usr/bin
+         "/Library/Developer/CommandLineTools/usr/bin/ld" -demangle -lto_library /Library/Developer/CommandLineTools/usr/lib/libLTO.dylib -dynamic -arch arm64 -platform_version macos 26.0.0 26.4 -syslibroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -mllvm -enable-linkonceodr-outlining -o cmTC_a31b7 -search_paths_first -headerpad_max_install_names -v CMakeFiles/cmTC_a31b7.dir/CMakeCCompilerABI.c.o -lSystem /Library/Developer/CommandLineTools/usr/lib/clang/21/lib/darwin/libclang_rt.osx.a
+        @(#)PROGRAM:ld PROJECT:ld-1266.8
+        BUILD 16:03:08 Mar  6 2026
+        configured to support archs: armv6 armv7 armv7s arm64 arm64e arm64_32 i386 x86_64 x86_64h armv6m armv7k armv7m armv7em armv8m.main armv8.1m.main
+        will use ld-classic for: armv6 armv7 armv7s i386 armv6m armv7k armv7m armv7em
+        LTO support using: LLVM version 21.0.0 (static support for 30, runtime is 30)
+        TAPI support using: Apple TAPI version 21.0.0 (tapi-2100.0.2.6)
+        Library search paths:
+        	/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/lib
+        	/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/lib/swift
+        Framework search paths:
+        	/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/System/Library/Frameworks
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:127 (message)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:18 (project)"
+    message: |
+      Parsed C implicit include dir info: rv=done
+        found start of include info
+        found start of implicit include info
+          add: [/Library/Developer/CommandLineTools/usr/lib/clang/21/include]
+          add: [/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/include]
+          add: [/Library/Developer/CommandLineTools/usr/include]
+        end of search list found
+        collapse include dir [/Library/Developer/CommandLineTools/usr/lib/clang/21/include] ==> [/Library/Developer/CommandLineTools/usr/lib/clang/21/include]
+        collapse include dir [/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/include] ==> [/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/include]
+        collapse include dir [/Library/Developer/CommandLineTools/usr/include] ==> [/Library/Developer/CommandLineTools/usr/include]
+        implicit include dirs: [/Library/Developer/CommandLineTools/usr/lib/clang/21/include;/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/include;/Library/Developer/CommandLineTools/usr/include]
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:152 (message)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:18 (project)"
+    message: |
+      Parsed C implicit link information:
+        link line regex: [^( *|.*[/\\])(ld|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        ignore line: [Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-QzRWJj]
+        ignore line: []
+        ignore line: [Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_a31b7/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_a31b7.dir/build.make CMakeFiles/cmTC_a31b7.dir/build]
+        ignore line: [Building C object CMakeFiles/cmTC_a31b7.dir/CMakeCCompilerABI.c.o]
+        ignore line: [/opt/homebrew/opt/ccache/libexec/cc   -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk   -v -Wl -v -MD -MT CMakeFiles/cmTC_a31b7.dir/CMakeCCompilerABI.c.o -MF CMakeFiles/cmTC_a31b7.dir/CMakeCCompilerABI.c.o.d -o CMakeFiles/cmTC_a31b7.dir/CMakeCCompilerABI.c.o -c /opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeCCompilerABI.c]
+        ignore line: [Apple clang version 21.0.0 (clang-2100.0.123.102)]
+        ignore line: [Target: arm64-apple-darwin25.4.0]
+        ignore line: [Thread model: posix]
+        ignore line: [InstalledDir: /Library/Developer/CommandLineTools/usr/bin]
+        ignore line: [clang: warning: -Wl -v: 'linker' input unused [-Wunused-command-line-argument]]
+        ignore line: [ "/Library/Developer/CommandLineTools/usr/bin/clang" -cc1 -triple arm64-apple-macosx26.0.0 -Wundef-prefix=TARGET_OS_ -Wdeprecated-objc-isa-usage -Werror=deprecated-objc-isa-usage -Werror=implicit-function-declaration -emit-obj -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name CMakeCCompilerABI.c -mrelocation-model pic -pic-level 2 -mframe-pointer=non-leaf -fno-strict-return -ffp-contract=on -fno-rounding-math -funwind-tables=1 -fobjc-msgsend-selector-stubs -fno-sized-deallocation -target-sdk-version=26.4 -fvisibility-inlines-hidden-static-local-var -fno-modulemap-allow-subdirectory-search -fdefine-target-os-macros -fno-assume-unique-vtables -fno-modulemap-allow-subdirectory-search -enable-tlsdesc -target-cpu apple-m1 -target-feature +v8.5a -target-feature +aes -target-feature +altnzcv -target-feature +ccdp -target-feature +ccpp -target-feature +complxnum -target-feature +crc -target-feature +dotprod -target-feature +flagm -target-feature +fp-armv8 -target-feature +fp16fml -target-feature +fptoint -target-feature +fullfp16 -target-feature +jsconv -target-feature +lse -target-feature +neon -target-feature +pauth -target-feature +perfmon -target-feature +predres -target-feature +ras -target-feature +rcpc -target-feature +rdm -target-feature +sb -target-feature +sha2 -target-feature +sha3 -target-feature +specrestrict -target-feature +ssbs -target-abi darwinpcs -debugger-tuning=lldb -fdebug-compilation-dir=/private/var/folders/yh/tfs5z0rn6vq_x3qzdjj426br0000gn/T/exagoop_bm_6p20mcy8/CMakeFiles/CMakeScratch/TryCompile-cIlF6F -target-linker-version 1266.8 -v -fcoverage-compilation-dir=/private/var/folders/yh/tfs5z0rn6vq_x3qzdjj426br0000gn/T/exagoop_bm_6p20mcy8/CMakeFiles/CMakeScratch/TryCompile-cIlF6F -resource-dir /Library/Developer/CommandLineTools/usr/lib/clang/21 -dependency-file CMakeFiles/cmTC_a7a74.dir/CMakeCCompilerABI.c.o.d -skip-unused-modulemap-deps -MT CMakeFiles/cmTC_a7a74.dir/CMakeCCompilerABI.c.o -sys-header-deps -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -internal-isystem /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/local/include -internal-isystem /Library/Developer/CommandLineTools/usr/lib/clang/21/include -internal-externc-isystem /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/include -internal-externc-isystem /Library/Developer/CommandLineTools/usr/include -internal-iframework /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/System/Library/Frameworks -internal-iframework /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/System/Library/SubFrameworks -internal-iframework /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/Library/Frameworks -Wno-elaborated-enum-base -ferror-limit 19 -stack-protector 1 -fstack-check -mdarwin-stkchk-strong-link -fblocks -fencode-extended-block-signature -fregister-global-dtors-with-atexit -fgnuc-version=4.2.1 -fskip-odr-check-in-gmf -fmax-type-align=16 -fcommon -fcolor-diagnostics -clang-vendor-feature=+disableNonDependentMemberExprInCurrentInstantiation -fno-odr-hash-protocols -clang-vendor-feature=+enableAggressiveVLAFolding -clang-vendor-feature=+revert09abecef7bbf -clang-vendor-feature=+thisNoAlignAttr -clang-vendor-feature=+thisNoNullAttr -clang-vendor-feature=+disableAtImportPrivateFrameworkInImplementationError -Wno-error=allocator-wrappers -fdwarf2-cfi-asm -o CMakeFiles/cmTC_a7a74.dir/CMakeCCompilerABI.c.o -x c /opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeCCompilerABI.c]
+        ignore line: [clang -cc1 version 21.0.0 (clang-2100.0.123.102) default target arm64-apple-darwin25.4.0]
+        ignore line: [ignoring nonexistent directory "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/local/include"]
+        ignore line: [ignoring nonexistent directory "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/Library/Frameworks"]
+        ignore line: [#include "..." search starts here:]
+        ignore line: [#include <...> search starts here:]
+        ignore line: [ /Library/Developer/CommandLineTools/usr/lib/clang/21/include]
+        ignore line: [ /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/include]
+        ignore line: [ /Library/Developer/CommandLineTools/usr/include]
+        ignore line: [ /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/System/Library/Frameworks (framework directory)]
+        ignore line: [ /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/System/Library/SubFrameworks (framework directory)]
+        ignore line: [End of search list.]
+        ignore line: [Linking C executable cmTC_a31b7]
+        ignore line: [/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_a31b7.dir/link.txt --verbose=1]
+        ignore line: [/opt/homebrew/opt/ccache/libexec/cc  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl -search_paths_first -Wl -headerpad_max_install_names  -v -Wl -v CMakeFiles/cmTC_a31b7.dir/CMakeCCompilerABI.c.o -o cmTC_a31b7 ]
+        ignore line: [Apple clang version 21.0.0 (clang-2100.0.123.102)]
+        ignore line: [Target: arm64-apple-darwin25.4.0]
+        ignore line: [Thread model: posix]
+        ignore line: [InstalledDir: /Library/Developer/CommandLineTools/usr/bin]
+        link line: [ "/Library/Developer/CommandLineTools/usr/bin/ld" -demangle -lto_library /Library/Developer/CommandLineTools/usr/lib/libLTO.dylib -dynamic -arch arm64 -platform_version macos 26.0.0 26.4 -syslibroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -mllvm -enable-linkonceodr-outlining -o cmTC_a31b7 -search_paths_first -headerpad_max_install_names -v CMakeFiles/cmTC_a31b7.dir/CMakeCCompilerABI.c.o -lSystem /Library/Developer/CommandLineTools/usr/lib/clang/21/lib/darwin/libclang_rt.osx.a]
+          arg [/Library/Developer/CommandLineTools/usr/bin/ld] ==> ignore
+          arg [-demangle] ==> ignore
+          arg [-lto_library] ==> ignore, skip following value
+          arg [/Library/Developer/CommandLineTools/usr/lib/libLTO.dylib] ==> skip value of -lto_library
+          arg [-dynamic] ==> ignore
+          arg [-arch] ==> ignore
+          arg [arm64] ==> ignore
+          arg [-platform_version] ==> ignore
+          arg [macos] ==> ignore
+          arg [26.0.0] ==> ignore
+          arg [26.4] ==> ignore
+          arg [-syslibroot] ==> ignore
+          arg [/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk] ==> ignore
+          arg [-mllvm] ==> ignore
+          arg [-enable-linkonceodr-outlining] ==> ignore
+          arg [-o] ==> ignore
+          arg [cmTC_a31b7] ==> ignore
+          arg [-search_paths_first] ==> ignore
+          arg [-headerpad_max_install_names] ==> ignore
+          arg [-v] ==> ignore
+          arg [CMakeFiles/cmTC_a31b7.dir/CMakeCCompilerABI.c.o] ==> ignore
+          arg [-lSystem] ==> lib [System]
+          arg [/Library/Developer/CommandLineTools/usr/lib/clang/21/lib/darwin/libclang_rt.osx.a] ==> lib [/Library/Developer/CommandLineTools/usr/lib/clang/21/lib/darwin/libclang_rt.osx.a]
+        Library search paths: [;/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/lib;/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/lib/swift]
+        Framework search paths: [;/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/System/Library/Frameworks]
+        remove lib [System]
+        remove lib [/Library/Developer/CommandLineTools/usr/lib/clang/21/lib/darwin/libclang_rt.osx.a]
+        collapse library dir [/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/lib] ==> [/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/lib]
+        collapse library dir [/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/lib/swift] ==> [/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/lib/swift]
+        collapse framework dir [/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/System/Library/Frameworks] ==> [/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/System/Library/Frameworks]
+        implicit libs: []
+        implicit objs: []
+        implicit dirs: [/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/lib;/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/lib/swift]
+        implicit fwks: [/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/System/Library/Frameworks]
+      
+      
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:57 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:18 (project)"
+    checks:
+      - "Detecting CXX compiler ABI info"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-HRYptG"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-HRYptG"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "CMAKE_CXX_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-HRYptG
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_13a30/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_13a30.dir/build.make CMakeFiles/cmTC_13a30.dir/build
+        Building CXX object CMakeFiles/cmTC_13a30.dir/CMakeCXXCompilerABI.cpp.o
+        /opt/homebrew/opt/ccache/libexec/c++   -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk   -v -Wl,-v -MD -MT CMakeFiles/cmTC_13a30.dir/CMakeCXXCompilerABI.cpp.o -MF CMakeFiles/cmTC_13a30.dir/CMakeCXXCompilerABI.cpp.o.d -o CMakeFiles/cmTC_13a30.dir/CMakeCXXCompilerABI.cpp.o -c /opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeCXXCompilerABI.cpp
+        Apple clang version 21.0.0 (clang-2100.0.123.102)
+        Target: arm64-apple-darwin25.4.0
+        Thread model: posix
+        InstalledDir: /Library/Developer/CommandLineTools/usr/bin
+        clang++: warning: -Wl,-v: 'linker' input unused [-Wunused-command-line-argument]
+        ignoring nonexistent directory "/Library/Developer/CommandLineTools/usr/bin/../include/c++/v1"
+         "/Library/Developer/CommandLineTools/usr/bin/clang" -cc1 -triple arm64-apple-macosx26.0.0 -Wundef-prefix=TARGET_OS_ -Wdeprecated-objc-isa-usage -Werror=deprecated-objc-isa-usage -Werror=implicit-function-declaration -emit-obj -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name CMakeCXXCompilerABI.cpp -mrelocation-model pic -pic-level 2 -mframe-pointer=non-leaf -fno-strict-return -ffp-contract=on -fno-rounding-math -funwind-tables=1 -fobjc-msgsend-selector-stubs -fno-sized-deallocation -target-sdk-version=26.4 -fvisibility-inlines-hidden-static-local-var -fno-modulemap-allow-subdirectory-search -fdefine-target-os-macros -fno-assume-unique-vtables -fno-modulemap-allow-subdirectory-search -enable-tlsdesc -target-cpu apple-m1 -target-feature +v8.5a -target-feature +aes -target-feature +altnzcv -target-feature +ccdp -target-feature +ccpp -target-feature +complxnum -target-feature +crc -target-feature +dotprod -target-feature +flagm -target-feature +fp-armv8 -target-feature +fp16fml -target-feature +fptoint -target-feature +fullfp16 -target-feature +jsconv -target-feature +lse -target-feature +neon -target-feature +pauth -target-feature +perfmon -target-feature +predres -target-feature +ras -target-feature +rcpc -target-feature +rdm -target-feature +sb -target-feature +sha2 -target-feature +sha3 -target-feature +specrestrict -target-feature +ssbs -target-abi darwinpcs -debugger-tuning=lldb -fdebug-compilation-dir=/private/var/folders/yh/tfs5z0rn6vq_x3qzdjj426br0000gn/T/exagoop_bm_6p20mcy8/CMakeFiles/CMakeScratch/TryCompile-zBbTEt -target-linker-version 1266.8 -v -fcoverage-compilation-dir=/private/var/folders/yh/tfs5z0rn6vq_x3qzdjj426br0000gn/T/exagoop_bm_6p20mcy8/CMakeFiles/CMakeScratch/TryCompile-zBbTEt -resource-dir /Library/Developer/CommandLineTools/usr/lib/clang/21 -dependency-file CMakeFiles/cmTC_85b08.dir/CMakeCXXCompilerABI.cpp.o.d -skip-unused-modulemap-deps -MT CMakeFiles/cmTC_85b08.dir/CMakeCXXCompilerABI.cpp.o -sys-header-deps -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -internal-isystem /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/include/c++/v1 -internal-isystem /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/local/include -internal-isystem /Library/Developer/CommandLineTools/usr/lib/clang/21/include -internal-externc-isystem /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/include -internal-externc-isystem /Library/Developer/CommandLineTools/usr/include -internal-iframework /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/System/Library/Frameworks -internal-iframework /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/System/Library/SubFrameworks -internal-iframework /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/Library/Frameworks -Wno-elaborated-enum-base -fdeprecated-macro -ferror-limit 19 -stack-protector 1 -fstack-check -mdarwin-stkchk-strong-link -fblocks -fencode-extended-block-signature -fregister-global-dtors-with-atexit -fgnuc-version=4.2.1 -fskip-odr-check-in-gmf -fcxx-exceptions -fexceptions -fmax-type-align=16 -fcommon -fcolor-diagnostics -clang-vendor-feature=+disableNonDependentMemberExprInCurrentInstantiation -fno-odr-hash-protocols -clang-vendor-feature=+enableAggressiveVLAFolding -clang-vendor-feature=+revert09abecef7bbf -clang-vendor-feature=+thisNoAlignAttr -clang-vendor-feature=+thisNoNullAttr -clang-vendor-feature=+disableAtImportPrivateFrameworkInImplementationError -Wno-error=allocator-wrappers -fdwarf2-cfi-asm -o CMakeFiles/cmTC_85b08.dir/CMakeCXXCompilerABI.cpp.o -x c++ /opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeCXXCompilerABI.cpp
+        clang -cc1 version 21.0.0 (clang-2100.0.123.102) default target arm64-apple-darwin25.4.0
+        ignoring nonexistent directory "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/local/include"
+        ignoring nonexistent directory "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/Library/Frameworks"
+        #include "..." search starts here:
+        #include <...> search starts here:
+         /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/include/c++/v1
+         /Library/Developer/CommandLineTools/usr/lib/clang/21/include
+         /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/include
+         /Library/Developer/CommandLineTools/usr/include
+         /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/System/Library/Frameworks (framework directory)
+         /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/System/Library/SubFrameworks (framework directory)
+        End of search list.
+        Linking CXX executable cmTC_13a30
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_13a30.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names  -v -Wl,-v CMakeFiles/cmTC_13a30.dir/CMakeCXXCompilerABI.cpp.o -o cmTC_13a30 
+        Apple clang version 21.0.0 (clang-2100.0.123.102)
+        Target: arm64-apple-darwin25.4.0
+        Thread model: posix
+        InstalledDir: /Library/Developer/CommandLineTools/usr/bin
+         "/Library/Developer/CommandLineTools/usr/bin/ld" -demangle -lto_library /Library/Developer/CommandLineTools/usr/lib/libLTO.dylib -dynamic -arch arm64 -platform_version macos 26.0.0 26.4 -syslibroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -mllvm -enable-linkonceodr-outlining -o cmTC_13a30 -search_paths_first -headerpad_max_install_names -v CMakeFiles/cmTC_13a30.dir/CMakeCXXCompilerABI.cpp.o -lc++ -lSystem /Library/Developer/CommandLineTools/usr/lib/clang/21/lib/darwin/libclang_rt.osx.a
+        @(#)PROGRAM:ld PROJECT:ld-1266.8
+        BUILD 16:03:08 Mar  6 2026
+        configured to support archs: armv6 armv7 armv7s arm64 arm64e arm64_32 i386 x86_64 x86_64h armv6m armv7k armv7m armv7em armv8m.main armv8.1m.main
+        will use ld-classic for: armv6 armv7 armv7s i386 armv6m armv7k armv7m armv7em
+        LTO support using: LLVM version 21.0.0 (static support for 30, runtime is 30)
+        TAPI support using: Apple TAPI version 21.0.0 (tapi-2100.0.2.6)
+        Library search paths:
+        	/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/lib
+        	/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/lib/swift
+        Framework search paths:
+        	/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/System/Library/Frameworks
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:127 (message)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:18 (project)"
+    message: |
+      Parsed CXX implicit include dir info: rv=done
+        found start of include info
+        found start of implicit include info
+          add: [/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/include/c++/v1]
+          add: [/Library/Developer/CommandLineTools/usr/lib/clang/21/include]
+          add: [/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/include]
+          add: [/Library/Developer/CommandLineTools/usr/include]
+        end of search list found
+        collapse include dir [/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/include/c++/v1] ==> [/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/include/c++/v1]
+        collapse include dir [/Library/Developer/CommandLineTools/usr/lib/clang/21/include] ==> [/Library/Developer/CommandLineTools/usr/lib/clang/21/include]
+        collapse include dir [/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/include] ==> [/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/include]
+        collapse include dir [/Library/Developer/CommandLineTools/usr/include] ==> [/Library/Developer/CommandLineTools/usr/include]
+        implicit include dirs: [/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/include/c++/v1;/Library/Developer/CommandLineTools/usr/lib/clang/21/include;/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/include;/Library/Developer/CommandLineTools/usr/include]
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:152 (message)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:18 (project)"
+    message: |
+      Parsed CXX implicit link information:
+        link line regex: [^( *|.*[/\\])(ld|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        ignore line: [Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-HRYptG]
+        ignore line: []
+        ignore line: [Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_13a30/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_13a30.dir/build.make CMakeFiles/cmTC_13a30.dir/build]
+        ignore line: [Building CXX object CMakeFiles/cmTC_13a30.dir/CMakeCXXCompilerABI.cpp.o]
+        ignore line: [/opt/homebrew/opt/ccache/libexec/c++   -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk   -v -Wl -v -MD -MT CMakeFiles/cmTC_13a30.dir/CMakeCXXCompilerABI.cpp.o -MF CMakeFiles/cmTC_13a30.dir/CMakeCXXCompilerABI.cpp.o.d -o CMakeFiles/cmTC_13a30.dir/CMakeCXXCompilerABI.cpp.o -c /opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeCXXCompilerABI.cpp]
+        ignore line: [Apple clang version 21.0.0 (clang-2100.0.123.102)]
+        ignore line: [Target: arm64-apple-darwin25.4.0]
+        ignore line: [Thread model: posix]
+        ignore line: [InstalledDir: /Library/Developer/CommandLineTools/usr/bin]
+        ignore line: [clang++: warning: -Wl -v: 'linker' input unused [-Wunused-command-line-argument]]
+        ignore line: [ignoring nonexistent directory "/Library/Developer/CommandLineTools/usr/bin/../include/c++/v1"]
+        ignore line: [ "/Library/Developer/CommandLineTools/usr/bin/clang" -cc1 -triple arm64-apple-macosx26.0.0 -Wundef-prefix=TARGET_OS_ -Wdeprecated-objc-isa-usage -Werror=deprecated-objc-isa-usage -Werror=implicit-function-declaration -emit-obj -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name CMakeCXXCompilerABI.cpp -mrelocation-model pic -pic-level 2 -mframe-pointer=non-leaf -fno-strict-return -ffp-contract=on -fno-rounding-math -funwind-tables=1 -fobjc-msgsend-selector-stubs -fno-sized-deallocation -target-sdk-version=26.4 -fvisibility-inlines-hidden-static-local-var -fno-modulemap-allow-subdirectory-search -fdefine-target-os-macros -fno-assume-unique-vtables -fno-modulemap-allow-subdirectory-search -enable-tlsdesc -target-cpu apple-m1 -target-feature +v8.5a -target-feature +aes -target-feature +altnzcv -target-feature +ccdp -target-feature +ccpp -target-feature +complxnum -target-feature +crc -target-feature +dotprod -target-feature +flagm -target-feature +fp-armv8 -target-feature +fp16fml -target-feature +fptoint -target-feature +fullfp16 -target-feature +jsconv -target-feature +lse -target-feature +neon -target-feature +pauth -target-feature +perfmon -target-feature +predres -target-feature +ras -target-feature +rcpc -target-feature +rdm -target-feature +sb -target-feature +sha2 -target-feature +sha3 -target-feature +specrestrict -target-feature +ssbs -target-abi darwinpcs -debugger-tuning=lldb -fdebug-compilation-dir=/private/var/folders/yh/tfs5z0rn6vq_x3qzdjj426br0000gn/T/exagoop_bm_6p20mcy8/CMakeFiles/CMakeScratch/TryCompile-zBbTEt -target-linker-version 1266.8 -v -fcoverage-compilation-dir=/private/var/folders/yh/tfs5z0rn6vq_x3qzdjj426br0000gn/T/exagoop_bm_6p20mcy8/CMakeFiles/CMakeScratch/TryCompile-zBbTEt -resource-dir /Library/Developer/CommandLineTools/usr/lib/clang/21 -dependency-file CMakeFiles/cmTC_85b08.dir/CMakeCXXCompilerABI.cpp.o.d -skip-unused-modulemap-deps -MT CMakeFiles/cmTC_85b08.dir/CMakeCXXCompilerABI.cpp.o -sys-header-deps -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -internal-isystem /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/include/c++/v1 -internal-isystem /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/local/include -internal-isystem /Library/Developer/CommandLineTools/usr/lib/clang/21/include -internal-externc-isystem /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/include -internal-externc-isystem /Library/Developer/CommandLineTools/usr/include -internal-iframework /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/System/Library/Frameworks -internal-iframework /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/System/Library/SubFrameworks -internal-iframework /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/Library/Frameworks -Wno-elaborated-enum-base -fdeprecated-macro -ferror-limit 19 -stack-protector 1 -fstack-check -mdarwin-stkchk-strong-link -fblocks -fencode-extended-block-signature -fregister-global-dtors-with-atexit -fgnuc-version=4.2.1 -fskip-odr-check-in-gmf -fcxx-exceptions -fexceptions -fmax-type-align=16 -fcommon -fcolor-diagnostics -clang-vendor-feature=+disableNonDependentMemberExprInCurrentInstantiation -fno-odr-hash-protocols -clang-vendor-feature=+enableAggressiveVLAFolding -clang-vendor-feature=+revert09abecef7bbf -clang-vendor-feature=+thisNoAlignAttr -clang-vendor-feature=+thisNoNullAttr -clang-vendor-feature=+disableAtImportPrivateFrameworkInImplementationError -Wno-error=allocator-wrappers -fdwarf2-cfi-asm -o CMakeFiles/cmTC_85b08.dir/CMakeCXXCompilerABI.cpp.o -x c++ /opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeCXXCompilerABI.cpp]
+        ignore line: [clang -cc1 version 21.0.0 (clang-2100.0.123.102) default target arm64-apple-darwin25.4.0]
+        ignore line: [ignoring nonexistent directory "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/local/include"]
+        ignore line: [ignoring nonexistent directory "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/Library/Frameworks"]
+        ignore line: [#include "..." search starts here:]
+        ignore line: [#include <...> search starts here:]
+        ignore line: [ /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/include/c++/v1]
+        ignore line: [ /Library/Developer/CommandLineTools/usr/lib/clang/21/include]
+        ignore line: [ /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/include]
+        ignore line: [ /Library/Developer/CommandLineTools/usr/include]
+        ignore line: [ /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/System/Library/Frameworks (framework directory)]
+        ignore line: [ /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/System/Library/SubFrameworks (framework directory)]
+        ignore line: [End of search list.]
+        ignore line: [Linking CXX executable cmTC_13a30]
+        ignore line: [/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_13a30.dir/link.txt --verbose=1]
+        ignore line: [/opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl -search_paths_first -Wl -headerpad_max_install_names  -v -Wl -v CMakeFiles/cmTC_13a30.dir/CMakeCXXCompilerABI.cpp.o -o cmTC_13a30 ]
+        ignore line: [Apple clang version 21.0.0 (clang-2100.0.123.102)]
+        ignore line: [Target: arm64-apple-darwin25.4.0]
+        ignore line: [Thread model: posix]
+        ignore line: [InstalledDir: /Library/Developer/CommandLineTools/usr/bin]
+        link line: [ "/Library/Developer/CommandLineTools/usr/bin/ld" -demangle -lto_library /Library/Developer/CommandLineTools/usr/lib/libLTO.dylib -dynamic -arch arm64 -platform_version macos 26.0.0 26.4 -syslibroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -mllvm -enable-linkonceodr-outlining -o cmTC_13a30 -search_paths_first -headerpad_max_install_names -v CMakeFiles/cmTC_13a30.dir/CMakeCXXCompilerABI.cpp.o -lc++ -lSystem /Library/Developer/CommandLineTools/usr/lib/clang/21/lib/darwin/libclang_rt.osx.a]
+          arg [/Library/Developer/CommandLineTools/usr/bin/ld] ==> ignore
+          arg [-demangle] ==> ignore
+          arg [-lto_library] ==> ignore, skip following value
+          arg [/Library/Developer/CommandLineTools/usr/lib/libLTO.dylib] ==> skip value of -lto_library
+          arg [-dynamic] ==> ignore
+          arg [-arch] ==> ignore
+          arg [arm64] ==> ignore
+          arg [-platform_version] ==> ignore
+          arg [macos] ==> ignore
+          arg [26.0.0] ==> ignore
+          arg [26.4] ==> ignore
+          arg [-syslibroot] ==> ignore
+          arg [/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk] ==> ignore
+          arg [-mllvm] ==> ignore
+          arg [-enable-linkonceodr-outlining] ==> ignore
+          arg [-o] ==> ignore
+          arg [cmTC_13a30] ==> ignore
+          arg [-search_paths_first] ==> ignore
+          arg [-headerpad_max_install_names] ==> ignore
+          arg [-v] ==> ignore
+          arg [CMakeFiles/cmTC_13a30.dir/CMakeCXXCompilerABI.cpp.o] ==> ignore
+          arg [-lc++] ==> lib [c++]
+          arg [-lSystem] ==> lib [System]
+          arg [/Library/Developer/CommandLineTools/usr/lib/clang/21/lib/darwin/libclang_rt.osx.a] ==> lib [/Library/Developer/CommandLineTools/usr/lib/clang/21/lib/darwin/libclang_rt.osx.a]
+        Library search paths: [;/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/lib;/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/lib/swift]
+        Framework search paths: [;/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/System/Library/Frameworks]
+        remove lib [System]
+        remove lib [/Library/Developer/CommandLineTools/usr/lib/clang/21/lib/darwin/libclang_rt.osx.a]
+        collapse library dir [/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/lib] ==> [/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/lib]
+        collapse library dir [/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/lib/swift] ==> [/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/lib/swift]
+        collapse framework dir [/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/System/Library/Frameworks] ==> [/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/System/Library/Frameworks]
+        implicit libs: [c++]
+        implicit objs: []
+        implicit dirs: [/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/lib;/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/usr/lib/swift]
+        implicit fwks: [/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk/System/Library/Frameworks]
+      
+      
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/Internal/CheckSourceCompiles.cmake:101 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CheckCSourceCompiles.cmake:76 (cmake_check_source_compiles)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindThreads.cmake:97 (CHECK_C_SOURCE_COMPILES)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindThreads.cmake:163 (_threads_check_libc)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:199 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    checks:
+      - "Performing Test CMAKE_HAVE_LIBC_PTHREAD"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-indOmu"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-indOmu"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "CMAKE_HAVE_LIBC_PTHREAD"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-indOmu
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_d661a/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_d661a.dir/build.make CMakeFiles/cmTC_d661a.dir/build
+        Building C object CMakeFiles/cmTC_d661a.dir/src.c.o
+        /opt/homebrew/opt/ccache/libexec/cc -DCMAKE_HAVE_LIBC_PTHREAD  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_d661a.dir/src.c.o -MF CMakeFiles/cmTC_d661a.dir/src.c.o.d -o CMakeFiles/cmTC_d661a.dir/src.c.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-indOmu/src.c
+        Linking C executable cmTC_d661a
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_d661a.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/cc  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_d661a.dir/src.c.o -o cmTC_d661a 
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1322 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1645 (_MPI_check_lang_works)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for C in mode normal"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-9s4qu7"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-9s4qu7"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_C_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-9s4qu7
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_e68fa/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_e68fa.dir/build.make CMakeFiles/cmTC_e68fa.dir/build
+        Building C object CMakeFiles/cmTC_e68fa.dir/test_mpi.c.o
+        /opt/homebrew/opt/ccache/libexec/cc  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_e68fa.dir/test_mpi.c.o -MF CMakeFiles/cmTC_e68fa.dir/test_mpi.c.o.d -o CMakeFiles/cmTC_e68fa.dir/test_mpi.c.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-9s4qu7/test_mpi.c
+        Linking C executable cmTC_e68fa
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_e68fa.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/cc  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_e68fa.dir/test_mpi.c.o -o cmTC_e68fa  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1322 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1645 (_MPI_check_lang_works)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode normal"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-GMp7Fs"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-GMp7Fs"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-GMp7Fs
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_c2026/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_c2026.dir/build.make CMakeFiles/cmTC_c2026.dir/build
+        Building CXX object CMakeFiles/cmTC_c2026.dir/test_mpi.cpp.o
+        /opt/homebrew/opt/ccache/libexec/c++  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_c2026.dir/test_mpi.cpp.o -MF CMakeFiles/cmTC_c2026.dir/test_mpi.cpp.o.d -o CMakeFiles/cmTC_c2026.dir/test_mpi.cpp.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-GMp7Fs/test_mpi.cpp
+        Linking CXX executable cmTC_c2026
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_c2026.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_c2026.dir/test_mpi.cpp.o -o cmTC_c2026  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1672 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode MPICXX"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-E12TFQ"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-E12TFQ"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_MPICXX"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-E12TFQ
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_87acc/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_87acc.dir/build.make CMakeFiles/cmTC_87acc.dir/build
+        Building CXX object CMakeFiles/cmTC_87acc.dir/test_mpi.cpp.o
+        /opt/homebrew/opt/ccache/libexec/c++  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_87acc.dir/test_mpi.cpp.o -MF CMakeFiles/cmTC_87acc.dir/test_mpi.cpp.o.d -o CMakeFiles/cmTC_87acc.dir/test_mpi.cpp.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-E12TFQ/test_mpi.cpp
+        Linking CXX executable cmTC_87acc
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_87acc.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_87acc.dir/test_mpi.cpp.o -o cmTC_87acc  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+...
+
+---
+events:
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1322 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1645 (_MPI_check_lang_works)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for C in mode normal"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-4yG5iu"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-4yG5iu"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_C_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-4yG5iu
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_4f846/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_4f846.dir/build.make CMakeFiles/cmTC_4f846.dir/build
+        Building C object CMakeFiles/cmTC_4f846.dir/test_mpi.c.o
+        /opt/homebrew/opt/ccache/libexec/cc  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_4f846.dir/test_mpi.c.o -MF CMakeFiles/cmTC_4f846.dir/test_mpi.c.o.d -o CMakeFiles/cmTC_4f846.dir/test_mpi.c.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-4yG5iu/test_mpi.c
+        Linking C executable cmTC_4f846
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_4f846.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/cc  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_4f846.dir/test_mpi.c.o -o cmTC_4f846  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1322 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1645 (_MPI_check_lang_works)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode normal"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-lUTqRu"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-lUTqRu"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-lUTqRu
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_96993/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_96993.dir/build.make CMakeFiles/cmTC_96993.dir/build
+        Building CXX object CMakeFiles/cmTC_96993.dir/test_mpi.cpp.o
+        /opt/homebrew/opt/ccache/libexec/c++  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_96993.dir/test_mpi.cpp.o -MF CMakeFiles/cmTC_96993.dir/test_mpi.cpp.o.d -o CMakeFiles/cmTC_96993.dir/test_mpi.cpp.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-lUTqRu/test_mpi.cpp
+        Linking CXX executable cmTC_96993
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_96993.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_96993.dir/test_mpi.cpp.o -o cmTC_96993  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1672 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode MPICXX"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-I4O48G"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-I4O48G"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_MPICXX"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-I4O48G
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_21290/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_21290.dir/build.make CMakeFiles/cmTC_21290.dir/build
+        Building CXX object CMakeFiles/cmTC_21290.dir/test_mpi.cpp.o
+        /opt/homebrew/opt/ccache/libexec/c++  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_21290.dir/test_mpi.cpp.o -MF CMakeFiles/cmTC_21290.dir/test_mpi.cpp.o.d -o CMakeFiles/cmTC_21290.dir/test_mpi.cpp.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-I4O48G/test_mpi.cpp
+        Linking CXX executable cmTC_21290
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_21290.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_21290.dir/test_mpi.cpp.o -o cmTC_21290  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+...
+
+---
+events:
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1322 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1645 (_MPI_check_lang_works)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for C in mode normal"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-mJWAii"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-mJWAii"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_C_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-mJWAii
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_264d8/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_264d8.dir/build.make CMakeFiles/cmTC_264d8.dir/build
+        Building C object CMakeFiles/cmTC_264d8.dir/test_mpi.c.o
+        /opt/homebrew/opt/ccache/libexec/cc  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_264d8.dir/test_mpi.c.o -MF CMakeFiles/cmTC_264d8.dir/test_mpi.c.o.d -o CMakeFiles/cmTC_264d8.dir/test_mpi.c.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-mJWAii/test_mpi.c
+        Linking C executable cmTC_264d8
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_264d8.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/cc  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_264d8.dir/test_mpi.c.o -o cmTC_264d8  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1322 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1645 (_MPI_check_lang_works)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode normal"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-8hUBa7"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-8hUBa7"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-8hUBa7
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_005b2/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_005b2.dir/build.make CMakeFiles/cmTC_005b2.dir/build
+        Building CXX object CMakeFiles/cmTC_005b2.dir/test_mpi.cpp.o
+        /opt/homebrew/opt/ccache/libexec/c++  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_005b2.dir/test_mpi.cpp.o -MF CMakeFiles/cmTC_005b2.dir/test_mpi.cpp.o.d -o CMakeFiles/cmTC_005b2.dir/test_mpi.cpp.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-8hUBa7/test_mpi.cpp
+        Linking CXX executable cmTC_005b2
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_005b2.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_005b2.dir/test_mpi.cpp.o -o cmTC_005b2  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1672 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode MPICXX"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-csCHMX"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-csCHMX"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_MPICXX"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-csCHMX
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_53778/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_53778.dir/build.make CMakeFiles/cmTC_53778.dir/build
+        Building CXX object CMakeFiles/cmTC_53778.dir/test_mpi.cpp.o
+        /opt/homebrew/opt/ccache/libexec/c++  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_53778.dir/test_mpi.cpp.o -MF CMakeFiles/cmTC_53778.dir/test_mpi.cpp.o.d -o CMakeFiles/cmTC_53778.dir/test_mpi.cpp.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-csCHMX/test_mpi.cpp
+        Linking CXX executable cmTC_53778
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_53778.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_53778.dir/test_mpi.cpp.o -o cmTC_53778  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+...
+
+---
+events:
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1322 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1645 (_MPI_check_lang_works)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for C in mode normal"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-lIAob4"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-lIAob4"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_C_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-lIAob4
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_287b5/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_287b5.dir/build.make CMakeFiles/cmTC_287b5.dir/build
+        Building C object CMakeFiles/cmTC_287b5.dir/test_mpi.c.o
+        /opt/homebrew/opt/ccache/libexec/cc  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_287b5.dir/test_mpi.c.o -MF CMakeFiles/cmTC_287b5.dir/test_mpi.c.o.d -o CMakeFiles/cmTC_287b5.dir/test_mpi.c.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-lIAob4/test_mpi.c
+        Linking C executable cmTC_287b5
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_287b5.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/cc  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_287b5.dir/test_mpi.c.o -o cmTC_287b5  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1322 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1645 (_MPI_check_lang_works)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode normal"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-VF7ZBn"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-VF7ZBn"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-VF7ZBn
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_06e9c/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_06e9c.dir/build.make CMakeFiles/cmTC_06e9c.dir/build
+        Building CXX object CMakeFiles/cmTC_06e9c.dir/test_mpi.cpp.o
+        /opt/homebrew/opt/ccache/libexec/c++  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_06e9c.dir/test_mpi.cpp.o -MF CMakeFiles/cmTC_06e9c.dir/test_mpi.cpp.o.d -o CMakeFiles/cmTC_06e9c.dir/test_mpi.cpp.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-VF7ZBn/test_mpi.cpp
+        Linking CXX executable cmTC_06e9c
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_06e9c.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_06e9c.dir/test_mpi.cpp.o -o cmTC_06e9c  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1672 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode MPICXX"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-kMJW2K"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-kMJW2K"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_MPICXX"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-kMJW2K
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_8993b/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_8993b.dir/build.make CMakeFiles/cmTC_8993b.dir/build
+        Building CXX object CMakeFiles/cmTC_8993b.dir/test_mpi.cpp.o
+        /opt/homebrew/opt/ccache/libexec/c++  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_8993b.dir/test_mpi.cpp.o -MF CMakeFiles/cmTC_8993b.dir/test_mpi.cpp.o.d -o CMakeFiles/cmTC_8993b.dir/test_mpi.cpp.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-kMJW2K/test_mpi.cpp
+        Linking CXX executable cmTC_8993b
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_8993b.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_8993b.dir/test_mpi.cpp.o -o cmTC_8993b  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+...
+
+---
+events:
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1322 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1645 (_MPI_check_lang_works)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for C in mode normal"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-vxGKaw"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-vxGKaw"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_C_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-vxGKaw
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_a392f/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_a392f.dir/build.make CMakeFiles/cmTC_a392f.dir/build
+        Building C object CMakeFiles/cmTC_a392f.dir/test_mpi.c.o
+        /opt/homebrew/opt/ccache/libexec/cc  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_a392f.dir/test_mpi.c.o -MF CMakeFiles/cmTC_a392f.dir/test_mpi.c.o.d -o CMakeFiles/cmTC_a392f.dir/test_mpi.c.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-vxGKaw/test_mpi.c
+        Linking C executable cmTC_a392f
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_a392f.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/cc  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_a392f.dir/test_mpi.c.o -o cmTC_a392f  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1322 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1645 (_MPI_check_lang_works)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode normal"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-gL8GNL"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-gL8GNL"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-gL8GNL
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_090e5/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_090e5.dir/build.make CMakeFiles/cmTC_090e5.dir/build
+        Building CXX object CMakeFiles/cmTC_090e5.dir/test_mpi.cpp.o
+        /opt/homebrew/opt/ccache/libexec/c++  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_090e5.dir/test_mpi.cpp.o -MF CMakeFiles/cmTC_090e5.dir/test_mpi.cpp.o.d -o CMakeFiles/cmTC_090e5.dir/test_mpi.cpp.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-gL8GNL/test_mpi.cpp
+        Linking CXX executable cmTC_090e5
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_090e5.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_090e5.dir/test_mpi.cpp.o -o cmTC_090e5  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1672 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode MPICXX"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-tHRJ9R"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-tHRJ9R"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_MPICXX"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-tHRJ9R
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_b6cb5/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_b6cb5.dir/build.make CMakeFiles/cmTC_b6cb5.dir/build
+        Building CXX object CMakeFiles/cmTC_b6cb5.dir/test_mpi.cpp.o
+        /opt/homebrew/opt/ccache/libexec/c++  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_b6cb5.dir/test_mpi.cpp.o -MF CMakeFiles/cmTC_b6cb5.dir/test_mpi.cpp.o.d -o CMakeFiles/cmTC_b6cb5.dir/test_mpi.cpp.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-tHRJ9R/test_mpi.cpp
+        Linking CXX executable cmTC_b6cb5
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_b6cb5.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_b6cb5.dir/test_mpi.cpp.o -o cmTC_b6cb5  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+...
+
+---
+events:
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1322 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1645 (_MPI_check_lang_works)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for C in mode normal"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-b9kmp5"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-b9kmp5"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_C_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-b9kmp5
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_672bd/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_672bd.dir/build.make CMakeFiles/cmTC_672bd.dir/build
+        Building C object CMakeFiles/cmTC_672bd.dir/test_mpi.c.o
+        /opt/homebrew/opt/ccache/libexec/cc  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_672bd.dir/test_mpi.c.o -MF CMakeFiles/cmTC_672bd.dir/test_mpi.c.o.d -o CMakeFiles/cmTC_672bd.dir/test_mpi.c.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-b9kmp5/test_mpi.c
+        Linking C executable cmTC_672bd
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_672bd.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/cc  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_672bd.dir/test_mpi.c.o -o cmTC_672bd  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1322 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1645 (_MPI_check_lang_works)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode normal"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-3k87ts"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-3k87ts"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-3k87ts
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_c25d0/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_c25d0.dir/build.make CMakeFiles/cmTC_c25d0.dir/build
+        Building CXX object CMakeFiles/cmTC_c25d0.dir/test_mpi.cpp.o
+        /opt/homebrew/opt/ccache/libexec/c++  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_c25d0.dir/test_mpi.cpp.o -MF CMakeFiles/cmTC_c25d0.dir/test_mpi.cpp.o.d -o CMakeFiles/cmTC_c25d0.dir/test_mpi.cpp.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-3k87ts/test_mpi.cpp
+        Linking CXX executable cmTC_c25d0
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_c25d0.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_c25d0.dir/test_mpi.cpp.o -o cmTC_c25d0  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1672 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode MPICXX"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-uTr9sc"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-uTr9sc"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_MPICXX"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-uTr9sc
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_90252/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_90252.dir/build.make CMakeFiles/cmTC_90252.dir/build
+        Building CXX object CMakeFiles/cmTC_90252.dir/test_mpi.cpp.o
+        /opt/homebrew/opt/ccache/libexec/c++  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_90252.dir/test_mpi.cpp.o -MF CMakeFiles/cmTC_90252.dir/test_mpi.cpp.o.d -o CMakeFiles/cmTC_90252.dir/test_mpi.cpp.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-uTr9sc/test_mpi.cpp
+        Linking CXX executable cmTC_90252
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_90252.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_90252.dir/test_mpi.cpp.o -o cmTC_90252  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+...
+
+---
+events:
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1322 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1645 (_MPI_check_lang_works)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for C in mode normal"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-NftjJd"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-NftjJd"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_C_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-NftjJd
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_538e0/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_538e0.dir/build.make CMakeFiles/cmTC_538e0.dir/build
+        Building C object CMakeFiles/cmTC_538e0.dir/test_mpi.c.o
+        /opt/homebrew/opt/ccache/libexec/cc  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_538e0.dir/test_mpi.c.o -MF CMakeFiles/cmTC_538e0.dir/test_mpi.c.o.d -o CMakeFiles/cmTC_538e0.dir/test_mpi.c.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-NftjJd/test_mpi.c
+        Linking C executable cmTC_538e0
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_538e0.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/cc  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_538e0.dir/test_mpi.c.o -o cmTC_538e0  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1322 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1645 (_MPI_check_lang_works)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode normal"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-8XNpq2"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-8XNpq2"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-8XNpq2
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_ad68c/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_ad68c.dir/build.make CMakeFiles/cmTC_ad68c.dir/build
+        Building CXX object CMakeFiles/cmTC_ad68c.dir/test_mpi.cpp.o
+        /opt/homebrew/opt/ccache/libexec/c++  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_ad68c.dir/test_mpi.cpp.o -MF CMakeFiles/cmTC_ad68c.dir/test_mpi.cpp.o.d -o CMakeFiles/cmTC_ad68c.dir/test_mpi.cpp.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-8XNpq2/test_mpi.cpp
+        Linking CXX executable cmTC_ad68c
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_ad68c.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_ad68c.dir/test_mpi.cpp.o -o cmTC_ad68c  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1672 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode MPICXX"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-tQNFjD"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-tQNFjD"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_MPICXX"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-tQNFjD
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_b2132/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_b2132.dir/build.make CMakeFiles/cmTC_b2132.dir/build
+        Building CXX object CMakeFiles/cmTC_b2132.dir/test_mpi.cpp.o
+        /opt/homebrew/opt/ccache/libexec/c++  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_b2132.dir/test_mpi.cpp.o -MF CMakeFiles/cmTC_b2132.dir/test_mpi.cpp.o.d -o CMakeFiles/cmTC_b2132.dir/test_mpi.cpp.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-tQNFjD/test_mpi.cpp
+        Linking CXX executable cmTC_b2132
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_b2132.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_b2132.dir/test_mpi.cpp.o -o cmTC_b2132  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+...
+
+---
+events:
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1322 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1645 (_MPI_check_lang_works)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for C in mode normal"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-xX5V53"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-xX5V53"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_C_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-xX5V53
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_8e0c1/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_8e0c1.dir/build.make CMakeFiles/cmTC_8e0c1.dir/build
+        Building C object CMakeFiles/cmTC_8e0c1.dir/test_mpi.c.o
+        /opt/homebrew/opt/ccache/libexec/cc  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_8e0c1.dir/test_mpi.c.o -MF CMakeFiles/cmTC_8e0c1.dir/test_mpi.c.o.d -o CMakeFiles/cmTC_8e0c1.dir/test_mpi.c.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-xX5V53/test_mpi.c
+        Linking C executable cmTC_8e0c1
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_8e0c1.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/cc  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_8e0c1.dir/test_mpi.c.o -o cmTC_8e0c1  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1322 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1645 (_MPI_check_lang_works)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode normal"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-owW8JA"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-owW8JA"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-owW8JA
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_fce1a/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_fce1a.dir/build.make CMakeFiles/cmTC_fce1a.dir/build
+        Building CXX object CMakeFiles/cmTC_fce1a.dir/test_mpi.cpp.o
+        /opt/homebrew/opt/ccache/libexec/c++  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_fce1a.dir/test_mpi.cpp.o -MF CMakeFiles/cmTC_fce1a.dir/test_mpi.cpp.o.d -o CMakeFiles/cmTC_fce1a.dir/test_mpi.cpp.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-owW8JA/test_mpi.cpp
+        Linking CXX executable cmTC_fce1a
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_fce1a.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_fce1a.dir/test_mpi.cpp.o -o cmTC_fce1a  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1672 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode MPICXX"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-XvjEiI"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-XvjEiI"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_MPICXX"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-XvjEiI
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_12438/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_12438.dir/build.make CMakeFiles/cmTC_12438.dir/build
+        Building CXX object CMakeFiles/cmTC_12438.dir/test_mpi.cpp.o
+        /opt/homebrew/opt/ccache/libexec/c++  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_12438.dir/test_mpi.cpp.o -MF CMakeFiles/cmTC_12438.dir/test_mpi.cpp.o.d -o CMakeFiles/cmTC_12438.dir/test_mpi.cpp.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-XvjEiI/test_mpi.cpp
+        Linking CXX executable cmTC_12438
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_12438.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_12438.dir/test_mpi.cpp.o -o cmTC_12438  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+...
+
+---
+events:
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1322 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1645 (_MPI_check_lang_works)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for C in mode normal"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-Syq6K3"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-Syq6K3"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_C_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-Syq6K3
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_51bd9/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_51bd9.dir/build.make CMakeFiles/cmTC_51bd9.dir/build
+        Building C object CMakeFiles/cmTC_51bd9.dir/test_mpi.c.o
+        /opt/homebrew/opt/ccache/libexec/cc  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_51bd9.dir/test_mpi.c.o -MF CMakeFiles/cmTC_51bd9.dir/test_mpi.c.o.d -o CMakeFiles/cmTC_51bd9.dir/test_mpi.c.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-Syq6K3/test_mpi.c
+        Linking C executable cmTC_51bd9
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_51bd9.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/cc  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_51bd9.dir/test_mpi.c.o -o cmTC_51bd9  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1322 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1645 (_MPI_check_lang_works)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode normal"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-0xEpTK"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-0xEpTK"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-0xEpTK
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_ba37f/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_ba37f.dir/build.make CMakeFiles/cmTC_ba37f.dir/build
+        Building CXX object CMakeFiles/cmTC_ba37f.dir/test_mpi.cpp.o
+        /opt/homebrew/opt/ccache/libexec/c++  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_ba37f.dir/test_mpi.cpp.o -MF CMakeFiles/cmTC_ba37f.dir/test_mpi.cpp.o.d -o CMakeFiles/cmTC_ba37f.dir/test_mpi.cpp.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-0xEpTK/test_mpi.cpp
+        Linking CXX executable cmTC_ba37f
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_ba37f.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_ba37f.dir/test_mpi.cpp.o -o cmTC_ba37f  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1672 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode MPICXX"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-o3Av5z"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-o3Av5z"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_MPICXX"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-o3Av5z
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_142aa/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_142aa.dir/build.make CMakeFiles/cmTC_142aa.dir/build
+        Building CXX object CMakeFiles/cmTC_142aa.dir/test_mpi.cpp.o
+        /opt/homebrew/opt/ccache/libexec/c++  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_142aa.dir/test_mpi.cpp.o -MF CMakeFiles/cmTC_142aa.dir/test_mpi.cpp.o.d -o CMakeFiles/cmTC_142aa.dir/test_mpi.cpp.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-o3Av5z/test_mpi.cpp
+        Linking CXX executable cmTC_142aa
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_142aa.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_142aa.dir/test_mpi.cpp.o -o cmTC_142aa  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+...
+
+---
+events:
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1322 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1645 (_MPI_check_lang_works)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for C in mode normal"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-ps48lb"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-ps48lb"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_C_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-ps48lb
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_88455/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_88455.dir/build.make CMakeFiles/cmTC_88455.dir/build
+        Building C object CMakeFiles/cmTC_88455.dir/test_mpi.c.o
+        /opt/homebrew/opt/ccache/libexec/cc  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_88455.dir/test_mpi.c.o -MF CMakeFiles/cmTC_88455.dir/test_mpi.c.o.d -o CMakeFiles/cmTC_88455.dir/test_mpi.c.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-ps48lb/test_mpi.c
+        Linking C executable cmTC_88455
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_88455.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/cc  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_88455.dir/test_mpi.c.o -o cmTC_88455  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1322 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1645 (_MPI_check_lang_works)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode normal"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-AnIAVZ"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-AnIAVZ"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-AnIAVZ
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_0422b/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_0422b.dir/build.make CMakeFiles/cmTC_0422b.dir/build
+        Building CXX object CMakeFiles/cmTC_0422b.dir/test_mpi.cpp.o
+        /opt/homebrew/opt/ccache/libexec/c++  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_0422b.dir/test_mpi.cpp.o -MF CMakeFiles/cmTC_0422b.dir/test_mpi.cpp.o.d -o CMakeFiles/cmTC_0422b.dir/test_mpi.cpp.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-AnIAVZ/test_mpi.cpp
+        Linking CXX executable cmTC_0422b
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_0422b.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_0422b.dir/test_mpi.cpp.o -o cmTC_0422b  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1672 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode MPICXX"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-g3Ow2O"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-g3Ow2O"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_MPICXX"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-g3Ow2O
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_018e2/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_018e2.dir/build.make CMakeFiles/cmTC_018e2.dir/build
+        Building CXX object CMakeFiles/cmTC_018e2.dir/test_mpi.cpp.o
+        /opt/homebrew/opt/ccache/libexec/c++  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_018e2.dir/test_mpi.cpp.o -MF CMakeFiles/cmTC_018e2.dir/test_mpi.cpp.o.d -o CMakeFiles/cmTC_018e2.dir/test_mpi.cpp.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-g3Ow2O/test_mpi.cpp
+        Linking CXX executable cmTC_018e2
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_018e2.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_018e2.dir/test_mpi.cpp.o -o cmTC_018e2  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+...
+
+---
+events:
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1322 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1645 (_MPI_check_lang_works)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for C in mode normal"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-o8J7Wp"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-o8J7Wp"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_C_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-o8J7Wp
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_ce41a/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_ce41a.dir/build.make CMakeFiles/cmTC_ce41a.dir/build
+        Building C object CMakeFiles/cmTC_ce41a.dir/test_mpi.c.o
+        /opt/homebrew/opt/ccache/libexec/cc  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_ce41a.dir/test_mpi.c.o -MF CMakeFiles/cmTC_ce41a.dir/test_mpi.c.o.d -o CMakeFiles/cmTC_ce41a.dir/test_mpi.c.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-o8J7Wp/test_mpi.c
+        Linking C executable cmTC_ce41a
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_ce41a.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/cc  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_ce41a.dir/test_mpi.c.o -o cmTC_ce41a  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1322 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1645 (_MPI_check_lang_works)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode normal"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-Bh9DZh"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-Bh9DZh"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-Bh9DZh
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_815c4/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_815c4.dir/build.make CMakeFiles/cmTC_815c4.dir/build
+        Building CXX object CMakeFiles/cmTC_815c4.dir/test_mpi.cpp.o
+        /opt/homebrew/opt/ccache/libexec/c++  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_815c4.dir/test_mpi.cpp.o -MF CMakeFiles/cmTC_815c4.dir/test_mpi.cpp.o.d -o CMakeFiles/cmTC_815c4.dir/test_mpi.cpp.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-Bh9DZh/test_mpi.cpp
+        Linking CXX executable cmTC_815c4
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_815c4.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_815c4.dir/test_mpi.cpp.o -o cmTC_815c4  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1672 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode MPICXX"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-yfcEDq"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-yfcEDq"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_MPICXX"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-yfcEDq
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_68ed4/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_68ed4.dir/build.make CMakeFiles/cmTC_68ed4.dir/build
+        Building CXX object CMakeFiles/cmTC_68ed4.dir/test_mpi.cpp.o
+        /opt/homebrew/opt/ccache/libexec/c++  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_68ed4.dir/test_mpi.cpp.o -MF CMakeFiles/cmTC_68ed4.dir/test_mpi.cpp.o.d -o CMakeFiles/cmTC_68ed4.dir/test_mpi.cpp.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-yfcEDq/test_mpi.cpp
+        Linking CXX executable cmTC_68ed4
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_68ed4.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_68ed4.dir/test_mpi.cpp.o -o cmTC_68ed4  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+...
+
+---
+events:
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1322 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1645 (_MPI_check_lang_works)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for C in mode normal"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-WSZNKe"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-WSZNKe"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_C_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-WSZNKe
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_3c61e/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_3c61e.dir/build.make CMakeFiles/cmTC_3c61e.dir/build
+        Building C object CMakeFiles/cmTC_3c61e.dir/test_mpi.c.o
+        /opt/homebrew/opt/ccache/libexec/cc  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_3c61e.dir/test_mpi.c.o -MF CMakeFiles/cmTC_3c61e.dir/test_mpi.c.o.d -o CMakeFiles/cmTC_3c61e.dir/test_mpi.c.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-WSZNKe/test_mpi.c
+        Linking C executable cmTC_3c61e
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_3c61e.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/cc  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_3c61e.dir/test_mpi.c.o -o cmTC_3c61e  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1322 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1645 (_MPI_check_lang_works)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode normal"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-QWmCP3"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-QWmCP3"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-QWmCP3
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_dc889/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_dc889.dir/build.make CMakeFiles/cmTC_dc889.dir/build
+        Building CXX object CMakeFiles/cmTC_dc889.dir/test_mpi.cpp.o
+        /opt/homebrew/opt/ccache/libexec/c++  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_dc889.dir/test_mpi.cpp.o -MF CMakeFiles/cmTC_dc889.dir/test_mpi.cpp.o.d -o CMakeFiles/cmTC_dc889.dir/test_mpi.cpp.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-QWmCP3/test_mpi.cpp
+        Linking CXX executable cmTC_dc889
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_dc889.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_dc889.dir/test_mpi.cpp.o -o cmTC_dc889  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1672 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode MPICXX"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-wvFg4e"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-wvFg4e"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_MPICXX"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-wvFg4e
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_13ae8/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_13ae8.dir/build.make CMakeFiles/cmTC_13ae8.dir/build
+        Building CXX object CMakeFiles/cmTC_13ae8.dir/test_mpi.cpp.o
+        /opt/homebrew/opt/ccache/libexec/c++  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_13ae8.dir/test_mpi.cpp.o -MF CMakeFiles/cmTC_13ae8.dir/test_mpi.cpp.o.d -o CMakeFiles/cmTC_13ae8.dir/test_mpi.cpp.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-wvFg4e/test_mpi.cpp
+        Linking CXX executable cmTC_13ae8
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_13ae8.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_13ae8.dir/test_mpi.cpp.o -o cmTC_13ae8  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+...
+
+---
+events:
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1322 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1645 (_MPI_check_lang_works)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for C in mode normal"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-sBSPd1"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-sBSPd1"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_C_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-sBSPd1
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_91454/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_91454.dir/build.make CMakeFiles/cmTC_91454.dir/build
+        Building C object CMakeFiles/cmTC_91454.dir/test_mpi.c.o
+        /opt/homebrew/opt/ccache/libexec/cc  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_91454.dir/test_mpi.c.o -MF CMakeFiles/cmTC_91454.dir/test_mpi.c.o.d -o CMakeFiles/cmTC_91454.dir/test_mpi.c.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-sBSPd1/test_mpi.c
+        Linking C executable cmTC_91454
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_91454.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/cc  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_91454.dir/test_mpi.c.o -o cmTC_91454  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1322 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1645 (_MPI_check_lang_works)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode normal"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-uLXpmn"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-uLXpmn"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-uLXpmn
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_d2f03/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_d2f03.dir/build.make CMakeFiles/cmTC_d2f03.dir/build
+        Building CXX object CMakeFiles/cmTC_d2f03.dir/test_mpi.cpp.o
+        /opt/homebrew/opt/ccache/libexec/c++  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_d2f03.dir/test_mpi.cpp.o -MF CMakeFiles/cmTC_d2f03.dir/test_mpi.cpp.o.d -o CMakeFiles/cmTC_d2f03.dir/test_mpi.cpp.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-uLXpmn/test_mpi.cpp
+        Linking CXX executable cmTC_d2f03
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_d2f03.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_d2f03.dir/test_mpi.cpp.o -o cmTC_d2f03  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1672 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode MPICXX"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-UlUTP8"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-UlUTP8"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_MPICXX"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-UlUTP8
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_1ee2b/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_1ee2b.dir/build.make CMakeFiles/cmTC_1ee2b.dir/build
+        Building CXX object CMakeFiles/cmTC_1ee2b.dir/test_mpi.cpp.o
+        /opt/homebrew/opt/ccache/libexec/c++  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_1ee2b.dir/test_mpi.cpp.o -MF CMakeFiles/cmTC_1ee2b.dir/test_mpi.cpp.o.d -o CMakeFiles/cmTC_1ee2b.dir/test_mpi.cpp.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-UlUTP8/test_mpi.cpp
+        Linking CXX executable cmTC_1ee2b
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_1ee2b.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_1ee2b.dir/test_mpi.cpp.o -o cmTC_1ee2b  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+...
+
+---
+events:
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1322 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1645 (_MPI_check_lang_works)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for C in mode normal"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-mPJu0C"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-mPJu0C"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_C_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-mPJu0C
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_6aa98/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_6aa98.dir/build.make CMakeFiles/cmTC_6aa98.dir/build
+        Building C object CMakeFiles/cmTC_6aa98.dir/test_mpi.c.o
+        /opt/homebrew/opt/ccache/libexec/cc  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_6aa98.dir/test_mpi.c.o -MF CMakeFiles/cmTC_6aa98.dir/test_mpi.c.o.d -o CMakeFiles/cmTC_6aa98.dir/test_mpi.c.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-mPJu0C/test_mpi.c
+        Linking C executable cmTC_6aa98
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_6aa98.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/cc  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_6aa98.dir/test_mpi.c.o -o cmTC_6aa98  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1322 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1645 (_MPI_check_lang_works)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode normal"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-4MXJr2"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-4MXJr2"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-4MXJr2
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_415ae/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_415ae.dir/build.make CMakeFiles/cmTC_415ae.dir/build
+        Building CXX object CMakeFiles/cmTC_415ae.dir/test_mpi.cpp.o
+        /opt/homebrew/opt/ccache/libexec/c++  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_415ae.dir/test_mpi.cpp.o -MF CMakeFiles/cmTC_415ae.dir/test_mpi.cpp.o.d -o CMakeFiles/cmTC_415ae.dir/test_mpi.cpp.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-4MXJr2/test_mpi.cpp
+        Linking CXX executable cmTC_415ae
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_415ae.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_415ae.dir/test_mpi.cpp.o -o cmTC_415ae  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1672 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode MPICXX"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-eXpyGb"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-eXpyGb"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_MPICXX"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-eXpyGb
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_78439/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_78439.dir/build.make CMakeFiles/cmTC_78439.dir/build
+        Building CXX object CMakeFiles/cmTC_78439.dir/test_mpi.cpp.o
+        /opt/homebrew/opt/ccache/libexec/c++  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_78439.dir/test_mpi.cpp.o -MF CMakeFiles/cmTC_78439.dir/test_mpi.cpp.o.d -o CMakeFiles/cmTC_78439.dir/test_mpi.cpp.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-eXpyGb/test_mpi.cpp
+        Linking CXX executable cmTC_78439
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_78439.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_78439.dir/test_mpi.cpp.o -o cmTC_78439  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+...
+
+---
+events:
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1322 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1645 (_MPI_check_lang_works)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for C in mode normal"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-1kmBG2"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-1kmBG2"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_C_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-1kmBG2
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_71906/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_71906.dir/build.make CMakeFiles/cmTC_71906.dir/build
+        Building C object CMakeFiles/cmTC_71906.dir/test_mpi.c.o
+        /opt/homebrew/opt/ccache/libexec/cc  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_71906.dir/test_mpi.c.o -MF CMakeFiles/cmTC_71906.dir/test_mpi.c.o.d -o CMakeFiles/cmTC_71906.dir/test_mpi.c.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-1kmBG2/test_mpi.c
+        Linking C executable cmTC_71906
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_71906.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/cc  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_71906.dir/test_mpi.c.o -o cmTC_71906  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1322 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1645 (_MPI_check_lang_works)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode normal"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-N8Mege"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-N8Mege"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-N8Mege
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_db825/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_db825.dir/build.make CMakeFiles/cmTC_db825.dir/build
+        Building CXX object CMakeFiles/cmTC_db825.dir/test_mpi.cpp.o
+        /opt/homebrew/opt/ccache/libexec/c++  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_db825.dir/test_mpi.cpp.o -MF CMakeFiles/cmTC_db825.dir/test_mpi.cpp.o.d -o CMakeFiles/cmTC_db825.dir/test_mpi.cpp.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-N8Mege/test_mpi.cpp
+        Linking CXX executable cmTC_db825
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_db825.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_db825.dir/test_mpi.cpp.o -o cmTC_db825  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1278 (try_compile)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/FindMPI.cmake:1672 (_MPI_try_staged_settings)"
+      - "/opt/homebrew/Cellar/cmake/3.26.4/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXConfig.cmake:206 (find_dependency)"
+      - "CMakeLists.txt:40 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode MPICXX"
+    directories:
+      source: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-DMUqaH"
+      binary: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-DMUqaH"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Build_Cmake/Submodules/amrex/lib/cmake/AMReX/AMReXCMakeModules"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_MPICXX"
+      cached: true
+      stdout: |
+        Change Dir: /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-DMUqaH
+        
+        Run Build Command(s):/opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_bcf03/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_bcf03.dir/build.make CMakeFiles/cmTC_bcf03.dir/build
+        Building CXX object CMakeFiles/cmTC_bcf03.dir/test_mpi.cpp.o
+        /opt/homebrew/opt/ccache/libexec/c++  -isystem /opt/homebrew/Cellar/open-mpi/5.0.9/include -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -MD -MT CMakeFiles/cmTC_bcf03.dir/test_mpi.cpp.o -MF CMakeFiles/cmTC_bcf03.dir/test_mpi.cpp.o.d -o CMakeFiles/cmTC_bcf03.dir/test_mpi.cpp.o -c /Users/sreejith/Documents/01_Research/Code_Developments/ExaGOOP_Dev/Exec/dam_break_2d/udf_build/CMakeFiles/CMakeScratch/TryCompile-DMUqaH/test_mpi.cpp
+        Linking CXX executable cmTC_bcf03
+        /opt/homebrew/Cellar/cmake/3.26.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_bcf03.dir/link.txt --verbose=1
+        /opt/homebrew/opt/ccache/libexec/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX26.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_bcf03.dir/test_mpi.cpp.o -o cmTC_bcf03  /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib 
+        
+      exitCode: 0
+...

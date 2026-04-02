@@ -63,6 +63,10 @@ int main(int argc, char *argv[])
 
         Initialise_Material_Points(specs, mpm_pc, steps, time, output_it);
 
+        int tmpi;
+        mpm_pc.Calculate_Total_Number_of_MaterialParticles(tmpi);
+        amrex::Print() << " \nNumber of matpoints " << tmpi;
+
         Create_Output_Directories(specs);
 
         Initialise_Diagnostic_Streams(specs);
