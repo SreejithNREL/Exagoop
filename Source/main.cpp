@@ -57,6 +57,13 @@ int main(int argc, char *argv[])
                           nodaldata_names);
 #if USE_EB
         mpm_ebtools::init_eb(geom, ba, dm);
+
+        // ── Multi-body level-set geometry ─────────────────────────────────────
+        // When mpm.num_rigidbodies > 0, fills one lsphi per body from
+        // mpm.rb_N.* geometry keys and builds the union lsphi for particle
+        // removal. When num_rigidbodies = 0 the single-body eb2.* path
+        // (handled by init_eb above) is used unchanged.
+        specs.rb_manager.init_geometry(geom, ba, dm);
 #endif
 
         MPMParticleContainer mpm_pc(geom, dm, ba, ng_cells);
@@ -106,8 +113,9 @@ int main(int argc, char *argv[])
 #if USE_TEMP
             P2G_Temperature(specs, mpm_pc, nodaldata, 1, 1, 1);
             backup_current_temperature(nodaldata);
-            Nodal_Time_Update_Temperature(nodaldata, dt, specs.mass_tolerance);
-            Apply_Nodal_BCs_Temperature(geom, nodaldata, specs, dt);
+			Apply_Nodal_BCs_Temperature(geom, nodaldata, specs, dt,true);
+			Nodal_Time_Update_Temperature(nodaldata, dt, specs.mass_tolerance);
+            Apply_Nodal_BCs_Temperature(geom, nodaldata, specs, dt,false);
 #endif
 
             if (specs.stress_update_scheme == 0)
@@ -136,7 +144,7 @@ int main(int argc, char *argv[])
 #if USE_TEMP
                 G2P_Temperature(specs, mpm_pc, nodaldata, 1, 0, dt);
                 P2G_Temperature(specs, mpm_pc, nodaldata, 1, 0, 1);
-                Apply_Nodal_BCs_Temperature(geom, nodaldata, specs, dt);
+                Apply_Nodal_BCs_Temperature(geom, nodaldata, specs, dt,true);
                 G2P_Temperature(specs, mpm_pc, nodaldata, 0, 1, dt);
 #endif
 

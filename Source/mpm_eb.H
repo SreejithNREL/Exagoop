@@ -4,6 +4,8 @@
 #include <AMReX.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFab.H>
+#include <vector>
+#include <string>
 
 #if USE_EB
 #include <AMReX_EB2_IF_Cylinder.H>
@@ -33,12 +35,31 @@ using namespace amrex;
 namespace mpm_ebtools
 {
 extern EBFArrayBoxFactory *ebfactory;
+
+// ── Single-body (legacy): global union lsphi used for removeParticlesInsideEB
+// and ebfactory. When num_rigidbodies=1 this is identical to lsphi_bodies[0].
 extern MultiFab *lsphi;
-extern int ls_refinement;
+
+// ── Multi-body: one lsphi per rigid body, filled from each body's geometry.
+// lsphi above = element-wise min of all lsphi_bodies (union of solids).
+extern std::vector<MultiFab*> lsphi_bodies;
+extern int  num_lsphi_bodies;
+
+extern int  ls_refinement;
 extern bool using_levelset_geometry;
+
 void init_eb(const Geometry &geom,
              const BoxArray &ba,
              const DistributionMapping &dm);
+
+// ── Multi-body init: called by RigidBodyManager after init_eb ────────────────
+// Reads mpm.rb_N.geom_type etc., fills lsphi_bodies[N], then recomputes the
+// union lsphi = min over all bodies.
+void init_eb_bodies(const Geometry &geom,
+                    const BoxArray &ba,
+                    const DistributionMapping &dm,
+                    int num_bodies);
+
 void make_wedge_hopper_levelset(const Geometry &geom,
                                 const BoxArray &ba,
                                 const DistributionMapping &dm);

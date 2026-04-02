@@ -5,6 +5,7 @@
 #include <AMReX_REAL.H>
 #include <AMReX_ParmParse.H>
 #include <constants.H>
+#include <mpm_rigidBody.H>
 // clang-format on
 
 using namespace amrex;
@@ -200,10 +201,33 @@ class MPMspecs
     Vector<int> bchi;
 
 #if USE_TEMP
+    // ── Temperature BC types per face ────────────────────────────────────────
+    // BC type integers (one per spatial dimension, applied to lo and hi face):
+    //   0 = no BC (pass-through)
+    //   1 = Dirichlet  — T = bclo_tempval[d]       (existing)
+    //   2 = Adiabatic  — zero flux (do nothing)     (new)
+    //   3 = Heat flux  — q = bclo_tempval[d]        (new, W/m^2 in)
+    //   4 = Convective — q = h*(T_inf - T_node)     (new, Newton cooling)
+    //   5 = Convective UDF — h and T_inf from .so   (new, spatially varying)
     Vector<int> bclo_temp;
     Vector<int> bchi_temp;
+
+    // ── Scalar values for types 1, 3, 4 ──────────────────────────────────────
+    // Type 1: T_wall [K]
+    // Type 3: heat flux q [W/m^2]  (positive = into domain)
+    // Type 4: h [W/m^2/K]  — pair with bclo_Tinf for T_inf
     Vector<amrex::Real> bclo_tempval;
     Vector<amrex::Real> bchi_tempval;
+
+    // ── Ambient temperature for convective BC (type 4) ────────────────────────
+    Vector<amrex::Real> bclo_Tinf;    // T_inf [K] at lower faces
+    Vector<amrex::Real> bchi_Tinf;    // T_inf [K] at upper faces
+
+    // ── UDF .so paths for spatially varying convective BC (type 5) ───────────
+    // One path per face: empty string = type 5 not active on that face.
+    // The .so must export thermal_h(x,y,z) and optionally thermal_Tinf(x,y,z).
+    std::vector<std::string> bclo_thermal_udf;   // size AMREX_SPACEDIM
+    std::vector<std::string> bchi_thermal_udf;   // size AMREX_SPACEDIM
 #endif
 
     GpuArray<int, AMREX_SPACEDIM> order_scheme_directional{
@@ -231,6 +255,23 @@ class MPMspecs
     int levelset_bc = 1; // no slip wall
     Real levelset_wall_mu = 0.1;
 
+#if USE_TEMP
+    // ── Level-set thermal BC (one per body — currently one global EB) ─────────
+    // BC types:
+    //   0 = no BC       1 = Dirichlet (T_wall)
+    //   2 = Adiabatic   3 = Heat flux q [W/m²]
+    //   4 = Convective  5 = Convective UDF
+    int         levelset_bc_temp     = 0;     // default: no thermal BC on EB
+    amrex::Real levelset_bc_temp_val = 0.0;   // h, q, or T_wall
+    amrex::Real levelset_Tinf        = 0.0;   // T_inf for types 4, 5
+    std::string levelset_temp_udf    = "";    // .so path for type 5
+#endif
+
+    // ── RigidBodyManager: owns clean-format BC parsing ───────────────────────
+    // Call rb_manager.init(...) at end of read_mpm_specs() to populate both
+    // the new per-body structs and the legacy scalar/array members above.
+    RigidBodyManager rb_manager;
+
     Array<Real, AMREX_SPACEDIM> wall_mu_lo{AMREX_D_DECL(0.1, 0.1, 0.1)};
     Array<Real, AMREX_SPACEDIM> wall_mu_hi{AMREX_D_DECL(0.1, 0.1, 0.1)};
 
@@ -244,8 +285,12 @@ class MPMspecs
         bclo.resize(AMREX_SPACEDIM);
         bchi.resize(AMREX_SPACEDIM);
 #if USE_TEMP
-        bclo_temp.resize(AMREX_SPACEDIM);
-        bchi_temp.resize(AMREX_SPACEDIM);
+        bclo_temp.resize(AMREX_SPACEDIM, 0);
+        bchi_temp.resize(AMREX_SPACEDIM, 0);
+        bclo_Tinf.resize(AMREX_SPACEDIM, 0.0);
+        bchi_Tinf.resize(AMREX_SPACEDIM, 0.0);
+        bclo_thermal_udf.resize(AMREX_SPACEDIM, "");
+        bchi_thermal_udf.resize(AMREX_SPACEDIM, "");
 #endif
 
         // autogen_mincoords.resize(AMREX_SPACEDIM);
@@ -411,15 +456,42 @@ class MPMspecs
         pp.queryarr("bc_upper", bchi);
 
 #if USE_TEMP
+        // ── Temperature BC types ──────────────────────────────────────────────
+        // 0=none  1=Dirichlet  2=Adiabatic  3=HeatFlux  4=Convective  5=ConvUDF
         pp.queryarr("bc_lower_temp", bclo_temp);
         pp.queryarr("bc_upper_temp", bchi_temp);
 
+        // ── Scalar values: T_wall (type 1), q (type 3), h (type 4) ───────────
+        if (bclo_tempval.empty()) bclo_tempval.resize(AMREX_SPACEDIM, 0.0);
+        if (bchi_tempval.empty()) bchi_tempval.resize(AMREX_SPACEDIM, 0.0);
         pp.queryarr("bc_lower_tempval", bclo_tempval);
         pp.queryarr("bc_upper_tempval", bchi_tempval);
+
+        // ── Ambient temperature for convective BC (type 4) ────────────────────
+        pp.queryarr("bc_lower_Tinf", bclo_Tinf);
+        pp.queryarr("bc_upper_Tinf", bchi_Tinf);
+
+        // ── UDF paths for spatially varying convective BC (type 5) ───────────
+        // Read as individual keys: bc_lower_thermal_udf_0, _1, _2 etc.
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        {
+            std::string key_lo = "bc_lower_thermal_udf_" + std::to_string(d);
+            std::string key_hi = "bc_upper_thermal_udf_" + std::to_string(d);
+            pp.query(key_lo.c_str(), bclo_thermal_udf[d]);
+            pp.query(key_hi.c_str(), bchi_thermal_udf[d]);
+        }
 #endif
 
-        pp.query("levelset_bc", levelset_bc);
+        pp.query("levelset_bc",      levelset_bc);
         pp.query("levelset_wall_mu", levelset_wall_mu);
+
+#if USE_TEMP
+        // ── Level-set thermal BC ──────────────────────────────────────────────
+        pp.query("levelset_bc_temp",     levelset_bc_temp);
+        pp.query("levelset_bc_temp_val", levelset_bc_temp_val);
+        pp.query("levelset_Tinf",        levelset_Tinf);
+        pp.query("levelset_temp_udf",    levelset_temp_udf);
+#endif
 
         pp.query("wall_mu_lo", wall_mu_lo);
         pp.query("wall_mu_hi", wall_mu_hi);
@@ -432,6 +504,31 @@ class MPMspecs
 
         pp.query("wall_vel_lo", wall_vel_lo);
         pp.query("wall_vel_hi", wall_vel_hi);
+
+        // ── Clean input format (new) ──────────────────────────────────────────
+        // RigidBodyManager reads mpm.nodal_vel_bc.*, mpm.nodal_temp_bc.*,
+        // mpm.lset_vel_bc.rb_N.*, mpm.lset_temp_bc.rb_N.* keys.
+        // It then writes back into the legacy arrays above so the rest of
+        // ExaGOOP continues to work unchanged.
+        // New format takes precedence over legacy format when both are present.
+        rb_manager.init(
+            bclo, bchi,
+            wall_mu_lo, wall_mu_hi,
+            wall_vel_lo, wall_vel_hi
+#if USE_TEMP
+            ,
+            bclo_temp, bchi_temp,
+            bclo_tempval, bchi_tempval,
+            bclo_Tinf, bchi_Tinf,
+            bclo_thermal_udf, bchi_thermal_udf,
+            levelset_bc_temp,
+            levelset_bc_temp_val,
+            levelset_Tinf,
+            levelset_temp_udf
+#endif
+            ,
+            levelset_bc,
+            levelset_wall_mu);
     }
 
     std::string Convert_arr_string(Array<Real, AMREX_SPACEDIM> arr)

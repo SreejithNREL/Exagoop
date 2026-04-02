@@ -18,8 +18,8 @@
 #-------------------------------------
 UNAME := $(shell uname)
 ifeq ($(UNAME), Darwin)
-  #HDF5_HOME = $(shell brew --prefix hdf5-mpi)
-  HDF5_HOME = $(HOME)/hdf5-parallel
+  HDF5_HOME = $(shell brew --prefix hdf5-mpi)
+  #HDF5_HOME = $(HOME)/hdf5-parallel
   HDF5_INC  = $(HDF5_HOME)/include
   HDF5_LIB  = $(HDF5_HOME)/lib
   USE_HDF5 = TRUE

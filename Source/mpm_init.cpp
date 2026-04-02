@@ -1550,7 +1550,9 @@ void MPMParticleContainer::removeParticlesInsideEB()
     MultiFab lsphi_coarse(coarse_nodal_ba, ParticleDistributionMap(lev),
                           1,  // ncomp
                           1); // nghost
-    amrex::Print() << "\n lsphi min = " << mpm_ebtools::lsphi->min(0)
+    // For multi-body: lsphi is the union (min over all bodies),
+    // so particles inside ANY body are removed correctly.
+    amrex::Print() << "\n [EB] Union lsphi min = " << mpm_ebtools::lsphi->min(0)
                    << "  max = " << mpm_ebtools::lsphi->max(0) << "\n";
 
     amrex::average_down_nodal(*mpm_ebtools::lsphi, lsphi_coarse,

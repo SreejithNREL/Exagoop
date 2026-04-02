@@ -196,8 +196,10 @@ void Apply_Nodal_BCs(amrex::Geometry &geom,
 #if USE_EB
     if (mpm_ebtools::using_levelset_geometry)
     {
-        nodal_levelset_bcs(nodaldata, geom, dt, specs.levelset_bc,
-                           specs.levelset_wall_mu);
+        // ── Multi-body path: loop over all bodies with per-body lsphi ─────────
+        // Falls back to single-body (legacy) when lsphi_bodies is empty.
+        nodal_levelset_bcs_all_bodies(nodaldata, geom, dt,
+                                      specs.rb_manager);
     }
 #endif
 
@@ -209,32 +211,106 @@ void Apply_Nodal_BCs(amrex::Geometry &geom,
 /**
  * @brief Applies temperature boundary conditions at nodal locations.
  *
- * Applies Dirichlet temperature BCs using nodal_bcs_temperature(), then
- * computes ΔT for PIC/FLIP thermal updates via store_delta_temperature().
+ * Handles all five BC types independently per face:
+ *   0 = no BC       1 = Dirichlet   2 = Adiabatic
+ *   3 = Heat flux   4 = Convective  5 = Convective UDF
+ *
+ * Call order matters for correctness:
+ *   1. nodal_bcs_temperature_extended  — flux/convective BCs add to
+ *      SOURCE_TEMP_INDEX BEFORE the time update so they are integrated.
+ *   2. Nodal_Time_Update_Temperature   — advances T using the sources.
+ *   3. nodal_bcs_temperature_extended  — Dirichlet BCs override T AFTER
+ *      the time update (type 1 sets T directly, ignoring the integrated value).
+ *   4. store_delta_temperature         — stores ΔT for PIC/FLIP blending.
+ *
+ * This function handles steps 1 and 3 together. Step 2 must be called
+ * between the two extended BC calls — see the time step loop in main.cpp.
  *
  * @param[in]     geom       Geometry describing the domain.
  * @param[in,out] nodaldata  Nodal MultiFab containing temperature fields.
  * @param[in]     specs      Simulation specification structure.
  * @param[in]     dt         Time step.
- *
- * @return None.
+ * @param[in]     pre_update If true: apply flux/convective BCs (types 2-5).
+ *                           If false: apply Dirichlet BCs (type 1) only.
  */
-
 void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
                                  amrex::MultiFab &nodaldata,
                                  MPMspecs &specs,
-                                 [[maybe_unused]] amrex::Real dt)
+                                 amrex::Real dt,
+                                 bool pre_update)
 {
-    amrex::Array<amrex::Real, AMREX_SPACEDIM> temp_lo;
-    amrex::Array<amrex::Real, AMREX_SPACEDIM> temp_hi;
+    // Determine if any face uses the new extended BC types (2-5)
+    bool any_extended = false;
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
     {
-        temp_lo[d] = specs.bclo_tempval[d];
-        temp_hi[d] = specs.bchi_tempval[d];
+        if (specs.bclo_temp[d] >= 2 || specs.bchi_temp[d] >= 2)
+        {
+            any_extended = true;
+            break;
+        }
     }
-    nodal_bcs_temperature(geom, nodaldata, specs.bclo.data(), specs.bchi.data(),
-                          temp_lo.data(), temp_hi.data());
-    store_delta_temperature(nodaldata);
+
+    if (any_extended)
+    {
+        // ── New extended path ─────────────────────────────────────────────────
+        // Resize Tinf arrays to AMREX_SPACEDIM if not already set in input
+        if ((int)specs.bclo_Tinf.size() < AMREX_SPACEDIM)
+            specs.bclo_Tinf.resize(AMREX_SPACEDIM, 0.0);
+        if ((int)specs.bchi_Tinf.size() < AMREX_SPACEDIM)
+            specs.bchi_Tinf.resize(AMREX_SPACEDIM, 0.0);
+        if ((int)specs.bclo_tempval.size() < AMREX_SPACEDIM)
+            specs.bclo_tempval.resize(AMREX_SPACEDIM, 0.0);
+        if ((int)specs.bchi_tempval.size() < AMREX_SPACEDIM)
+            specs.bchi_tempval.resize(AMREX_SPACEDIM, 0.0);
+
+        nodal_bcs_temperature_extended(
+            geom, nodaldata,
+            specs.bclo_temp.data(), specs.bchi_temp.data(),
+            specs.bclo_tempval.data(), specs.bchi_tempval.data(),
+            specs.bclo_Tinf.data(), specs.bchi_Tinf.data(),
+            specs.bclo_thermal_udf, specs.bchi_thermal_udf,
+            dt);
+    }
+    else
+    {
+        // ── Legacy Dirichlet-only path (unchanged behaviour) ──────────────────
+        // Only called on the post-update pass (pre_update=false) since
+        // Dirichlet overrides T after the time integration.
+        if (!pre_update)
+        {
+            amrex::Array<amrex::Real, AMREX_SPACEDIM> temp_lo;
+            amrex::Array<amrex::Real, AMREX_SPACEDIM> temp_hi;
+            for (int d = 0; d < AMREX_SPACEDIM; ++d)
+            {
+                temp_lo[d] = (int)specs.bclo_tempval.size() > d
+                             ? specs.bclo_tempval[d] : 0.0;
+                temp_hi[d] = (int)specs.bchi_tempval.size() > d
+                             ? specs.bchi_tempval[d] : 0.0;
+            }
+            nodal_bcs_temperature(geom, nodaldata,
+                                  specs.bclo_temp.data(),
+                                  specs.bchi_temp.data(),
+                                  temp_lo.data(), temp_hi.data());
+        }
+    }
+
+    // ── Level-set thermal BC ─────────────────────────────────────────────────
+    // Mirrors Apply_Nodal_BCs (velocity): called alongside the nodal BCs,
+    // split around Nodal_Time_Update_Temperature via the pre_update flag.
+#if USE_EB
+    if (mpm_ebtools::using_levelset_geometry)
+    {
+        // ── Multi-body thermal BC: loop over all bodies ───────────────────────
+        nodal_levelset_bcs_temperature_all_bodies(
+            nodaldata, geom, dt,
+            specs.rb_manager,
+            pre_update);
+    }
+#endif
+
+    // ΔT for PIC/FLIP is stored only on the post-update pass
+    if (!pre_update)
+        store_delta_temperature(nodaldata);
 }
 #endif
 

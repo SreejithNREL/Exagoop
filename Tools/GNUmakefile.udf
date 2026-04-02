@@ -1,45 +1,133 @@
-# GNUmakefile.udf
 # ─────────────────────────────────────────────────────────────────────────────
+# GNUmakefile.udf
 # Builds a user-defined level-set shared library for use with ExaGOOP's
 # eb2.geom_type = udf_cpp option.
 #
-# For users on the AMReX GNUmake build path (no CMake required).
+# Designed to be called from the ExaGOOP GNUmake build directory via:
 #
-# Usage:
-#   make -f /path/to/GNUmakefile.udf          \
-#        UDF_SRC=my_geometry.cpp               \
-#        AMREX_HOME=/path/to/amrex             \
-#        [OUT=levelset_udf.so]                 \
-#        [COMP=g++]
+#   make -f $(MPM_HOME)/Tools/GNUmakefile.udf \
+#        UDF_SRC=/path/to/my_geometry.cpp      \
+#        MPM_HOME=/path/to/ExaGOOP             \
+#        [OUT=/path/to/levelset_udf.so]
 #
-# Then in your input file:
-#   eb2.geom_type   = udf_cpp
-#   eb2.udf_so_file = /path/to/levelset_udf.so
+# Or more conveniently via the udf target in the main GNUmakefile:
+#
+#   make udf UDF_SRC=/path/to/my_geometry.cpp
+#
+# All variables (AMREX_HOME, COMP, DIM, USE_MPI, etc.) are inherited from
+# the main GNUmakefile environment when called via the udf target.
+# When called standalone, set MPM_HOME and optionally AMREX_HOME.
 # ─────────────────────────────────────────────────────────────────────────────
 
-# ── Required: set on command line ─────────────────────────────────────────────
-UDF_SRC   ?= $(error Set UDF_SRC=/path/to/my_geometry.cpp)
-AMREX_HOME ?= $(error Set AMREX_HOME=/path/to/amrex)
+# ── Path resolution ───────────────────────────────────────────────────────────
+MPM_HOME  ?= ../../
+AMREX_HOME ?= $(MPM_HOME)/Submodules/amrex
 
-# ── Optional overrides ────────────────────────────────────────────────────────
-COMP      ?= g++
-OUT       ?= levelset_udf.so
-DEBUG     ?= FALSE
-
-# ── Compiler flags ────────────────────────────────────────────────────────────
-CXXFLAGS  := -std=c++17 -fPIC -shared
-ifeq ($(DEBUG),TRUE)
-  CXXFLAGS += -g -O0
-else
-  CXXFLAGS += -O2
+# ── Required: source file ─────────────────────────────────────────────────────
+ifndef UDF_SRC
+  $(error UDF_SRC is not set. Usage: make -f GNUmakefile.udf UDF_SRC=/path/to/my_geometry.cpp)
 endif
 
-# ── AMReX include paths (covers Base, EB, and common Extern headers) ──────────
+# ── Output shared library ─────────────────────────────────────────────────────
+# Default: place alongside the source file
+UDF_DIR  ?= $(dir $(UDF_SRC))
+OUT      ?= $(UDF_DIR)levelset_udf.so
+
+# ── Compiler — match main GNUmakefile ─────────────────────────────────────────
+# COMP is set in the main GNUmakefile (gnu, clang, intel, etc.)
+# Map to actual compiler executable.
+#
+# GPU BUILDS (CUDA, HIP, SYCL):
+#   The UDF is ALWAYS compiled with the host C++ compiler, never nvcc/hipcc.
+#   Reason: levelset_phi() is a CPU function pointer loaded via dlopen.
+#   It is called exclusively from amrex::LoopOnCpu (host-side), so device
+#   compilation is not needed and would break the build.
+COMP ?= gnu
+
+ifeq ($(COMP),gnu)
+  CXX_UDF := g++
+else ifeq ($(COMP),clang)
+  CXX_UDF := clang++
+else ifeq ($(COMP),intel)
+  CXX_UDF := icpx
+else ifeq ($(COMP),llvm)
+  CXX_UDF := clang++
+else
+  CXX_UDF := g++
+endif
+
+# ── GPU backend flags ─────────────────────────────────────────────────────────
+# On GPU builds we still compile the UDF with host CXX.
+# We add a preprocessor flag so the UDF template can detect GPU builds
+# if needed (e.g. to avoid device-only headers).
+ifeq ($(USE_CUDA),TRUE)
+  CXXFLAGS_UDF += -DEXAGOOP_UDF_GPU_HOST_ONLY
+  CXXFLAGS_UDF += -DAMREX_USE_CUDA
+  # Add CUDA include path so AMReX headers compile cleanly on host
+  ifdef CUDA_HOME
+    CXXFLAGS_UDF += -I$(CUDA_HOME)/include
+  endif
+endif
+
+ifeq ($(USE_HIP),TRUE)
+  CXXFLAGS_UDF += -DEXAGOOP_UDF_GPU_HOST_ONLY
+  CXXFLAGS_UDF += -DAMREX_USE_HIP
+  ifdef ROCM_PATH
+    CXXFLAGS_UDF += -I$(ROCM_PATH)/include
+  endif
+endif
+
+ifeq ($(USE_SYCL),TRUE)
+  # SYCL uses icpx for host code too — override compiler
+  CXX_UDF      := icpx
+  CXXFLAGS_UDF += -DEXAGOOP_UDF_GPU_HOST_ONLY
+  CXXFLAGS_UDF += -DAMREX_USE_SYCL
+endif
+
+# ── Platform detection ────────────────────────────────────────────────────────
+UNAME := $(shell uname)
+ifeq ($(UNAME),Darwin)
+  SHARED_FLAG := -dynamiclib
+  SO_EXT      := .dylib
+  # macOS: replace .so extension with .dylib if OUT still has .so
+  OUT := $(patsubst %.so,%.dylib,$(OUT))
+else
+  SHARED_FLAG := -shared
+  SO_EXT      := .so
+endif
+
+# ── Compiler flags ────────────────────────────────────────────────────────────
+CXXFLAGS_UDF := -std=c++17 -fPIC -O2
+
+ifeq ($(DEBUG),TRUE)
+  CXXFLAGS_UDF := -std=c++17 -fPIC -g -O0
+endif
+
+# ── AMReX include paths ───────────────────────────────────────────────────────
+# Mirror exactly what the main GNUmakefile picks up via Make.package includes
 AMREX_INCLUDES := \
   -I$(AMREX_HOME)/Src/Base      \
   -I$(AMREX_HOME)/Src/EB        \
   -I$(AMREX_HOME)/Src/Boundary  \
-  -I$(AMREX_HOME)/Src/GeometryShop
+  -I$(AMREX_HOME)/Src/Particle  \
+  -I$(AMREX_HOME)/Src/AmrCore
+
+# ExaGOOP source headers (for constants.H, interpolants.H etc. if needed)
+EXAGOOP_INCLUDES := -I$(MPM_HOME)/Source
+
+# ── MPI includes (if enabled) ─────────────────────────────────────────────────
+ifeq ($(USE_MPI),TRUE)
+  # Try mpiicpx first (Intel), then mpicxx (generic)
+  MPI_INC := $(shell mpicxx --showme:compile 2>/dev/null || mpiicpx --showme:compile 2>/dev/null || echo "")
+  CXXFLAGS_UDF += $(MPI_INC)
+endif
+
+# ── Extra flags passthrough ───────────────────────────────────────────────────
+# User can pass EXTRA_FLAGS= on the command line
+CXXFLAGS_UDF += $(EXTRA_FLAGS)
+
+# ── All includes ──────────────────────────────────────────────────────────────
+ALL_INCLUDES := $(AMREX_INCLUDES) $(EXAGOOP_INCLUDES)
 
 # ── Targets ───────────────────────────────────────────────────────────────────
 .PHONY: all clean help
@@ -47,24 +135,34 @@ AMREX_INCLUDES := \
 all: $(OUT)
 
 $(OUT): $(UDF_SRC)
-	@echo "[ExaGOOP UDF] Compiling $< → $@"
-	$(COMP) $(CXXFLAGS) $(AMREX_INCLUDES) $(EXTRA_FLAGS) $< -o $@
-	@echo "[ExaGOOP UDF] Done."
+	@echo "[ExaGOOP UDF] Compiler : $(CXX_UDF)"
+	@echo "[ExaGOOP UDF] Source   : $(UDF_SRC)"
+	@echo "[ExaGOOP UDF] Output   : $(OUT)"
+	@echo "[ExaGOOP UDF] Platform : $(UNAME)"
+	$(CXX_UDF) $(CXXFLAGS_UDF) $(SHARED_FLAG) $(ALL_INCLUDES) $< -o $(OUT)
 	@echo ""
-	@echo "Add to your input file:"
-	@echo "  eb2.geom_type   = udf_cpp"
-	@echo "  eb2.udf_so_file = $(abspath $(OUT))"
+	@echo "[ExaGOOP UDF] Done. Add to your input file:"
+	@echo "    eb2.geom_type   = udf_cpp"
+	@echo "    eb2.udf_so_file = $(abspath $(OUT))"
 
 clean:
 	rm -f $(OUT)
 
 help:
-	@echo "Usage: make -f GNUmakefile.udf UDF_SRC=<file.cpp> AMREX_HOME=<path>"
+	@echo "Usage:"
+	@echo "  make -f GNUmakefile.udf UDF_SRC=<file.cpp> [options]"
+	@echo "  make udf UDF_SRC=<file.cpp>          (from main GNUmakefile dir)"
 	@echo ""
 	@echo "Variables:"
-	@echo "  UDF_SRC     — your geometry source file (required)"
-	@echo "  AMREX_HOME  — path to AMReX source tree (required)"
-	@echo "  OUT         — output filename (default: levelset_udf.so)"
-	@echo "  COMP        — C++ compiler (default: g++)"
-	@echo "  DEBUG       — TRUE for debug build (default: FALSE)"
-	@echo "  EXTRA_FLAGS — additional compiler flags"
+	@echo "  UDF_SRC      — your geometry source file     (required)"
+	@echo "  MPM_HOME     — path to ExaGOOP root          (default: ../../)"
+	@echo "  AMREX_HOME   — path to AMReX source          (default: MPM_HOME/Submodules/amrex)"
+	@echo "  OUT          — output .so/.dylib path        (default: alongside UDF_SRC)"
+	@echo "  COMP         — compiler: gnu/clang/intel     (default: gnu)"
+	@echo "  DEBUG        — TRUE for debug build          (default: FALSE)"
+	@echo "  USE_MPI      — TRUE to include MPI headers   (default: FALSE)"
+	@echo "  EXTRA_FLAGS  — additional compiler flags"
+	@echo ""
+	@echo "Templates:"
+	@echo "  $(MPM_HOME)/Exec/udf_templates/levelset_simple_template.cpp"
+	@echo "  $(MPM_HOME)/Exec/udf_templates/levelset_advanced_template.cpp"

@@ -91,9 +91,6 @@ public:
         phi_fn_ = reinterpret_cast<LevelSetPhiFn>(sym);
         amrex::Print() << "[UDF] Loaded successfully: " << so_path << "\n";
     }
-	
-	// Add inside the UDFLoader class, after load():
-	LevelSetPhiFn get_fn() const { return phi_fn_; }
 
     /**
      * @brief Evaluates phi at a physical point.
@@ -107,6 +104,19 @@ public:
     }
 
     bool is_loaded() const { return handle_ != nullptr; }
+
+    /**
+     * @brief Returns the raw CPU function pointer to levelset_phi.
+     *
+     * Use this to capture phi_fn by value in lambdas passed to EB2::makeShop
+     * or amrex::LoopOnCpu. Capturing by value ensures the lambda is
+     * self-contained and safe to copy (AMReX copies shops internally).
+     *
+     * IMPORTANT: Never pass this pointer into amrex::ParallelFor on GPU
+     * builds — it is a host-side pointer and will crash on device.
+     * Use amrex::LoopOnCpu instead.
+     */
+    LevelSetPhiFn get_fn() const { return phi_fn_; }
 
     // Non-copyable: owns an OS handle
     UDFLoader(const UDFLoader&)            = delete;
