@@ -1501,7 +1501,7 @@ basisvalder(const int dir,
         }
         else if (od == 2)
         {
-            // Cubic spline shape (order 3): classify boundary/periodic type
+            // quadratic spline shape (order 3): classify boundary/periodic type
 
             int idx = i + l;
             if (periodic[d] == 0)

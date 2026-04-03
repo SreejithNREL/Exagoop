@@ -57,22 +57,12 @@ int main(int argc, char *argv[])
                           nodaldata_names);
 #if USE_EB
         mpm_ebtools::init_eb(geom, ba, dm);
-
-        // ── Multi-body level-set geometry ─────────────────────────────────────
-        // When mpm.num_rigidbodies > 0, fills one lsphi per body from
-        // mpm.rb_N.* geometry keys and builds the union lsphi for particle
-        // removal. When num_rigidbodies = 0 the single-body eb2.* path
-        // (handled by init_eb above) is used unchanged.
         specs.rb_manager.init_geometry(geom, ba, dm);
 #endif
 
         MPMParticleContainer mpm_pc(geom, dm, ba, ng_cells);
 
         Initialise_Material_Points(specs, mpm_pc, steps, time, output_it);
-
-        int tmpi;
-        mpm_pc.Calculate_Total_Number_of_MaterialParticles(tmpi);
-        amrex::Print() << " \nNumber of matpoints " << tmpi;
 
         Create_Output_Directories(specs);
 
@@ -128,7 +118,6 @@ int main(int argc, char *argv[])
                 Update_MP_Positions(specs, mpm_pc, dt); // step 19
             }
 
-            // mpm_pc.updateNeighbors();
 
             if (specs.stress_update_scheme == 1)
             {
@@ -152,8 +141,6 @@ int main(int argc, char *argv[])
             }
 
             Redistribute_Fill_Update(specs, mpm_pc, steps);
-
-            // mpm_pc.updateNeighbors();
 
             Update_MP_Volume(mpm_pc);
 
