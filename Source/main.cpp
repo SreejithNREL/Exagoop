@@ -140,6 +140,79 @@ int main(int argc, char *argv[])
                 Update_MP_Positions(specs, mpm_pc, dt); // step 18
             }
 
+            // ── Debug: check for out-of-domain particles before redistribution ──
+			if(1==0)
+            {
+                long np_total = mpm_pc.TotalNumberOfParticles();
+                amrex::Print() << "[DEBUG step=" << steps << "]"
+                               << " total particles = " << np_total
+                               << ". Checking positions before Redistribute_Fill_Update\n";
+
+                for (MPMParticleContainer::ParIterType pti(mpm_pc, 0);
+                     pti.isValid(); ++pti)
+                {
+                    auto& aos = pti.GetArrayOfStructs();
+                    for (auto& p : aos)
+                    {
+                        // ── NaN/Inf check (takes priority over bounds check) ─
+                        bool is_nan = false;
+                        for (int d = 0; d < AMREX_SPACEDIM; d++)
+                        {
+                            if (std::isnan(p.pos(d)) || std::isinf(p.pos(d)))
+                            {
+                                is_nan = true;
+                                amrex::Print()
+                                    << "[NAN PARTICLE] step=" << steps
+                                    << " id=" << p.id()
+                                    << " pos=(" << p.pos(0) << "," << p.pos(1)
+#if (AMREX_SPACEDIM == 3)
+                                    << "," << p.pos(2)
+#endif
+                                    << ")"
+                                    << " vel=(" << p.rdata(realData::xvel)
+                                    << "," << p.rdata(realData::yvel)
+#if (AMREX_SPACEDIM == 3)
+                                    << "," << p.rdata(realData::zvel)
+#endif
+                                    << ")\n";
+                                break;
+                            }
+                        }
+
+                        // ── Bounds check (only if position is finite) ────────
+                        if (!is_nan)
+                        {
+                            for (int d = 0; d < AMREX_SPACEDIM; d++)
+                            {
+                                if (p.pos(d) < specs.plo[d] || p.pos(d) > specs.phi[d])
+                                {
+                                    amrex::Print()
+                                        << "[OUT OF DOMAIN] step=" << steps
+                                        << " id=" << p.id()
+                                        << " pos=(" << p.pos(0) << "," << p.pos(1)
+#if (AMREX_SPACEDIM == 3)
+                                        << "," << p.pos(2)
+#endif
+                                        << ")"
+                                        << " prob_lo=(" << specs.plo[0] << "," << specs.plo[1]
+#if (AMREX_SPACEDIM == 3)
+                                        << "," << specs.plo[2]
+#endif
+                                        << ")"
+                                        << " prob_hi=(" << specs.phi[0] << "," << specs.phi[1]
+#if (AMREX_SPACEDIM == 3)
+                                        << "," << specs.phi[2]
+#endif
+                                        << ")\n";
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            // ─────────────────────────────────────────────────────────────────
+
             Redistribute_Fill_Update(specs, mpm_pc, steps);
 
             Update_MP_Volume(mpm_pc);

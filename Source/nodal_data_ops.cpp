@@ -153,6 +153,12 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
                         int lsetbc,
                         amrex::Real lset_wall_mu)
 {
+    static bool first_call = true;
+    if (first_call) {
+        amrex::Print() << "[nodal_levelset_bcs] SINGLE-BODY overload called\n";
+        first_call = false;
+    }
+
     int lsref = mpm_ebtools::ls_refinement;
     const auto plo = geom.ProbLoArray();
     const auto dx  = geom.CellSizeArray();
@@ -184,6 +190,28 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
         amrex::Print() << "[nodal_levelset_bcs] lsphi_coarse:"
                        << " min=" << lsphi_coarse.min(0)
                        << " max=" << lsphi_coarse.max(0) << "\n";
+
+    // One-time plotfile of lsphi_coarse for visual verification.
+    // lsphi_coarse is nodal (node-centred) on the coarse BoxArray —
+    // geom (coarse geometry) is the correct argument here.
+    {
+        static bool first_plt = true;
+        if (first_plt)
+        {
+            amrex::WriteSingleLevelPlotfile("plt_lsphi_coarse_debug",
+                                            lsphi_coarse,
+                                            {"phi"},
+                                            geom,
+                                            0.0, 0);
+            amrex::Print() << "[nodal_levelset_bcs] plt_lsphi_coarse_debug written.\n";
+            first_plt = false;
+        }
+    }
+
+    // Debug: count nodes where the LS BC fires; print first 5.
+    // Declared outside the MFIter loop so the count accumulates across tiles.
+    amrex::Gpu::DeviceScalar<int> nprint_d(0);
+    int* nprint = nprint_d.dataPtr();
 
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
@@ -230,12 +258,12 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
                     gradmag += normaldir[d] * normaldir[d];
                 gradmag = std::sqrt(gradmag);
 
+                // Guard: skip nodes where ∇φ is degenerate (flat/unresolved
+                // interface) rather than dividing by near-zero magnitude.
+                if (gradmag < 1.0e-10) return;
+
                 for (int d = 0; d < AMREX_SPACEDIM; d++)
-				{
-                    normaldir[d] /= (gradmag + TINYVAL);
-					amrex::Print()<<"\n Normal = "<<normaldir[d]<<" "<<gradmag<<" "<<TINYVAL<<" "<<normaldir[d];
-					}
-					
+                    normaldir[d] /= gradmag;
 
                 // --- Form relative velocity (node vel minus wall vel) ---
                 amrex::Real relvel_in[AMREX_SPACEDIM];
@@ -255,6 +283,31 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
                 for (int d = 0; d < AMREX_SPACEDIM; d++)
                     nodal_data_arr(nodeid, VELX_INDEX + d) =
                         relvel_out[d] + wall_vel[d];
+
+                // Debug: print first 5 nodes where BC fires
+                int cnt = amrex::Gpu::Atomic::Add(nprint, 1);
+                if (cnt < 5)
+                {
+#if (AMREX_SPACEDIM == 2)
+                    printf("[lsBC] node (%d,%d) phi=%.4e"
+                           " n=(%.4e,%.4e)"
+                           " v_before=(%.4e,%.4e)"
+                           " v_after=(%.4e,%.4e)\n",
+                           i, j, lsval,
+                           normaldir[0], normaldir[1],
+                           relvel_in[0], relvel_in[1],
+                           relvel_out[0], relvel_out[1]);
+#else
+                    printf("[lsBC] node (%d,%d,%d) phi=%.4e"
+                           " n=(%.4e,%.4e,%.4e)"
+                           " v_before=(%.4e,%.4e,%.4e)"
+                           " v_after=(%.4e,%.4e,%.4e)\n",
+                           i, j, k, lsval,
+                           normaldir[0], normaldir[1], normaldir[2],
+                           relvel_in[0], relvel_in[1], relvel_in[2],
+                           relvel_out[0], relvel_out[1], relvel_out[2]);
+#endif
+                }
             });
     }
 }
@@ -281,6 +334,12 @@ void nodal_levelset_bcs(MultiFab          &nodaldata,
                         amrex::Real        lset_wall_mu,
                         MultiFab          *body_lsphi)
 {
+    static bool first_call_mb = true;
+    if (first_call_mb) {
+        amrex::Print() << "[nodal_levelset_bcs] MULTI-BODY overload called\n";
+        first_call_mb = false;
+    }
+
     if (!body_lsphi || lsetbc == 0) return;
 
     int lsref = mpm_ebtools::ls_refinement;
@@ -326,8 +385,11 @@ void nodal_levelset_bcs(MultiFab          &nodaldata,
                 for (int d = 0; d < AMREX_SPACEDIM; d++)
                     gradmag += normaldir[d] * normaldir[d];
                 gradmag = std::sqrt(gradmag);
+
+                if (gradmag < 1.0e-10) return;
+
                 for (int d = 0; d < AMREX_SPACEDIM; d++)
-                    normaldir[d] /= (gradmag + TINYVAL);
+                    normaldir[d] /= gradmag;
 
                 amrex::Real relvel_in[AMREX_SPACEDIM];
                 amrex::Real relvel_out[AMREX_SPACEDIM];
@@ -363,6 +425,13 @@ void nodal_levelset_bcs_all_bodies(MultiFab             &nodaldata,
                                    amrex::Real           dt,
                                    const RigidBodyManager &rb_manager)
 {
+    static bool first_call_ab = true;
+    if (first_call_ab) {
+        amrex::Print() << "[nodal_levelset_bcs_all_bodies] called,"
+                       << " num_bodies=" << rb_manager.bodies.size() << "\n";
+        first_call_ab = false;
+    }
+
     int nb = (int)mpm_ebtools::lsphi_bodies.size();
     if (nb == 0)
     {

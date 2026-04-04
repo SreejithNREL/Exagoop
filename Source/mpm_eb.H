@@ -290,9 +290,6 @@ get_levelset_grad(amrex::Array4<amrex::Real> phi,
                 phi(ii, jj, kk) * basisvalder(d, offset, idx, ptxyz, problo,
                                               ls_dx, order_scheme_pseudo,
                                               periodic_pseudo, lo, hi);
-				amrex::Print()<<"\n Inside get_levelset_grad = "<<phi(ii, jj, kk)<<" "<<											  basisvalder(d, offset, idx, ptxyz, problo,
-											                                                ls_dx, order_scheme_pseudo,
-											                                                periodic_pseudo, lo, hi);
         }
     }
 }

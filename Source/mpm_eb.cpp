@@ -277,11 +277,37 @@ void init_eb(const Geometry        &geom,
                              });
         }
 
+        // lsphi layout:
+        //   BoxArray  : nodal(ba).refine(ls_refinement)  — node-centred, refined
+        //   DM        : dm  (same as coarse)
+        //   Geometry  : geom_ls = domain.refine(ls_refinement)
+        // geom_ls must be reconstructed here — it was a local inside
+        // build_udf_eb_only and is out of scope after that call returns.
+        Box      dom_ls_fill = geom.Domain();
+        dom_ls_fill.refine(ls_refinement);
+        Geometry geom_ls_fill(dom_ls_fill);
+
+        // Fill ghost cells across box boundaries / MPI ranks.
+        // fabbox() in LoopOnCpu already covered each FAB's own ghost layer
+        // directly from the UDF, but FillBoundary ensures consistency for
+        // ghost cells that overlap a neighbouring FAB's valid region.
+        lsphi->FillBoundary(geom_ls_fill.periodicity());
+
         amrex::Print() << "[UDF] lsphi filled on CPU (GPU-safe). "
                        << "min=" << lsphi->min(0) << " max=" << lsphi->max(0)
-                       << "\n";         
+                       << "\n";
 
-       
+        // Debug plotfile: write lsphi directly (nodal, refined).
+        // Must use geom_ls_fill (refined geometry) — NOT geom (coarse).
+        // Passing geom here would cause AMReX to map refined nodal indices
+        // against a coarse domain, displacing every coordinate by lsr.
+		amrex::Print() << "[DEBUG] About to write plt_lsphi_debug\n";
+        amrex::WriteSingleLevelPlotfile("plt_lsphi_debug",
+                                        *lsphi,
+                                        {"phi"},
+                                        geom_ls_fill,
+                                        0.0, 0);
+        amrex::Print() << "[UDF] plt_lsphi_debug written.\n";
     }
 
     // ── stl: surface mesh from file ───────────────────────────────────────────
