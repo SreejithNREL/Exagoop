@@ -1,5 +1,9 @@
 CEXE_sources += main.cpp mpm_init.cpp mpm_particle_grid_ops.cpp mpm_particle_timestep.cpp mpm_diagnostics.cpp 
 CEXE_sources += mpm_particle_container.cpp mpm_particle_outputs.cpp nodal_data_ops.cpp mpm_eb.cpp aesthetics.cpp utilities.cpp
+# CXX-only TU: contains EB2::Build with UDF lambda; GNUmake never passes
+# .cpp files to nvcc, so no special annotation is needed here.
+CEXE_sources += mpm_eb_udf_build.cpp
 
 CEXE_headers += mpm_particle_container.H mpm_specs.H mpm_check_pair.H nodal_data_ops.H mpm_init.H utilities.H
 CEXE_headers += constants.H interpolants.H constitutive_models.H nodal_update.H mpm_eb.H aesthetics.H
+CEXE_headers += mpm_udf_loader.H

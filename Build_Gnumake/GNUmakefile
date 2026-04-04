@@ -130,4 +130,28 @@ VPATH_LOCATIONS   += $(MPM_HOME)/Source
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
+# ===============================================================
+# UDF builder convenience target
+#
+# Usage (from Build_Gnumake/):
+#   make udf UDF_SRC=../Exec/my_case/geometry.cpp OUT=../Exec/my_case/udf_build
+#   make udf UDF_SRC=../Exec/my_case/geometry.cpp OUT=../Exec/my_case/udf_build COMP=llvm
+#
+# Output: $(OUT)/liblevelset_udf.so  (Linux)
+#         $(OUT)/liblevelset_udf.dylib (macOS)
+# ===============================================================
+UDF_MAKEFILE := $(MPM_HOME)/Tools/GNUmakefile.udf
 
+.PHONY: udf udf-help
+
+udf:
+ifndef UDF_SRC
+	$(error UDF_SRC is required. Usage: make udf UDF_SRC=/path/to/geometry.cpp OUT=/path/to/output_dir)
+endif
+ifndef OUT
+	$(error OUT is required. Usage: make udf UDF_SRC=/path/to/geometry.cpp OUT=/path/to/output_dir)
+endif
+	$(MAKE) -f $(UDF_MAKEFILE) UDF_SRC=$(UDF_SRC) OUT=$(OUT) COMP=$(COMP)
+
+udf-help:
+	$(MAKE) -f $(UDF_MAKEFILE) help

@@ -1,0 +1,104 @@
+# =============================================================================
+# GNUmakefile.udf — build a ExaGOOP level-set UDF shared library
+#
+# Usage (from anywhere):
+#   make -f /path/to/Tools/GNUmakefile.udf \
+#        UDF_SRC=/path/to/my_geometry.cpp  \
+#        OUT=/path/to/output_dir           \
+#        [COMP=gnu|llvm|<compiler binary>] \
+#        [DIM=2|3]
+#
+# Output:
+#   $(OUT)/liblevelset_udf.so       (Linux)
+#   $(OUT)/liblevelset_udf.dylib    (macOS)
+#
+# The resulting library can be used with:
+#   eb2.geom_type   = udf_cpp
+#   eb2.udf_so_file = /path/to/output_dir/liblevelset_udf.dylib
+# =============================================================================
+
+# ---------------------------------------------------------------
+# Required inputs
+# ---------------------------------------------------------------
+UDF_SRC ?= $(error UDF_SRC is required, e.g. UDF_SRC=../Exec/my_case/geometry.cpp)
+OUT     ?= $(error OUT is required, e.g. OUT=../Exec/my_case/udf_build)
+
+# ---------------------------------------------------------------
+# Compiler selection
+# COMP follows the same convention as ExaGOOP/AMReX GNUmake:
+#   gnu   → g++
+#   llvm  → clang++
+#   intel → icpx
+# Any other value is used directly as the compiler binary.
+# ---------------------------------------------------------------
+COMP ?= gnu
+
+ifeq ($(COMP),gnu)
+    CXX_UDF := g++
+else ifeq ($(COMP),llvm)
+    CXX_UDF := clang++
+else ifeq ($(COMP),intel)
+    CXX_UDF := icpx
+else
+    CXX_UDF := $(COMP)
+endif
+
+# ---------------------------------------------------------------
+# Platform detection
+# ---------------------------------------------------------------
+UNAME := $(shell uname)
+
+ifeq ($(UNAME),Darwin)
+    LIB_EXT   := dylib
+    LIB_FLAGS := -dynamiclib
+else
+    LIB_EXT   := so
+    LIB_FLAGS := -shared -fPIC
+endif
+
+# ---------------------------------------------------------------
+# Derived paths
+# ---------------------------------------------------------------
+UDF_LIB := $(OUT)/liblevelset_udf.$(LIB_EXT)
+
+# ---------------------------------------------------------------
+# Targets
+# ---------------------------------------------------------------
+.PHONY: all clean help
+
+all: $(UDF_LIB)
+
+$(UDF_LIB): $(UDF_SRC)
+	@mkdir -p $(OUT)
+	$(CXX_UDF) -std=c++17 -O2 -fvisibility=hidden \
+	    $(LIB_FLAGS) \
+	    -o $(UDF_LIB) \
+	    $(UDF_SRC)
+	@echo ""
+	@echo "  UDF library built: $(UDF_LIB)"
+	@echo ""
+	@echo "  Add to your input file:"
+	@echo "    eb2.geom_type   = udf_cpp"
+	@echo "    eb2.udf_so_file = $(abspath $(UDF_LIB))"
+	@echo ""
+
+clean:
+	rm -f $(UDF_LIB)
+
+help:
+	@echo ""
+	@echo "  ExaGOOP UDF builder"
+	@echo ""
+	@echo "  Usage:"
+	@echo "    make -f GNUmakefile.udf \\"
+	@echo "         UDF_SRC=/path/to/geometry.cpp \\"
+	@echo "         OUT=/path/to/output_dir \\"
+	@echo "         [COMP=gnu|llvm|intel|<compiler>]"
+	@echo ""
+	@echo "  The UDF must export:"
+	@echo "    extern \"C\" double levelset_phi(double x, double y, double z);"
+	@echo ""
+	@echo "  phi < 0  inside obstacle"
+	@echo "  phi > 0  outside obstacle"
+	@echo "  phi = 0  on surface"
+	@echo ""

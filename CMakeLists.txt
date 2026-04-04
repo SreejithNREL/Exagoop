@@ -216,4 +216,33 @@ message(STATUS "CMAKE_CXX_COMPILER_VERSION = ${CMAKE_CXX_COMPILER_VERSION}")
 message(STATUS "CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
 message(STATUS "EXAGOOP_PRECISION = ${EXAGOOP_PRECISION}")
 
+# ===============================================================
+# UDF builder — install exagoop-build-udf script + satellite CMake
+# ===============================================================
+
+# Satellite CMake project lives in CMake/udf_builder/
+set(EXAGOOP_UDF_BUILDER_DIR "${CMAKE_SOURCE_DIR}/CMake/udf_builder")
+
+if(NOT WIN32)
+    # Configure the shell script, substituting @EXAGOOP_UDF_BUILDER_DIR@
+    configure_file(
+        "${CMAKE_SOURCE_DIR}/Tools/exagoop-build-udf.in"
+        "${CMAKE_BINARY_DIR}/exagoop-build-udf"
+        @ONLY
+    )
+    # Make it executable after configure_file (which does not preserve permissions)
+    file(
+        COPY        "${CMAKE_BINARY_DIR}/exagoop-build-udf"
+        DESTINATION "${CMAKE_BINARY_DIR}"
+        FILE_PERMISSIONS
+            OWNER_READ OWNER_WRITE OWNER_EXECUTE
+            GROUP_READ GROUP_EXECUTE
+            WORLD_READ WORLD_EXECUTE
+    )
+    install(
+        PROGRAMS    "${CMAKE_BINARY_DIR}/exagoop-build-udf"
+        DESTINATION bin
+    )
+endif()
+
 include(BuildExeAndLib)
