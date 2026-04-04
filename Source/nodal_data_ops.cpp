@@ -115,98 +115,154 @@ void backup_current_temperature(MultiFab &nodaldata)
 
 #if USE_EB
 /**
- * @brief Applies level‑set‑based boundary conditions to nodal velocities.
+ * @brief Applies level-set-based velocity boundary conditions to nodal data.
  *
- * For each node:
- *   1. Maps the node to the refined level‑set grid.
- *   2. If φ(node) < 0 and mass > 0:
- *        - Computes ∇φ at the node.
- *        - Normalizes the gradient to obtain the wall normal.
- *        - Applies applybc() to nodal velocity.
+ * For each grid node where phi < 0 (inside the obstacle) and nodal mass > 0:
+ *   1. Evaluates phi at the physical node location via multilinear interpolation
+ *      on the coarsened lsphi (average_down_nodal from refined grid).
+ *   2. Computes the level-set gradient at that node to obtain the wall normal.
+ *   3. Guards against degenerate (zero-gradient) nodes — Bug 3 fix.
+ *   4. Applies applybc() to enforce the requested BC type (no-slip, free-slip,
+ *      Coulomb friction) relative to the wall velocity.
  *
- * This enforces embedded‑boundary constraints directly on nodal velocities.
+ * Bug fixes applied (relative to 235793b):
  *
- * @param[in,out] nodaldata  Nodal MultiFab containing velocity fields.
- * @param[in]     geom       Geometry describing the domain.
- * @param[in]     dt         Time step (unused).
- * @param[in]     lsetbc     Boundary condition type for EB.
- * @param[in]     lset_wall_mu  Friction coefficient for EB.
+ *   Bug 1 — average_down_nodal + FillBoundary:
+ *     lsphi is stored at ls_refinement * coarse resolution.  Reading it
+ *     directly with a coarse MFIter (Bug 4) or without FillBoundary (Bug 1)
+ *     produces garbage in ghost cells => phantom obstacles at tile boundaries.
+ *     Fix: average_down_nodal onto a coarse nodal MultiFab, then FillBoundary,
+ *     then pass lsref=1 to get_levelset_value / get_levelset_grad.
+ *
+ *   Bug 3 — degenerate gradient guard:
+ *     Nodes deep inside the obstacle have zero gradient.  Dividing by
+ *     (gradmag + TINYVAL) with TINYVAL~1e-20 produces ~1e20 normals =>
+ *     velocity blowup => NaN particles => locateParticle crash.
+ *     Fix: if gradmag < 1e-10, skip the node entirely.
+ *
+ *   Bug 4 — coarse MFIter with refined lsphi:
+ *     mpm_ebtools::lsphi is refined; indexing it with a coarse MFIter tile
+ *     gives the wrong array region.
+ *     Fix: use lsphi_coarse.array(mfi) after average_down_nodal.
+ *
+ * @param[in,out] nodaldata     Nodal MultiFab containing velocity fields.
+ * @param[in]     geom          Coarse-level geometry.
+ * @param[in]     dt            Time step (reserved for future moving-wall use).
+ * @param[in]     lsetbc        BC type: 0=none, 1=no-slip, 2=free-slip,
+ *                              3=Coulomb friction.
+ * @param[in]     lset_wall_mu  Friction coefficient (used when lsetbc==3).
+ * @param[in]     wall_vel      Wall velocity vector (default: zero = static).
  *
  * @return None.
  */
-void nodal_levelset_bcs(MultiFab &nodaldata,
+void nodal_levelset_bcs(MultiFab& nodaldata,
                         const Geometry geom,
-                        amrex::Real & /*dt*/,
-                        int /*lsetbc*/,
-                        amrex::Real /*lset_wall_mu*/)
+                        amrex::Real& /*dt*/,
+                        int lsetbc,
+                        amrex::Real lset_wall_mu,
+                        amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> wall_vel)
 {
-    // need something more sophisticated
-    // but lets get it working!
-    //
     int lsref = mpm_ebtools::ls_refinement;
+
+    // ------------------------------------------------------------------
+    // Bug 1 + Bug 4 fix:
+    // average_down_nodal coarsens lsphi from the refined grid onto a new
+    // nodal MultiFab that matches nodaldata's BoxArray exactly.
+    // nghost >= 1 is required: get_levelset_grad reads the ghost layer.
+    // FillBoundary must follow to populate those ghost cells — without it
+    // any tile boundary where a ghost cell is uninitialised becomes a
+    // phantom obstacle (Bug 1).
+    // ------------------------------------------------------------------
+    MultiFab lsphi_coarse(nodaldata.boxArray(),
+                          nodaldata.DistributionMap(),
+                          1,   // ncomp
+                          1);  // nghost — MUST be >= 1
+    amrex::average_down_nodal(*mpm_ebtools::lsphi,
+                               lsphi_coarse,
+                               amrex::IntVect(lsref));
+    // Use coarse geometry periodicity — lsphi_coarse lives on the coarse grid
+    lsphi_coarse.FillBoundary(geom.periodicity());
+
     const auto plo = geom.ProbLoArray();
-    // const auto phi = geom.ProbHiArray();
-    const auto dx = geom.CellSizeArray();
+    const auto dx  = geom.CellSizeArray();
 
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
-        const Box &bx = mfi.validbox();
-        Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
+        Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 
         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
-        Array4<Real> lsarr = mpm_ebtools::lsphi->array(mfi);
+        // Bug 4 fix: use lsphi_coarse, NOT mpm_ebtools::lsphi->array(mfi)
+        Array4<Real> lsarr = lsphi_coarse.array(mfi);
 
         amrex::ParallelFor(
             nodalbox,
             [=] AMREX_GPU_DEVICE(AMREX_D_DECL(int i, int j, int k)) noexcept
             {
                 IntVect nodeid(AMREX_D_DECL(i, j, k));
-                IntVect refined_nodeid(
-                    AMREX_D_DECL(i * lsref, j * lsref, k * lsref));
 
-                if (lsarr(refined_nodeid) < TINYVAL &&
-                    nodal_data_arr(nodeid, MASS_INDEX) > shunya)
+                // Physical coordinates of this node
+                amrex::Real xp[AMREX_SPACEDIM] = {AMREX_D_DECL(
+                    plo[XDIR] + i * dx[XDIR],
+                    plo[YDIR] + j * dx[YDIR],
+                    plo[ZDIR] + k * dx[ZDIR])};
+
+                // lsphi_coarse is already at coarse resolution, so lsref=1
+                amrex::Real lsval =
+                    get_levelset_value(lsarr, plo, dx, xp, /*lsref=*/1);
+
+                // Only act on nodes inside the obstacle with nonzero mass
+                if (lsval >= 0.0 ||
+                    nodal_data_arr(nodeid, MASS_INDEX) <= shunya)
+                    return;
+
+                // Compute wall-normal from level-set gradient
+                amrex::Real normaldir[AMREX_SPACEDIM] = {AMREX_D_DECL(1.0, 0.0, 0.0)};
+                get_levelset_grad(lsarr, plo, dx, xp, /*lsref=*/1, normaldir);
+
+                amrex::Real gradmag = 0.0;
+                for (int d = 0; d < AMREX_SPACEDIM; d++)
+                    gradmag += normaldir[d] * normaldir[d];
+                gradmag = std::sqrt(gradmag);
+
+                // Bug 3 fix: skip degenerate nodes (zero gradient deep inside
+                // obstacle). Dividing by TINYVAL~1e-20 gives ~1e20 normals =>
+                // velocity blowup => NaN particles.
+                if (gradmag < 1.0e-10) return;
+
+                for (int d = 0; d < AMREX_SPACEDIM; d++)
+                    normaldir[d] /= gradmag;
+
+                // Velocity relative to wall
+                amrex::Real relvel_in[AMREX_SPACEDIM];
+                amrex::Real relvel_out[AMREX_SPACEDIM];
+                for (int d = 0; d < AMREX_SPACEDIM; d++)
                 {
-                    Real relvel_in[AMREX_SPACEDIM];
-                    Real relvel_out[AMREX_SPACEDIM];
-                    for (int d = 0; d < AMREX_SPACEDIM; d++)
-                    {
-                        relvel_in[d] = nodal_data_arr(nodeid, VELX_INDEX + d);
-                        relvel_out[d] = relvel_in[d];
-                    }
-
-                    // amrex::Real eps = 0.00001;
-                    amrex::Real xp[AMREX_SPACEDIM] = {AMREX_D_DECL(
-                        plo[XDIR] + i * dx[XDIR], plo[YDIR] + j * dx[YDIR],
-                        plo[ZDIR] + k * dx[ZDIR])};
-
-                    // amrex::Real
-                    // dist=get_levelset_value(lsarr,plo,dx,xp,lsref);
-                    // dist=amrex::Math::abs(dist);
-
-                    amrex::Real normaldir[AMREX_SPACEDIM] = {
-                        AMREX_D_DECL(1.0, 0.0, 0.0)};
-
-                    get_levelset_grad(lsarr, plo, dx, xp, lsref, normaldir);
-
-                    amrex::Real gradmag = 0.0;
-                    for (int d = 0; d < AMREX_SPACEDIM; d++)
-                    {
-                        gradmag += normaldir[d] * normaldir[d];
-                    }
-
-                    gradmag = std::sqrt(gradmag);
-
-                    for (int d = 0; d < AMREX_SPACEDIM; d++)
-                    {
-                        normaldir[d] = normaldir[d] / (gradmag + TINYVAL);
-                    }
-
-                    for (int d = 0; d < AMREX_SPACEDIM; d++)
-                    {
-                        nodal_data_arr(nodeid, VELX_INDEX + d) = relvel_out[d];
-                    }
+                    relvel_in[d] =
+                        nodal_data_arr(nodeid, VELX_INDEX + d) - wall_vel[d];
+                    relvel_out[d] = relvel_in[d]; // default: no change
                 }
+
+                // Normal component of velocity relative to wall.
+                // The level-set gradient points OUTWARD (away from obstacle),
+                // so veln > 0 means the node is moving away — no BC needed.
+                // Only apply BC when veln <= 0 (node moving into the wall).
+                amrex::Real veln = 0.0;
+                for (int d = 0; d < AMREX_SPACEDIM; d++)
+                    veln += relvel_in[d] * normaldir[d];
+
+                if (veln <= 0.0)
+                {
+                    // Apply BC (no-slip / free-slip / Coulomb friction)
+                    applybc(relvel_in, relvel_out, lset_wall_mu, normaldir,
+                            lsetbc);
+
+                    // Write back: add wall velocity to restore absolute frame
+                    for (int d = 0; d < AMREX_SPACEDIM; d++)
+                        nodal_data_arr(nodeid, VELX_INDEX + d) =
+                            relvel_out[d] + wall_vel[d];
+                }
+                // veln > 0: node already moving away from wall — leave velocity
+                // unchanged
             });
     }
 }

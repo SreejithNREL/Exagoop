@@ -64,11 +64,14 @@ void CalculateInterpolationError(const amrex::Geometry geom,
                                  amrex::MultiFab &nodaldata,
                                  int nodaldataindex);
 
-void nodal_levelset_bcs(amrex::MultiFab &nodaldata,
-                        const amrex::Geometry geom,
-                        amrex::Real &dt,
-                        int lsetbc,
-                        amrex::Real lset_wall_mu);
+void nodal_levelset_bcs(
+    amrex::MultiFab& nodaldata,
+    const amrex::Geometry geom,
+    amrex::Real& dt,
+    int lsetbc,
+    amrex::Real lset_wall_mu,
+    amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> wall_vel =
+        amrex::GpuArray<amrex::Real, AMREX_SPACEDIM>{AMREX_D_DECL(0.0, 0.0, 0.0)});
 
 void Create_Output_Directories(MPMspecs &specs);
 void Reset_Nodaldata_to_Zero(amrex::MultiFab &nodaldata,
