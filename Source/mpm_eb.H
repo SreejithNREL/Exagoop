@@ -140,6 +140,62 @@ get_levelset_value(amrex::Array4<amrex::Real> phi,
     return lsval;
 }
 
+
+amrex::Real get_levelset_value_cpu(
+    amrex::Array4<amrex::Real> phi,
+    const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> problo,
+    const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> dx,
+    amrex::Real ptxyz[AMREX_SPACEDIM],
+    amrex::Real lsref)
+{
+    amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> ls_dx;
+    const int lo[AMREX_SPACEDIM] = {0};
+    const int hi[AMREX_SPACEDIM] = {0};
+    const amrex::GpuArray<int, AMREX_SPACEDIM> order_scheme_pseudo = {
+        AMREX_D_DECL(1, 1, 1)};
+    const amrex::GpuArray<int, AMREX_SPACEDIM> periodic_pseudo = {
+        AMREX_D_DECL(1, 1, 1)};
+
+    // scale dx by lsref
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        ls_dx[d] = dx[d] / lsref;
+    }
+
+    // compute cell indices in each dimension
+    IntVect idx;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        idx[d] = static_cast<int>(
+            amrex::Math::floor((ptxyz[d] - problo[d] + TINYVAL) / ls_dx[d]));
+    }
+
+    amrex::Real lsval = 0.0;
+
+    // nested loops over dimensions (generalized)
+    // we use recursion or iterative product to cover 2^AMREX_SPACEDIM corners
+    int cornerCount = 1 << AMREX_SPACEDIM; // 2^dim
+    for (int corner = 0; corner < cornerCount; ++corner)
+    {
+        IntVect offset;
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        {
+            offset[d] = (corner >> d) & 1; // 0 or 1
+        }
+
+        // gather indices
+        int ii = idx[0] + offset[0];
+        int jj = (AMREX_SPACEDIM > 1) ? idx[1] + offset[1] : 0;
+        int kk = (AMREX_SPACEDIM > 2) ? idx[2] + offset[2] : 0;
+
+        lsval += phi(ii, jj, kk) * basisval(offset, idx, ptxyz, problo, ls_dx,
+                                            order_scheme_pseudo,
+                                            periodic_pseudo, lo, hi);
+    }
+
+    return lsval;
+}
+
 /**
  * @brief Computes the gradient of the level‑set field at a physical point.
  *

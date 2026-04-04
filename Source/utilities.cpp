@@ -6,6 +6,7 @@
 #include <iostream> // optional, if you use std::cout
 #include <mpm_check_pair.H>
 #include <mpm_eb.H>
+#include <mpm_particle_container.H>
 #include <nodal_data_ops.H>
 #include <sstream> // optional, if you later use string streams
 #include <string>  // for std::string

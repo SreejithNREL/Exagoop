@@ -15,6 +15,11 @@ set(EXAGOOP_ENABLE_PARTICLES ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMake")
 
+if(WIN32)
+    #add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN VC_EXTRA_LEAN WIN32_EXTRA_LEAN)    
+    add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN CCCL_IGNORE_MSVC_TRADITIONAL_PREPROCESSOR_WARNING)
+endif()
+
 # ===============================================================
 # EB enforcement (AMReX limitation)
 # ===============================================================

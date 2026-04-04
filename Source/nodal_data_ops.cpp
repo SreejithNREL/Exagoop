@@ -568,7 +568,8 @@ void nodal_levelset_bcs_temperature(
                         plo[YDIR] + j * dx[YDIR],
                         plo[ZDIR] + k * dx[ZDIR])};
 
-                    amrex::Real lsval = get_levelset_value(
+                    amrex::Real lsval =
+                        get_levelset_value_cpu(
                         lsarr, plo, dx, xp, 1);
 
                     if (lsval >= 0.0 ||

@@ -3,14 +3,31 @@ function(build_exagoop_exe exagoop_exe_name)
   set(SRC_DIR ${CMAKE_SOURCE_DIR}/Source)
 
   #add_executable(${exagoop_exe_name} "")
+
+  
+if(WIN32)
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler=/Zc:preprocessor --keep --keep-dir C:/cuda_temp")
+endif()
+
   
   add_executable(${EXAGOOP_EXE_NAME} "")
   set_target_properties(${EXAGOOP_EXE_NAME} PROPERTIES OUTPUT_NAME ${EXAGOOP_EXE_NAME})
   
-
   target_include_directories(${EXAGOOP_EXE_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
   target_include_directories(${EXAGOOP_EXE_NAME} PRIVATE ${SRC_DIR})
   target_include_directories(${EXAGOOP_EXE_NAME} PRIVATE ${CMAKE_BINARY_DIR})
+
+if(WIN32)
+    target_compile_options(${EXAGOOP_EXE_NAME} PRIVATE
+        $<$<COMPILE_LANGUAGE:CXX>:/wd4244 /wd4005 /Zc:preprocessor>
+        $<$<COMPILE_LANGUAGE:CUDA>:
+            -Xcompiler=/wd4244
+            -Xcompiler=/wd4005
+            -Xcompiler=/Zc:preprocessor
+            -Xcompiler=/Zc:__cplusplus
+        >
+    )
+endif()
 
   target_sources(${EXAGOOP_EXE_NAME}
      PRIVATE

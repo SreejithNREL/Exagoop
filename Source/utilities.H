@@ -23,7 +23,6 @@ void Write_Particle_Grid_Levset_Output(
     int steps,
     int output_it,
     bool rewrite_checkpoint);
-#endif
 
 void P2G_Momentum(MPMspecs &specs,
                   MPMParticleContainer &mpm_pc,
@@ -75,3 +74,5 @@ void Do_All_Diagnostics(MPMspecs &specs,
                         int steps,
                         amrex::Real current_time);
 void Close_Diagnostic_Streams(MPMspecs &specs);
+
+#endif

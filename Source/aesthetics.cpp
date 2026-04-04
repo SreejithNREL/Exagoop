@@ -7,7 +7,16 @@
 
 #include <AMReX_ParallelDescriptor.H>
 #include <ctime>
+
+
+#define CCCL_IGNORE_MSVC_TRADITIONAL_PREPROCESSOR_WARNING
+
+#ifdef _WIN32
+#include <winsock2.h>
+#pragma comment(lib, "Ws2_32.lib")
+#else
 #include <unistd.h>
+#endif
 
 using namespace amrex;
 

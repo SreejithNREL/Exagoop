@@ -1,4 +1,9 @@
+
 // clang-format off
+#ifdef _WIN32
+    #define NOMINMAX
+    #define WIN32_LEAN_AND_MEAN
+#endif
 #include <mpm_eb.H>
 #include <mpm_udf_loader.H>
 #if USE_EB
@@ -6,6 +11,10 @@
 #endif
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_MultiFabUtil.H>
+#ifdef _WIN32
+    #undef min
+    #undef max
+#endif
 // clang-format on
 
 #if USE_EB
@@ -18,8 +27,6 @@ int                        num_lsphi_bodies        = 0;
 int                        ls_refinement           = 1;
 bool                       using_levelset_geometry = false;
 
-// File-scope UDF loaders — one per body.
-// Index 0 = legacy single-body loader (existing behaviour preserved).
 static constexpr int MAX_BODIES = 16;
 static UDFLoader g_udf_loaders[MAX_BODIES];
 
@@ -43,12 +50,11 @@ void build_eb_and_levelset(const GShop           &gshop,
                             const DistributionMapping &dm,
                             int                    nghost)
 {
-    // Refine domain for level-set
+    
     Box      dom_ls  = geom.Domain();
     dom_ls.refine(ls_refinement);
     Geometry geom_ls(dom_ls);
-
-    // Required coarsening level so EB2 can reach the coarse grid
+    
     int required_coarsening_level = 0;
     if (ls_refinement > 1)
     {
@@ -164,14 +170,12 @@ void init_eb(const Geometry        &geom,
     amrex::ParmParse pp("eb2");
     pp.query("geom_type",    geom_type);
     pp.query("ls_refinement", ls_refinement);
-
-    // ── all_regular: no EB ────────────────────────────────────────────────────
+    
     if (geom_type == "all_regular")
     {
         // Nothing to do — using_levelset_geometry stays false
     }
-
-    // ── wedge_hopper: built-in 3-D geometry ───────────────────────────────────
+    
     else if (geom_type == "wedge_hopper")
     {
 #if (AMREX_SPACEDIM == 3)
@@ -206,8 +210,6 @@ void init_eb(const Geometry        &geom,
                          "eb2.geom_type = udf_cpp");
         }
 
-        // Load the user's shared library — g_udf_loader lives at file scope
-        // so the handle stays open for the whole simulation.
         g_udf_loaders[0].load(so_path);
 
         // ── Build EB index space from UDF (used by ebfactory only) ───────────
@@ -284,9 +286,7 @@ void init_eb(const Geometry        &geom,
             });
         }
 
-        amrex::Print() << "[UDF] lsphi filled on CPU (GPU-safe). "
-                       << "min=" << lsphi->min(0)
-                       << " max=" << lsphi->max(0) << "\n";
+        amrex::Print() << "[UDF] lsphi filled on CPU (GPU-safe). "<< "min=" << lsphi->min(0) << " max=" << lsphi->max(0) << "\n";
     }
 
     // ── stl: surface mesh from file ───────────────────────────────────────────

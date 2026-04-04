@@ -182,7 +182,7 @@ AMREX_GPU_DEVICE AMREX_GPU_CONSTANT
  * @return Interval index in [0,3], or -1 if zi is outside support.
  */
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE int
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE int
 interval_idx_quadratic(int shapefunctiontype, amrex::Real zi)
 {
     // shift depends on type
@@ -190,7 +190,17 @@ interval_idx_quadratic(int shapefunctiontype, amrex::Real zi)
     int raw = static_cast<int>(std::floor((zi + shift) * 2));
     if (raw < 0 || raw >= 6)
         return -1;
+#ifdef __CUDA_ARCH__
     return interval_map_quadbspline[shapefunctiontype][raw];
+#else
+    constexpr int interval_map_quadbspline_cpu[5][6] = {
+        {-1, -1, -1, -1, -1, -1},
+        {0, 0, 1, 2, 3, 3},
+        {0, 1, 1, 2, 2, -1},
+        {0, 0, 1, 1, 2, 2},
+        {0, 0, 1, 1, 2, -1}};
+    return interval_map_quadbspline_cpu[shapefunctiontype][raw];
+#endif
 }
 
 /**
@@ -207,7 +217,7 @@ interval_idx_quadratic(int shapefunctiontype, amrex::Real zi)
  * @return Value of the cubic B‑spline basis function at zi.
  */
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 cubicspline_1d(int shapefunctiontype, amrex::Real zi)
 {
     amrex::Real value = 0.0;
@@ -258,7 +268,7 @@ cubicspline_1d_der(int shapefunctiontype, amrex::Real zi)
  * @return Value of the quadratic B‑spline basis function at zi.
  */
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 quadraticspline_1d(int shapefunctiontype, amrex::Real zi)
 {
     amrex::Real value = 0.0;
@@ -1376,7 +1386,7 @@ cubic_interp_two(amrex::Real xp[AMREX_SPACEDIM],
  * @return Basis function value at xp.
  */
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 basisval(const IntVect stencil,
          const IntVect cell,
          const amrex::Real xp[AMREX_SPACEDIM],
