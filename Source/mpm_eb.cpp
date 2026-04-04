@@ -1,10 +1,18 @@
 // clang-format off
+#ifdef _WIN32
+    #define NOMINMAX
+    #define WIN32_LEAN_AND_MEAN
+#endif
 #include <mpm_eb.H>
 #if USE_EB
 #include <AMReX_EB_utils.H>
 #endif
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_MultiFabUtil.H>
+#ifdef _WIN32
+    #undef min
+    #undef max
+#endif
 // clang-format on
 
 #if USE_EB
