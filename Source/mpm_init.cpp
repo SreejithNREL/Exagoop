@@ -1523,11 +1523,38 @@ void MPMParticleContainer::removeParticlesInsideEB()
     const int lev = 0;
     const Geometry &geom = Geom(lev);
     auto &plev = GetParticles(lev);
-    const auto dx = geom.CellSizeArray();
+    const auto dx  = geom.CellSizeArray();
     const auto plo = geom.ProbLoArray();
 
 #if USE_EB
     int lsref = mpm_ebtools::ls_refinement;
+
+    // ------------------------------------------------------------------
+    // Bug 1 + Bug 4 fix: average_down_nodal + FillBoundary
+    //
+    // lsphi is stored at ls_refinement * coarse resolution.
+    // Indexing it directly with a coarse particle MFIter (Bug 4) gives
+    // the wrong tile.  Ghost cells are also uninitialised without
+    // FillBoundary (Bug 1), producing garbage phi values near tile
+    // boundaries and failing to remove particles that sit inside the
+    // obstacle near those boundaries.
+    //
+    // Fix: coarsen onto a nodal MultiFab that matches the particle
+    // iterator's BoxArray, fill ghost cells, then pass lsref=1 to
+    // get_levelset_value.
+    // ------------------------------------------------------------------
+    // Derive coarse nodal BA/DM directly from lsphi (which is refined).
+    // Coarsen lsphi's BA by lsref to get the coarse nodal layout.
+    BoxArray nodal_ba_coarse = mpm_ebtools::lsphi->boxArray();
+    nodal_ba_coarse.coarsen(lsref);
+    amrex::MultiFab lsphi_coarse(nodal_ba_coarse,
+                                  mpm_ebtools::lsphi->DistributionMap(),
+                                  1,    // ncomp
+                                  1);   // nghost — must be >= 1
+    amrex::average_down_nodal(*mpm_ebtools::lsphi,
+                               lsphi_coarse,
+                               amrex::IntVect(lsref));
+    lsphi_coarse.FillBoundary(geom.periodicity());
 #endif
 
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
@@ -1542,7 +1569,10 @@ void MPMParticleContainer::removeParticlesInsideEB()
         int np = aos.numRealParticles();
         ParticleType *pstruct = aos().dataPtr();
 
-        amrex::Array4<amrex::Real> lsetarr = mpm_ebtools::lsphi->array(mfi);
+#if USE_EB
+        // Bug 4 fix: use lsphi_coarse, NOT mpm_ebtools::lsphi->array(mfi)
+        amrex::Array4<amrex::Real> lsetarr = lsphi_coarse.array(mfi);
+#endif
 
         amrex::ParallelFor(np,
                            [=] AMREX_GPU_DEVICE(int i) noexcept
@@ -1551,17 +1581,16 @@ void MPMParticleContainer::removeParticlesInsideEB()
 
                                amrex::Real xp[AMREX_SPACEDIM];
                                for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                               {
                                    xp[d] = p.pos(d);
-                               }
 
+#if USE_EB
+                               // lsphi_coarse is at coarse resolution: lsref=1
                                amrex::Real lsval = get_levelset_value(
-                                   lsetarr, plo, dx, xp, lsref);
+                                   lsetarr, plo, dx, xp, /*lsref=*/1);
 
-                               if (lsval < TINYVAL)
-                               {
+                               if (lsval < 0.0)
                                    p.id() = -1;
-                               }
+#endif
                            });
     }
 

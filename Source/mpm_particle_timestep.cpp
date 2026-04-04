@@ -237,6 +237,34 @@ void MPMParticleContainer::moveParticles(
 #if USE_EB
     bool using_levsets = mpm_ebtools::using_levelset_geometry;
     int lsref = mpm_ebtools::ls_refinement;
+
+    // ------------------------------------------------------------------
+    // Bug 1 + Bug 4 fix: average_down_nodal + FillBoundary
+    //
+    // lsphi is stored at ls_refinement * coarse resolution.
+    // Indexing it directly with a coarse particle MFIter (Bug 4) gives
+    // the wrong tile.  Ghost cells are uninitialised without FillBoundary
+    // (Bug 1) => garbage phi/grad values near tile boundaries.
+    //
+    // Fix: coarsen onto a nodal MultiFab matching the particle iterator,
+    // fill ghost cells, pass lsref=1 to get_levelset_value/grad.
+    // ------------------------------------------------------------------
+    amrex::MultiFab lsphi_coarse;
+    if (using_levsets)
+    {
+        // Derive coarse nodal BA/DM directly from lsphi (which is refined).
+        // Coarsen lsphi's BA by lsref to get the coarse nodal layout.
+        BoxArray nodal_ba_coarse = mpm_ebtools::lsphi->boxArray();
+        nodal_ba_coarse.coarsen(lsref);
+        lsphi_coarse.define(nodal_ba_coarse,
+                            mpm_ebtools::lsphi->DistributionMap(),
+                            1,   // ncomp
+                            1);  // nghost — must be >= 1
+        amrex::average_down_nodal(*mpm_ebtools::lsphi,
+                                   lsphi_coarse,
+                                   amrex::IntVect(lsref));
+        lsphi_coarse.FillBoundary(Geom(lev).periodicity());
+    }
 #endif
 
     GpuArray<int, AMREX_SPACEDIM> bc_lo_arr, bc_hi_arr;
@@ -272,7 +300,8 @@ void MPMParticleContainer::moveParticles(
         amrex::Array4<amrex::Real> lsetarr;
         if (using_levsets)
         {
-            lsetarr = mpm_ebtools::lsphi->array(mfi);
+            // Bug 4 fix: use lsphi_coarse, NOT mpm_ebtools::lsphi->array(mfi)
+            lsetarr = lsphi_coarse.array(mfi);
         }
 #endif
 
@@ -306,36 +335,48 @@ void MPMParticleContainer::moveParticles(
                     for (int d = 0; d < AMREX_SPACEDIM; ++d)
                         xp[d] = p.pos(d);
 
+                    // lsphi_coarse is at coarse resolution: lsref=1
                     amrex::Real dist =
-                        get_levelset_value(lsetarr, plo, dx, xp, lsref);
-                    if (dist < TINYVAL)
+                        get_levelset_value(lsetarr, plo, dx, xp, /*lsref=*/1);
+
+                    if (dist < 0.0)
                     {
                         amrex::Real normaldir[AMREX_SPACEDIM];
-                        get_levelset_grad(lsetarr, plo, dx, xp, lsref,
+                        get_levelset_grad(lsetarr, plo, dx, xp, /*lsref=*/1,
                                           normaldir);
 
-                        // normalize
                         amrex::Real gradmag = 0.0;
                         for (int d = 0; d < AMREX_SPACEDIM; ++d)
                             gradmag += normaldir[d] * normaldir[d];
                         gradmag = std::sqrt(gradmag);
-                        for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                            normaldir[d] /= (gradmag + TINYVAL);
 
-                        int modify_pos =
-                            applybc(relvel_in, relvel_out, lset_wall_mu,
-                                    normaldir, lsetbc);
-                        if (modify_pos)
-                        {
-                            for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                            {
-                                p.pos(d) +=
-                                    2.0 * amrex::Math::abs(dist) * normaldir[d];
-                            }
-                        }
+                        // Bug 3 fix: skip degenerate nodes deep inside obstacle.
+                        // Dividing by TINYVAL~1e-20 gives ~1e20 normals.
+                        if (gradmag < 1.0e-10) return;
+
                         for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                            normaldir[d] /= gradmag;
+
+                        // Only apply BC when particle moves into the wall.
+                        // Level-set gradient points outward: veln > 0 means
+                        // particle is already leaving — leave it alone.
+                        amrex::Real veln = 0.0;
+                        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                            veln += relvel_in[d] * normaldir[d];
+
+                        if (veln <= 0.0)
                         {
-                            p.rdata(realData::xvel + d) = relvel_out[d];
+                            int modify_pos =
+                                applybc(relvel_in, relvel_out, lset_wall_mu,
+                                        normaldir, lsetbc);
+                            if (modify_pos)
+                            {
+                                for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                                    p.pos(d) += 2.0 * amrex::Math::abs(dist) *
+                                                normaldir[d];
+                            }
+                            for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                                p.rdata(realData::xvel + d) = relvel_out[d];
                         }
                     }
                 }
