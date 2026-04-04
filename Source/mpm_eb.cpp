@@ -30,6 +30,40 @@ bool                       using_levelset_geometry = false;
 static constexpr int MAX_BODIES = 16;
 static UDFLoader g_udf_loaders[MAX_BODIES];
 
+template <typename GShop>
+void build_eb_only(const GShop &gshop,
+                   const Geometry &geom,
+                   const BoxArray &ba,
+                   const DistributionMapping &dm,
+                   int nghost)
+{
+    Box dom_ls = geom.Domain();
+    dom_ls.refine(ls_refinement);
+    Geometry geom_ls(dom_ls);
+
+    int required_coarsening_level = 0;
+    if (ls_refinement > 1)
+    {
+        int tmp = ls_refinement;
+        while (tmp >>= 1)
+            ++required_coarsening_level;
+    }
+
+    EB2::Build(gshop, geom_ls, required_coarsening_level, 10);
+
+    const EB2::IndexSpace &ebis = EB2::IndexSpace::top();
+    const EB2::Level &eblev = ebis.getLevel(geom);
+
+    ebfactory = new EBFArrayBoxFactory(
+        eblev, geom, ba, dm, {nghost, nghost, nghost}, EBSupport::full);
+
+    // lsphi intentionally NOT filled here — caller fills it via LoopOnCpu
+    BoxArray ls_ba = amrex::convert(ba, IntVect::TheNodeVector());
+    ls_ba.refine(ls_refinement);
+    lsphi = new MultiFab;
+    lsphi->define(ls_ba, dm, 1, nghost);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 /**
  * @brief Shared helper: builds EB index space and fills lsphi from a geometry shop.
@@ -163,7 +197,7 @@ void make_wedge_hopper_levelset(const Geometry        &geom,
 void init_eb(const Geometry        &geom,
              const BoxArray        &ba,
              const DistributionMapping &dm)
-{
+{ 
     int         nghost    = 1;
     std::string geom_type = "all_regular";
 
@@ -200,7 +234,7 @@ void init_eb(const Geometry        &geom,
      *   eb2.ls_refinement = 2   (default 1)
      */
     else if (geom_type == "udf_cpp")
-    {
+    { 
         using_levelset_geometry = true;
 
         std::string so_path;
@@ -211,82 +245,43 @@ void init_eb(const Geometry        &geom,
         }
 
         g_udf_loaders[0].load(so_path);
+        
+        auto phi_fn = g_udf_loaders[0].get_fn();       
 
-        // ── Build EB index space from UDF (used by ebfactory only) ───────────
-        // The UDF function pointer is a CPU symbol — it cannot be called
-        // inside a GPU kernel. We use it here only for EB2::Build (which
-        // runs on the CPU) and for the lsphi fill below (LoopOnCpu).
-        auto phi_fn = g_udf_loaders[0].get_fn();
+        auto udf_if_fn = [phi_fn](const amrex::RealArray &p) -> amrex::Real
+        { return static_cast<amrex::Real>(phi_fn(p[0], p[1], p[2])); };        
 
-        auto udf_if = [phi_fn](const amrex::RealArray& p) -> amrex::Real {
-            return static_cast<amrex::Real>(phi_fn(p[0], p[1], p[2]));
-        };
-        auto gshop = EB2::makeShop(udf_if);
-
-        Box dom_ls = geom.Domain();
-        dom_ls.refine(ls_refinement);
-        Geometry geom_ls(dom_ls);
-
-        int required_coarsening_level = 0;
-        if (ls_refinement > 1)
-        {
-            int tmp = ls_refinement;
-            while (tmp >>= 1) ++required_coarsening_level;
-        }
-
-        EB2::Build(gshop, geom_ls, required_coarsening_level, 10);
-
-        const EB2::IndexSpace &ebis  = EB2::IndexSpace::top();
-        const EB2::Level      &eblev = ebis.getLevel(geom);
-
-        ebfactory = new EBFArrayBoxFactory(
-            eblev, geom, ba, dm, {nghost, nghost, nghost}, EBSupport::full);
-
-        // ── Fill lsphi directly from UDF using CPU loop ───────────────────────
-        // WHY NOT FillSignedDistance:
-        //   FillSignedDistance uses a tiled fast-marching method that only
-        //   propagates within each box ghost-cell halo. With small boxes
-        //   (max_grid_size=16) and geometry spanning the domain, most boxes
-        //   see no EB surface and get zero/incorrect phi values.
-        //
-        // WHY NOT amrex::ParallelFor:
-        //   ParallelFor dispatches to GPU kernels on CUDA/HIP/SYCL builds.
-        //   phi_fn is a host-side function pointer loaded via dlopen —
-        //   it cannot be called from GPU device code.
-        //
-        // SOLUTION — amrex::LoopOnCpu:
-        //   Forces CPU-side execution regardless of GPU build.
-        //   Since lsphi is filled once at initialisation and the UDF is
-        //   analytic (O(1) per node), the cost is negligible.
-        //   AMReX automatically syncs host->device when lsphi is next
-        //   accessed in a GPU kernel (e.g. average_down_nodal).
-        BoxArray ls_ba = amrex::convert(ba, IntVect::TheNodeVector());
-        ls_ba.refine(ls_refinement);
-        lsphi = new MultiFab;
-        lsphi->define(ls_ba, dm, 1, nghost);
+        build_udf_eb_only(udf_if_fn, geom, ba, dm, nghost, ls_refinement, lsphi,
+                          ebfactory);
 
         const auto plo = geom.ProbLoArray();
-        const auto dx  = geom.CellSizeArray();
-        const int  lsr = ls_refinement;
+        const auto dx = geom.CellSizeArray();
+        const int lsr = ls_refinement;
 
+        // Fill lsphi via LoopOnCpu using UDF phi_fn
         for (MFIter mfi(*lsphi); mfi.isValid(); ++mfi)
         {
-            const Box&   bx  = mfi.fabbox();   // include ghost cells
+            const Box &bx = mfi.fabbox();
             Array4<Real> phi = lsphi->array(mfi);
 
-            // LoopOnCpu: always executes on host, never dispatched to GPU
-            amrex::LoopOnCpu(bx, [&](int i, int j, int k)
-            {
-                amrex::Real x = plo[0] + i * dx[0] / lsr;
-                amrex::Real y = plo[1] + j * dx[1] / lsr;
-                amrex::Real z = (AMREX_SPACEDIM == 3)
-                                ? plo[2] + k * dx[2] / lsr
-                                : 0.0;
-                phi(i, j, k) = static_cast<amrex::Real>(phi_fn(x, y, z));
-            });
+            amrex::LoopOnCpu(bx,
+                             [&](int i, int j, int k)
+                             {
+                                 amrex::Real x = plo[0] + i * dx[0] / lsr;
+                                 amrex::Real y = plo[1] + j * dx[1] / lsr;
+                                 amrex::Real z = (AMREX_SPACEDIM == 3)
+                                                     ? plo[2] + k * dx[2] / lsr
+                                                     : 0.0;
+                                 phi(i, j, k) =
+                                     static_cast<amrex::Real>(phi_fn(x, y, z));
+                             });
         }
 
-        amrex::Print() << "[UDF] lsphi filled on CPU (GPU-safe). "<< "min=" << lsphi->min(0) << " max=" << lsphi->max(0) << "\n";
+        amrex::Print() << "[UDF] lsphi filled on CPU (GPU-safe). "
+                       << "min=" << lsphi->min(0) << " max=" << lsphi->max(0)
+                       << "\n";         
+
+       
     }
 
     // ── stl: surface mesh from file ───────────────────────────────────────────
@@ -307,7 +302,7 @@ void init_eb(const Geometry        &geom,
      *   eb2.ls_refinement = 2
      */
     else if (geom_type == "stl")
-    {
+    { 
         using_levelset_geometry = true;
 
         std::string stl_file;
@@ -373,11 +368,12 @@ void init_eb(const Geometry        &geom,
         lsphi->define(ls_ba, dm, 1, nghost);
         amrex::FillSignedDistance(*lsphi, lslev, *ebfactory, ls_refinement);
 #endif
+
     }
 
     // ── anything else: pass directly to AMReX EB2 (sphere, plane, etc.) ───────
     else
-    {
+    { 
         using_levelset_geometry = true;
 
         int required_coarsening_level = 0;
@@ -409,7 +405,7 @@ void init_eb(const Geometry        &geom,
 
     // ── write phi plotfile for all geometry types ─────────────────────────────
     if (using_levelset_geometry)
-    {
+    { 
         const std::string &pltfile = "ebplt";
         Box      dom_ls = geom.Domain();
         dom_ls.refine(ls_refinement);
@@ -456,39 +452,29 @@ static void fill_body_lsphi(int body_id,
 
     // Helper lambda: allocate and fill lsphi_bodies[body_id] on CPU
     auto allocate_lsphi = [&]() -> MultiFab*
-    {
+    { 
         BoxArray ls_ba = amrex::convert(ba, IntVect::TheNodeVector());
         ls_ba.refine(ls_refinement);
         auto* mf = new MultiFab;
         mf->define(ls_ba, dm, 1, nghost);
-        return mf;
+        return mf; 
     };
 
     if (geom_type == "udf_cpp")
-    {
+    { 
         std::string so_path;
         if (!pp_rb.query("udf_so_file", so_path))
             amrex::Abort("[UDF] mpm.rb_" + std::to_string(body_id)
                          + ".udf_so_file must be set");
 
         g_udf_loaders[body_id].load(so_path);
-        auto phi_fn = g_udf_loaders[body_id].get_fn();
+        auto phi_fn = g_udf_loaders[0].get_fn();
 
-        // Build EB for ebfactory (only body 0 sets the global ebfactory)
-        auto udf_if = [phi_fn](const amrex::RealArray& p) -> amrex::Real {
-            return static_cast<amrex::Real>(phi_fn(p[0], p[1], p[2]));
-        };
-        auto gshop = EB2::makeShop(udf_if);
+        auto udf_if_fn = [phi_fn](const amrex::RealArray &p) -> amrex::Real
+        { return static_cast<amrex::Real>(phi_fn(p[0], p[1], p[2])); };
 
-        Box dom_ls = geom.Domain();
-        dom_ls.refine(ls_refinement);
-        Geometry geom_ls(dom_ls);
-        int required_coarsening_level = 0;
-        if (ls_refinement > 1) {
-            int tmp = ls_refinement;
-            while (tmp >>= 1) ++required_coarsening_level;
-        }
-        EB2::Build(gshop, geom_ls, required_coarsening_level, 10);
+        build_udf_eb_only(udf_if_fn, geom, ba, dm, nghost, ls_refinement, lsphi,
+                          ebfactory);        
 
         if (body_id == 0)
         {
@@ -521,10 +507,10 @@ static void fill_body_lsphi(int body_id,
 
         amrex::Print() << "[UDF] Body " << body_id << " lsphi: "
                        << "min=" << lsphi_bodies[body_id]->min(0)
-                       << " max=" << lsphi_bodies[body_id]->max(0) << "\n";
+                       << " max=" << lsphi_bodies[body_id]->max(0) << "\n"; 
     }
     else if (geom_type == "stl")
-    {
+    { 
         std::string stl_file;
         bool stl_reverse = false;
         if (!pp_rb.query("stl_file", stl_file))
@@ -567,9 +553,10 @@ static void fill_body_lsphi(int body_id,
 #else
         amrex::Abort("[STL] Body geometry requires AMReX with STLGeom support");
 #endif
+
     }
     else
-    {
+    { 
         // Analytic AMReX EB2 shapes (sphere, plane, cylinder, etc.)
         // or wedge_hopper — use the existing init_eb path via eb2.* keys
         // but override with rb_N keys where present.
@@ -636,7 +623,7 @@ void init_eb_bodies(const Geometry &geom,
                     const BoxArray &ba,
                     const DistributionMapping &dm,
                     int num_bodies)
-{
+{ 
     if (num_bodies <= 0) return;
 
     amrex::Print() << "[EB] Initialising " << num_bodies

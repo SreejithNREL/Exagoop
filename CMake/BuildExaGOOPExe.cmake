@@ -29,6 +29,11 @@ if(WIN32)
     )
 endif()
 
+set_source_files_properties(
+    ${SRC_DIR}/mpm_eb_udf_build.cpp
+    PROPERTIES LANGUAGE CXX
+)
+
   target_sources(${EXAGOOP_EXE_NAME}
      PRIVATE
        ${SRC_DIR}/constants.H
@@ -38,7 +43,7 @@ endif()
        ${SRC_DIR}/utilities.cpp
        ${SRC_DIR}/mpm_diagnostics.cpp
        ${SRC_DIR}/mpm_init.cpp
-       ${SRC_DIR}/mpm_init.cpp
+       ${SRC_DIR}/mpm_init.H
        ${SRC_DIR}/mpm_particle_container.H
        ${SRC_DIR}/mpm_particle_timestep.cpp
        ${SRC_DIR}/nodal_data_ops.H
@@ -50,11 +55,15 @@ endif()
        ${SRC_DIR}/interpolants.H
        ${SRC_DIR}/mpm_check_pair.H
        ${SRC_DIR}/mpm_eb.H
+       ${SRC_DIR}/mpm_rigidBody.H
+       ${SRC_DIR}/mpm_thermal_udf_loader.H
+       ${SRC_DIR}/mpm_udf_loader.H
        ${SRC_DIR}/mpm_particle_container.cpp
        ${SRC_DIR}/mpm_particle_outputs.cpp
        ${SRC_DIR}/nodal_data_ops.cpp
+       ${SRC_DIR}/mpm_eb_udf_build.cpp       
        ${SRC_DIR}/main.cpp
-  )
+   )
 
 
   if(EXAGOOP_ENABLE_CUDA)

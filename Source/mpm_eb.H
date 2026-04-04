@@ -27,9 +27,28 @@
 #include <AMReX_PlotFileUtil.H>
 #include <constants.H>
 #include <interpolants.H>
+#include <functional>
+#include <AMReX_Geometry.H>
+#include <AMReX_BoxArray.H>
+#include <AMReX_DistributionMapping.H>
+#include <AMReX_MultiFab.H>
 // clang-format on
 
 using namespace amrex;
+
+
+
+
+
+void build_udf_eb_only(
+    std::function<amrex::Real(const amrex::RealArray &)> udf_if,
+    const amrex::Geometry &geom,
+    const amrex::BoxArray &ba,
+    const amrex::DistributionMapping &dm,
+    int nghost,
+    int ls_refinement_in,
+    amrex::MultiFab *&lsphi_out,
+    amrex::EBFArrayBoxFactory *&ebfactory_out);
 
 #if USE_EB
 namespace mpm_ebtools
@@ -141,7 +160,7 @@ get_levelset_value(amrex::Array4<amrex::Real> phi,
 }
 
 
-amrex::Real get_levelset_value_cpu(
+inline amrex::Real get_levelset_value_cpu(
     amrex::Array4<amrex::Real> phi,
     const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> problo,
     const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> dx,
