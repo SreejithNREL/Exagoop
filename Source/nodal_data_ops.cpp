@@ -178,6 +178,12 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
     amrex::average_down_nodal(*mpm_ebtools::lsphi,
                                lsphi_coarse,
                                amrex::IntVect(lsref));
+    lsphi_coarse.FillBoundary(geom.periodicity());
+
+    if (amrex::ParallelDescriptor::IOProcessor())
+        amrex::Print() << "[nodal_levelset_bcs] lsphi_coarse:"
+                       << " min=" << lsphi_coarse.min(0)
+                       << " max=" << lsphi_coarse.max(0) << "\n";
 
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
@@ -202,7 +208,8 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
 
                 // Sample phi at this node using lsref=1 (coarse array)
                 amrex::Real lsval = get_levelset_value(
-                    lsarr, plo, dx, xp, 1);
+                    lsarr, plo, dx, xp, 1);		
+				
 
                 // Only act on nodes with material mass that are inside/on EB
                 if (lsval >= 0.0 ||
@@ -216,13 +223,19 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
                 // lsref=1 since lsphi_coarse is at coarse resolution
                 get_levelset_grad(lsarr, plo, dx, xp, 1, normaldir);
 
+                AMREX_ASSERT(!std::isnan(normaldir[0]) && !std::isnan(normaldir[1]) && !std::isnan(normaldir[2]));
+
                 amrex::Real gradmag = 0.0;
                 for (int d = 0; d < AMREX_SPACEDIM; d++)
                     gradmag += normaldir[d] * normaldir[d];
                 gradmag = std::sqrt(gradmag);
 
                 for (int d = 0; d < AMREX_SPACEDIM; d++)
+				{
                     normaldir[d] /= (gradmag + TINYVAL);
+					amrex::Print()<<"\n Normal = "<<normaldir[d]<<" "<<gradmag<<" "<<TINYVAL<<" "<<normaldir[d];
+					}
+					
 
                 // --- Form relative velocity (node vel minus wall vel) ---
                 amrex::Real relvel_in[AMREX_SPACEDIM];
@@ -281,6 +294,7 @@ void nodal_levelset_bcs(MultiFab          &nodaldata,
                           nodaldata.DistributionMap(), 1, 1);
     amrex::average_down_nodal(*body_lsphi, lsphi_coarse,
                                amrex::IntVect(lsref));
+    lsphi_coarse.FillBoundary(geom.periodicity());
 
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
@@ -472,6 +486,7 @@ void nodal_levelset_bcs_temperature(
     amrex::average_down_nodal(*mpm_ebtools::lsphi,
                                lsphi_coarse,
                                amrex::IntVect(lsref));
+    lsphi_coarse.FillBoundary(geom.periodicity());
 
     // ── GPU kernel: types 1, 3, 4 (no function pointers) ─────────────────────
     if (lset_temp_bc != 5)

@@ -1557,6 +1557,7 @@ void MPMParticleContainer::removeParticlesInsideEB()
 
     amrex::average_down_nodal(*mpm_ebtools::lsphi, lsphi_coarse,
                               amrex::IntVect(lsref));
+    lsphi_coarse.FillBoundary(Geom(lev).periodicity());
 
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {

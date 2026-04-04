@@ -261,6 +261,23 @@ void MPMParticleContainer::moveParticles(
         wall_mu_hi_arr[d] = wall_mu_hi[d];
     }
 
+#if USE_EB
+    // lsphi lives on a refined nodal BoxArray (coarse × lsref).
+    // MakeMFIter(lev) iterates the coarse particle BoxArray, so
+    // lsphi->array(mfi) would access the wrong tile when lsref > 1.
+    // Fix: coarsen to a nodal MultiFab that shares the particle BoxArray,
+    // then fill its ghost layer before the loop.
+    BoxArray coarse_nodal_ba =
+        amrex::convert(ParticleBoxArray(lev), IntVect::TheNodeVector());
+    MultiFab lsphi_coarse(coarse_nodal_ba, ParticleDistributionMap(lev), 1, 1);
+    if (using_levsets)
+    {
+        amrex::average_down_nodal(*mpm_ebtools::lsphi, lsphi_coarse,
+                                   amrex::IntVect(lsref));
+        lsphi_coarse.FillBoundary(Geom(lev).periodicity());
+    }
+#endif
+
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         auto &ptile = plev[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
@@ -272,7 +289,7 @@ void MPMParticleContainer::moveParticles(
         amrex::Array4<amrex::Real> lsetarr;
         if (using_levsets)
         {
-            lsetarr = mpm_ebtools::lsphi->array(mfi);
+            lsetarr = lsphi_coarse.array(mfi);
         }
 #endif
 
