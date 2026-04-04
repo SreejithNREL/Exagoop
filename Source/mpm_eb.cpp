@@ -211,9 +211,8 @@ static void build_stl_levelset(const Geometry&            geom,
 
     amrex::Print() << "[EB] Path B — STL file: " << stl_file << "\n";
 
-    // Override the key AMReX reads internally for STL geometry
-    amrex::ParmParse pp_eb2_stl("eb2");
-    pp_eb2_stl.add("stl_file", stl_file);
+    // AMReX reads eb2.stl_file directly from ParmParse during EB2::Build.
+    // The pp.get() above validated the key exists; no need to re-add it.
 
     Geometry geom_ls = refined_geom(geom, ls_ref);
     int req_coarsen  = coarsening_level_for_refinement(ls_ref);
