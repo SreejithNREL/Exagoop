@@ -24,9 +24,9 @@
 #include <mpm_eb.H>
 
 #if USE_EB
-#include <mpm_udf_loader.H>
 #include <AMReX_EB2.H>
 #include <functional>
+#include <mpm_udf_loader.H>
 
 /**
  * @brief Builds an EB2 index space and EBFArrayBoxFactory from a UDF
@@ -46,15 +46,14 @@
  * @param[out] lsphi_out       Newly allocated nodal MultiFab (caller owns).
  * @param[out] ebfactory_out   Newly allocated EBFArrayBoxFactory (caller owns).
  */
-void build_udf_eb(
-    UDFImplicitFunction               udf_if,   // copyable — EB2 will copy it
-    const amrex::Geometry&            geom,
-    const amrex::BoxArray&            ba,
-    const amrex::DistributionMapping& dm,
-    int                               nghost,
-    int                               ls_refinement,
-    amrex::MultiFab*&                 lsphi_out,
-    amrex::EBFArrayBoxFactory*&       ebfactory_out)
+void build_udf_eb(UDFImplicitFunction udf_if, // copyable — EB2 will copy it
+                  const amrex::Geometry &geom,
+                  const amrex::BoxArray &ba,
+                  const amrex::DistributionMapping &dm,
+                  int nghost,
+                  int ls_refinement,
+                  amrex::MultiFab *&lsphi_out,
+                  amrex::EBFArrayBoxFactory *&ebfactory_out)
 {
     // Build a refined geometry for the level-set EB
     amrex::Box dom_ls = geom.Domain();
@@ -77,18 +76,15 @@ void build_udf_eb(
     amrex::EB2::Build(shop, geom_ls, required_coarsening_level,
                       /*max_coarsening_level=*/10);
 
-    const amrex::EB2::IndexSpace& ebis  = amrex::EB2::IndexSpace::top();
-    const amrex::EB2::Level&      eblev = ebis.getLevel(geom);
+    const amrex::EB2::IndexSpace &ebis = amrex::EB2::IndexSpace::top();
+    const amrex::EB2::Level &eblev = ebis.getLevel(geom);
 
     // Build factory at coarse level
     ebfactory_out = new amrex::EBFArrayBoxFactory(
-        eblev, geom, ba, dm,
-        {nghost, nghost, nghost},
-        amrex::EBSupport::full);
+        eblev, geom, ba, dm, {nghost, nghost, nghost}, amrex::EBSupport::full);
 
     // Allocate nodal lsphi at refined resolution
-    amrex::BoxArray ls_ba =
-        amrex::convert(ba, amrex::IntVect::TheNodeVector());
+    amrex::BoxArray ls_ba = amrex::convert(ba, amrex::IntVect::TheNodeVector());
     ls_ba.refine(ls_refinement);
 
     lsphi_out = new amrex::MultiFab;

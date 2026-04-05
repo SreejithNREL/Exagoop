@@ -258,11 +258,10 @@ void MPMParticleContainer::moveParticles(
         nodal_ba_coarse.coarsen(lsref);
         lsphi_coarse.define(nodal_ba_coarse,
                             mpm_ebtools::lsphi->DistributionMap(),
-                            1,   // ncomp
-                            1);  // nghost — must be >= 1
-        amrex::average_down_nodal(*mpm_ebtools::lsphi,
-                                   lsphi_coarse,
-                                   amrex::IntVect(lsref));
+                            1,  // ncomp
+                            1); // nghost — must be >= 1
+        amrex::average_down_nodal(*mpm_ebtools::lsphi, lsphi_coarse,
+                                  amrex::IntVect(lsref));
         lsphi_coarse.FillBoundary(Geom(lev).periodicity());
     }
 #endif
@@ -350,9 +349,11 @@ void MPMParticleContainer::moveParticles(
                             gradmag += normaldir[d] * normaldir[d];
                         gradmag = std::sqrt(gradmag);
 
-                        // Bug 3 fix: skip degenerate nodes deep inside obstacle.
-                        // Dividing by TINYVAL~1e-20 gives ~1e20 normals.
-                        if (gradmag < 1.0e-10) return;
+                        // Bug 3 fix: skip degenerate nodes deep inside
+                        // obstacle. Dividing by TINYVAL~1e-20 gives ~1e20
+                        // normals.
+                        if (gradmag < 1.0e-10)
+                            return;
 
                         for (int d = 0; d < AMREX_SPACEDIM; ++d)
                             normaldir[d] /= gradmag;

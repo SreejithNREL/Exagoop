@@ -34,7 +34,10 @@ using namespace amrex;
 // Only needed when USE_EB is on.
 // ============================================================
 class UDFImplicitFunction;
-namespace amrex { class EBFArrayBoxFactory; }
+namespace amrex
+{
+class EBFArrayBoxFactory;
+}
 
 /**
  * @brief Builds EB2 index space + EBFArrayBoxFactory + nodal lsphi MultiFab
@@ -42,28 +45,27 @@ namespace amrex { class EBFArrayBoxFactory; }
  *
  * Defined in mpm_eb_udf_build.cpp (CXX-only TU — never compiled by nvcc).
  */
-void build_udf_eb(
-    UDFImplicitFunction               udf_if,   // copyable — pass by value
-    const amrex::Geometry&            geom,
-    const amrex::BoxArray&            ba,
-    const amrex::DistributionMapping& dm,
-    int                               nghost,
-    int                               ls_refinement,
-    amrex::MultiFab*&                 lsphi_out,
-    amrex::EBFArrayBoxFactory*&       ebfactory_out);
+void build_udf_eb(UDFImplicitFunction udf_if, // copyable — pass by value
+                  const amrex::Geometry &geom,
+                  const amrex::BoxArray &ba,
+                  const amrex::DistributionMapping &dm,
+                  int nghost,
+                  int ls_refinement,
+                  amrex::MultiFab *&lsphi_out,
+                  amrex::EBFArrayBoxFactory *&ebfactory_out);
 #endif // USE_EB
 
 #if USE_EB
 namespace mpm_ebtools
 {
-extern EBFArrayBoxFactory* ebfactory;
-extern MultiFab*           lsphi;
-extern int                 ls_refinement;
-extern bool                using_levelset_geometry;
+extern EBFArrayBoxFactory *ebfactory;
+extern MultiFab *lsphi;
+extern int ls_refinement;
+extern bool using_levelset_geometry;
 
-void init_eb(const Geometry&           geom,
-             const BoxArray&           ba,
-             const DistributionMapping& dm);
+void init_eb(const Geometry &geom,
+             const BoxArray &ba,
+             const DistributionMapping &dm);
 } // namespace mpm_ebtools
 #endif
 
@@ -93,17 +95,19 @@ void init_eb(const Geometry&           geom,
  * @return Interpolated level-set value phi(ptxyz).
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
-get_levelset_value(amrex::Array4<amrex::Real>                       phi,
+get_levelset_value(amrex::Array4<amrex::Real> phi,
                    const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> problo,
                    const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> dx,
                    amrex::Real ptxyz[AMREX_SPACEDIM],
                    amrex::Real lsref)
 {
     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> ls_dx;
-    const int lo[AMREX_SPACEDIM]                              = {0};
-    const int hi[AMREX_SPACEDIM]                              = {0};
-    const amrex::GpuArray<int, AMREX_SPACEDIM> order_pseudo   = {AMREX_D_DECL(1, 1, 1)};
-    const amrex::GpuArray<int, AMREX_SPACEDIM> periodic_pseudo = {AMREX_D_DECL(1, 1, 1)};
+    const int lo[AMREX_SPACEDIM] = {0};
+    const int hi[AMREX_SPACEDIM] = {0};
+    const amrex::GpuArray<int, AMREX_SPACEDIM> order_pseudo = {
+        AMREX_D_DECL(1, 1, 1)};
+    const amrex::GpuArray<int, AMREX_SPACEDIM> periodic_pseudo = {
+        AMREX_D_DECL(1, 1, 1)};
 
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
         ls_dx[d] = dx[d] / lsref;
@@ -113,8 +117,8 @@ get_levelset_value(amrex::Array4<amrex::Real>                       phi,
         idx[d] = static_cast<int>(
             amrex::Math::floor((ptxyz[d] - problo[d] + TINYVAL) / ls_dx[d]));
 
-    amrex::Real lsval     = 0.0;
-    const int   nCorners  = 1 << AMREX_SPACEDIM;
+    amrex::Real lsval = 0.0;
+    const int nCorners = 1 << AMREX_SPACEDIM;
 
     for (int corner = 0; corner < nCorners; ++corner)
     {
@@ -126,9 +130,9 @@ get_levelset_value(amrex::Array4<amrex::Real>                       phi,
         int jj = (AMREX_SPACEDIM > 1) ? idx[1] + offset[1] : 0;
         int kk = (AMREX_SPACEDIM > 2) ? idx[2] + offset[2] : 0;
 
-        lsval += phi(ii, jj, kk) *
-                 basisval(offset, idx, ptxyz, problo, ls_dx,
-                          order_pseudo, periodic_pseudo, lo, hi);
+        lsval +=
+            phi(ii, jj, kk) * basisval(offset, idx, ptxyz, problo, ls_dx,
+                                       order_pseudo, periodic_pseudo, lo, hi);
     }
     return lsval;
 }
@@ -146,7 +150,7 @@ get_levelset_value(amrex::Array4<amrex::Real>                       phi,
  * @param[out] lsgrad  Output gradient vector ∇phi at ptxyz.
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-get_levelset_grad(amrex::Array4<amrex::Real>                       phi,
+get_levelset_grad(amrex::Array4<amrex::Real> phi,
                   const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> problo,
                   const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> dx,
                   amrex::Real ptxyz[AMREX_SPACEDIM],
@@ -154,10 +158,12 @@ get_levelset_grad(amrex::Array4<amrex::Real>                       phi,
                   amrex::Real lsgrad[AMREX_SPACEDIM])
 {
     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> ls_dx;
-    const int lo[AMREX_SPACEDIM]                              = {AMREX_D_DECL(0, 0, 0)};
-    const int hi[AMREX_SPACEDIM]                              = {AMREX_D_DECL(0, 0, 0)};
-    const amrex::GpuArray<int, AMREX_SPACEDIM> order_pseudo   = {AMREX_D_DECL(1, 1, 1)};
-    const amrex::GpuArray<int, AMREX_SPACEDIM> periodic_pseudo = {AMREX_D_DECL(1, 1, 1)};
+    const int lo[AMREX_SPACEDIM] = {AMREX_D_DECL(0, 0, 0)};
+    const int hi[AMREX_SPACEDIM] = {AMREX_D_DECL(0, 0, 0)};
+    const amrex::GpuArray<int, AMREX_SPACEDIM> order_pseudo = {
+        AMREX_D_DECL(1, 1, 1)};
+    const amrex::GpuArray<int, AMREX_SPACEDIM> periodic_pseudo = {
+        AMREX_D_DECL(1, 1, 1)};
 
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
         ls_dx[d] = dx[d] / lsref;

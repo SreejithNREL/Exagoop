@@ -223,32 +223,52 @@ void Apply_Nodal_BCs(amrex::Geometry &geom,
 void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
                                  amrex::MultiFab &nodaldata,
                                  MPMspecs &specs,
-                                 [[maybe_unused]] amrex::Real dt)
+                                 [[maybe_unused]] amrex::Real dt,
+                                 bool dirichlet_only)
 {
-    nodal_bcs_temperature(
-        geom, nodaldata,
-        specs.bclo_temp.data(),    specs.bchi_temp.data(),
-        specs.bclo_tempval.data(), specs.bchi_tempval.data(),
-        specs.bclo_Tinf.data(),    specs.bchi_Tinf.data(),
-        /*pre_update=*/false);
+    // When dirichlet_only=true: apply only type 1 (Dirichlet) BCs.
+    // Used in the outer block (all schemes) so ghost-point BCs
+    // (types 3, 4) are not applied twice in scheme 1.
+    // When dirichlet_only=false: apply all BC types.
+    // Used in the scheme 1 inner block after corrector P2G.
+    if (!dirichlet_only)
+    {
+        nodal_bcs_temperature(geom, nodaldata, specs.bclo_temp.data(),
+                              specs.bchi_temp.data(), specs.bclo_tempval.data(),
+                              specs.bchi_tempval.data(), specs.bclo_Tinf.data(),
+                              specs.bchi_Tinf.data(),
+                              /*pre_update=*/false);
+    }
+    else
+    {
+        // Apply only Dirichlet (type 1) — override T=T_wall at boundary
+        // nodes. Ghost-point types (3,4) deferred to corrector pass.
+        amrex::Vector<int> bclo_dirichlet(AMREX_SPACEDIM, 0);
+        amrex::Vector<int> bchi_dirichlet(AMREX_SPACEDIM, 0);
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        {
+            bclo_dirichlet[d] = (specs.bclo_temp[d] == 1) ? 1 : 0;
+            bchi_dirichlet[d] = (specs.bchi_temp[d] == 1) ? 1 : 0;
+        }
+        nodal_bcs_temperature(geom, nodaldata, bclo_dirichlet.data(),
+                              bchi_dirichlet.data(), specs.bclo_tempval.data(),
+                              specs.bchi_tempval.data(), specs.bclo_Tinf.data(),
+                              specs.bchi_Tinf.data(),
+                              /*pre_update=*/false);
+    }
 
 #if USE_EB
     if (mpm_ebtools::using_levelset_geometry)
     {
         nodal_levelset_bcs_temperature(
-            nodaldata, geom, dt,
-            specs.levelset_temp_bc,
-            specs.levelset_temp_Twall,
-            specs.levelset_temp_flux,
-            specs.levelset_temp_h,
-            specs.levelset_temp_Tinf,
+            nodaldata, geom, dt, specs.levelset_temp_bc,
+            specs.levelset_temp_Twall, specs.levelset_temp_flux,
+            specs.levelset_temp_h, specs.levelset_temp_Tinf,
             /*pre_update=*/false);
     }
 #endif
 
     // NOTE: store_delta_temperature is called explicitly in main.cpp
-    // immediately after Apply_Nodal_BCs_Temperature, while MASS_SPHEAT
-    // is still populated from the first P2G deposit.
 }
 #endif
 

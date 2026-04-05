@@ -118,8 +118,8 @@ void backup_current_temperature(MultiFab &nodaldata)
  * @brief Applies level-set-based velocity boundary conditions to nodal data.
  *
  * For each grid node where phi < 0 (inside the obstacle) and nodal mass > 0:
- *   1. Evaluates phi at the physical node location via multilinear interpolation
- *      on the coarsened lsphi (average_down_nodal from refined grid).
+ *   1. Evaluates phi at the physical node location via multilinear
+ * interpolation on the coarsened lsphi (average_down_nodal from refined grid).
  *   2. Computes the level-set gradient at that node to obtain the wall normal.
  *   3. Guards against degenerate (zero-gradient) nodes — Bug 3 fix.
  *   4. Applies applybc() to enforce the requested BC type (no-slip, free-slip,
@@ -155,9 +155,9 @@ void backup_current_temperature(MultiFab &nodaldata)
  *
  * @return None.
  */
-void nodal_levelset_bcs(MultiFab& nodaldata,
+void nodal_levelset_bcs(MultiFab &nodaldata,
                         const Geometry geom,
-                        amrex::Real& /*dt*/,
+                        amrex::Real & /*dt*/,
                         int lsetbc,
                         amrex::Real lset_wall_mu,
                         amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> wall_vel)
@@ -173,18 +173,16 @@ void nodal_levelset_bcs(MultiFab& nodaldata,
     // any tile boundary where a ghost cell is uninitialised becomes a
     // phantom obstacle (Bug 1).
     // ------------------------------------------------------------------
-    MultiFab lsphi_coarse(nodaldata.boxArray(),
-                          nodaldata.DistributionMap(),
-                          1,   // ncomp
-                          1);  // nghost — MUST be >= 1
-    amrex::average_down_nodal(*mpm_ebtools::lsphi,
-                               lsphi_coarse,
-                               amrex::IntVect(lsref));
+    MultiFab lsphi_coarse(nodaldata.boxArray(), nodaldata.DistributionMap(),
+                          1,  // ncomp
+                          1); // nghost — MUST be >= 1
+    amrex::average_down_nodal(*mpm_ebtools::lsphi, lsphi_coarse,
+                              amrex::IntVect(lsref));
     // Use coarse geometry periodicity — lsphi_coarse lives on the coarse grid
     lsphi_coarse.FillBoundary(geom.periodicity());
 
     const auto plo = geom.ProbLoArray();
-    const auto dx  = geom.CellSizeArray();
+    const auto dx = geom.CellSizeArray();
 
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
@@ -202,8 +200,7 @@ void nodal_levelset_bcs(MultiFab& nodaldata,
 
                 // Physical coordinates of this node
                 amrex::Real xp[AMREX_SPACEDIM] = {AMREX_D_DECL(
-                    plo[XDIR] + i * dx[XDIR],
-                    plo[YDIR] + j * dx[YDIR],
+                    plo[XDIR] + i * dx[XDIR], plo[YDIR] + j * dx[YDIR],
                     plo[ZDIR] + k * dx[ZDIR])};
 
                 // lsphi_coarse is already at coarse resolution, so lsref=1
@@ -216,7 +213,8 @@ void nodal_levelset_bcs(MultiFab& nodaldata,
                     return;
 
                 // Compute wall-normal from level-set gradient
-                amrex::Real normaldir[AMREX_SPACEDIM] = {AMREX_D_DECL(1.0, 0.0, 0.0)};
+                amrex::Real normaldir[AMREX_SPACEDIM] = {
+                    AMREX_D_DECL(1.0, 0.0, 0.0)};
                 get_levelset_grad(lsarr, plo, dx, xp, /*lsref=*/1, normaldir);
 
                 amrex::Real gradmag = 0.0;
@@ -227,7 +225,8 @@ void nodal_levelset_bcs(MultiFab& nodaldata,
                 // Bug 3 fix: skip degenerate nodes (zero gradient deep inside
                 // obstacle). Dividing by TINYVAL~1e-20 gives ~1e20 normals =>
                 // velocity blowup => NaN particles.
-                if (gradmag < 1.0e-10) return;
+                if (gradmag < 1.0e-10)
+                    return;
 
                 for (int d = 0; d < AMREX_SPACEDIM; d++)
                     normaldir[d] /= gradmag;
@@ -816,33 +815,33 @@ void nodal_bcs(const amrex::Geometry geom,
  */
 
 void nodal_bcs_temperature(const amrex::Geometry geom,
-                           MultiFab&             nodaldata,
-                           int                   bclo_type[AMREX_SPACEDIM],
-                           int                   bchi_type[AMREX_SPACEDIM],
-                           amrex::Real           bclo_val[AMREX_SPACEDIM],
-                           amrex::Real           bchi_val[AMREX_SPACEDIM],
-                           amrex::Real           bclo_Tinf[AMREX_SPACEDIM],
-                           amrex::Real           bchi_Tinf[AMREX_SPACEDIM],
-                           bool                  /*pre_update*/)
+                           MultiFab &nodaldata,
+                           int bclo_type[AMREX_SPACEDIM],
+                           int bchi_type[AMREX_SPACEDIM],
+                           amrex::Real bclo_val[AMREX_SPACEDIM],
+                           amrex::Real bchi_val[AMREX_SPACEDIM],
+                           amrex::Real bclo_Tinf[AMREX_SPACEDIM],
+                           amrex::Real bchi_Tinf[AMREX_SPACEDIM],
+                           bool /*pre_update*/)
 {
-    const int* domloarr = geom.Domain().loVect();
-    const int* domhiarr = geom.Domain().hiVect();
-    const auto dx       = geom.CellSizeArray();
+    const int *domloarr = geom.Domain().loVect();
+    const int *domhiarr = geom.Domain().hiVect();
+    const auto dx = geom.CellSizeArray();
 
-    GpuArray<int,  AMREX_SPACEDIM> domlo, domhi;
-    GpuArray<int,  AMREX_SPACEDIM> bc_lo_type, bc_hi_type;
+    GpuArray<int, AMREX_SPACEDIM> domlo, domhi;
+    GpuArray<int, AMREX_SPACEDIM> bc_lo_type, bc_hi_type;
     GpuArray<amrex::Real, AMREX_SPACEDIM> lo_val, hi_val, lo_Tinf, hi_Tinf;
 
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
     {
-        domlo[d]      = domloarr[d];
-        domhi[d]      = domhiarr[d];
+        domlo[d] = domloarr[d];
+        domhi[d] = domhiarr[d];
         bc_lo_type[d] = bclo_type[d];
         bc_hi_type[d] = bchi_type[d];
-        lo_val[d]     = bclo_val[d];
-        hi_val[d]     = bchi_val[d];
-        lo_Tinf[d]    = bclo_Tinf[d];
-        hi_Tinf[d]    = bchi_Tinf[d];
+        lo_val[d] = bclo_val[d];
+        hi_val[d] = bchi_val[d];
+        lo_Tinf[d] = bclo_Tinf[d];
+        hi_Tinf[d] = bchi_Tinf[d];
     }
 
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
@@ -850,90 +849,118 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
         Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
         Array4<amrex::Real> arr = nodaldata.array(mfi);
 
-        amrex::ParallelFor(
-            nodalbox,
-            [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
-            {
-                IntVect nodeid(AMREX_D_DECL(i, j, k));
+        amrex::ParallelFor(nodalbox,
+                           [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+                           {
+                               IntVect nodeid(AMREX_D_DECL(i, j, k));
 
-                for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
-                {
-                    int         bc_type = -1;
-                    amrex::Real val     = 0.0;
-                    amrex::Real Tinf    = 0.0;
-                    int         sign    = 0;
+                               // Track whether a strong BC (Dirichlet, flux,
+                               // convective) has already set TEMPERATURE on
+                               // this node. If so, skip weaker BCs
+                               // (adiabatic/none) from other directions to
+                               // prevent overwriting at corner nodes (e.g. flux
+                               // at x_hi being overwritten by adiabatic at
+                               // y_lo).
+                               bool bc_applied = false;
 
-                    if (nodeid[dir] == domlo[dir])
-                    {
-                        bc_type = bc_lo_type[dir];
-                        val     = lo_val[dir];
-                        Tinf    = lo_Tinf[dir];
-                        sign    = +1;
-                    }
-                    else if (nodeid[dir] == domhi[dir] + 1)
-                    {
-                        bc_type = bc_hi_type[dir];
-                        val     = hi_val[dir];
-                        Tinf    = hi_Tinf[dir];
-                        sign    = -1;
-                    }
+                               for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
+                               {
+                                   int bc_type = -1;
+                                   amrex::Real val = 0.0;
+                                   amrex::Real Tinf = 0.0;
+                                   int sign = 0;
 
-                    if (bc_type == 1)
-                    {
-                        arr(nodeid, TEMPERATURE) = val;
-                    }
-                    else if (bc_type == 3 && sign != 0)
-                    {
-                        IntVect nb = nodeid;
-                        nb[dir]   += sign;
-                        if (arr(nb, MASS_SPHEAT) > shunya)
-                            arr(nodeid, TEMPERATURE) =
-                                arr(nb, TEMPERATURE) + val * dx[dir];
-                    }
-                    else if (bc_type == 4 && sign != 0)
-                    {
-                        IntVect nb = nodeid;
-                        nb[dir]   += sign;
-                        if (arr(nb, MASS_SPHEAT) > shunya)
-                        {
-                            amrex::Real Bi = val * dx[dir];
-                            arr(nodeid, TEMPERATURE) =
-                                (arr(nb, TEMPERATURE) + Bi * Tinf)
-                                / (1.0 + Bi);
-                        }
-                    }
-                    // types 0, 2: no action
-                }
-            });
+                                   if (nodeid[dir] == domlo[dir])
+                                   {
+                                       bc_type = bc_lo_type[dir];
+                                       val = lo_val[dir];
+                                       Tinf = lo_Tinf[dir];
+                                       sign = +1;
+                                   }
+                                   else if (nodeid[dir] == domhi[dir] + 1)
+                                   {
+                                       bc_type = bc_hi_type[dir];
+                                       val = hi_val[dir];
+                                       Tinf = hi_Tinf[dir];
+                                       sign = -1;
+                                   }
+
+                                   if (bc_type == 1)
+                                   {
+                                       // Dirichlet: hard override (always
+                                       // applied)
+                                       arr(nodeid, TEMPERATURE) = val;
+                                       bc_applied = true;
+                                   }
+                                   else if (sign != 0 && bc_type != -1)
+                                   {
+                                       IntVect nb = nodeid;
+                                       nb[dir] += sign;
+                                       amrex::Real T_int = arr(nb, TEMPERATURE);
+
+                                       if (bc_type == 2 || bc_type == 0)
+                                       {
+                                           // Adiabatic / none: T_b = T_interior
+                                           // (zero flux). Only apply if no
+                                           // stronger BC has already set T on
+                                           // this node (avoids overwriting
+                                           // corner nodes).
+                                           if (!bc_applied)
+                                           {
+                                               arr(nodeid, TEMPERATURE) = T_int;
+                                               bc_applied = true;
+                                           }
+                                       }
+                                       else if (bc_type == 3)
+                                       {
+                                           // Prescribed flux: T_b = T_int +
+                                           // (q/k)*dx
+                                           arr(nodeid, TEMPERATURE) =
+                                               T_int + val * dx[dir];
+                                           bc_applied = true;
+                                       }
+                                       else if (bc_type == 4)
+                                       {
+                                           // Convective: T_b = (T_int +
+                                           // Bi*T_inf)/(1+Bi)
+                                           amrex::Real Bi = val * dx[dir];
+                                           arr(nodeid, TEMPERATURE) =
+                                               (T_int + Bi * Tinf) / (1.0 + Bi);
+                                           bc_applied = true;
+                                       }
+                                   }
+                               }
+                           });
     }
 }
 
 #if USE_EB
-void nodal_levelset_bcs_temperature(MultiFab&             nodaldata,
-                                    const Geometry        geom,
-                                    amrex::Real           /*dt*/,
-                                    int                   bc_type,
-                                    amrex::Real           T_wall,
-                                    amrex::Real           /*flux*/,
-                                    amrex::Real           /*h_conv*/,
-                                    amrex::Real           /*T_inf*/,
-                                    bool                  /*pre_update*/)
+void nodal_levelset_bcs_temperature(MultiFab &nodaldata,
+                                    const Geometry geom,
+                                    amrex::Real /*dt*/,
+                                    int bc_type,
+                                    amrex::Real T_wall,
+                                    amrex::Real /*flux*/,
+                                    amrex::Real /*h_conv*/,
+                                    amrex::Real /*T_inf*/,
+                                    bool /*pre_update*/)
 {
-    if (bc_type != 1) return;
+    if (bc_type != 1)
+        return;
 
     int lsref = mpm_ebtools::ls_refinement;
-    MultiFab lsphi_coarse(nodaldata.boxArray(),
-                          nodaldata.DistributionMap(), 1, 1);
+    MultiFab lsphi_coarse(nodaldata.boxArray(), nodaldata.DistributionMap(), 1,
+                          1);
     amrex::average_down_nodal(*mpm_ebtools::lsphi, lsphi_coarse,
-                               amrex::IntVect(lsref));
+                              amrex::IntVect(lsref));
     lsphi_coarse.FillBoundary(geom.periodicity());
     const auto plo = geom.ProbLoArray();
-    const auto dx  = geom.CellSizeArray();
+    const auto dx = geom.CellSizeArray();
 
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
         Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
-        Array4<Real> arr   = nodaldata.array(mfi);
+        Array4<Real> arr = nodaldata.array(mfi);
         Array4<Real> lsarr = lsphi_coarse.array(mfi);
         amrex::ParallelFor(
             nodalbox,
@@ -941,8 +968,7 @@ void nodal_levelset_bcs_temperature(MultiFab&             nodaldata,
             {
                 IntVect nodeid(AMREX_D_DECL(i, j, k));
                 amrex::Real xp[AMREX_SPACEDIM] = {AMREX_D_DECL(
-                    plo[XDIR] + i * dx[XDIR],
-                    plo[YDIR] + j * dx[YDIR],
+                    plo[XDIR] + i * dx[XDIR], plo[YDIR] + j * dx[YDIR],
                     plo[ZDIR] + k * dx[ZDIR])};
                 amrex::Real lsval =
                     get_levelset_value(lsarr, plo, dx, xp, /*lsref=*/1);

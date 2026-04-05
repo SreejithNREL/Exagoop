@@ -204,14 +204,14 @@ class MPMspecs
     Vector<int> bchi_temp;
     Vector<amrex::Real> bclo_tempval;
     Vector<amrex::Real> bchi_tempval;
-    Vector<amrex::Real> bclo_Tinf;   // T_inf for convective BC (type 4)
+    Vector<amrex::Real> bclo_Tinf; // T_inf for convective BC (type 4)
     Vector<amrex::Real> bchi_Tinf;
     // Level-set temperature BC
-    int         levelset_temp_bc    = 0;
+    int levelset_temp_bc = 0;
     amrex::Real levelset_temp_Twall = 0.0;
-    amrex::Real levelset_temp_flux  = 0.0;
-    amrex::Real levelset_temp_h     = 0.0;
-    amrex::Real levelset_temp_Tinf  = 0.0;
+    amrex::Real levelset_temp_flux = 0.0;
+    amrex::Real levelset_temp_h = 0.0;
+    amrex::Real levelset_temp_Tinf = 0.0;
 #endif
 
     GpuArray<int, AMREX_SPACEDIM> order_scheme_directional{
@@ -432,11 +432,11 @@ class MPMspecs
         pp.queryarr("bc_lower_Tinf", bclo_Tinf);
         pp.queryarr("bc_upper_Tinf", bchi_Tinf);
 
-        pp.query("levelset_temp_bc",    levelset_temp_bc);
+        pp.query("levelset_temp_bc", levelset_temp_bc);
         pp.query("levelset_temp_Twall", levelset_temp_Twall);
-        pp.query("levelset_temp_flux",  levelset_temp_flux);
-        pp.query("levelset_temp_h",     levelset_temp_h);
-        pp.query("levelset_temp_Tinf",  levelset_temp_Tinf);
+        pp.query("levelset_temp_flux", levelset_temp_flux);
+        pp.query("levelset_temp_h", levelset_temp_h);
+        pp.query("levelset_temp_Tinf", levelset_temp_Tinf);
 #endif
 
         pp.query("levelset_bc", levelset_bc);

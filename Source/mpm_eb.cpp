@@ -36,8 +36,8 @@
 #include <mpm_udf_loader.H>
 
 #if USE_EB
-#include <AMReX_EB_utils.H>
 #include <AMReX_EB2.H>
+#include <AMReX_EB_utils.H>
 #include <AMReX_MultiFabUtil.H>
 #endif
 
@@ -50,10 +50,10 @@ namespace mpm_ebtools
 // ---------------------------------------------------------------
 // Global state definitions (declared extern in mpm_eb.H)
 // ---------------------------------------------------------------
-EBFArrayBoxFactory* ebfactory             = nullptr;
-MultiFab*           lsphi                 = nullptr;
-int                 ls_refinement         = 1;
-bool                using_levelset_geometry = false;
+EBFArrayBoxFactory *ebfactory = nullptr;
+MultiFab *lsphi = nullptr;
+int ls_refinement = 1;
+bool using_levelset_geometry = false;
 
 // ---------------------------------------------------------------
 // Internal helpers
@@ -84,19 +84,17 @@ static int coarsening_level_for_refinement(int ls_ref)
  * Called by all three paths after EB2::Build (or its equivalent) has been
  * invoked and the desired index space is at EB2::IndexSpace::top().
  */
-static void build_factory_and_lsphi(const Geometry&            geom,
-                                    const BoxArray&            ba,
-                                    const DistributionMapping& dm,
-                                    int                        nghost,
-                                    int                        ls_ref)
+static void build_factory_and_lsphi(const Geometry &geom,
+                                    const BoxArray &ba,
+                                    const DistributionMapping &dm,
+                                    int nghost,
+                                    int ls_ref)
 {
-    const EB2::IndexSpace& ebis  = EB2::IndexSpace::top();
-    const EB2::Level&      eblev = ebis.getLevel(geom);
+    const EB2::IndexSpace &ebis = EB2::IndexSpace::top();
+    const EB2::Level &eblev = ebis.getLevel(geom);
 
     ebfactory = new EBFArrayBoxFactory(
-        eblev, geom, ba, dm,
-        {nghost, nghost, nghost},
-        EBSupport::full);
+        eblev, geom, ba, dm, {nghost, nghost, nghost}, EBSupport::full);
 
     BoxArray ls_ba = amrex::convert(ba, IntVect::TheNodeVector());
     ls_ba.refine(ls_ref);
@@ -108,7 +106,7 @@ static void build_factory_and_lsphi(const Geometry&            geom,
 /**
  * @brief Returns a refined Geometry with the domain grown by ls_ref.
  */
-static Geometry refined_geom(const Geometry& geom, int ls_ref)
+static Geometry refined_geom(const Geometry &geom, int ls_ref)
 {
     Box dom_ls = geom.Domain();
     dom_ls.refine(ls_ref);
@@ -131,11 +129,11 @@ static Geometry refined_geom(const Geometry& geom, int ls_ref)
  * lsphi is filled here via amrex::LoopOnCpu (CPU only — function pointers
  * cannot be called on the GPU).  FillBoundary is called afterwards (Bug 2 fix).
  */
-static void build_udf_levelset(const Geometry&            geom,
-                                const BoxArray&            ba,
-                                const DistributionMapping& dm,
-                                int                        nghost,
-                                int                        ls_ref)
+static void build_udf_levelset(const Geometry &geom,
+                               const BoxArray &ba,
+                               const DistributionMapping &dm,
+                               int nghost,
+                               int ls_ref)
 {
     std::string so_file;
     amrex::ParmParse pp("eb2");
@@ -148,7 +146,7 @@ static void build_udf_levelset(const Geometry&            geom,
     // copyable, which AMReX's EB2::makeShop / EB2::Build requires.
     // loader must remain alive until after build_udf_eb returns (and the
     // EB2 index space is fully built) — keeping it here on the stack does that.
-    UDFLoader           loader(so_file);
+    UDFLoader loader(so_file);
     UDFImplicitFunction udf_if(loader);
 
     // build_udf_eb lives in mpm_eb_udf_build.cpp (CXX-only) so that
@@ -159,26 +157,27 @@ static void build_udf_levelset(const Geometry&            geom,
     // We need the refined geometry's problo/dx to evaluate the UDF at
     // each nodal point.
     Geometry geom_ls = refined_geom(geom, ls_ref);
-    const auto plo   = geom_ls.ProbLoArray();
+    const auto plo = geom_ls.ProbLoArray();
     const auto dx_ls = geom_ls.CellSizeArray();
 
     for (MFIter mfi(*lsphi); mfi.isValid(); ++mfi)
     {
-        auto arr     = lsphi->array(mfi);
-        const Box& bx = mfi.fabbox(); // includes ghost cells
+        auto arr = lsphi->array(mfi);
+        const Box &bx = mfi.fabbox(); // includes ghost cells
 
-        amrex::LoopOnCpu(bx, [&](int i, int j, int k)
-        {
-            amrex::RealArray p;
-            p[0] = plo[0] + i * dx_ls[0];
+        amrex::LoopOnCpu(bx,
+                         [&](int i, int j, int k)
+                         {
+                             amrex::RealArray p;
+                             p[0] = plo[0] + i * dx_ls[0];
 #if (AMREX_SPACEDIM >= 2)
-            p[1] = plo[1] + j * dx_ls[1];
+                             p[1] = plo[1] + j * dx_ls[1];
 #endif
 #if (AMREX_SPACEDIM == 3)
-            p[2] = plo[2] + k * dx_ls[2];
+                             p[2] = plo[2] + k * dx_ls[2];
 #endif
-            arr(i, j, k) = udf_if(p);
-        });
+                             arr(i, j, k) = udf_if(p);
+                         });
     }
 
     // Bug 2 fix: FillBoundary after LoopOnCpu using the REFINED geometry
@@ -196,11 +195,11 @@ static void build_udf_levelset(const Geometry&            geom,
  * Uses AMReX's EB2::STLGeom (requires AMReX compiled with STL support).
  * lsphi is filled via FillSignedDistance (same as Path C).
  */
-static void build_stl_levelset(const Geometry&            geom,
-                                const BoxArray&            ba,
-                                const DistributionMapping& dm,
-                                int                        nghost,
-                                int                        ls_ref)
+static void build_stl_levelset(const Geometry &geom,
+                               const BoxArray &ba,
+                               const DistributionMapping &dm,
+                               int nghost,
+                               int ls_ref)
 {
 #ifndef AMREX_USE_EB
     amrex::Abort("build_stl_levelset: AMReX was not compiled with EB support");
@@ -215,18 +214,16 @@ static void build_stl_levelset(const Geometry&            geom,
     // The pp.get() above validated the key exists; no need to re-add it.
 
     Geometry geom_ls = refined_geom(geom, ls_ref);
-    int req_coarsen  = coarsening_level_for_refinement(ls_ref);
+    int req_coarsen = coarsening_level_for_refinement(ls_ref);
 
     amrex::EB2::Build(geom_ls, req_coarsen, /*max_coarsening_level=*/10);
 
-    const EB2::IndexSpace& ebis  = EB2::IndexSpace::top();
-    const EB2::Level&      eblev = ebis.getLevel(geom);
-    const EB2::Level&      lslev = ebis.getLevel(geom_ls);
+    const EB2::IndexSpace &ebis = EB2::IndexSpace::top();
+    const EB2::Level &eblev = ebis.getLevel(geom);
+    const EB2::Level &lslev = ebis.getLevel(geom_ls);
 
     ebfactory = new EBFArrayBoxFactory(
-        eblev, geom, ba, dm,
-        {nghost, nghost, nghost},
-        EBSupport::full);
+        eblev, geom, ba, dm, {nghost, nghost, nghost}, EBSupport::full);
 
     BoxArray ls_ba = amrex::convert(ba, IntVect::TheNodeVector());
     ls_ba.refine(ls_ref);
@@ -255,18 +252,18 @@ static void build_stl_levelset(const Geometry&            geom,
  * Special case: "wedge_hopper" is assembled from EB2 primitives here
  * rather than as a separate function, keeping all EB init in one place.
  */
-static void build_analytic_levelset(const std::string&         geom_type,
-                                    const Geometry&            geom,
-                                    const BoxArray&            ba,
-                                    const DistributionMapping& dm,
-                                    int                        nghost,
-                                    int                        ls_ref)
+static void build_analytic_levelset(const std::string &geom_type,
+                                    const Geometry &geom,
+                                    const BoxArray &ba,
+                                    const DistributionMapping &dm,
+                                    int nghost,
+                                    int ls_ref)
 {
-    amrex::Print() << "[EB] Path C — AMReX built-in geometry: "
-                   << geom_type << "\n";
+    amrex::Print() << "[EB] Path C — AMReX built-in geometry: " << geom_type
+                   << "\n";
 
-    Geometry geom_ls  = refined_geom(geom, ls_ref);
-    int req_coarsen   = coarsening_level_for_refinement(ls_ref);
+    Geometry geom_ls = refined_geom(geom, ls_ref);
+    int req_coarsen = coarsening_level_for_refinement(ls_ref);
 
     if (geom_type == "wedge_hopper")
     {
@@ -275,18 +272,18 @@ static void build_analytic_levelset(const std::string&         geom_type,
         const auto plo = geom.ProbLoArray();
         const auto phi_arr = geom.ProbHiArray();
 
-        amrex::Real exit_size    = 0.0002;
-        amrex::Real bin_size     = 0.0002;
+        amrex::Real exit_size = 0.0002;
+        amrex::Real bin_size = 0.0002;
         amrex::Real funnel_height = 0.0002;
-        amrex::Real vertoffset   = 0.5 * (plo[1] + phi_arr[1]);
+        amrex::Real vertoffset = 0.5 * (plo[1] + phi_arr[1]);
 
         amrex::ParmParse pp_wh("wedge_hopper");
-        pp_wh.get("exit_size",      exit_size);
-        pp_wh.get("bin_size",       bin_size);
-        pp_wh.get("funnel_height",  funnel_height);
+        pp_wh.get("exit_size", exit_size);
+        pp_wh.get("bin_size", bin_size);
+        pp_wh.get("funnel_height", funnel_height);
         pp_wh.get("vertical_offset", vertoffset);
 
-        Array<amrex::Real, 3> fp1 = {0.5f * exit_size,  0.0f, 0.0f};
+        Array<amrex::Real, 3> fp1 = {0.5f * exit_size, 0.0f, 0.0f};
         Array<amrex::Real, 3> fn1 = {funnel_height,
                                      0.5f * (exit_size - bin_size), 0.0f};
         EB2::PlaneIF funnel1(fp1, fn1);
@@ -304,16 +301,14 @@ static void build_analytic_levelset(const std::string&         geom_type,
         Array<amrex::Real, 3> bn2 = {-1.0f, 0.0f, 0.0f};
         EB2::PlaneIF bin2(bp2, bn2);
 
-        Array<Real, 3> center = {0.5f * (plo[0] + phi_arr[0]),
-                                 vertoffset,
+        Array<Real, 3> center = {0.5f * (plo[0] + phi_arr[0]), vertoffset,
                                  0.5f * (plo[2] + phi_arr[2])};
 
-        auto hopper_alone =
-            EB2::translate(EB2::makeUnion(funnel1, bin1, funnel2, bin2), center);
+        auto hopper_alone = EB2::translate(
+            EB2::makeUnion(funnel1, bin1, funnel2, bin2), center);
 
-        amrex::Real len[AMREX_SPACEDIM] = {phi_arr[0] - plo[0],
-                                            phi_arr[1] - plo[1],
-                                            phi_arr[2] - plo[2]};
+        amrex::Real len[AMREX_SPACEDIM] = {
+            phi_arr[0] - plo[0], phi_arr[1] - plo[1], phi_arr[2] - plo[2]};
         RealArray lo_box, hi_box;
         lo_box[0] = plo[0] - len[0];
         lo_box[1] = plo[1] - len[1];
@@ -340,14 +335,12 @@ static void build_analytic_levelset(const std::string&         geom_type,
     }
 
     // Common: factory + lsphi allocation + FillSignedDistance
-    const EB2::IndexSpace& ebis  = EB2::IndexSpace::top();
-    const EB2::Level&      eblev = ebis.getLevel(geom);
-    const EB2::Level&      lslev = ebis.getLevel(geom_ls);
+    const EB2::IndexSpace &ebis = EB2::IndexSpace::top();
+    const EB2::Level &eblev = ebis.getLevel(geom);
+    const EB2::Level &lslev = ebis.getLevel(geom_ls);
 
     ebfactory = new EBFArrayBoxFactory(
-        eblev, geom, ba, dm,
-        {nghost, nghost, nghost},
-        EBSupport::full);
+        eblev, geom, ba, dm, {nghost, nghost, nghost}, EBSupport::full);
 
     BoxArray ls_ba = amrex::convert(ba, IntVect::TheNodeVector());
     ls_ba.refine(ls_ref);
@@ -378,15 +371,15 @@ static void build_analytic_levelset(const std::string&         geom_type,
  * @param[in] ba    BoxArray for the coarse level.
  * @param[in] dm    DistributionMapping.
  */
-void init_eb(const Geometry&            geom,
-             const BoxArray&            ba,
-             const DistributionMapping& dm)
+void init_eb(const Geometry &geom,
+             const BoxArray &ba,
+             const DistributionMapping &dm)
 {
     constexpr int nghost = 1;
 
     std::string geom_type = "all_regular";
     amrex::ParmParse pp("eb2");
-    pp.query("geom_type",     geom_type);
+    pp.query("geom_type", geom_type);
     pp.query("ls_refinement", ls_refinement);
 
     if (geom_type == "all_regular")
@@ -417,8 +410,7 @@ void init_eb(const Geometry&            geom,
         BoxArray plot_ba = ba;
         plot_ba.refine(ls_refinement);
         MultiFab plotmf(plot_ba, dm, lsphi->nComp(), 0);
-        amrex::average_node_to_cellcenter(plotmf, 0, *lsphi, 0,
-                                          lsphi->nComp());
+        amrex::average_node_to_cellcenter(plotmf, 0, *lsphi, 0, lsphi->nComp());
         WriteSingleLevelPlotfile("ebplt", plotmf, {"phi"}, geom_ls, 0.0, 0);
     }
 }

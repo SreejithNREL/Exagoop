@@ -431,12 +431,11 @@ void Initialise_Internal_Forces(MPMspecs &specs,
 
         // Apply initial thermal BCs (Dirichlet phase only)
         const Geometry &geom = mpm_pc.Geom(0);
-        nodal_bcs_temperature(
-            geom, nodaldata,
-            specs.bclo_temp.data(),    specs.bchi_temp.data(),
-            specs.bclo_tempval.data(), specs.bchi_tempval.data(),
-            specs.bclo_Tinf.data(),    specs.bchi_Tinf.data(),
-            /*pre_update=*/false);
+        nodal_bcs_temperature(geom, nodaldata, specs.bclo_temp.data(),
+                              specs.bchi_temp.data(), specs.bclo_tempval.data(),
+                              specs.bchi_tempval.data(), specs.bclo_Tinf.data(),
+                              specs.bchi_Tinf.data(),
+                              /*pre_update=*/false);
         store_delta_temperature(nodaldata);
 
         // Interpolate temperature grid -> particles
@@ -1517,7 +1516,7 @@ void MPMParticleContainer::removeParticlesInsideEB()
     const int lev = 0;
     const Geometry &geom = Geom(lev);
     auto &plev = GetParticles(lev);
-    const auto dx  = geom.CellSizeArray();
+    const auto dx = geom.CellSizeArray();
     const auto plo = geom.ProbLoArray();
 
 #if USE_EB
@@ -1542,12 +1541,11 @@ void MPMParticleContainer::removeParticlesInsideEB()
     BoxArray nodal_ba_coarse = mpm_ebtools::lsphi->boxArray();
     nodal_ba_coarse.coarsen(lsref);
     amrex::MultiFab lsphi_coarse(nodal_ba_coarse,
-                                  mpm_ebtools::lsphi->DistributionMap(),
-                                  1,    // ncomp
-                                  1);   // nghost — must be >= 1
-    amrex::average_down_nodal(*mpm_ebtools::lsphi,
-                               lsphi_coarse,
-                               amrex::IntVect(lsref));
+                                 mpm_ebtools::lsphi->DistributionMap(),
+                                 1,  // ncomp
+                                 1); // nghost — must be >= 1
+    amrex::average_down_nodal(*mpm_ebtools::lsphi, lsphi_coarse,
+                              amrex::IntVect(lsref));
     lsphi_coarse.FillBoundary(geom.periodicity());
 #endif
 

@@ -26,8 +26,8 @@
  */
 class UDFLoader
 {
-public:
-    explicit UDFLoader(const std::string& path)
+  public:
+    explicit UDFLoader(const std::string &path)
     {
 #ifdef _WIN32
         m_handle = LoadLibraryA(path.c_str());
@@ -55,11 +55,11 @@ public:
     }
 
     // Non-copyable
-    UDFLoader(const UDFLoader&)            = delete;
-    UDFLoader& operator=(const UDFLoader&) = delete;
+    UDFLoader(const UDFLoader &) = delete;
+    UDFLoader &operator=(const UDFLoader &) = delete;
 
     // Move-constructible
-    UDFLoader(UDFLoader&& other) noexcept : m_handle(other.m_handle)
+    UDFLoader(UDFLoader &&other) noexcept : m_handle(other.m_handle)
     {
         other.m_handle = nullptr;
     }
@@ -68,20 +68,20 @@ public:
      * @brief Look up a symbol by name and cast to FuncPtr.
      *
      * Example:
-     *   auto f = loader.symbol<double(*)(double,double,double)>("levelset_phi");
+     *   auto f =
+     * loader.symbol<double(*)(double,double,double)>("levelset_phi");
      */
-    template <typename FuncPtr>
-    FuncPtr symbol(const std::string& name) const
+    template <typename FuncPtr> FuncPtr symbol(const std::string &name) const
     {
 #ifdef _WIN32
-        FARPROC raw = GetProcAddress(static_cast<HMODULE>(m_handle),
-                                     name.c_str());
+        FARPROC raw =
+            GetProcAddress(static_cast<HMODULE>(m_handle), name.c_str());
         if (!raw)
             amrex::Abort("UDFLoader: symbol '" + name + "' not found");
 #else
         dlerror(); // clear
-        void* raw = dlsym(m_handle, name.c_str());
-        const char* err = dlerror();
+        void *raw = dlsym(m_handle, name.c_str());
+        const char *err = dlerror();
         if (err)
             amrex::Abort("UDFLoader: symbol '" + name +
                          "' not found: " + std::string(err));
@@ -92,8 +92,8 @@ public:
         return fp;
     }
 
-private:
-    void* m_handle = nullptr;
+  private:
+    void *m_handle = nullptr;
 };
 
 /**
@@ -128,22 +128,21 @@ private:
  */
 class UDFImplicitFunction
 {
-public:
+  public:
     using PhiFn = double (*)(double, double, double);
 
     /// Borrow the function pointer from an already-open UDFLoader.
     /// The loader must outlive this object.
-    explicit UDFImplicitFunction(const UDFLoader& loader)
+    explicit UDFImplicitFunction(const UDFLoader &loader)
     {
         m_phi_fn = loader.symbol<PhiFn>("levelset_phi");
     }
 
     /// Copyable — AMReX EB2 requires this.
-    UDFImplicitFunction(const UDFImplicitFunction&)            = default;
-    UDFImplicitFunction& operator=(const UDFImplicitFunction&) = default;
+    UDFImplicitFunction(const UDFImplicitFunction &) = default;
+    UDFImplicitFunction &operator=(const UDFImplicitFunction &) = default;
 
-    AMREX_FORCE_INLINE
-    amrex::Real operator()(const amrex::RealArray& p) const
+    AMREX_FORCE_INLINE amrex::Real operator()(const amrex::RealArray &p) const
     {
 #if (AMREX_SPACEDIM == 3)
         return static_cast<amrex::Real>(m_phi_fn(p[0], p[1], p[2]));
@@ -154,7 +153,7 @@ public:
 #endif
     }
 
-private:
+  private:
     PhiFn m_phi_fn = nullptr;
 };
 
