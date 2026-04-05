@@ -225,16 +225,30 @@ void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
                                  MPMspecs &specs,
                                  [[maybe_unused]] amrex::Real dt)
 {
-    amrex::Array<amrex::Real, AMREX_SPACEDIM> temp_lo;
-    amrex::Array<amrex::Real, AMREX_SPACEDIM> temp_hi;
-    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    nodal_bcs_temperature(
+        geom, nodaldata,
+        specs.bclo_temp.data(),    specs.bchi_temp.data(),
+        specs.bclo_tempval.data(), specs.bchi_tempval.data(),
+        specs.bclo_Tinf.data(),    specs.bchi_Tinf.data(),
+        /*pre_update=*/false);
+
+#if USE_EB
+    if (mpm_ebtools::using_levelset_geometry)
     {
-        temp_lo[d] = specs.bclo_tempval[d];
-        temp_hi[d] = specs.bchi_tempval[d];
+        nodal_levelset_bcs_temperature(
+            nodaldata, geom, dt,
+            specs.levelset_temp_bc,
+            specs.levelset_temp_Twall,
+            specs.levelset_temp_flux,
+            specs.levelset_temp_h,
+            specs.levelset_temp_Tinf,
+            /*pre_update=*/false);
     }
-    nodal_bcs_temperature(geom, nodaldata, specs.bclo.data(), specs.bchi.data(),
-                          temp_lo.data(), temp_hi.data());
-    store_delta_temperature(nodaldata);
+#endif
+
+    // NOTE: store_delta_temperature is called explicitly in main.cpp
+    // immediately after Apply_Nodal_BCs_Temperature, while MASS_SPHEAT
+    // is still populated from the first P2G deposit.
 }
 #endif
 

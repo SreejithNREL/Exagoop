@@ -816,72 +816,143 @@ void nodal_bcs(const amrex::Geometry geom,
  */
 
 void nodal_bcs_temperature(const amrex::Geometry geom,
-                           MultiFab &nodaldata,
-                           int bcloarr[AMREX_SPACEDIM],
-                           int bchiarr[AMREX_SPACEDIM],
-                           amrex::Real dirichlet_temperature_lo[AMREX_SPACEDIM],
-                           amrex::Real dirichlet_temperature_hi[AMREX_SPACEDIM])
+                           MultiFab&             nodaldata,
+                           int                   bclo_type[AMREX_SPACEDIM],
+                           int                   bchi_type[AMREX_SPACEDIM],
+                           amrex::Real           bclo_val[AMREX_SPACEDIM],
+                           amrex::Real           bchi_val[AMREX_SPACEDIM],
+                           amrex::Real           bclo_Tinf[AMREX_SPACEDIM],
+                           amrex::Real           bchi_Tinf[AMREX_SPACEDIM],
+                           bool                  /*pre_update*/)
 {
+    const int* domloarr = geom.Domain().loVect();
+    const int* domhiarr = geom.Domain().hiVect();
+    const auto dx       = geom.CellSizeArray();
 
-    const int *domloarr = geom.Domain().loVect();
-    const int *domhiarr = geom.Domain().hiVect();
+    GpuArray<int,  AMREX_SPACEDIM> domlo, domhi;
+    GpuArray<int,  AMREX_SPACEDIM> bc_lo_type, bc_hi_type;
+    GpuArray<amrex::Real, AMREX_SPACEDIM> lo_val, hi_val, lo_Tinf, hi_Tinf;
 
-    GpuArray<int, AMREX_SPACEDIM> domlo;
-    GpuArray<int, AMREX_SPACEDIM> domhi;
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
     {
-        domlo[d] = domloarr[d];
-        domhi[d] = domhiarr[d];
-    }
-
-    GpuArray<int, AMREX_SPACEDIM> bclo;
-    GpuArray<int, AMREX_SPACEDIM> bchi;
-    for (int d = 0; d < AMREX_SPACEDIM; ++d)
-    {
-        bclo[d] = bcloarr[d];
-        bchi[d] = bchiarr[d];
-    }
-
-    GpuArray<amrex::Real, AMREX_SPACEDIM> wall_temp_lo;
-    GpuArray<amrex::Real, AMREX_SPACEDIM> wall_temp_hi;
-    for (int d = 0; d < AMREX_SPACEDIM; ++d)
-    {
-        wall_temp_lo[d] = dirichlet_temperature_lo[d];
-        wall_temp_hi[d] = dirichlet_temperature_hi[d];
+        domlo[d]      = domloarr[d];
+        domhi[d]      = domhiarr[d];
+        bc_lo_type[d] = bclo_type[d];
+        bc_hi_type[d] = bchi_type[d];
+        lo_val[d]     = bclo_val[d];
+        hi_val[d]     = bchi_val[d];
+        lo_Tinf[d]    = bclo_Tinf[d];
+        hi_Tinf[d]    = bchi_Tinf[d];
     }
 
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
         Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
+        Array4<amrex::Real> arr = nodaldata.array(mfi);
 
-        Array4<amrex::Real> nodal_data_arr = nodaldata.array(mfi);
+        amrex::ParallelFor(
+            nodalbox,
+            [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+            {
+                IntVect nodeid(AMREX_D_DECL(i, j, k));
 
-        amrex::ParallelFor(nodalbox,
-                           [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
-                           {
-                               (void)j;
-                               (void)k;
-                               IntVect nodeid(AMREX_D_DECL(i, j, k));
+                for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
+                {
+                    int         bc_type = -1;
+                    amrex::Real val     = 0.0;
+                    amrex::Real Tinf    = 0.0;
+                    int         sign    = 0;
 
-                               // Loop over each dimension
-                               for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                               {
-                                   // At lower boundary in dimension d
-                                   if (nodeid[d] == domlo[d])
-                                   {
-                                       nodal_data_arr(nodeid, TEMPERATURE) =
-                                           wall_temp_lo[d];
-                                   }
-                                   // At upper boundary in dimension d
-                                   else if (nodeid[d] == domhi[d] + 1)
-                                   {
-                                       nodal_data_arr(nodeid, TEMPERATURE) =
-                                           wall_temp_hi[d];
-                                   }
-                               }
-                           });
+                    if (nodeid[dir] == domlo[dir])
+                    {
+                        bc_type = bc_lo_type[dir];
+                        val     = lo_val[dir];
+                        Tinf    = lo_Tinf[dir];
+                        sign    = +1;
+                    }
+                    else if (nodeid[dir] == domhi[dir] + 1)
+                    {
+                        bc_type = bc_hi_type[dir];
+                        val     = hi_val[dir];
+                        Tinf    = hi_Tinf[dir];
+                        sign    = -1;
+                    }
+
+                    if (bc_type == 1)
+                    {
+                        arr(nodeid, TEMPERATURE) = val;
+                    }
+                    else if (bc_type == 3 && sign != 0)
+                    {
+                        IntVect nb = nodeid;
+                        nb[dir]   += sign;
+                        if (arr(nb, MASS_SPHEAT) > shunya)
+                            arr(nodeid, TEMPERATURE) =
+                                arr(nb, TEMPERATURE) + val * dx[dir];
+                    }
+                    else if (bc_type == 4 && sign != 0)
+                    {
+                        IntVect nb = nodeid;
+                        nb[dir]   += sign;
+                        if (arr(nb, MASS_SPHEAT) > shunya)
+                        {
+                            amrex::Real Bi = val * dx[dir];
+                            arr(nodeid, TEMPERATURE) =
+                                (arr(nb, TEMPERATURE) + Bi * Tinf)
+                                / (1.0 + Bi);
+                        }
+                    }
+                    // types 0, 2: no action
+                }
+            });
     }
 }
+
+#if USE_EB
+void nodal_levelset_bcs_temperature(MultiFab&             nodaldata,
+                                    const Geometry        geom,
+                                    amrex::Real           /*dt*/,
+                                    int                   bc_type,
+                                    amrex::Real           T_wall,
+                                    amrex::Real           /*flux*/,
+                                    amrex::Real           /*h_conv*/,
+                                    amrex::Real           /*T_inf*/,
+                                    bool                  /*pre_update*/)
+{
+    if (bc_type != 1) return;
+
+    int lsref = mpm_ebtools::ls_refinement;
+    MultiFab lsphi_coarse(nodaldata.boxArray(),
+                          nodaldata.DistributionMap(), 1, 1);
+    amrex::average_down_nodal(*mpm_ebtools::lsphi, lsphi_coarse,
+                               amrex::IntVect(lsref));
+    lsphi_coarse.FillBoundary(geom.periodicity());
+    const auto plo = geom.ProbLoArray();
+    const auto dx  = geom.CellSizeArray();
+
+    for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
+    {
+        Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
+        Array4<Real> arr   = nodaldata.array(mfi);
+        Array4<Real> lsarr = lsphi_coarse.array(mfi);
+        amrex::ParallelFor(
+            nodalbox,
+            [=] AMREX_GPU_DEVICE(AMREX_D_DECL(int i, int j, int k)) noexcept
+            {
+                IntVect nodeid(AMREX_D_DECL(i, j, k));
+                amrex::Real xp[AMREX_SPACEDIM] = {AMREX_D_DECL(
+                    plo[XDIR] + i * dx[XDIR],
+                    plo[YDIR] + j * dx[YDIR],
+                    plo[ZDIR] + k * dx[ZDIR])};
+                amrex::Real lsval =
+                    get_levelset_value(lsarr, plo, dx, xp, /*lsref=*/1);
+                if (lsval >= 0.0 || arr(nodeid, MASS_SPHEAT) <= shunya)
+                    return;
+                arr(nodeid, TEMPERATURE) = T_wall;
+            });
+    }
+}
+#endif
 #endif
 
 /**

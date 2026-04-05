@@ -423,26 +423,20 @@ void Initialise_Internal_Forces(MPMspecs &specs,
         std::string msg = "\n Calculating initial heat flux";
         PrintMessage(msg, print_length, true);
 
-        // Dimension-aware thermal BC ranges
-        amrex::Array<amrex::Real, AMREX_SPACEDIM> temp_lo;
-        amrex::Array<amrex::Real, AMREX_SPACEDIM> temp_hi;
-        for (int d = 0; d < AMREX_SPACEDIM; ++d)
-        {
-            temp_lo[d] = specs.bclo_tempval[d];
-            temp_hi[d] = specs.bchi_tempval[d];
-        }
-
         mpm_pc.deposit_onto_grid_temperature(
             nodaldata, 1, 1, 0, specs.mass_tolerance,
             specs.order_scheme_directional, specs.periodic);
 
         backup_current_temperature(nodaldata);
 
-        // Apply nodal boundary conditions
+        // Apply initial thermal BCs (Dirichlet phase only)
         const Geometry &geom = mpm_pc.Geom(0);
-        nodal_bcs_temperature(geom, nodaldata, specs.bclo.data(),
-                              specs.bchi.data(), temp_lo.data(),
-                              temp_hi.data());
+        nodal_bcs_temperature(
+            geom, nodaldata,
+            specs.bclo_temp.data(),    specs.bchi_temp.data(),
+            specs.bclo_tempval.data(), specs.bchi_tempval.data(),
+            specs.bclo_Tinf.data(),    specs.bchi_Tinf.data(),
+            /*pre_update=*/false);
         store_delta_temperature(nodaldata);
 
         // Interpolate temperature grid -> particles

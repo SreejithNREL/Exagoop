@@ -24,15 +24,14 @@
 #include <constants.H>
 #include <interpolants.H>
 
-// Required for build_udf_eb declaration (forward only; full type in
-// mpm_eb_udf_build.cpp to avoid pulling UDFImplicitFunction into GPU TUs)
-#include <functional>
 // clang-format on
 
 using namespace amrex;
 
+#if USE_EB
 // ============================================================
 // Forward declarations — full type defined in mpm_udf_loader.H
+// Only needed when USE_EB is on.
 // ============================================================
 class UDFImplicitFunction;
 namespace amrex { class EBFArrayBoxFactory; }
@@ -52,6 +51,7 @@ void build_udf_eb(
     int                               ls_refinement,
     amrex::MultiFab*&                 lsphi_out,
     amrex::EBFArrayBoxFactory*&       ebfactory_out);
+#endif // USE_EB
 
 #if USE_EB
 namespace mpm_ebtools

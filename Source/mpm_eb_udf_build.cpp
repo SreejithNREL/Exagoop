@@ -22,6 +22,8 @@
 // clang-format on
 
 #include <mpm_eb.H>
+
+#if USE_EB
 #include <mpm_udf_loader.H>
 #include <AMReX_EB2.H>
 #include <functional>
@@ -92,3 +94,5 @@ void build_udf_eb(
     lsphi_out = new amrex::MultiFab;
     lsphi_out->define(ls_ba, dm, /*ncomp=*/1, nghost);
 }
+
+#endif // USE_EB

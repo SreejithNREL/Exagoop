@@ -104,6 +104,7 @@ int main(int argc, char *argv[])
             backup_current_temperature(nodaldata);
             Nodal_Time_Update_Temperature(nodaldata, dt, specs.mass_tolerance);
             Apply_Nodal_BCs_Temperature(geom, nodaldata, specs, dt);
+            store_delta_temperature(nodaldata);
 #endif
 
             if (specs.stress_update_scheme == 0)
