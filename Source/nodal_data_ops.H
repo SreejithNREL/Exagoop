@@ -49,27 +49,13 @@ void nodal_bcs(const amrex::Geometry geom,
 void nodal_bcs(const amrex::Geometry geom,
                amrex::MultiFab &nodaldata,
                const amrex::Real &dt);
-void nodal_bcs_temperature(const amrex::Geometry geom,
-                           amrex::MultiFab &nodaldata,
-                           int bclo_type[AMREX_SPACEDIM],
-                           int bchi_type[AMREX_SPACEDIM],
-                           amrex::Real bclo_val[AMREX_SPACEDIM],
-                           amrex::Real bchi_val[AMREX_SPACEDIM],
-                           amrex::Real bclo_Tinf[AMREX_SPACEDIM],
-                           amrex::Real bchi_Tinf[AMREX_SPACEDIM],
-                           bool pre_update = false);
-
-#if USE_EB
-void nodal_levelset_bcs_temperature(amrex::MultiFab &nodaldata,
-                                    const amrex::Geometry geom,
-                                    amrex::Real dt,
-                                    int bc_type,
-                                    amrex::Real T_wall,
-                                    amrex::Real flux,
-                                    amrex::Real h_conv,
-                                    amrex::Real T_inf,
-                                    bool pre_update = false);
-#endif
+void nodal_bcs_temperature(
+    const amrex::Geometry geom,
+    amrex::MultiFab &nodaldata,
+    int bcloarr[AMREX_SPACEDIM],
+    int bchiarr[AMREX_SPACEDIM],
+    amrex::Real dirichlet_temperature_lo[AMREX_SPACEDIM],
+    amrex::Real dirichlet_temperature_hi[AMREX_SPACEDIM]);
 void CalculateSurfaceIntegralOnBG(const amrex::Geometry geom,
                                   amrex::MultiFab &nodaldata,
                                   int nodaldataindex,
@@ -86,6 +72,22 @@ void nodal_levelset_bcs(amrex::MultiFab &nodaldata,
                         amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> wall_vel =
                             amrex::GpuArray<amrex::Real, AMREX_SPACEDIM>{
                                 AMREX_D_DECL(0.0, 0.0, 0.0)});
+
+#if USE_TEMP
+// Thermal BC on EB surface nodes (phi < 0).
+// Types: 1=Dirichlet, 3=heat-flux (ghost-point), 4=convective (ghost-point).
+// d = |lsval| used as normal distance from node to surface.
+// pre_update unused — kept for API compatibility.
+void nodal_levelset_bcs_temperature(amrex::MultiFab &nodaldata,
+                                    const amrex::Geometry geom,
+                                    amrex::Real dt,
+                                    int bc_type,
+                                    amrex::Real T_wall,
+                                    amrex::Real flux,
+                                    amrex::Real h_conv,
+                                    amrex::Real T_inf,
+                                    bool pre_update = false);
+#endif
 
 void Create_Output_Directories(MPMspecs &specs);
 void Reset_Nodaldata_to_Zero(amrex::MultiFab &nodaldata,
