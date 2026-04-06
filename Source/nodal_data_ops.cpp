@@ -2,6 +2,7 @@
 #include <nodal_data_ops.H>
 #include <mpm_eb.H>
 #include <mpm_kernels.H>
+#include <AMReX_iMultiFab.H>
 // clang-format on
 
 using namespace amrex;
@@ -324,6 +325,17 @@ void nodal_levelset_bcs_temperature(MultiFab &nodaldata,
                               amrex::IntVect(lsref));
     lsphi_coarse.FillBoundary(geom.periodicity());
 
+    // bc_applied flag: prevents a node from being processed more than once
+    // within this call.  convert(mfi.tilebox(), IntVect(1,...)) produces
+    // nodal boxes that overlap by one node at tile/box boundaries, so without
+    // this guard a shared boundary node would receive the BC correction twice.
+    // Types 3 and 4 are non-idempotent (they read and modify T_curr), so
+    // double application compounds the correction.
+    iMultiFab bc_applied(nodaldata.boxArray(), nodaldata.DistributionMap(),
+                         1,  // ncomp
+                         0); // nghost — valid-region only
+    bc_applied.setVal(0);
+
     const auto plo = geom.ProbLoArray();
     const auto dx = geom.CellSizeArray();
 
@@ -339,12 +351,17 @@ void nodal_levelset_bcs_temperature(MultiFab &nodaldata,
         Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
         Array4<Real> arr = nodaldata.array(mfi);
         Array4<Real> lsarr = lsphi_coarse.array(mfi);
+        Array4<int> flagarr = bc_applied.array(mfi);
 
         amrex::ParallelFor(
             nodalbox,
             [=] AMREX_GPU_DEVICE(AMREX_D_DECL(int i, int j, int k)) noexcept
             {
                 IntVect nodeid(AMREX_D_DECL(i, j, k));
+
+                // Skip nodes already processed by a neighboring tile
+                if (flagarr(nodeid, 0))
+                    return;
 
                 amrex::Real xp[AMREX_SPACEDIM] = {AMREX_D_DECL(
                     plo[XDIR] + i * dx[XDIR], plo[YDIR] + j * dx[YDIR],
@@ -357,6 +374,10 @@ void nodal_levelset_bcs_temperature(MultiFab &nodaldata,
                 // Only act on nodes inside obstacle with particles
                 if (lsval >= 0.0 || arr(nodeid, MASS_SPHEAT) <= shunya)
                     return;
+
+                // Mark processed before applying — prevents second tile from
+                // re-applying the correction to the shared boundary node.
+                flagarr(nodeid, 0) = 1;
 
                 // Distance from this node to the EB surface = |lsval|
                 // (lsval < 0 inside obstacle, magnitude = normal distance)
@@ -371,24 +392,18 @@ void nodal_levelset_bcs_temperature(MultiFab &nodaldata,
                 {
                     // Prescribed flux — ghost-point Neumann:
                     // -k * dT/dn|_surf = q  (n = outward normal from obstacle)
-                    // Node is inside obstacle at distance d from surface.
-                    // T_node = T_surf + (q/k) * d
-                    // We don't know T_surf directly, but we know the gradient
-                    // must be q/k. Set T to reflect this from the current
-                    // value: Use current T as T_surf estimate → T_node = T +
-                    // (q/k)*d
+                    // T_node = T_curr + (q/k)*d
+                    // k=1 assumed; for variable k use stored nodal conductivity
                     amrex::Real T_curr = arr(nodeid, TEMPERATURE);
                     arr(nodeid, TEMPERATURE) = T_curr + (flux_ / 1.0) * d;
-                    // Note: k=1 assumed; for variable k, use
-                    // arr(nodeid, THERMAL_CONDUCTIVITY) if stored nodally
                 }
                 else if (bc_type_ == 4)
                 {
                     // Convective — ghost-point Robin:
                     // -k * dT/dn|_surf = h*(T_surf - T_inf)
-                    // Bi = h*d/k
+                    // Bi = h*d/k  (k=1 assumed)
                     // T_node = (T_curr + Bi*T_inf) / (1 + Bi)
-                    amrex::Real Bi = h_conv_ * d; // k=1 assumed
+                    amrex::Real Bi = h_conv_ * d;
                     amrex::Real T_curr = arr(nodeid, TEMPERATURE);
                     arr(nodeid, TEMPERATURE) =
                         (T_curr + Bi * T_inf_) / (1.0 + Bi);
@@ -1036,14 +1051,16 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
                                        }
                                        else if (bc_type == 3)
                                        {
-                                           // Prescribed flux: T_b = T_int + (q/k)*dx
+                                           // Prescribed flux: T_b = T_int +
+                                           // (q/k)*dx
                                            arr(nodeid, TEMPERATURE) =
                                                T_int + val * dx[dir];
                                            bc_applied = true;
                                        }
                                        else if (bc_type == 4)
                                        {
-                                           // Convective: T_b = (T_int + Bi*T_inf)/(1+Bi)
+                                           // Convective: T_b = (T_int +
+                                           // Bi*T_inf)/(1+Bi)
                                            amrex::Real Bi = val * dx[dir];
                                            arr(nodeid, TEMPERATURE) =
                                                (T_int + Bi * Tinf) / (1.0 + Bi);

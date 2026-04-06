@@ -260,10 +260,18 @@ void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
 #if USE_EB
     if (mpm_ebtools::using_levelset_geometry)
     {
+        // Mirror the domain-face dirichlet_only logic: in the outer block
+        // (dirichlet_only=true) apply EB Dirichlet only; ghost-point types
+        // (3, 4) are deferred to the corrector pass (dirichlet_only=false).
+        // Without this guard, nodal_levelset_bcs_temperature fires twice per
+        // timestep in scheme 1, doubling the ghost-point correction for
+        // types 3 and 4.
+        int eb_bc = dirichlet_only ? (specs.levelset_temp_bc == 1 ? 1 : 0)
+                                   : specs.levelset_temp_bc;
         nodal_levelset_bcs_temperature(
-            nodaldata, geom, dt, specs.levelset_temp_bc,
-            specs.levelset_temp_Twall, specs.levelset_temp_flux,
-            specs.levelset_temp_h, specs.levelset_temp_Tinf,
+            nodaldata, geom, dt, eb_bc, specs.levelset_temp_Twall,
+            specs.levelset_temp_flux, specs.levelset_temp_h,
+            specs.levelset_temp_Tinf,
             /*pre_update=*/false);
     }
 #endif
