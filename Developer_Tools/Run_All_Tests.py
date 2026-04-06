@@ -1302,10 +1302,10 @@ def _run_parameter_sweeps():
             Run_ParameterSweep_2D_HeatConduction(cfg)
         elif test_name == "Dam_Break":
             print('Nothing to do')
-            #Run_ParameterSweep_Dambreak(cfg)
+            Run_ParameterSweep_Dambreak(cfg)
         elif test_name == "Elastic_disk_collision":
             print('Nothing to do')
-            #Run_ParameterSweep_EDC(cfg)
+            Run_ParameterSweep_EDC(cfg)
 
     # Save results
     with open("sweep_results.json", "w") as f:
