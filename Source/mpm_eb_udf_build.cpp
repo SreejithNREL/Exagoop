@@ -1,8 +1,10 @@
+#if USE_EB
 #include <AMReX_EB2.H>
 #include <functional>
 #include <mpm_eb.H>
 
 void build_udf_eb_only(
+
     std::function<amrex::Real(const amrex::RealArray &)> udf_if,
     const amrex::Geometry &geom,
     const amrex::BoxArray &ba,
@@ -38,4 +40,6 @@ void build_udf_eb_only(
     ls_ba.refine(ls_refinement_in);
     lsphi_out = new amrex::MultiFab;
     lsphi_out->define(ls_ba, dm, 1, nghost);
+
 }
+#endif
