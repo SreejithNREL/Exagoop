@@ -3,10 +3,10 @@
   "grid": {
     "xmin": 0.0,
     "xmax": 1.0,
-    "nx": 40,
+    "nx": 64,
     "ymin": 0.0,
-    "ymax": 0.1,
-    "ny": 4
+    "ymax": 1.0,
+    "ny": 64
   },
   "ppc": [
     2,
@@ -39,8 +39,8 @@
   "alpha_pic_flip": 1.0,
   "order_scheme": 2,
   "stress_update_scheme": 1,
-  "output_tag": "1D_Heat_Conduction_HeatFlux_npcx2_ord2_sus1_USEHDFTrue_OFORMascii_f10203",
-  "input_filename": "Inputs_1DHeatConduction_HeatFlux.inp",
+  "output_tag": "2D_Heat_Conduction_Cylinder_Dirichlet_npcx2_ord2_sus1_USEHDFTrue_OFORMascii_080605",
+  "input_filename": "Inputs_2DHeat_Conduction_Cylinder_Dirichlet.inp",
   "output_format": "ascii",
   "materialpoint_filename": "mpm_particles.dat",
   "plot_to_check": false

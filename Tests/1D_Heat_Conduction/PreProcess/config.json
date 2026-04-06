@@ -39,7 +39,7 @@
   "alpha_pic_flip": 1.0,
   "order_scheme": 2,
   "stress_update_scheme": 1,
-  "output_tag": "1D_Heat_Conduction_npcx1_ord2_sus1_USEHDFFalse_OFORMascii_ece67b",
+  "output_tag": "1D_Heat_Conduction_npcx1_ord2_sus1_USEHDFTrue_OFORMascii_036707",
   "input_filename": "Inputs_1DHeatConduction.inp",
   "output_format": "ascii",
   "materialpoint_filename": "mpm_particles.dat",

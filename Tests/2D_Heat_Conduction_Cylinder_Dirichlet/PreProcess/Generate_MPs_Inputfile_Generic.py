@@ -1402,7 +1402,7 @@ def plot_2d(x, y, grid):
     ax.set_xlabel("x")
     ax.set_ylabel("y")
     ax.set_aspect("equal")
-    plt.show()
+    #plt.show()
 
 
 # ------------------------------------------------------------
@@ -1526,7 +1526,7 @@ def write_inputs_file(
 
         # Input Material Points
         write_block(f, [
-            ("mpm.use_autogen", "0"),
+            ("mpm.use_autogen", "1"),
             ("mpm.mincoords_autogen", "0.0 0.0 0.0"),
             ("mpm.maxcoords_autogen", "1.0 1.0 1.0"),
             ("mpm.vel_autogen", "0.0 0.0 0.0"),
@@ -1537,6 +1537,11 @@ def write_inputs_file(
             ("mpm.bulkmod_autogen", "2e6"),
             ("mpm.Gama_pres_autogen", "7"),
             ("mpm.visc_autogen", "0.001"),
+	    ("mpm.T_autogen", "0.0"),
+            ("mpm.cp_autogen", "1.0"),
+            ("mpm.ppc", "1 1 1"),
+            ("mpm.thermcond_autogen", "1.0"),
+            ("mpm.heatsrc_autogen", "0.0"),
             ("mpm.multi_part_per_cell_autogen", "1"),
             ("mpm.particle_file", f"\"{particle_filename}\"")
         ], comment="Input Material Points")
@@ -1555,7 +1560,7 @@ def write_inputs_file(
 
         # Simulation Run Parameters
         write_block(f, [
-            ("mpm.final_time", "2.0"),
+            ("mpm.final_time", "1.0"),
             ("mpm.max_steps", "5000000"),
             ("mpm.screen_output_time", "0.0001"),
             ("mpm.write_output_time", "0.01"),
@@ -1600,18 +1605,24 @@ def write_inputs_file(
 
         # Boundary Conditions
         write_block(f, [
-            ("mpm.bc_lower", "1 0 0"),
-            ("mpm.bc_upper", "1 0 0"),
-            ("mpm.bc_lower_temp", "1 0 0"),
-            ("mpm.bc_upper_temp", "3 0 0"),
+            ("mpm.bc_lower", "1 1 0"),
+            ("mpm.bc_upper", "1 1 0"),
+            ("mpm.bc_lower_temp", "1 1 0"),
+            ("mpm.bc_upper_temp", "1 1 0"),
             ("mpm.bc_lower_tempval", "0.0 0.0 0"),
-            ("mpm.bc_upper_tempval", "1.0 0.0 0"),
-            ("mpm.levelset_bc", "2 0 0"),
+            ("mpm.bc_upper_tempval", "0.0 0.0 0"),
+            ("mpm.levelset_temp_bc", "1"),
+            ("mpm.levelset_temp_Twall", "1.0"),
             ("mpm.levelset_wall_mu", "2 0 0"),
             ("mpm.wall_mu_lo", "2 0 0"),
             ("mpm.wall_mu_hi", "2 0 0"),
             ("mpm.wall_vel_lo", "0 0 0 0 0 0 0 0 0"),
-            ("mpm.wall_vel_hi", "0 0 0 0 0 0 0 0 0")
+            ("mpm.wall_vel_hi", "0 0 0 0 0 0 0 0 0"),
+            ("eb2.geom_type", "sphere"),
+            ("eb2.sphere_radius", "0.15"),
+            ("eb2.sphere_center", "0.5 0.5 0.0"),
+            ("eb2.sphere_has_fluid_inside","false"),
+            ("eb2.ls_refinement", "2")
         ], comment="Boundary Conditions")
 
         # Diagnostics

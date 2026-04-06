@@ -1555,7 +1555,7 @@ def write_inputs_file(
 
         # Simulation Run Parameters
         write_block(f, [
-            ("mpm.final_time", "2.0"),
+            ("mpm.final_time", "0.05"),
             ("mpm.max_steps", "5000000"),
             ("mpm.screen_output_time", "0.0001"),
             ("mpm.write_output_time", "0.01"),
@@ -1603,9 +1603,9 @@ def write_inputs_file(
             ("mpm.bc_lower", "1 0 0"),
             ("mpm.bc_upper", "1 0 0"),
             ("mpm.bc_lower_temp", "1 0 0"),
-            ("mpm.bc_upper_temp", "3 0 0"),
-            ("mpm.bc_lower_tempval", "0.0 0.0 0"),
-            ("mpm.bc_upper_tempval", "1.0 0.0 0"),
+            ("mpm.bc_upper_temp", "4 0 0"),
+            ("mpm.bc_lower_tempval", "1.0 0.0 0"),
+            ("mpm.bc_upper_tempval", "2.0 0.0 0"),
             ("mpm.levelset_bc", "2 0 0"),
             ("mpm.levelset_wall_mu", "2 0 0"),
             ("mpm.wall_mu_lo", "2 0 0"),

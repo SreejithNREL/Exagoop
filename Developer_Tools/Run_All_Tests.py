@@ -340,6 +340,238 @@ def Run_ParameterSweep_1D_HeatConduction(cfg):
             "pass": rms < ERROR_TOL if rms == rms else False
         })
         
+def Run_ParameterSweep_1D_HeatConduction_HeatFlux(cfg):
+    # Parameter sweep setup
+    dim = cfg["parameter_space"]["dimension"][0]
+    npcx_vals = cfg["parameter_space"]["np_per_cell_x"]
+    order_vals = cfg["parameter_space"]["order_scheme"]
+    sus_vals = cfg["parameter_space"]["stress_update_scheme"]    
+    
+    bwhs = cfg["parameter_space"]["build_with_hdf"]    
+    output_formats = cfg["parameter_space"]["output_format"]
+    filename_prefix = cfg["parameter_space"]["filename_prefix"]           
+   
+    test_name = "1D_Heat_Conduction_HeatFlux"
+    test_dir = os.path.join(ROOT, "Tests", test_name)
+
+    for npcx, order, sus, bwh, of in itertools.product(
+        npcx_vals, order_vals, sus_vals, bwhs,output_formats
+    ):
+        if(bwh==False and of=="hdf5"):
+            continue      
+        
+        existing_mpm_h5 = os.path.join(test_dir,filename_prefix[0]+".h5")
+        existing_mpm_dat = os.path.join(test_dir,filename_prefix[0]+".dat")  
+        
+        p = Path(existing_mpm_h5)
+        if p.exists():
+            p.unlink()
+            print("Deleted existing file "+existing_mpm_h5)
+            
+        p = Path(existing_mpm_dat)
+        if p.exists():
+            p.unlink()
+            print("Deleted existing file "+existing_mpm_dat)
+
+        print(f"\n--- Case: npcx={npcx}, ord={order}, sus={sus}")
+
+        # Build auto-tag
+        desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}"
+        output_tag = make_auto_tag_from_params(desc)
+
+        # 1. Load template config
+        with open(os.path.join(test_dir, "./PreProcess/config.json")) as f:
+            config = json.load(f)
+
+        # 2. Modify config fields
+        config["ppc"] = [npcx, npcx]
+        config["order_scheme"] = order
+        config["stress_update_scheme"] = sus
+        config["output_format"] = of
+        if(of=="ascii"):
+            config["materialpoint_filename"] = filename_prefix[0]+".dat"
+        else:
+            config["materialpoint_filename"] = filename_prefix[0]+".h5"
+
+        # Auto-tag       
+        config["output_tag"] = output_tag
+        
+        # 3. Write updated config.json
+        with open(os.path.join(test_dir, "./PreProcess/config.json"), "w") as f:
+            json.dump(config, f, indent=2)
+
+        # Change gnumake file
+        update_makefile_dim(os.path.join(test_dir,"GNUmakefile"),dim)
+        update_makefile_usetemp(os.path.join(test_dir,"GNUmakefile"),"TRUE")
+        
+        # Build executable
+        if(bwh==True):
+            run_cmd(f"cd {test_dir} && make -j USE_HDF5=TRUE AMREX_USE_HDF5=TRUE")
+        else:
+            run_cmd(f"cd {test_dir} && make -j USE_HDF5=FALSE AMREX_USE_HDF5=FALSE")
+
+        # Generate inputs
+        run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")
+
+        # Select executable
+        if(dim==1):
+            exe = "./ExaGOOP1d.gnu.MPI.ex"
+        elif(dim==2):
+            exe = "./ExaGOOP2d.gnu.MPI.ex"
+        elif(dim==3):
+            exe = "./ExaGOOP3d.gnu.MPI.ex"
+
+        # Run simulation
+        run_cmd(f"cd {test_dir} && mpirun -np 4 {exe} {cfg['input_file']}")
+
+        # Post-processing
+        ascii_folder = os.path.join(test_dir, "Solution", "ascii_files",output_tag)
+        latest_time, _ = get_latest_time(ascii_folder)
+
+        if latest_time is None:
+            print("[WARNING] No output files found.")
+            rms = float("nan")
+        else:
+            PicsFolder = os.path.join(test_dir,f"Solution/ascii_files/{output_tag}/Pics")
+            os.makedirs(PicsFolder, exist_ok=True)           
+            err_script = os.path.join(test_dir,cfg["postproc_scripts"][0])                     
+            err_cmd = f"python3 {err_script} --time {latest_time} --fileloc {ascii_folder} --outputpic {PicsFolder}/Temperature_x.png"
+            error_output = subprocess.check_output(err_cmd, shell=True, text=True)           
+            
+            rms = None
+            for line in error_output.splitlines():
+                if "RMS error" in line:
+                    rms = float(line.split()[-1])
+                    break
+
+        results.append({
+            "test": test_name,
+            "dim": dim,
+            "npcx": npcx,
+            "order": order,            
+            "sus": sus,            
+            "rms": rms,
+            "built_with_hdf": bwh,
+            "fileformat": of,
+            "pass": rms < ERROR_TOL if rms == rms else False
+        })
+        
+def Run_ParameterSweep_1D_HeatConduction_Convective(cfg):
+    # Parameter sweep setup
+    dim = cfg["parameter_space"]["dimension"][0]
+    npcx_vals = cfg["parameter_space"]["np_per_cell_x"]
+    order_vals = cfg["parameter_space"]["order_scheme"]
+    sus_vals = cfg["parameter_space"]["stress_update_scheme"]    
+    
+    bwhs = cfg["parameter_space"]["build_with_hdf"]    
+    output_formats = cfg["parameter_space"]["output_format"]
+    filename_prefix = cfg["parameter_space"]["filename_prefix"]           
+   
+    test_name = "1D_Heat_Conduction_Convective"
+    test_dir = os.path.join(ROOT, "Tests", test_name)
+
+    for npcx, order, sus, bwh, of in itertools.product(
+        npcx_vals, order_vals, sus_vals, bwhs,output_formats
+    ):
+        if(bwh==False and of=="hdf5"):
+            continue      
+        
+        existing_mpm_h5 = os.path.join(test_dir,filename_prefix[0]+".h5")
+        existing_mpm_dat = os.path.join(test_dir,filename_prefix[0]+".dat")  
+        
+        p = Path(existing_mpm_h5)
+        if p.exists():
+            p.unlink()
+            print("Deleted existing file "+existing_mpm_h5)
+            
+        p = Path(existing_mpm_dat)
+        if p.exists():
+            p.unlink()
+            print("Deleted existing file "+existing_mpm_dat)
+
+        print(f"\n--- Case: npcx={npcx}, ord={order}, sus={sus}")
+
+        # Build auto-tag
+        desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}"
+        output_tag = make_auto_tag_from_params(desc)
+
+        # 1. Load template config
+        with open(os.path.join(test_dir, "./PreProcess/config.json")) as f:
+            config = json.load(f)
+
+        # 2. Modify config fields
+        config["ppc"] = [npcx, npcx]
+        config["order_scheme"] = order
+        config["stress_update_scheme"] = sus
+        config["output_format"] = of
+        if(of=="ascii"):
+            config["materialpoint_filename"] = filename_prefix[0]+".dat"
+        else:
+            config["materialpoint_filename"] = filename_prefix[0]+".h5"
+
+        # Auto-tag       
+        config["output_tag"] = output_tag
+        
+        # 3. Write updated config.json
+        with open(os.path.join(test_dir, "./PreProcess/config.json"), "w") as f:
+            json.dump(config, f, indent=2)
+
+        # Change gnumake file
+        update_makefile_dim(os.path.join(test_dir,"GNUmakefile"),dim)
+        update_makefile_usetemp(os.path.join(test_dir,"GNUmakefile"),"TRUE")
+        
+        # Build executable
+        if(bwh==True):
+            run_cmd(f"cd {test_dir} && make -j USE_HDF5=TRUE AMREX_USE_HDF5=TRUE")
+        else:
+            run_cmd(f"cd {test_dir} && make -j USE_HDF5=FALSE AMREX_USE_HDF5=FALSE")
+
+        # Generate inputs
+        run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")
+
+        # Select executable
+        if(dim==1):
+            exe = "./ExaGOOP1d.gnu.MPI.ex"
+        elif(dim==2):
+            exe = "./ExaGOOP2d.gnu.MPI.ex"
+        elif(dim==3):
+            exe = "./ExaGOOP3d.gnu.MPI.ex"
+
+        # Run simulation
+        run_cmd(f"cd {test_dir} && mpirun -np 4 {exe} {cfg['input_file']}")
+
+        # Post-processing
+        ascii_folder = os.path.join(test_dir, "Solution", "ascii_files",output_tag)
+        latest_time, _ = get_latest_time(ascii_folder)
+
+        if latest_time is None:
+            print("[WARNING] No output files found.")
+            rms = float("nan")
+        else:
+            PicsFolder = os.path.join(test_dir,f"Solution/ascii_files/{output_tag}/Pics")
+            os.makedirs(PicsFolder, exist_ok=True)           
+            err_script = os.path.join(test_dir,cfg["postproc_scripts"][0])                     
+            err_cmd = f"python3 {err_script} --time {latest_time} --fileloc {ascii_folder} --outputpic {PicsFolder}/Temperature_x.png"
+            error_output = subprocess.check_output(err_cmd, shell=True, text=True)           
+            
+            rms = None
+            for line in error_output.splitlines():
+                if "RMS error" in line:
+                    rms = float(line.split()[-1])
+                    break
+
+        results.append({
+            "test": test_name,
+            "dim": dim,
+            "npcx": npcx,
+            "order": order,            
+            "sus": sus,            
+            "rms": rms,
+            "built_with_hdf": bwh,
+            "fileformat": of,
+            "pass": rms < ERROR_TOL if rms == rms else False
+        })
+        
 def Run_ParameterSweep_2D_HeatConduction(cfg):
     # Parameter sweep setup    
     npcx_vals = cfg["parameter_space"]["np_per_cell_x"]
@@ -409,6 +641,118 @@ def Run_ParameterSweep_2D_HeatConduction(cfg):
             run_cmd(f"cd {test_dir} && make -j USE_HDF5=TRUE AMREX_USE_HDF5=TRUE")
         else:
             run_cmd(f"cd {test_dir} && make -j USE_HDF5=FALSE AMREX_USE_HDF5=FALSE")
+
+        # Generate inputs
+        run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")
+
+        # Select executable
+        exe = "./ExaGOOP2d.gnu.MPI.ex"
+
+        # Run simulation
+        run_cmd(f"cd {test_dir} && mpirun -np 6 {exe} {cfg['input_file']}")
+
+        # Post-processing
+        ascii_folder = os.path.join(test_dir, "Solution", "ascii_files",output_tag)
+        latest_time, _ = get_latest_time(ascii_folder)
+
+        if latest_time is None:
+            print("[WARNING] No output files found.")
+            rms = float("nan")
+        else:
+            PicsFolder = os.path.join(test_dir,f"Solution/ascii_files/{output_tag}/Pics")
+            os.makedirs(PicsFolder, exist_ok=True)           
+            err_script = os.path.join(test_dir,cfg["postproc_scripts"][0])                     
+            err_cmd = f"python3 {err_script} --time {latest_time} --folder {ascii_folder} --outputpic {PicsFolder}/Temperature_x.png"
+            error_output = subprocess.check_output(err_cmd, shell=True, text=True)           
+            
+            rms = None
+            for line in error_output.splitlines():
+                if "RMS error" in line:
+                    rms = float(line.split()[-1])
+                    break
+
+        results.append({
+            "test": test_name,            
+            "npcx": npcx,
+            "order": order,            
+            "sus": sus,            
+            "rms": rms,
+            "built_with_hdf": bwh,
+            "fileformat": of,
+            "pass": rms < ERROR_TOL if rms == rms else False
+        })
+        
+def Run_ParameterSweep_2D_HeatConduction_Cylinder_Dirichlet(cfg):
+    
+    print("Running")
+    # Parameter sweep setup    
+    npcx_vals = cfg["parameter_space"]["np_per_cell_x"]
+    order_vals = cfg["parameter_space"]["order_scheme"]
+    sus_vals = cfg["parameter_space"]["stress_update_scheme"]    
+    
+    bwhs = cfg["parameter_space"]["build_with_hdf"]    
+    output_formats = cfg["parameter_space"]["output_format"]
+    filename_prefix = cfg["parameter_space"]["filename_prefix"]           
+   
+    test_name = "2D_Heat_Conduction_Cylinder_Dirichlet"
+    test_dir = os.path.join(ROOT, "Tests", test_name)
+
+    for npcx, order, sus, bwh, of in itertools.product(
+        npcx_vals, order_vals, sus_vals, bwhs,output_formats
+    ):
+        
+        if(bwh==False and of=="hdf5"):
+            continue      
+        
+        existing_mpm_h5 = os.path.join(test_dir,filename_prefix[0]+".h5")
+        existing_mpm_dat = os.path.join(test_dir,filename_prefix[0]+".dat")  
+        
+        p = Path(existing_mpm_h5)
+        if p.exists():
+            p.unlink()
+            print("Deleted existing file "+existing_mpm_h5)
+            
+        p = Path(existing_mpm_dat)
+        if p.exists():
+            p.unlink()
+            print("Deleted existing file "+existing_mpm_dat)
+
+        print(f"\n--- Case: npcx={npcx}, ord={order}, sus={sus}")
+
+        # Build auto-tag
+        desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}"
+        output_tag = make_auto_tag_from_params(desc)
+        
+        
+        # 1. Load template config
+        with open(os.path.join(test_dir, "./PreProcess/config.json")) as f:
+            config = json.load(f)
+
+        # 2. Modify config fields
+        config["ppc"] = [npcx, npcx]
+        config["order_scheme"] = order
+        config["stress_update_scheme"] = sus
+        if(of=="ascii"):
+            config["materialpoint_filename"] = filename_prefix[0]+".dat"
+        else:
+            config["materialpoint_filename"] = filename_prefix[0]+".h5"
+
+        # Auto-tag       
+        config["output_tag"] = output_tag
+
+        # 3. Write updated config.json
+        with open(os.path.join(test_dir, "./PreProcess/config.json"), "w") as f:
+            json.dump(config, f, indent=2)
+
+        # Change gnumake file
+        update_makefile_dim(os.path.join(test_dir,"GNUmakefile"),2)
+        update_makefile_usetemp(os.path.join(test_dir,"GNUmakefile"),"TRUE")
+        
+        # Build executable
+        if(bwh==True):
+            run_cmd(f"cd {test_dir} && make -j USE_HDF5=TRUE AMREX_USE_HDF5=TRUE USE_EB=TRUE")
+        else:
+            run_cmd(f"cd {test_dir} && make -j USE_HDF5=FALSE AMREX_USE_HDF5=FALSE USE_EB=TRUE")
 
         # Generate inputs
         run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")
@@ -1113,6 +1457,40 @@ TEST_CASES = {
         }
     },
     
+    "1D_Heat_Conduction_HeatFlux": {
+        "generator_script": "./PreProcess/Generate_MPs_Inputfile_Generic.py",
+        "input_file": "Inputs_1DHeatConduction_HeatFlux.inp",
+        "postproc_scripts": [
+            "./PostProcess/Plot_Temperature.py"             
+        ],
+        "parameter_space": {
+            "dimension": [2],
+            "np_per_cell_x": [2],            
+            "order_scheme": [2],            
+            "stress_update_scheme": [1],
+            "build_with_hdf": [True],
+            "output_format": ["ascii",],
+            "filename_prefix": ["mpm_particles"]        
+        }
+    },
+    
+    "1D_Heat_Conduction_Convective": {
+        "generator_script": "./PreProcess/Generate_MPs_Inputfile_Generic.py",
+        "input_file": "Inputs_1DHeatConduction_Convective.inp",
+        "postproc_scripts": [
+            "./PostProcess/Plot_Temperature.py"             
+        ],
+        "parameter_space": {
+            "dimension": [2],
+            "np_per_cell_x": [2],            
+            "order_scheme": [1,2,3],            
+            "stress_update_scheme": [1],
+            "build_with_hdf": [True],
+            "output_format": ["ascii",],
+            "filename_prefix": ["mpm_particles"]        
+        }
+    },
+    
     "2D_Heat_Conduction": {
         "generator_script": "./PreProcess/Generate_MPs_Inputfile_Generic.py",
         "input_file": "Inputs_2DHeatConduction.inp",
@@ -1125,6 +1503,22 @@ TEST_CASES = {
             "stress_update_scheme": [1],
             "build_with_hdf": [True,False],
             "output_format": ["ascii","hdf5"],
+            "filename_prefix": ["mpm_particles"]        
+        }
+    },
+    
+    "2D_Heat_Conduction_Cylinder_Dirichlet": {
+        "generator_script": "./PreProcess/Generate_MPs_Inputfile_Generic.py",
+        "input_file": "Inputs_2DHeat_Conduction_Cylinder_Dirichlet.inp",
+        "postproc_scripts": [
+            "./PostProcess/Plot_Temperature.py"            
+        ],
+        "parameter_space": {            
+            "np_per_cell_x": [2],            
+            "order_scheme": [2],            
+            "stress_update_scheme": [1],
+            "build_with_hdf": [True],
+            "output_format": ["ascii"],
             "filename_prefix": ["mpm_particles"]        
         }
     },
@@ -1293,13 +1687,22 @@ def _run_parameter_sweeps():
 
         if test_name == "1D_Axial_Bar_Vibration":
             print('Nothing to do')
-            Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg)
+            #Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg)
         elif test_name == "1D_Heat_Conduction":
             print('Nothing to do')
-            Run_ParameterSweep_1D_HeatConduction(cfg)
+            #Run_ParameterSweep_1D_HeatConduction(cfg)
+        elif test_name == "1D_Heat_Conduction_HeatFlux":
+            print('Nothing to do')
+            #Run_ParameterSweep_1D_HeatConduction_HeatFlux(cfg)
+        elif test_name == "1D_Heat_Conduction_Convective":
+            print('Nothing to do')
+            #Run_ParameterSweep_1D_HeatConduction_Convective(cfg)
         elif test_name == "2D_Heat_Conduction":
             print('Nothing to do')
-            Run_ParameterSweep_2D_HeatConduction(cfg)
+            #Run_ParameterSweep_2D_HeatConduction(cfg)
+        elif test_name == "2D_Heat_Conduction_Cylinder_Dirichlet":
+            print('Nothing to do')
+            Run_ParameterSweep_2D_HeatConduction_Cylinder_Dirichlet(cfg)
         elif test_name == "Dam_Break":
             print('Nothing to do')
             #Run_ParameterSweep_Dambreak(cfg)
