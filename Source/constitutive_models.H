@@ -129,13 +129,15 @@ Newtonian_Fluid(amrex::Real epsdot[NCOMP_TENSOR],
 
 #elif (AMREX_SPACEDIM == 2)
     // 2D Newtonian fluid
-    amrex::Real trace_epsdot = epsdot[XX] + epsdot[YY];
-    amrex::Real one_by_two = 0.5; // average for 2D trace
+    // Deviatoric stress always uses 1/3 regardless of dimension.
+    // In 2D plane strain epsdot[ZZ]=0, so trace = epsdot[XX]+epsdot[YY].
+    amrex::Real trace_epsdot = epsdot[XX] + epsdot[YY] + epsdot[ZZ];
+    amrex::Real one_by_three = 1.0 / 3.0;
 
     sigma[XX] =
-        2.0 * dyn_visc * (epsdot[XX] - one_by_two * trace_epsdot) - pressure;
+        2.0 * dyn_visc * (epsdot[XX] - one_by_three * trace_epsdot) - pressure;
     sigma[YY] =
-        2.0 * dyn_visc * (epsdot[YY] - one_by_two * trace_epsdot) - pressure;
+        2.0 * dyn_visc * (epsdot[YY] - one_by_three * trace_epsdot) - pressure;
     sigma[ZZ] = 0.0;
     sigma[XY] = 2.0 * dyn_visc * epsdot[XY];
     sigma[XZ] = sigma[YZ] = 0.0;

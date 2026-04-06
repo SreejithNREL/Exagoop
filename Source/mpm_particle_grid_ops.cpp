@@ -655,6 +655,7 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
                     }
 #endif
                 });
+            amrex::Gpu::streamSynchronize();
         }
     }
 
@@ -927,6 +928,7 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
                     }
 #endif
                 });
+            amrex::Gpu::streamSynchronize();
         }
     }
 

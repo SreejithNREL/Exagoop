@@ -54,11 +54,13 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
         {
             if (p.idata(intData::phase) == 0)
             {
+                amrex::Real rho = p.rdata(realData::density);
+                if (rho <= 0.0)
+                    return std::numeric_limits<amrex::Real>::max();
                 amrex::Real Cs = 0.0;
                 if (p.idata(intData::constitutive_model) == 1)
                 {
-                    Cs = std::sqrt(p.rdata(realData::Bulk_modulus) /
-                                   p.rdata(realData::density));
+                    Cs = std::sqrt(p.rdata(realData::Bulk_modulus) / rho);
                 }
                 else if (p.idata(intData::constitutive_model) == 0)
                 {
@@ -69,8 +71,7 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
                                           (1 - 2.0 * p.rdata(realData::nu)));
                     amrex::Real mu = p.rdata(realData::E) /
                                      (2.0 * (1 + p.rdata(realData::nu)));
-                    Cs = std::sqrt((lambda + 2.0 * mu) /
-                                   p.rdata(realData::density));
+                    Cs = std::sqrt((lambda + 2.0 * mu) / rho);
                 }
 
                 // Dimension‑aware velocity magnitude
@@ -237,6 +238,19 @@ void MPMParticleContainer::moveParticles(
 #if USE_EB
     bool using_levsets = mpm_ebtools::using_levelset_geometry;
     int lsref = mpm_ebtools::ls_refinement;
+
+    // Bug 1 + Bug 4 fix: coarsen lsphi onto particle BA/DM.
+    // Using lsphi's DM with the particle MFIter causes CUDA error 700.
+    amrex::MultiFab lsphi_coarse;
+    if (using_levsets)
+    {
+        BoxArray nodal_ba = amrex::convert(ParticleBoxArray(lev),
+                                           IntVect::TheNodeVector());
+        lsphi_coarse.define(nodal_ba, ParticleDistributionMap(lev), 1, 1);
+        amrex::average_down_nodal(*mpm_ebtools::lsphi, lsphi_coarse,
+                                  amrex::IntVect(lsref));
+        lsphi_coarse.FillBoundary(Geom(lev).periodicity());
+    }
 #endif
 
     GpuArray<int, AMREX_SPACEDIM> bc_lo_arr, bc_hi_arr;
@@ -289,6 +303,8 @@ void MPMParticleContainer::moveParticles(
         amrex::Array4<amrex::Real> lsetarr;
         if (using_levsets)
         {
+            // Bug 4 fix: use lsphi_coarse (particle DM), not lsphi directly
+
             lsetarr = lsphi_coarse.array(mfi);
         }
 #endif

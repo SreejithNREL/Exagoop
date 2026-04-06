@@ -36,6 +36,7 @@
 
 using namespace amrex;
 
+#if USE_EB
 void build_udf_eb_only(
     std::function<amrex::Real(const amrex::RealArray &)> udf_if,
     const amrex::Geometry &geom,
@@ -46,7 +47,6 @@ void build_udf_eb_only(
     amrex::MultiFab *&lsphi_out,
     amrex::EBFArrayBoxFactory *&ebfactory_out);
 
-#if USE_EB
 namespace mpm_ebtools
 {
 extern EBFArrayBoxFactory *ebfactory;
@@ -100,7 +100,7 @@ void make_wedge_hopper_levelset(const Geometry &geom,
  * @return Interpolated level‑set value at ptxyz.
  */
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 get_levelset_value(amrex::Array4<amrex::Real> phi,
                    const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> problo,
                    const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> dx,
@@ -233,7 +233,7 @@ inline amrex::Real get_levelset_value_cpu(
  * @return None.
  */
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 get_levelset_grad(amrex::Array4<amrex::Real> phi,
                   const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> problo,
                   const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> dx,

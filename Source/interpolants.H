@@ -243,7 +243,7 @@ cubicspline_1d(int shapefunctiontype, amrex::Real zi)
  * @return Derivative of the cubic B‑spline basis function at zi.
  */
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 cubicspline_1d_der(int shapefunctiontype, amrex::Real zi)
 {
     amrex::Real value = 0.0;
@@ -294,7 +294,7 @@ quadraticspline_1d(int shapefunctiontype, amrex::Real zi)
  * @return Derivative of the quadratic B‑spline basis function at zi.
  */
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 quadraticspline_1d_der(int shapefunctiontype, amrex::Real zi)
 {
     amrex::Real value = 0.0;
@@ -322,7 +322,7 @@ quadraticspline_1d_der(int shapefunctiontype, amrex::Real zi)
  * @return Gaussian kernel value at xi.
  */
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 spherical_gaussian(amrex::Real xi[AMREX_SPACEDIM],
                    amrex::Real xp[AMREX_SPACEDIM],
                    amrex::Real r0)
@@ -360,7 +360,7 @@ spherical_gaussian(amrex::Real xi[AMREX_SPACEDIM],
  * @return 1.0 if inside support, 0.0 otherwise.
  */
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 box_kernel(amrex::Real xi[AMREX_SPACEDIM],
            amrex::Real xp[AMREX_SPACEDIM],
            amrex::Real r0)
@@ -399,7 +399,7 @@ box_kernel(amrex::Real xi[AMREX_SPACEDIM],
  * @return Level-set-like scalar value.
  */
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 levelset(amrex::Real xi[AMREX_SPACEDIM],
          amrex::Real xp[AMREX_SPACEDIM],
          amrex::Real r0,
@@ -439,7 +439,7 @@ levelset(amrex::Real xi[AMREX_SPACEDIM],
  * @return Hat function value at xi.
  */
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 hat1d(amrex::Real xi, amrex::Real xp, amrex::Real hatsize)
 {
     amrex::Real zeta = xi - xp;
@@ -475,7 +475,7 @@ hat1d(amrex::Real xi, amrex::Real xp, amrex::Real hatsize)
  * @return Tensor-product hat basis value.
  */
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 hatND(amrex::Real xi[AMREX_SPACEDIM],
       amrex::Real xp[AMREX_SPACEDIM],
       amrex::Real hatsize[AMREX_SPACEDIM])
@@ -514,7 +514,7 @@ hatND(amrex::Real xi[AMREX_SPACEDIM],
  * @return Interpolated nodal value at xp.
  */
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 bilin_interp(amrex::Real xp[AMREX_SPACEDIM],
              amrex::IntVect iv,
              const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> plo,
@@ -588,7 +588,7 @@ bilin_interp(amrex::Real xp[AMREX_SPACEDIM],
  * comp1
  */
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 bilin_interp_two(amrex::Real xp[AMREX_SPACEDIM],
                  amrex::IntVect iv,
                  const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> plo,
@@ -684,7 +684,7 @@ bilin_interp_two(amrex::Real xp[AMREX_SPACEDIM],
  * @return Quadratic B‑spline interpolated value.
  */
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 quadratic_interp(amrex::Real xp[AMREX_SPACEDIM],
                  IntVect iv,
                  IntVect min_index,
@@ -867,7 +867,7 @@ quadratic_interp(amrex::Real xp[AMREX_SPACEDIM],
  * comp1
  */
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 quadratic_interp_two(amrex::Real xp[AMREX_SPACEDIM],
                      IntVect iv,
                      IntVect min_index,
@@ -1028,7 +1028,7 @@ quadratic_interp_two(amrex::Real xp[AMREX_SPACEDIM],
  * @return Cubic B‑spline interpolated value.
  */
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 cubic_interp(amrex::Real xp[AMREX_SPACEDIM],
              IntVect iv,
              IntVect min_index,
@@ -1221,7 +1221,7 @@ cubic_interp(amrex::Real xp[AMREX_SPACEDIM],
  * comp1
  */
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 cubic_interp_two(amrex::Real xp[AMREX_SPACEDIM],
                  IntVect iv,
                  IntVect min_index,
@@ -1472,7 +1472,7 @@ basisval(const IntVect stencil,
  * @return Derivative of basis function in direction dir.
  */
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 basisvalder(const int dir,
             const IntVect stencil,
             const IntVect cell,
@@ -1576,7 +1576,7 @@ basisvalder(const int dir,
  * @return Basis function value N at xp.
  */
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
 basisval_and_grad(const IntVect stencil,
                   const IntVect cell,
                   const amrex::Real xp[AMREX_SPACEDIM],
@@ -1669,7 +1669,7 @@ basisval_and_grad(const IntVect stencil,
  * @return None.
  */
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 get_tensor(MPMParticleContainer::ParticleType &p,
            int start_index,
            amrex::Real tens[AMREX_SPACEDIM * AMREX_SPACEDIM])
@@ -1699,7 +1699,7 @@ get_tensor(MPMParticleContainer::ParticleType &p,
  * @return None.
  */
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 get_vector(MPMParticleContainer::ParticleType &p,
            int start_index,
            amrex::Real vect[AMREX_SPACEDIM])
@@ -1790,7 +1790,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE void get_deformation_gradient_tensor(
  * @return None.
  */
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 tensor_vector_pdt(amrex::Real tens[AMREX_SPACEDIM * AMREX_SPACEDIM],
                   amrex::Real vect[AMREX_SPACEDIM],
                   amrex::Real tensvect[AMREX_SPACEDIM])
