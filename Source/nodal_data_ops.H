@@ -49,13 +49,15 @@ void nodal_bcs(const amrex::Geometry geom,
 void nodal_bcs(const amrex::Geometry geom,
                amrex::MultiFab &nodaldata,
                const amrex::Real &dt);
-void nodal_bcs_temperature(
-    const amrex::Geometry geom,
-    amrex::MultiFab &nodaldata,
-    int bcloarr[AMREX_SPACEDIM],
-    int bchiarr[AMREX_SPACEDIM],
-    amrex::Real dirichlet_temperature_lo[AMREX_SPACEDIM],
-    amrex::Real dirichlet_temperature_hi[AMREX_SPACEDIM]);
+void nodal_bcs_temperature(const amrex::Geometry geom,
+                           amrex::MultiFab &nodaldata,
+                           int bclo_type[AMREX_SPACEDIM],
+                           int bchi_type[AMREX_SPACEDIM],
+                           amrex::Real bclo_val[AMREX_SPACEDIM],
+                           amrex::Real bchi_val[AMREX_SPACEDIM],
+                           amrex::Real bclo_Tinf[AMREX_SPACEDIM],
+                           amrex::Real bchi_Tinf[AMREX_SPACEDIM],
+                           bool pre_update = false);
 void CalculateSurfaceIntegralOnBG(const amrex::Geometry geom,
                                   amrex::MultiFab &nodaldata,
                                   int nodaldataindex,
