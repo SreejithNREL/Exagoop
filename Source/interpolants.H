@@ -41,7 +41,6 @@ AMREX_GPU_DEVICE AMREX_GPU_CONSTANT
 AMREX_GPU_DEVICE AMREX_GPU_CONSTANT
 #endif
     constexpr CubicSplineCoeff cubic_spline_coeffs[5][4] = {
-        // shapefunctiontype = 0 (unused, just filler)
         {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}},
 
         // shapefunctiontype = 1 (Boundary node)
@@ -64,7 +63,7 @@ AMREX_GPU_DEVICE AMREX_GPU_CONSTANT
          {0.5, -1.0, 0.0, twobythree},
          {-onebysix, 1.0, -2.0, fourbythree}},
 
-        // shapefunctiontype = 4 (Alternative interior node)
+        // shapefunctiontype = 4 (Near boundary node, high boundary)
         {{onebysix, 1.0, 2.0, fourbythree},
          {-0.5, -1.0, 0.0, twobythree},
          {onebythree, -1.0, 0.0, twobythree},
@@ -74,7 +73,6 @@ AMREX_GPU_DEVICE AMREX_GPU_CONSTANT
 AMREX_GPU_DEVICE AMREX_GPU_CONSTANT
 #endif
     constexpr CubicSplineDerCoeff cubic_splineder_coeffs[5][4] = {
-        // shapefunctiontype = 0 (unused filler)
         {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}},
 
         // shapefunctiontype = 1 (Boundary node)
@@ -108,7 +106,6 @@ AMREX_GPU_DEVICE AMREX_GPU_CONSTANT
 AMREX_GPU_DEVICE AMREX_GPU_CONSTANT
 #endif
     constexpr QuadraticSplineCoeff quad_spline_coeffs[5][4] = {
-        // shapefunctiontype = 0 (unused filler)
         {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}},
 
         // shapefunctiontype = 1 (Boundary node, low/high end)
@@ -139,7 +136,6 @@ AMREX_GPU_DEVICE AMREX_GPU_CONSTANT
 AMREX_GPU_DEVICE AMREX_GPU_CONSTANT
 #endif
     constexpr QuadraticSplineDerCoeff quad_splineder_coeffs[5][4] = {
-        // shapefunctiontype = 0 (unused filler)
         {{0, 0}, {0, 0}, {0, 0}, {0, 0}},
 
         // shapefunctiontype = 1 (Boundary node)
@@ -185,7 +181,6 @@ AMREX_GPU_DEVICE AMREX_GPU_CONSTANT
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE int
 interval_idx_quadratic(int shapefunctiontype, amrex::Real zi)
 {
-    // shift depends on type
     amrex::Real shift = (shapefunctiontype == 2) ? 1.0 : 1.5;
     int raw = static_cast<int>(std::floor((zi + shift) * 2));
     if (raw < 0 || raw >= 6)
@@ -515,14 +510,12 @@ bilin_interp(amrex::Real xp[AMREX_SPACEDIM],
     amrex::Real value = shunya;
 
 #if (AMREX_SPACEDIM == 1)
-    // Linear interpolation in 1D
     int i = iv[XDIR];
     amrex::Real alpha = (xp[0] - (plo[0] + i * dx[0])) / dx[0];
     value = (1.0 - alpha) * nodaldata(i, 0, 0, comp) +
             alpha * nodaldata(i + 1, 0, 0, comp);
 
 #elif (AMREX_SPACEDIM == 2)
-    // Bilinear interpolation in 2D
     int i = iv[XDIR];
     int j = iv[YDIR];
     amrex::Real alpha = (xp[0] - (plo[0] + i * dx[0])) / dx[0];
@@ -534,7 +527,6 @@ bilin_interp(amrex::Real xp[AMREX_SPACEDIM],
     value += alpha * beta * nodaldata(i + 1, j + 1, 0, comp);
 
 #elif (AMREX_SPACEDIM == 3)
-    // Trilinear interpolation in 3D (your original code)
     int i = iv[XDIR];
     int j = iv[YDIR];
     int k = iv[ZDIR];
@@ -1482,7 +1474,6 @@ basisvalder(const int dir,
         const int od = order_scheme_directional[d];
         const amrex::Real dxinv = eka / dx[d]; // computed once per dimension
 
-        // Default: interior cubic shape
         int shapefunctype = 3;
 
         // Local coordinate r: for linear, centered at cell i; for cubic, at
@@ -1501,7 +1492,7 @@ basisvalder(const int dir,
         }
         else if (od == 2)
         {
-            // Cubic spline shape (order 3): classify boundary/periodic type
+            // quadratic spline shape (order 2): classify boundary/periodic type
 
             int idx = i + l;
             if (periodic[d] == 0)
@@ -1581,7 +1572,6 @@ basisval_and_grad(const IntVect stencil,
     amrex::Real val1d[AMREX_SPACEDIM];
     amrex::Real der1d[AMREX_SPACEDIM];
 
-    // Compute 1D basis value and derivative for each dimension once
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
     {
         const int i = cell[d];

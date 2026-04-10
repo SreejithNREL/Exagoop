@@ -47,17 +47,11 @@
 namespace mpm_ebtools
 {
 
-// ---------------------------------------------------------------
-// Global state definitions (declared extern in mpm_eb.H)
-// ---------------------------------------------------------------
 EBFArrayBoxFactory *ebfactory = nullptr;
 MultiFab *lsphi = nullptr;
 int ls_refinement = 1;
 bool using_levelset_geometry = false;
 
-// ---------------------------------------------------------------
-// Internal helpers
-// ---------------------------------------------------------------
 
 /**
  * @brief Computes required_coarsening_level = log2(ls_ref).
@@ -139,23 +133,13 @@ static void build_udf_levelset(const Geometry &geom,
     amrex::ParmParse pp("eb2");
     pp.get("udf_so_file", so_file);
 
-    amrex::Print() << "[EB] Path A — UDF shared library: " << so_file << "\n";
+    amrex::Print() << "\n[EB] Reading from UDF shared library: " << so_file << "\n";
 
-    // UDFLoader owns the dlopen handle for the entire scope.
-    // UDFImplicitFunction borrows only the raw function pointer — it is
-    // copyable, which AMReX's EB2::makeShop / EB2::Build requires.
-    // loader must remain alive until after build_udf_eb returns (and the
-    // EB2 index space is fully built) — keeping it here on the stack does that.
     UDFLoader loader(so_file);
     UDFImplicitFunction udf_if(loader);
 
-    // build_udf_eb lives in mpm_eb_udf_build.cpp (CXX-only) so that
-    // EB2::Build with a std::function lambda is never seen by nvcc.
     build_udf_eb(udf_if, geom, ba, dm, nghost, ls_ref, lsphi, ebfactory);
 
-    // Fill lsphi via LoopOnCpu — UDF function pointers are CPU-only.
-    // We need the refined geometry's problo/dx to evaluate the UDF at
-    // each nodal point.
     Geometry geom_ls = refined_geom(geom, ls_ref);
     const auto plo = geom_ls.ProbLoArray();
     const auto dx_ls = geom_ls.CellSizeArray();
@@ -179,15 +163,8 @@ static void build_udf_levelset(const Geometry &geom,
                              arr(i, j, k) = udf_if(p);
                          });
     }
-
-    // Bug 2 fix: FillBoundary after LoopOnCpu using the REFINED geometry
-    // periodicity so ghost cells are valid before any downstream read.
     lsphi->FillBoundary(geom_ls.periodicity());
 }
-
-// ---------------------------------------------------------------
-// Path B — STL file
-// ---------------------------------------------------------------
 
 /**
  * @brief Builds EB and fills lsphi from an STL surface mesh.
@@ -208,10 +185,8 @@ static void build_stl_levelset(const Geometry &geom,
     amrex::ParmParse pp("eb2");
     pp.get("stl_file", stl_file);
 
-    amrex::Print() << "[EB] Path B — STL file: " << stl_file << "\n";
+    amrex::Print() << "\n[EB] Reading STL file: " << stl_file << "\n";
 
-    // AMReX reads eb2.stl_file directly from ParmParse during EB2::Build.
-    // The pp.get() above validated the key exists; no need to re-add it.
 
     Geometry geom_ls = refined_geom(geom, ls_ref);
     int req_coarsen = coarsening_level_for_refinement(ls_ref);
@@ -231,9 +206,6 @@ static void build_stl_levelset(const Geometry &geom,
     lsphi->define(ls_ba, dm, 1, nghost);
 
     amrex::FillSignedDistance(*lsphi, lslev, *ebfactory, ls_ref);
-
-    // FillSignedDistance fills ghost cells internally, but an explicit
-    // FillBoundary ensures periodicity is correct across MPI ranks.
     lsphi->FillBoundary(geom_ls.periodicity());
 #endif
 }

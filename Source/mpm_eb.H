@@ -45,7 +45,7 @@ class EBFArrayBoxFactory;
  *
  * Defined in mpm_eb_udf_build.cpp (CXX-only TU — never compiled by nvcc).
  */
-void build_udf_eb(UDFImplicitFunction udf_if, // copyable — pass by value
+void build_udf_eb(UDFImplicitFunction udf_if,
                   const amrex::Geometry &geom,
                   const amrex::BoxArray &ba,
                   const amrex::DistributionMapping &dm,
@@ -66,7 +66,7 @@ extern bool using_levelset_geometry;
 void init_eb(const Geometry &geom,
              const BoxArray &ba,
              const DistributionMapping &dm);
-} // namespace mpm_ebtools
+}
 #endif
 
 // ============================================================

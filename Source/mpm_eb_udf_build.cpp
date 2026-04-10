@@ -60,7 +60,6 @@ void build_udf_eb(UDFImplicitFunction udf_if, // copyable — EB2 will copy it
     dom_ls.refine(ls_refinement);
     amrex::Geometry geom_ls(dom_ls);
 
-    // required_coarsening_level = log2(ls_refinement)
     int required_coarsening_level = 0;
     if (ls_refinement > 1)
     {
@@ -69,9 +68,6 @@ void build_udf_eb(UDFImplicitFunction udf_if, // copyable — EB2 will copy it
             ++required_coarsening_level;
     }
 
-    // EB2::makeShop requires the implicit function by value; wrap in a lambda
-    // so the UDFImplicitFunction (which owns the dlopen handle) is captured
-    // by reference — safe because udf_if outlives this call.
     auto shop = amrex::EB2::makeShop(udf_if);
     amrex::EB2::Build(shop, geom_ls, required_coarsening_level,
                       /*max_coarsening_level=*/10);
@@ -79,11 +75,8 @@ void build_udf_eb(UDFImplicitFunction udf_if, // copyable — EB2 will copy it
     const amrex::EB2::IndexSpace &ebis = amrex::EB2::IndexSpace::top();
     const amrex::EB2::Level &eblev = ebis.getLevel(geom);
 
-    // Build factory at coarse level
-    ebfactory_out = new amrex::EBFArrayBoxFactory(
-        eblev, geom, ba, dm, {nghost, nghost, nghost}, amrex::EBSupport::full);
+    ebfactory_out = new amrex::EBFArrayBoxFactory(eblev, geom, ba, dm, {nghost, nghost, nghost}, amrex::EBSupport::full);
 
-    // Allocate nodal lsphi at refined resolution
     amrex::BoxArray ls_ba = amrex::convert(ba, amrex::IntVect::TheNodeVector());
     ls_ba.refine(ls_refinement);
 
