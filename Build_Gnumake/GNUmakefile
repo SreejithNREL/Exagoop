@@ -35,6 +35,26 @@ USE_CUDA  = TRUE
 USE_HIP   = FALSE
 USE_SYCL  = FALSE
 
+# Fix 9+10: IEEE-754 compliant GPU arithmetic.
+#
+# USE_CUDA_FAST_MATH=FALSE disables --use_fast_math, which removes:
+#   -prec-div=false  (approximate division)
+#   -prec-sqrt=false (approximate sqrt — used in Cs=sqrt(K/rho))
+#   --ftz=true       (flush denormals to zero)
+#
+# However, -fmad (fused multiply-add) is the nvcc DEVICE-CODE DEFAULT
+# regardless of --use_fast_math.  With FMA, every a*b+c in the basis
+# function evaluation, P2G scatter, and F update uses ONE rounding
+# instead of two, silently diverging from CPU IEEE-754 results.  After
+# ~237 MUSL steps with Tait EOS gamma=7, the accumulated ULP errors
+# in F grow into a 2x wave-speed difference.
+#
+# Fix: set USE_CUDA_FAST_MATH=FALSE + XTRA_NVCC_FLAGS=-fmad=false.
+# Together these make GPU double arithmetic fully IEEE-754-identical
+# to CPU, giving bit-reproducible serial ↔ CUDA single-tile results.
+USE_CUDA_FAST_MATH = FALSE
+XTRA_NVCC_FLAGS   += -fmad=false
+
 # ===============================================================
 # Debugging
 # ===============================================================

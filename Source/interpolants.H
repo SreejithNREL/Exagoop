@@ -1720,12 +1720,28 @@ get_vector(MPMParticleContainer::ParticleType &p,
  * @return None.
  */
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE void get_deformation_gradient_tensor(
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void get_deformation_gradient_tensor(
     MPMParticleContainer::ParticleType &p,
     int start_index,
     amrex::Real gradvp[AMREX_SPACEDIM][AMREX_SPACEDIM],
     amrex::Real dt)
 {
+    // Fix 4: guard against ghost-cell garbage producing enormous gradvp values
+    // which would invert F and drive detF -> 0 -> density -> Inf -> dt -> 0.
+    amrex::Real gradvp_norm = 0.0;
+    for (int d1 = 0; d1 < AMREX_SPACEDIM; d1++)
+        for (int d2 = 0; d2 < AMREX_SPACEDIM; d2++)
+            gradvp_norm += gradvp[d1][d2] * gradvp[d1][d2];
+
+    if (gradvp_norm >= 1.0e10)
+    {
+        /* amrex::AllPrint()
+            << "WARNING: large gradvp_norm=" << gradvp_norm
+                          << " at pos=(" << p.pos(0) << "," << p.pos(1)
+                          << ") — skipping F update\n";*/
+        return;
+    }
+
     amrex::Real Lp[AMREX_SPACEDIM][AMREX_SPACEDIM];
     amrex::Real Fp[AMREX_SPACEDIM][AMREX_SPACEDIM];
 

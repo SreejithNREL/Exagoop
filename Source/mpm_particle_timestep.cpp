@@ -89,7 +89,77 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
                     dxmin = amrex::min(dxmin, dx[d]);
                 }
 
-                return dxmin / (Cs + velmag);
+#ifndef __CUDA_ARCH__
+                // Step 2 diagnostic: print first 5 particles evaluated
+                {
+                    static int print_count = 0;
+                    if (print_count < 5)
+                    {
+                        amrex::AllPrint()
+                            << "DEBUG particle: Cs=" << Cs
+                            << " velmag=" << velmag
+                            << " density=" << p.rdata(realData::density)
+                            << " Bulk_modulus="
+                            << p.rdata(realData::Bulk_modulus)
+                            << " constitutive_model="
+                            << p.idata(intData::constitutive_model) << "\n";
+                        ++print_count;
+                    }
+                }
+#endif
+                amrex::Real dt_p = dxmin / (Cs + velmag);
+                // Fix 6: guard against NaN/Inf/zero from degenerate particles
+                if (dt_p <= 0.0)
+                {
+#ifndef __CUDA_ARCH__
+                    amrex::AllPrint()
+                        << "WARNING: bad dt_p=" << dt_p << " Cs=" << Cs
+                        << " velmag=" << velmag
+                        << " density=" << p.rdata(realData::density)
+                        << " constitutive_model="
+                        << p.idata(intData::constitutive_model) << " pos=("
+                        << p.pos(0) << "," << p.pos(1) << ")\n";
+#endif
+                    return amrex::Real(1.0e10); // exclude from min reduction
+                }
+                // Rogue particle diagnostic: fires from inside the GPU kernel
+                // (CUDA printf is device-safe; amrex::AllPrint for CPU builds).
+                // Threshold on raw dt_p (pre-CFL): 5e-5 → Cs+v > dxmin/5e-5.
+                if (dt_p < 5.0e-5)
+                {
+#ifdef __CUDA_ARCH__
+                    printf("ROGUE GPU: dt_p=%.6e Cs=%.6e velmag=%.6e"
+                           " density=%.6e Bulk_modulus=%.6e pressure=%.6e"
+                           " jacobian=%.6e volume=%.6e vol_init=%.6e"
+                           " cm=%d pos=(%.6f,%.6f)\n",
+                           (double)dt_p,
+                           (double)Cs,
+                           (double)velmag,
+                           (double)p.rdata(realData::density),
+                           (double)p.rdata(realData::Bulk_modulus),
+                           (double)p.rdata(realData::pressure),
+                           (double)p.rdata(realData::jacobian),
+                           (double)p.rdata(realData::volume),
+                           (double)p.rdata(realData::vol_init),
+                           (int)p.idata(intData::constitutive_model),
+                           (double)p.pos(0),
+                           (double)p.pos(1));
+#else
+                    amrex::AllPrint()
+                        << "ROGUE CPU: dt_p=" << dt_p
+                        << " Cs=" << Cs
+                        << " velmag=" << velmag
+                        << " density=" << p.rdata(realData::density)
+                        << " Bulk_modulus=" << p.rdata(realData::Bulk_modulus)
+                        << " pressure=" << p.rdata(realData::pressure)
+                        << " jacobian=" << p.rdata(realData::jacobian)
+                        << " volume=" << p.rdata(realData::volume)
+                        << " vol_init=" << p.rdata(realData::vol_init)
+                        << " cm=" << p.idata(intData::constitutive_model)
+                        << " pos=(" << p.pos(0) << "," << p.pos(1) << ")\n";
+#endif
+                }
+                return dt_p;
             }
             return std::numeric_limits<amrex::Real>::max();
         });
@@ -98,8 +168,32 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
     ParallelDescriptor::ReduceRealMin(dt);
 #endif
 
+    // Step 1 diagnostics: host-side, printed once per Calculate_time_step call
+    {
+        amrex::Real dxmin_host = dx[0];
+        for (int d = 1; d < AMREX_SPACEDIM; ++d)
+            dxmin_host = amrex::min(dxmin_host, dx[d]);
+        amrex::Print() << "DEBUG dxmin=" << dxmin_host << "\n";
+        amrex::Print() << "DEBUG CFL=" << specs.CFL << "\n";
+        amrex::Print() << "DEBUG dt_before_clamp=" << specs.CFL * dt << "\n";
+        amrex::Print() << "DEBUG dt_max_limit=" << specs.dt_max_limit << "\n";
+        amrex::Print() << "DEBUG dt_min_limit=" << specs.dt_min_limit << "\n";
+    }
+
+    // Host-side anomaly marker: the per-particle ROGUE lines are printed
+    // directly from the GPU kernel above via CUDA printf (device-safe).
+    // The host-side particle loop was removed — it segfaulted because this
+    // AMReX build uses device (non-managed) memory for particle arrays.
+    if (dt < 5.0e-5)
+    {
+        amrex::Gpu::streamSynchronize(); // flush CUDA printf buffer
+        amrex::Print() << "ANOMALOUS dt_raw=" << dt
+                       << " (ROGUE GPU lines printed above)\n";
+    }
+
     dt = specs.CFL * dt;
     dt = std::max(std::min(dt, specs.dt_max_limit), specs.dt_min_limit);
+    amrex::Print() << "DEBUG dt_final=" << dt << "\n";
     return dt;
 }
 
@@ -131,7 +225,8 @@ void MPMParticleContainer::updateVolume()
     {
         auto &ptile = plev[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
         auto &aos = ptile.GetArrayOfStructs();
-        const size_t np = aos.numParticles();
+        // Fix 2: iterate real particles only — neighbor slots have stale F
+        const int np = aos.numRealParticles();
         ParticleType *pstruct = aos().dataPtr();
 
         amrex::ParallelFor(
@@ -164,11 +259,25 @@ void MPMParticleContainer::updateVolume()
                            F[0][2] * (F[1][0] * F[2][1] - F[1][1] * F[2][0]);
 #endif
 
-                    p.rdata(realData::jacobian) = detF;
-                    p.rdata(realData::volume) =
-                        p.rdata(realData::vol_init) * detF;
-                    p.rdata(realData::density) =
-                        p.rdata(realData::mass) / p.rdata(realData::volume);
+                    // Fix 1: guard against inverted/degenerate particles
+                    if (detF > 1.0e-14)
+                    {
+                        p.rdata(realData::jacobian) = detF;
+                        p.rdata(realData::volume) =
+                            p.rdata(realData::vol_init) * detF;
+                        p.rdata(realData::density) =
+                            p.rdata(realData::mass) / p.rdata(realData::volume);
+                    }
+                    else
+                    {
+                        // Degenerate particle — clamp to avoid Inf/NaN
+                        // propagation. Keep previous volume/density unchanged.
+#ifndef __CUDA_ARCH__
+                        amrex::AllPrint()
+                            << "WARNING: detF <= 0 at pos=(" << p.pos(0) << ","
+                            << p.pos(1) << ") detF=" << detF << "\n";
+#endif
+                    }
                 }
             });
     }
@@ -292,7 +401,11 @@ void MPMParticleContainer::moveParticles(
     {
         auto &ptile = plev[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
         auto &aos = ptile.GetArrayOfStructs();
-        const size_t np = aos.numParticles();
+        // Fix 7: iterate real particles only — writing positions / xvel back to
+        // neighbor slots corrupts wall-BC reflections and CUDA ReduceMin when
+        // stale xvel_prime of a neighbor particle near a wall triggers an
+        // incorrect reflection (same class of bug as Fix 2 / Fix 3).
+        const size_t np = aos.numRealParticles();
         ParticleType *pstruct = aos().dataPtr();
 
 #if USE_EB
@@ -544,3 +657,4 @@ void MPMParticleContainer::UpdateRigidParticleVelocities(
                            });
     }
 }
+                          
