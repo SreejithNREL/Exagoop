@@ -34,3 +34,14 @@ build_matrix_*.json
 build_matrix_*.txt
 Tests/**/ebplt*
 Tests/**/plt*
+
+# IDE files
+.cproject
+.project
+.settings/
+.vs/
+.vscode/
+*.suo
+*.user
+CMake/udf_builder/.cproject
+Docs/.cproject
