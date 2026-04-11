@@ -128,11 +128,6 @@ int main(int argc, char *argv[])
             {
                 // Algo 2, 19
                 G2P_Momentum(specs, mpm_pc, nodaldata, 1, 0, dt);
-                // Fix 8: refresh neighbor xvel before the MUSL corrector P2G.
-                // G2P above updated xvel on real particles to xvel^{n+1}.
-                // Without this, the second P2G (step 20) uses stale neighbor
-                // xvel^n for boundary nodes, giving wrong gradvp in step 25
-                // and causing F to drift in multi-tile CUDA runs.
                 mpm_pc.updateNeighbors();
                 // 20
                 P2G_Momentum(specs, mpm_pc, nodaldata, 0, 1, 0);

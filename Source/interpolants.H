@@ -1726,8 +1726,6 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void get_deformation_gradient_tensor(
     amrex::Real gradvp[AMREX_SPACEDIM][AMREX_SPACEDIM],
     amrex::Real dt)
 {
-    // Fix 4: guard against ghost-cell garbage producing enormous gradvp values
-    // which would invert F and drive detF -> 0 -> density -> Inf -> dt -> 0.
     amrex::Real gradvp_norm = 0.0;
     for (int d1 = 0; d1 < AMREX_SPACEDIM; d1++)
         for (int d2 = 0; d2 < AMREX_SPACEDIM; d2++)
@@ -1806,3 +1804,7 @@ tensor_vector_pdt(amrex::Real tens[AMREX_SPACEDIM * AMREX_SPACEDIM],
         {
             tensvect[i] += tens[i * AMREX_SPACEDIM + j] * vect[j];
         }
+    }
+}
+
+#endif
