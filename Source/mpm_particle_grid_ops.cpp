@@ -555,8 +555,17 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
                                         amrex::Real mass_contrib =
                                             p.rdata(realData::mass) *
                                             basisvalue;
-                                        nodal_data_arr(ivlocal, MASS_INDEX) +=
-                                            mass_contrib;
+                                        // Fix 11: use atomic add — color-stride
+                                        // guarantees disjoint stencils only when
+                                        // each cell holds ≤1 particle.  In large-
+                                        // deformation MPM, particles migrate and
+                                        // multiple particles can share a cell.
+                                        // Plain += causes a GPU race; AddNoRet
+                                        // compiles to plain += on CPU and to an
+                                        // atomic on GPU, fixing both cases.
+                                        amrex::Gpu::Atomic::AddNoRet(
+                                            &nodal_data_arr(ivlocal, MASS_INDEX),
+                                            mass_contrib);
                                     }
                                     if (update_vel)
                                     {
@@ -576,9 +585,11 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
                                         for (int dim = 0; dim < AMREX_SPACEDIM;
                                              dim++)
                                         {
-                                            nodal_data_arr(ivlocal,
-                                                           VELX_INDEX + dim) +=
-                                                p_contrib[dim];
+                                            // Fix 11: atomic add (see MASS comment)
+                                            amrex::Gpu::Atomic::AddNoRet(
+                                                &nodal_data_arr(ivlocal,
+                                                                VELX_INDEX + dim),
+                                                p_contrib[dim]);
                                         }
                                     }
 
@@ -640,10 +651,12 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
                                         for (int dim = 0; dim < AMREX_SPACEDIM;
                                              dim++)
                                         {
-                                            nodal_data_arr(ivlocal,
-                                                           FRCX_INDEX + dim) +=
+                                            // Fix 11: atomic add (see MASS comment)
+                                            amrex::Gpu::Atomic::AddNoRet(
+                                                &nodal_data_arr(ivlocal,
+                                                                FRCX_INDEX + dim),
                                                 bforce_contrib[dim] +
-                                                intforce_contrib[dim];
+                                                intforce_contrib[dim]);
                                         }
                                     }
                                 }
@@ -873,11 +886,16 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
                                             p.rdata(realData::specific_heat) *
                                             p.rdata(realData::temperature) *
                                             basisvalue;
-                                        nodal_data_arr(ivlocal, MASS_SPHEAT) +=
-                                            mass_spheat_contrib;
-                                        nodal_data_arr(ivlocal,
-                                                       MASS_SPHEAT_TEMP) +=
-                                            mass_spheat_temp_contrib;
+                                        // Fix 11b: atomic add — same race
+                                        // condition as momentum P2G when
+                                        // multiple particles share a cell.
+                                        amrex::Gpu::Atomic::AddNoRet(
+                                            &nodal_data_arr(ivlocal, MASS_SPHEAT),
+                                            mass_spheat_contrib);
+                                        amrex::Gpu::Atomic::AddNoRet(
+                                            &nodal_data_arr(ivlocal,
+                                                            MASS_SPHEAT_TEMP),
+                                            mass_spheat_temp_contrib);
                                     }
 
                                     if (update_source)
@@ -914,9 +932,11 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
                                             p.rdata(realData::heat_source) *
                                             basisvalue;
 
-                                        nodal_data_arr(ivlocal,
-                                                       SOURCE_TEMP_INDEX) +=
-                                            int_source + ext_source;
+                                        // Fix 11b: atomic add (see above)
+                                        amrex::Gpu::Atomic::AddNoRet(
+                                            &nodal_data_arr(ivlocal,
+                                                            SOURCE_TEMP_INDEX),
+                                            int_source + ext_source);
                                     }
                                 }
                             }

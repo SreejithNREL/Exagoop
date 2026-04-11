@@ -1735,10 +1735,6 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void get_deformation_gradient_tensor(
 
     if (gradvp_norm >= 1.0e10)
     {
-        /* amrex::AllPrint()
-            << "WARNING: large gradvp_norm=" << gradvp_norm
-                          << " at pos=(" << p.pos(0) << "," << p.pos(1)
-                          << ") — skipping F update\n";*/
         return;
     }
 
@@ -1810,7 +1806,3 @@ tensor_vector_pdt(amrex::Real tens[AMREX_SPACEDIM * AMREX_SPACEDIM],
         {
             tensvect[i] += tens[i * AMREX_SPACEDIM + j] * vect[j];
         }
-    }
-}
-
-#endif

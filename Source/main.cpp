@@ -92,11 +92,6 @@ int main(int argc, char *argv[])
 
             dt = mpm_pc.Calculate_time_step(specs);
 
-            // Fix 5 (temporary diagnostic): unthrottled per-step dt print to
-            // catch the exact step where dt first collapses.
-            amrex::Print() << "Step " << steps << " dt=" << std::scientific
-                           << dt << " time=" << time << "\n";
-
             Reset_Nodaldata_to_Zero(nodaldata, ng_cells_nodaldata);
 
             P2G_Momentum(specs, mpm_pc, nodaldata, 1, 1, 1);
