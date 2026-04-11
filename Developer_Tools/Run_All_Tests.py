@@ -1702,7 +1702,7 @@ def _run_parameter_sweeps():
             #Run_ParameterSweep_2D_HeatConduction(cfg)
         elif test_name == "2D_Heat_Conduction_Cylinder_Dirichlet":
             print('Nothing to do')
-            Run_ParameterSweep_2D_HeatConduction_Cylinder_Dirichlet(cfg)
+            #Run_ParameterSweep_2D_HeatConduction_Cylinder_Dirichlet(cfg)
         elif test_name == "Dam_Break":
             print('Nothing to do')
             #Run_ParameterSweep_Dambreak(cfg)

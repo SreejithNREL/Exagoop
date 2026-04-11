@@ -1,3 +1,12 @@
+# Default catch-all
+* text=auto eol=lf
+
+# Build system files
+*.mak     text eol=lf
+Makefile  text eol=lf
+GNUmakefile text eol=lf
+*.mk      text eol=lf
+
 # Enforce LF line endings for source code
 *.cpp     text eol=lf
 *.hpp     text eol=lf

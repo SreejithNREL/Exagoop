@@ -32,3 +32,5 @@ Developer_Tools/sweep_results.json
 
 build_matrix_*.json
 build_matrix_*.txt
+Tests/**/ebplt*
+Tests/**/plt*
