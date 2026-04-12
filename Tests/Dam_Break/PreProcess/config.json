@@ -43,9 +43,9 @@
     }
   ],
   "CFL": 0.1,
-  "order_scheme": 1,
+  "order_scheme": 3,
   "stress_update_scheme": 1,
-  "output_tag": "Dam_Break__dim2_npcx1_ord1_sus1_USEHDFFalse_OFORMascii_bd3976",
+  "output_tag": "Dam_Break__dim2_npcx1_ord3_sus1_USEHDFFalse_OFORMascii_e7d303",
   "input_filename": "Inputs_DamBreak.inp",
   "output_format": "ascii",
   "materialpoint_filename": "mpm_particles.dat",

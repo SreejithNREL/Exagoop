@@ -9,7 +9,7 @@
     "ny": 1
   },
   "ppc": [
-    1
+    2
   ],
   "bodies": [
     {
@@ -40,9 +40,9 @@
   ],
   "CFL": 0.1,
   "alpha_pic_flip": 1.0,
-  "order_scheme": 1,
+  "order_scheme": 3,
   "stress_update_scheme": 1,
-  "output_tag": "1D_Axial_Bar_Vibration_dim1_npcx1_ord1_flip1.0_sus1_CFL0.1_USEHDFFalse_OFORMascii_62e0a4",
+  "output_tag": "1D_Axial_Bar_Vibration_dim1_npcx2_ord3_flip1.0_sus1_CFL0.1_USEHDFFalse_OFORMascii_8df6e8",
   "input_filename": "Inputs_1DAxialBarVibration.inp",
   "build_with_hdf": true,
   "output_format": "ascii",

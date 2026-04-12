@@ -1,34 +1,130 @@
-#-------------------------------------
-# SET KESTREL CONFIGS HERE
-#-------------------------------------
-# Enable HDF5 in AMReX + ExaGOOP
-#USE_HDF5 = TRUE
-#AMREX_USE_HDF5 = TRUE
-#AMREX_USE_HDF5_PARALLEL = TRUE
+# ================================================================
+# Make.local — machine-local build configuration for ExaGOOP
+#
+# Purpose: keep OS/machine-specific paths out of the main GNUmakefile.
+# This file is detected by OS at make-time via $(shell uname).
+#
+# How HDF5 path injection works:
+#   AMReX's Make.hdf5 (loaded when USE_HDF5=TRUE) picks up HDF5_HOME
+#   and sets INCLUDE_LOCATIONS / LIBRARY_LOCATIONS automatically.
+#   Do NOT manually add -I / -L / -lhdf5 flags here — that causes
+#   duplicate flags and potential link-order issues.
+#
+# Parallel HDF5 note:
+#   AMREX_USE_HDF5_PARALLEL is a CMake variable only.
+#   In GNUmake builds, parallel HDF5 is selected by pointing HDF5_HOME
+#   at a parallel-enabled HDF5 install and setting USE_MPI=TRUE.
+# ================================================================
 
-# No need to set HDF5_HOME, HDF5_INC, HDF5_LIB
-# Cray modules automatically provide correct paths
-
-# Optional: if you want to be explicit
-#CXXFLAGS += $(HDF5_CFLAGS)
-#LDFLAGS  += $(HDF5_LDFLAGS)
-
-#-------------------------------------
-# SET MYMAC CONFIGS HERE
-#-------------------------------------
 UNAME := $(shell uname)
-ifeq ($(UNAME), Darwin)
-  HDF5_HOME = $(shell brew --prefix hdf5-mpi)
-  #HDF5_HOME = $(HOME)/hdf5-parallel
-  HDF5_INC  = $(HDF5_HOME)/include
-  HDF5_LIB  = $(HDF5_HOME)/lib
-  USE_HDF5 = FALSE
-  AMREX_USE_HDF5 = FALSE
-  AMREX_USE_HDF5_PARALLEL = FALSE
-  CXXFLAGS += -I$(HDF5_INC)
-  LDFLAGS  += -L$(HDF5_LIB) -lhdf5 -lhdf5_hl
-endif
-# On Linux: HDF5 disabled by default (USE_HDF5 defaults to FALSE)
-# On Kestrel: HDF5 provided by Cray modules — see Kestrel section above
 
-# USE_CCACHE = TRUE
+# ----------------------------------------------------------------
+# macOS (Darwin)
+# ----------------------------------------------------------------
+ifeq ($(UNAME), Darwin)
+
+  # Prefer a parallel (MPI-enabled) HDF5 built by the user; fall back
+  # to whatever Homebrew provides (usually serial hdf5 or hdf5-mpi).
+  ifneq ($(wildcard $(HOME)/hdf5-parallel/include/hdf5.h),)
+    HDF5_HOME = $(HOME)/hdf5-parallel
+  else
+    HDF5_HOME := $(shell brew --prefix hdf5-mpi 2>/dev/null || brew --prefix hdf5 2>/dev/null)
+  endif
+
+  USE_HDF5                = TRUE
+  AMREX_USE_HDF5          = TRUE
+  # Homebrew serial HDF5 → FALSE; set TRUE only if you built MPI-enabled HDF5
+  AMREX_USE_HDF5_PARALLEL = FALSE
+
+endif  # Darwin
+
+# ----------------------------------------------------------------
+# Linux / WSL (Ubuntu, Debian, and compatible distributions)
+# ----------------------------------------------------------------
+ifeq ($(UNAME), Linux)
+
+  USE_HDF5                = TRUE
+  AMREX_USE_HDF5          = TRUE
+  AMREX_USE_HDF5_PARALLEL = FALSE   # flip to TRUE for a parallel HDF5 install
+
+  # --- Strategy A: HDF5 built from source with a standard prefix ---
+  # Set HDF5_HOME to your install prefix (e.g. $(HOME)/hdf5-parallel).
+  # AMReX will find include/ and lib/ beneath it automatically.
+  #
+  # HDF5_HOME = $(HOME)/hdf5-parallel
+
+  # --- Strategy B: System HDF5 installed via apt (Ubuntu/Debian) ---
+  # Ubuntu places headers and libs in non-standard sub-directories.
+  # Detect which flavour is installed and inject the paths directly.
+  #
+  # IMPORTANT — detection order: parallel before serial.
+  # Parallel HDF5 is a strict superset of serial HDF5: it compiles and
+  # runs correctly for non-MPI builds, and it is the only option that
+  # provides H5Pset_fapl_mpio / H5Pset_dxpl_mpio which AMReX calls when
+  # USE_MPI=TRUE.  Serial HDF5 must only be used when no parallel build
+  # of HDF5 is installed at all.
+
+  # Parallel HDF5 (OpenMPI): apt install libhdf5-openmpi-dev
+  # The openmpi HDF5 headers #include <mpi.h>, so the OpenMPI include
+  # directory must also be on the path (from libopenmpi-dev).
+  ifneq ($(wildcard /usr/include/hdf5/openmpi/hdf5.h),)
+    INCLUDE_LOCATIONS          += /usr/include/hdf5/openmpi
+    LIBRARY_LOCATIONS          += /usr/lib/x86_64-linux-gnu/hdf5/openmpi
+    AMREX_USE_HDF5_PARALLEL     = TRUE
+    _MPI_INC := $(shell mpicc --showme:incdirs 2>/dev/null | tr ' ' '\n' | head -1)
+    ifeq ($(_MPI_INC),)
+      # mpicc not in PATH — use the standard Ubuntu libopenmpi-dev path
+      _MPI_INC := /usr/lib/x86_64-linux-gnu/openmpi/include
+    endif
+    INCLUDE_LOCATIONS          += $(_MPI_INC)
+
+  # Parallel HDF5 (MPICH): apt install libhdf5-mpich-dev
+  else ifneq ($(wildcard /usr/include/hdf5/mpich/hdf5.h),)
+    INCLUDE_LOCATIONS          += /usr/include/hdf5/mpich
+    LIBRARY_LOCATIONS          += /usr/lib/x86_64-linux-gnu/hdf5/mpich
+    AMREX_USE_HDF5_PARALLEL     = TRUE
+    _MPI_INC := $(shell mpicc --showme:incdirs 2>/dev/null | tr ' ' '\n' | head -1)
+    ifeq ($(_MPI_INC),)
+      _MPI_INC := /usr/lib/x86_64-linux-gnu/mpich/include
+    endif
+    INCLUDE_LOCATIONS          += $(_MPI_INC)
+
+  # Serial HDF5: apt install libhdf5-dev
+  # Safe for USE_MPI=FALSE builds only. AMReX will fail to compile if
+  # USE_MPI=TRUE because H5Pset_fapl_mpio is absent from serial HDF5.
+  else ifneq ($(wildcard /usr/include/hdf5/serial/hdf5.h),)
+    ifeq ($(USE_MPI),TRUE)
+      $(warning *** Make.local: serial HDF5 detected but USE_MPI=TRUE.)
+      $(warning *** AMReX needs parallel HDF5 for MPI builds.)
+      $(warning *** Install:  sudo apt install libhdf5-openmpi-dev)
+    endif
+    INCLUDE_LOCATIONS += /usr/include/hdf5/serial
+    LIBRARY_LOCATIONS += /usr/lib/x86_64-linux-gnu/hdf5/serial
+
+  else
+    # --- Strategy C: locate via h5cc wrapper ---
+    # Works for both source-built and module-loaded HDF5.
+    _H5_PREFIX := $(shell h5cc -showconfig 2>/dev/null \
+                    | grep 'Installation point' \
+                    | sed 's/.*:[[:space:]]*//' \
+                    | tr -d '[:space:]')
+    ifneq ($(_H5_PREFIX),)
+      HDF5_HOME ?= $(_H5_PREFIX)
+    else
+      $(warning Make.local: HDF5 not found via apt, h5cc, or HDF5_HOME.)
+      $(warning   Install with:  sudo apt install libhdf5-dev)
+      $(warning   Or set HDF5_HOME manually in Build_Gnumake/Make.local.)
+    endif
+  endif
+
+endif  # Linux
+
+# ----------------------------------------------------------------
+# HPC / Kestrel (Cray PE — modules provide paths automatically)
+# Uncomment the block below when building on Cray/Kestrel.
+# The loaded HDF5 module sets HDF5_DIR, which AMReX's Make.hdf5
+# picks up automatically — no manual path needed.
+# ----------------------------------------------------------------
+# USE_HDF5               = TRUE
+# AMREX_USE_HDF5         = TRUE
+# AMREX_USE_HDF5_PARALLEL = TRUE

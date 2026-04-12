@@ -1,9 +1,94 @@
-# Keeping codebase and machine specific params separate
+# ================================================================
+# Make.local.example — template for machine-local configuration
+#
+# Copy this file to Make.local and edit for your system.
+# Make.local is loaded by GNUmakefile before Make.defs, so every
+# variable set here overrides or extends the build configuration.
+#
+# Design rules
+# ────────────
+# • Use ifeq ($(UNAME), Darwin|Linux) blocks for OS-specific paths.
+# • Never hard-code absolute paths in the shared GNUmakefile —
+#   put them here instead.
+# • HDF5: set HDF5_HOME and USE_HDF5=TRUE.  AMReX's internal
+#   Make.hdf5 will add the correct -I/-L/-lhdf5 flags automatically.
+#   Do NOT add them manually; that causes duplicate flag errors.
+# • AMREX_USE_HDF5 / AMREX_USE_HDF5_PARALLEL are CMake variables
+#   only.  In GNUmake, parallel HDF5 is selected by pointing
+#   HDF5_HOME at a parallel-enabled install and using USE_MPI=TRUE.
+# ================================================================
 
-AMREX_USE_HDF5 = FALSE
-AMREX_USE_HDF5_PARALLEL = FALSE
-HDF5_HOME = /path/to/hdf5
+UNAME := $(shell uname)
 
-CXXFLAGS += -I$(HDF5_HOME)/include
-LDFLAGS  += -L$(HDF5_HOME)/lib -lhdf5 -lhdf5_hl
+# ----------------------------------------------------------------
+# macOS (Darwin)
+# ----------------------------------------------------------------
+ifeq ($(UNAME), Darwin)
 
+  # Source-built parallel HDF5 (recommended for MPI runs):
+  #   HDF5_HOME = $(HOME)/hdf5-parallel
+  # Homebrew serial HDF5:
+  #   HDF5_HOME := $(shell brew --prefix hdf5 2>/dev/null)
+  HDF5_HOME = /path/to/hdf5
+
+  USE_HDF5                = TRUE
+  AMREX_USE_HDF5          = TRUE   # informational; GNUmake uses USE_HDF5
+  AMREX_USE_HDF5_PARALLEL = FALSE  # flip if using a parallel build
+
+endif  # Darwin
+
+# ----------------------------------------------------------------
+# Linux / WSL (Ubuntu, Debian, and compatible distributions)
+# ----------------------------------------------------------------
+ifeq ($(UNAME), Linux)
+
+  USE_HDF5                = TRUE
+  AMREX_USE_HDF5          = TRUE
+  AMREX_USE_HDF5_PARALLEL = FALSE
+
+  # Option A — source-built HDF5 with a standard prefix:
+  #   HDF5_HOME = $(HOME)/hdf5-parallel
+
+  # Option B — Ubuntu/Debian apt packages (non-standard sub-paths):
+  # Detection order: parallel before serial.  Parallel HDF5 is a strict
+  # superset: it works for serial builds too, and it is required when
+  # USE_MPI=TRUE (AMReX calls H5Pset_fapl_mpio which serial HDF5 lacks).
+  #
+  #   Parallel (OpenMPI): sudo apt install libhdf5-openmpi-dev
+  #   The openmpi HDF5 headers pull in mpi.h, so the OpenMPI include
+  #   directory must be on the path too (from libopenmpi-dev).
+  ifneq ($(wildcard /usr/include/hdf5/openmpi/hdf5.h),)
+    INCLUDE_LOCATIONS          += /usr/include/hdf5/openmpi
+    LIBRARY_LOCATIONS          += /usr/lib/x86_64-linux-gnu/hdf5/openmpi
+    AMREX_USE_HDF5_PARALLEL     = TRUE
+    _MPI_INC := $(shell mpicc --showme:incdirs 2>/dev/null | tr ' ' '\n' | head -1)
+    ifeq ($(_MPI_INC),)
+      _MPI_INC := /usr/lib/x86_64-linux-gnu/openmpi/include
+    endif
+    INCLUDE_LOCATIONS          += $(_MPI_INC)
+  #   Serial (USE_MPI=FALSE only): sudo apt install libhdf5-dev
+  else ifneq ($(wildcard /usr/include/hdf5/serial/hdf5.h),)
+    INCLUDE_LOCATIONS += /usr/include/hdf5/serial
+    LIBRARY_LOCATIONS += /usr/lib/x86_64-linux-gnu/hdf5/serial
+  else
+    # Option C — detect via h5cc wrapper (covers source builds and modules):
+    _H5_PREFIX := $(shell h5cc -showconfig 2>/dev/null \
+                    | grep 'Installation point' \
+                    | sed 's/.*:[[:space:]]*//' \
+                    | tr -d '[:space:]')
+    ifneq ($(_H5_PREFIX),)
+      HDF5_HOME ?= $(_H5_PREFIX)
+    else
+      $(warning Make.local: HDF5 not found. Set HDF5_HOME manually or install libhdf5-dev.)
+    endif
+  endif
+
+endif  # Linux
+
+# ----------------------------------------------------------------
+# HPC / Cray PE (Kestrel, Frontier, Perlmutter, etc.)
+# Module system sets HDF5_DIR automatically — no manual path needed.
+# ----------------------------------------------------------------
+# USE_HDF5               = TRUE
+# AMREX_USE_HDF5         = TRUE
+# AMREX_USE_HDF5_PARALLEL = TRUE

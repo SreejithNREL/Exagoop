@@ -601,16 +601,19 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
     int my_rank = ParallelDescriptor::MyProc();
     int n_ranks = ParallelDescriptor::NProcs();
 
+    hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
+
+#ifdef AMREX_USE_MPI
     MPI_Comm comm = ParallelDescriptor::Communicator();
     MPI_Info info = MPI_INFO_NULL;
-
-    hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
     H5Pset_fapl_mpio(fapl, comm, info);
+#endif
 
     hid_t file_id = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, fapl);
 
     if (ParallelDescriptor::IOProcessor())
     {
+#ifdef AMREX_USE_MPI
         if (H5Pget_driver(fapl) == H5FD_MPIO)
         {
             std::string msg =
@@ -618,6 +621,7 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
             PrintMultiLineMessage(msg, print_length, true);
         }
         else
+#endif
         {
             std::string msg = "\n    HDF5: Using Serial HDF5 (no MPI-IO)";
             PrintMultiLineMessage(msg, print_length, true);
@@ -682,7 +686,9 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
         hid_t memspace = H5Screate_simple(1, size, nullptr);
 
         hid_t dxpl = H5Pcreate(H5P_DATASET_XFER);
+#ifdef AMREX_USE_MPI
         H5Pset_dxpl_mpio(dxpl, H5FD_MPIO_COLLECTIVE);
+#endif
 
         herr_t status =
             H5Dread(dset, h5_real_type, memspace, filespace, dxpl, vec.data());

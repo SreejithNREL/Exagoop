@@ -1585,7 +1585,7 @@ def write_inputs_file(
             ("mpm.max_steps", "5000000"),
             ("mpm.screen_output_time", "0.001"),
             ("mpm.write_output_time", "0.5"),
-            ("mpm.num_redist", "1")
+            ("mpm.num_redist", "10")
         ], comment="Simulation Run Parameters")
 
         # Timestepping

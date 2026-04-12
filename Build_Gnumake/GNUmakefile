@@ -3,13 +3,13 @@ AMREX_HOME ?= ${MPM_HOME}/Submodules/amrex
 
 EBASE = ExaGOOP
 
-include $(MPM_HOME)/Build_Gnumake/Make.local 
-include $(AMREX_HOME)/Tools/GNUMake/Make.defs
+include $(MPM_HOME)/Build_Gnumake/Make.local
+NVCC_HOST_COMP ?= gnu
 
 # ===============================================================
 # AMReX configuration
 # ===============================================================
-DIM     = 2
+DIM        = 2
 COMP       = gnu
 PRECISION  = DOUBLE
 USE_EB     = TRUE
@@ -29,9 +29,9 @@ BL_NO_FORT     = TRUE
 # ===============================================================
 # Parallelism
 # ===============================================================
-USE_MPI   = FALSE
+USE_MPI   = TRUE
 USE_OMP   = FALSE
-USE_CUDA  = TRUE
+USE_CUDA  = FALSE
 USE_HIP   = FALSE
 USE_SYCL  = FALSE
 
@@ -46,7 +46,7 @@ THREAD_SANITIZER  = FALSE
 # ===============================================================
 # ExaGOOP configuration
 # ===============================================================
-USE_TEMP     = FALSE
+USE_TEMP      = FALSE
 USE_PARTICLES = TRUE
 
 # ===============================================================
@@ -155,4 +155,4 @@ endif
 	$(MAKE) -f $(UDF_MAKEFILE) UDF_SRC=$(UDF_SRC) OUT=$(OUT) COMP=$(COMP)
 
 udf-help:
-	$(MAKE) -f $(UDF_MAKEFILE) hel
+	$(MAKE) 

@@ -150,20 +150,23 @@ def Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg):
         
         # Build executable
         if(bwh==True):
-            run_cmd(f"cd {test_dir} && make -j USE_HDF5=TRUE AMREX_USE_HDF5=TRUE")
+            run_cmd(f"cd {test_dir} && make -j8 USE_HDF5=TRUE AMREX_USE_HDF5=TRUE")
         else:
-            run_cmd(f"cd {test_dir} && make -j USE_HDF5=FALSE AMREX_USE_HDF5=FALSE")
+            run_cmd(f"cd {test_dir} && make -j8 USE_HDF5=FALSE AMREX_USE_HDF5=FALSE")
 
         # Generate inputs
         run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")
 
         # Select executable
-        if(dim==1):
-            exe = "./ExaGOOP1d.gnu.MPI.ex"
-        elif(dim==2):
-            exe = "./ExaGOOP2d.gnu.MPI.ex"
-        elif(dim==3):
-            exe = "./ExaGOOP3d.gnu.MPI.ex"
+        
+        pattern = os.path.join(test_dir, f"ExaGOOP{dim}d.*.ex")
+        matches = glob.glob(pattern)
+
+        if not matches:
+            raise FileNotFoundError(f"No executable found matching {pattern}")
+
+        # If multiple matches exist, pick the first or apply your own logic
+        exe = matches[0]
             
         #exe = "./ExaGOOP3d.gnu.MPI.ex" if dim == 3 else "./ExaGOOP2d.gnu.MPI.ex"
 
@@ -290,20 +293,22 @@ def Run_ParameterSweep_1D_HeatConduction(cfg):
         
         # Build executable
         if(bwh==True):
-            run_cmd(f"cd {test_dir} && make -j USE_HDF5=TRUE AMREX_USE_HDF5=TRUE")
+            run_cmd(f"cd {test_dir} && make -j8 USE_HDF5=TRUE AMREX_USE_HDF5=TRUE")
         else:
-            run_cmd(f"cd {test_dir} && make -j USE_HDF5=FALSE AMREX_USE_HDF5=FALSE")
+            run_cmd(f"cd {test_dir} && make -j8 USE_HDF5=FALSE AMREX_USE_HDF5=FALSE")
 
         # Generate inputs
         run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")
 
         # Select executable
-        if(dim==1):
-            exe = "./ExaGOOP1d.gnu.MPI.ex"
-        elif(dim==2):
-            exe = "./ExaGOOP2d.gnu.MPI.ex"
-        elif(dim==3):
-            exe = "./ExaGOOP3d.gnu.MPI.ex"
+        pattern = os.path.join(test_dir, f"ExaGOOP{dim}d.*.ex")
+        matches = glob.glob(pattern)
+
+        if not matches:
+            raise FileNotFoundError(f"No executable found matching {pattern}")
+
+        # If multiple matches exist, pick the first or apply your own logic
+        exe = matches[0]
 
         # Run simulation
         run_cmd(f"cd {test_dir} && mpirun -np 4 {exe} {cfg['input_file']}")
@@ -406,20 +411,22 @@ def Run_ParameterSweep_1D_HeatConduction_HeatFlux(cfg):
         
         # Build executable
         if(bwh==True):
-            run_cmd(f"cd {test_dir} && make -j USE_HDF5=TRUE AMREX_USE_HDF5=TRUE")
+            run_cmd(f"cd {test_dir} && make -j8 USE_HDF5=TRUE AMREX_USE_HDF5=TRUE")
         else:
-            run_cmd(f"cd {test_dir} && make -j USE_HDF5=FALSE AMREX_USE_HDF5=FALSE")
+            run_cmd(f"cd {test_dir} && make -j8 USE_HDF5=FALSE AMREX_USE_HDF5=FALSE")
 
         # Generate inputs
         run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")
 
         # Select executable
-        if(dim==1):
-            exe = "./ExaGOOP1d.gnu.MPI.ex"
-        elif(dim==2):
-            exe = "./ExaGOOP2d.gnu.MPI.ex"
-        elif(dim==3):
-            exe = "./ExaGOOP3d.gnu.MPI.ex"
+        pattern = os.path.join(test_dir, f"ExaGOOP{dim}d.*.ex")
+        matches = glob.glob(pattern)
+
+        if not matches:
+            raise FileNotFoundError(f"No executable found matching {pattern}")
+
+        # If multiple matches exist, pick the first or apply your own logic
+        exe = matches[0]
 
         # Run simulation
         run_cmd(f"cd {test_dir} && mpirun -np 4 {exe} {cfg['input_file']}")
@@ -522,20 +529,22 @@ def Run_ParameterSweep_1D_HeatConduction_Convective(cfg):
         
         # Build executable
         if(bwh==True):
-            run_cmd(f"cd {test_dir} && make -j USE_HDF5=TRUE AMREX_USE_HDF5=TRUE")
+            run_cmd(f"cd {test_dir} && make -j8 USE_HDF5=TRUE AMREX_USE_HDF5=TRUE")
         else:
-            run_cmd(f"cd {test_dir} && make -j USE_HDF5=FALSE AMREX_USE_HDF5=FALSE")
+            run_cmd(f"cd {test_dir} && make -j8 USE_HDF5=FALSE AMREX_USE_HDF5=FALSE")
 
         # Generate inputs
         run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")
 
         # Select executable
-        if(dim==1):
-            exe = "./ExaGOOP1d.gnu.MPI.ex"
-        elif(dim==2):
-            exe = "./ExaGOOP2d.gnu.MPI.ex"
-        elif(dim==3):
-            exe = "./ExaGOOP3d.gnu.MPI.ex"
+        pattern = os.path.join(test_dir, f"ExaGOOP{dim}d.*.ex")
+        matches = glob.glob(pattern)
+
+        if not matches:
+            raise FileNotFoundError(f"No executable found matching {pattern}")
+
+        # If multiple matches exist, pick the first or apply your own logic
+        exe = matches[0]
 
         # Run simulation
         run_cmd(f"cd {test_dir} && mpirun -np 4 {exe} {cfg['input_file']}")
@@ -638,15 +647,23 @@ def Run_ParameterSweep_2D_HeatConduction(cfg):
         
         # Build executable
         if(bwh==True):
-            run_cmd(f"cd {test_dir} && make -j USE_HDF5=TRUE AMREX_USE_HDF5=TRUE")
+            run_cmd(f"cd {test_dir} && make -j8 USE_HDF5=TRUE AMREX_USE_HDF5=TRUE")
         else:
-            run_cmd(f"cd {test_dir} && make -j USE_HDF5=FALSE AMREX_USE_HDF5=FALSE")
+            run_cmd(f"cd {test_dir} && make -j8 USE_HDF5=FALSE AMREX_USE_HDF5=FALSE")
 
         # Generate inputs
         run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")
 
         # Select executable
-        exe = "./ExaGOOP2d.gnu.MPI.ex"
+        dim = 2
+        pattern = os.path.join(test_dir, f"ExaGOOP{dim}d.*.ex")
+        matches = glob.glob(pattern)
+
+        if not matches:
+            raise FileNotFoundError(f"No executable found matching {pattern}")
+
+        # If multiple matches exist, pick the first or apply your own logic
+        exe = matches[0]
 
         # Run simulation
         run_cmd(f"cd {test_dir} && mpirun -np 6 {exe} {cfg['input_file']}")
@@ -750,15 +767,24 @@ def Run_ParameterSweep_2D_HeatConduction_Cylinder_Dirichlet(cfg):
         
         # Build executable
         if(bwh==True):
-            run_cmd(f"cd {test_dir} && make -j USE_HDF5=TRUE AMREX_USE_HDF5=TRUE USE_EB=TRUE")
+            run_cmd(f"cd {test_dir} && make -j8 USE_HDF5=TRUE AMREX_USE_HDF5=TRUE USE_EB=TRUE")
         else:
-            run_cmd(f"cd {test_dir} && make -j USE_HDF5=FALSE AMREX_USE_HDF5=FALSE USE_EB=TRUE")
+            run_cmd(f"cd {test_dir} && make -j8 USE_HDF5=FALSE AMREX_USE_HDF5=FALSE USE_EB=TRUE")
 
         # Generate inputs
         run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")
 
         # Select executable
-        exe = "./ExaGOOP2d.gnu.MPI.ex"
+        #exe = "./ExaGOOP2d.gnu.MPI.ex"
+        dim = 2
+        pattern = os.path.join(test_dir, f"ExaGOOP{dim}d.*.ex")
+        matches = glob.glob(pattern)
+
+        if not matches:
+            raise FileNotFoundError(f"No executable found matching {pattern}")
+
+        # If multiple matches exist, pick the first or apply your own logic
+        exe = matches[0]
 
         # Run simulation
         run_cmd(f"cd {test_dir} && mpirun -np 6 {exe} {cfg['input_file']}")
@@ -865,16 +891,24 @@ def Run_ParameterSweep_Dambreak(cfg):
         # Build executable
         if(bwh==True):
             print("Building with HDF5")
-            run_cmd(f"cd {test_dir} && make -j USE_HDF5=TRUE AMREX_USE_HDF5=TRUE")
+            run_cmd(f"cd {test_dir} && make -j8 USE_HDF5=TRUE AMREX_USE_HDF5=TRUE")
         else:
             print("Building without HDF5")
-            run_cmd(f"cd {test_dir} && make -j USE_HDF5=FALSE AMREX_USE_HDF5=FALSE")
+            run_cmd(f"cd {test_dir} && make -j8 USE_HDF5=FALSE AMREX_USE_HDF5=FALSE")
 
         # Generate inputs
         run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")
 
         # Select executable
-        exe = "./ExaGOOP3d.gnu.MPI.ex" if dim == 3 else "./ExaGOOP2d.gnu.MPI.ex"
+        #exe = "./ExaGOOP3d.gnu.MPI.ex" if dim == 3 else "./ExaGOOP2d.gnu.MPI.ex"
+        pattern = os.path.join(test_dir, f"ExaGOOP{dim}d.*.ex")
+        matches = glob.glob(pattern)
+
+        if not matches:
+            raise FileNotFoundError(f"No executable found matching {pattern}")
+
+        # If multiple matches exist, pick the first or apply your own logic
+        exe = matches[0]
 
         # Run simulation
         run_cmd(f"cd {test_dir} && mpirun -np 6 {exe} {cfg['input_file']}")
@@ -980,15 +1014,23 @@ def Run_ParameterSweep_EDC(cfg):
         
         # Build executable
         if(bwh==True):
-            run_cmd(f"cd {test_dir} && make -j USE_HDF5=TRUE AMREX_USE_HDF5=TRUE")
+            run_cmd(f"cd {test_dir} && make -j8 USE_HDF5=TRUE AMREX_USE_HDF5=TRUE")
         else:
-            run_cmd(f"cd {test_dir} && make -j USE_HDF5=FALSE AMREX_USE_HDF5=FALSE")
+            run_cmd(f"cd {test_dir} && make -j8 USE_HDF5=FALSE AMREX_USE_HDF5=FALSE")
 
         # Generate inputs
         run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")
 
         # Select executable
-        exe = "./ExaGOOP3d.gnu.MPI.ex" if dim == 3 else "./ExaGOOP2d.gnu.MPI.ex"
+        #exe = "./ExaGOOP3d.gnu.MPI.ex" if dim == 3 else "./ExaGOOP2d.gnu.MPI.ex"
+        pattern = os.path.join(test_dir, f"ExaGOOP{dim}d.*.ex")
+        matches = glob.glob(pattern)
+
+        if not matches:
+            raise FileNotFoundError(f"No executable found matching {pattern}")
+
+        # If multiple matches exist, pick the first or apply your own logic
+        exe = matches[0]
 
         # Run simulation
         run_cmd(f"cd {test_dir} && mpirun -np 6 {exe} {cfg['input_file']}")
@@ -1066,6 +1108,7 @@ def Run_Build_Matrix(cfg, root=None, timeout=300, parallel_jobs=8, output_dir=No
 
     def _hdf5_headers():
         search_dirs = [
+            "/usr/include/hdf5/openmpi",
             "/usr/include",
             "/usr/local/include",
             "/opt/homebrew/include",
@@ -1425,13 +1468,12 @@ TEST_CASES = {
         ],
         "parameter_space": {
             "dimension": [1],
-            "np_per_cell_x": [1],
-            "order_scheme": [2],
-            "alpha_pic_flip": [1.0],
-            "order_scheme": [1],
+            "np_per_cell_x": [1,2],
+            "order_scheme": [1,2,3],
+            "alpha_pic_flip": [1.0],            
             "stress_update_scheme": [1],
             "CFL": [0.1],
-            "build_with_hdf": [True,False],
+            "build_with_hdf": [False],
             "output_format": ["ascii","hdf5"],
             "filename_prefix": ["mpm_particles"]            
         }
@@ -1448,10 +1490,10 @@ TEST_CASES = {
         ],
         "parameter_space": {
             "dimension": [1],
-            "np_per_cell_x": [1],            
-            "order_scheme": [2],            
+            "np_per_cell_x": [1.2],            
+            "order_scheme": [1,2,3],            
             "stress_update_scheme": [1],
-            "build_with_hdf": [True,False],
+            "build_with_hdf": [False],
             "output_format": ["ascii","hdf5"],
             "filename_prefix": ["mpm_particles"]        
         }
@@ -1465,11 +1507,11 @@ TEST_CASES = {
         ],
         "parameter_space": {
             "dimension": [2],
-            "np_per_cell_x": [2],            
-            "order_scheme": [2],            
+            "np_per_cell_x": [1,2],            
+            "order_scheme": [1,2,3],            
             "stress_update_scheme": [1],
-            "build_with_hdf": [True],
-            "output_format": ["ascii",],
+            "build_with_hdf": [False],
+            "output_format": ["ascii","hdf5"],
             "filename_prefix": ["mpm_particles"]        
         }
     },
@@ -1482,11 +1524,11 @@ TEST_CASES = {
         ],
         "parameter_space": {
             "dimension": [2],
-            "np_per_cell_x": [2],            
+            "np_per_cell_x": [1,2],            
             "order_scheme": [1,2,3],            
             "stress_update_scheme": [1],
-            "build_with_hdf": [True],
-            "output_format": ["ascii",],
+            "build_with_hdf": [False],
+            "output_format": ["ascii","hdf5"],
             "filename_prefix": ["mpm_particles"]        
         }
     },
@@ -1499,9 +1541,9 @@ TEST_CASES = {
         ],
         "parameter_space": {            
             "np_per_cell_x": [1],            
-            "order_scheme": [2],            
+            "order_scheme": [1,2,3],            
             "stress_update_scheme": [1],
-            "build_with_hdf": [True,False],
+            "build_with_hdf": [False],
             "output_format": ["ascii","hdf5"],
             "filename_prefix": ["mpm_particles"]        
         }
@@ -1515,10 +1557,10 @@ TEST_CASES = {
         ],
         "parameter_space": {            
             "np_per_cell_x": [2],            
-            "order_scheme": [2],            
+            "order_scheme": [1,2,3],            
             "stress_update_scheme": [1],
-            "build_with_hdf": [True],
-            "output_format": ["ascii"],
+            "build_with_hdf": [False],
+            "output_format": ["ascii","hdf5"],
             "filename_prefix": ["mpm_particles"]        
         }
     },
@@ -1533,9 +1575,9 @@ TEST_CASES = {
             "dimension": [2], 
             "no_of_cell_in_x": [100],      
             "np_per_cell_x": [1],            
-            "order_scheme": [2],            
+            "order_scheme": [1,2,3],            
             "stress_update_scheme": [1],
-            "build_with_hdf": [True,False],
+            "build_with_hdf": [False],
             "output_format": ["ascii","hdf5"],
             "filename_prefix": ["mpm_particles"]            
         }
@@ -1550,9 +1592,9 @@ TEST_CASES = {
         "parameter_space": {     
             "dimension": [2],        
             "np_per_cell_x": [4],            
-            "order_scheme": [2],            
+            "order_scheme": [1,2,3],            
             "stress_update_scheme": [1],
-            "build_with_hdf": [True,False],
+            "build_with_hdf": [False],
             "output_format": ["ascii","hdf5"],
             "filename_prefix": ["mpm_particles"]       
         }
@@ -1687,28 +1729,28 @@ def _run_parameter_sweeps():
 
         if test_name == "1D_Axial_Bar_Vibration":
             print('Nothing to do')
-            #Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg)
+            Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg)
         elif test_name == "1D_Heat_Conduction":
             print('Nothing to do')
-            #Run_ParameterSweep_1D_HeatConduction(cfg)
+            Run_ParameterSweep_1D_HeatConduction(cfg)
         elif test_name == "1D_Heat_Conduction_HeatFlux":
             print('Nothing to do')
-            #Run_ParameterSweep_1D_HeatConduction_HeatFlux(cfg)
+            Run_ParameterSweep_1D_HeatConduction_HeatFlux(cfg)
         elif test_name == "1D_Heat_Conduction_Convective":
             print('Nothing to do')
-            #Run_ParameterSweep_1D_HeatConduction_Convective(cfg)
+            Run_ParameterSweep_1D_HeatConduction_Convective(cfg)
         elif test_name == "2D_Heat_Conduction":
             print('Nothing to do')
-            #Run_ParameterSweep_2D_HeatConduction(cfg)
+            Run_ParameterSweep_2D_HeatConduction(cfg)
         elif test_name == "2D_Heat_Conduction_Cylinder_Dirichlet":
             print('Nothing to do')
-            #Run_ParameterSweep_2D_HeatConduction_Cylinder_Dirichlet(cfg)
+            Run_ParameterSweep_2D_HeatConduction_Cylinder_Dirichlet(cfg)
         elif test_name == "Dam_Break":
             print('Nothing to do')
-            #Run_ParameterSweep_Dambreak(cfg)
+            Run_ParameterSweep_Dambreak(cfg)
         elif test_name == "Elastic_disk_collision":
             print('Nothing to do')
-            #Run_ParameterSweep_EDC(cfg)
+            Run_ParameterSweep_EDC(cfg)
 
     # Save results
     with open("sweep_results.json", "w") as f:
