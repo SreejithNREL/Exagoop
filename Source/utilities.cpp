@@ -2,13 +2,13 @@
 // #include <AMReX_MultiFab.H>
 #include <AMReX_PlotFileUtil.H>
 #include <aesthetics.H>
-#include <iomanip>  // for std::setprecision
-#include <iostream> // optional, if you use std::cout
+#include <iomanip>
+#include <iostream>
 #include <mpm_check_pair.H>
 #include <mpm_eb.H>
 #include <nodal_data_ops.H>
-#include <sstream> // optional, if you later use string streams
-#include <string>  // for std::string
+#include <sstream>
+#include <string>
 
 /**
  * @brief Writes all particle, grid, and level‑set outputs for the current step.
@@ -226,11 +226,6 @@ void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
                                  [[maybe_unused]] amrex::Real dt,
                                  bool dirichlet_only)
 {
-    // When dirichlet_only=true: apply only type 1 (Dirichlet) BCs.
-    // Used in the outer block (all schemes) so ghost-point BCs
-    // (types 3, 4) are not applied twice in scheme 1.
-    // When dirichlet_only=false: apply all BC types.
-    // Used in the scheme 1 inner block after corrector P2G.
     if (!dirichlet_only)
     {
         nodal_bcs_temperature(geom, nodaldata, specs.bclo_temp.data(),
@@ -241,8 +236,6 @@ void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
     }
     else
     {
-        // Apply only Dirichlet (type 1) — override T=T_wall at boundary
-        // nodes. Ghost-point types (3,4) deferred to corrector pass.
         amrex::Vector<int> bclo_dirichlet(AMREX_SPACEDIM, 0);
         amrex::Vector<int> bchi_dirichlet(AMREX_SPACEDIM, 0);
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
@@ -260,12 +253,6 @@ void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
 #if USE_EB
     if (mpm_ebtools::using_levelset_geometry)
     {
-        // Mirror the domain-face dirichlet_only logic: in the outer block
-        // (dirichlet_only=true) apply EB Dirichlet only; ghost-point types
-        // (3, 4) are deferred to the corrector pass (dirichlet_only=false).
-        // Without this guard, nodal_levelset_bcs_temperature fires twice per
-        // timestep in scheme 1, doubling the ghost-point correction for
-        // types 3 and 4.
         int eb_bc = dirichlet_only ? (specs.levelset_temp_bc == 1 ? 1 : 0)
                                    : specs.levelset_temp_bc;
         nodal_levelset_bcs_temperature(
@@ -276,7 +263,7 @@ void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
     }
 #endif
 
-    // NOTE: store_delta_temperature is called explicitly in main.cpp
+    // store_delta_temperature is called explicitly in main.cpp
 }
 #endif
 

@@ -13,7 +13,6 @@ DIM        = 2
 COMP       = gnu
 PRECISION  = DOUBLE
 USE_EB     = TRUE
-USE_HYPRE  = FALSE
 
 # ===============================================================
 # Profiling
@@ -35,7 +34,6 @@ USE_CUDA  = FALSE
 USE_HIP   = FALSE
 USE_SYCL  = FALSE
 
-
 # ===============================================================
 # Debugging
 # ===============================================================
@@ -47,7 +45,6 @@ THREAD_SANITIZER  = FALSE
 # ExaGOOP configuration
 # ===============================================================
 USE_TEMP      = FALSE
-USE_PARTICLES = TRUE
 
 # ===============================================================
 # Precision 

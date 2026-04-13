@@ -56,8 +56,6 @@ void backup_current_velocity(MultiFab &nodaldata)
 {
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
-        // const Box &bx = mfi.validbox();
-        //  Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
         Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 
         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
@@ -126,26 +124,6 @@ void backup_current_temperature(MultiFab &nodaldata)
  *   4. Applies applybc() to enforce the requested BC type (no-slip, free-slip,
  *      Coulomb friction) relative to the wall velocity.
  *
- * Bug fixes applied (relative to 235793b):
- *
- *   Bug 1 — average_down_nodal + FillBoundary:
- *     lsphi is stored at ls_refinement * coarse resolution.  Reading it
- *     directly with a coarse MFIter (Bug 4) or without FillBoundary (Bug 1)
- *     produces garbage in ghost cells => phantom obstacles at tile boundaries.
- *     Fix: average_down_nodal onto a coarse nodal MultiFab, then FillBoundary,
- *     then pass lsref=1 to get_levelset_value / get_levelset_grad.
- *
- *   Bug 3 — degenerate gradient guard:
- *     Nodes deep inside the obstacle have zero gradient.  Dividing by
- *     (gradmag + TINYVAL) with TINYVAL~1e-20 produces ~1e20 normals =>
- *     velocity blowup => NaN particles => locateParticle crash.
- *     Fix: if gradmag < 1e-10, skip the node entirely.
- *
- *   Bug 4 — coarse MFIter with refined lsphi:
- *     mpm_ebtools::lsphi is refined; indexing it with a coarse MFIter tile
- *     gives the wrong array region.
- *     Fix: use lsphi_coarse.array(mfi) after average_down_nodal.
- *
  * @param[in,out] nodaldata     Nodal MultiFab containing velocity fields.
  * @param[in]     geom          Coarse-level geometry.
  * @param[in]     dt            Time step (reserved for future moving-wall use).
@@ -165,21 +143,11 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
 {
     int lsref = mpm_ebtools::ls_refinement;
 
-    // ------------------------------------------------------------------
-    // Bug 1 + Bug 4 fix:
-    // average_down_nodal coarsens lsphi from the refined grid onto a new
-    // nodal MultiFab that matches nodaldata's BoxArray exactly.
-    // nghost >= 1 is required: get_levelset_grad reads the ghost layer.
-    // FillBoundary must follow to populate those ghost cells — without it
-    // any tile boundary where a ghost cell is uninitialised becomes a
-    // phantom obstacle (Bug 1).
-    // ------------------------------------------------------------------
     MultiFab lsphi_coarse(nodaldata.boxArray(), nodaldata.DistributionMap(),
                           1,  // ncomp
                           1); // nghost — MUST be >= 1
     amrex::average_down_nodal(*mpm_ebtools::lsphi, lsphi_coarse,
                               amrex::IntVect(lsref));
-    // Use coarse geometry periodicity — lsphi_coarse lives on the coarse grid
     lsphi_coarse.FillBoundary(geom.periodicity());
 
     const auto plo = geom.ProbLoArray();
@@ -190,7 +158,6 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
         Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 
         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
-        // Bug 4 fix: use lsphi_coarse, NOT mpm_ebtools::lsphi->array(mfi)
         Array4<Real> lsarr = lsphi_coarse.array(mfi);
 
         amrex::ParallelFor(
@@ -199,21 +166,17 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
             {
                 IntVect nodeid(AMREX_D_DECL(i, j, k));
 
-                // Physical coordinates of this node
                 amrex::Real xp[AMREX_SPACEDIM] = {AMREX_D_DECL(
                     plo[XDIR] + i * dx[XDIR], plo[YDIR] + j * dx[YDIR],
                     plo[ZDIR] + k * dx[ZDIR])};
 
-                // lsphi_coarse is already at coarse resolution, so lsref=1
                 amrex::Real lsval =
                     get_levelset_value(lsarr, plo, dx, xp, /*lsref=*/1);
 
-                // Only act on nodes inside the obstacle with nonzero mass
                 if (lsval >= 0.0 ||
                     nodal_data_arr(nodeid, MASS_INDEX) <= shunya)
                     return;
 
-                // Compute wall-normal from level-set gradient
                 amrex::Real normaldir[AMREX_SPACEDIM] = {
                     AMREX_D_DECL(1.0, 0.0, 0.0)};
                 get_levelset_grad(lsarr, plo, dx, xp, /*lsref=*/1, normaldir);
@@ -223,16 +186,12 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
                     gradmag += normaldir[d] * normaldir[d];
                 gradmag = std::sqrt(gradmag);
 
-                // Bug 3 fix: skip degenerate nodes (zero gradient deep inside
-                // obstacle). Dividing by TINYVAL~1e-20 gives ~1e20 normals =>
-                // velocity blowup => NaN particles.
                 if (gradmag < 1.0e-10)
                     return;
 
                 for (int d = 0; d < AMREX_SPACEDIM; d++)
                     normaldir[d] /= gradmag;
 
-                // Velocity relative to wall
                 amrex::Real relvel_in[AMREX_SPACEDIM];
                 amrex::Real relvel_out[AMREX_SPACEDIM];
                 for (int d = 0; d < AMREX_SPACEDIM; d++)
@@ -242,27 +201,19 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
                     relvel_out[d] = relvel_in[d]; // default: no change
                 }
 
-                // Normal component of velocity relative to wall.
-                // The level-set gradient points OUTWARD (away from obstacle),
-                // so veln > 0 means the node is moving away — no BC needed.
-                // Only apply BC when veln <= 0 (node moving into the wall).
                 amrex::Real veln = 0.0;
                 for (int d = 0; d < AMREX_SPACEDIM; d++)
                     veln += relvel_in[d] * normaldir[d];
 
                 if (veln <= 0.0)
                 {
-                    // Apply BC (no-slip / free-slip / Coulomb friction)
                     applybc(relvel_in, relvel_out, lset_wall_mu, normaldir,
                             lsetbc);
 
-                    // Write back: add wall velocity to restore absolute frame
                     for (int d = 0; d < AMREX_SPACEDIM; d++)
                         nodal_data_arr(nodeid, VELX_INDEX + d) =
                             relvel_out[d] + wall_vel[d];
                 }
-                // veln > 0: node already moving away from wall — leave velocity
-                // unchanged
             });
     }
 }
@@ -317,7 +268,6 @@ void nodal_levelset_bcs_temperature(MultiFab &nodaldata,
 
     int lsref = mpm_ebtools::ls_refinement;
 
-    // Bug 1 + Bug 4 fix: coarsen lsphi to nodaldata BoxArray with nghost>=1
     MultiFab lsphi_coarse(nodaldata.boxArray(), nodaldata.DistributionMap(),
                           1,  // ncomp
                           1); // nghost — must be >= 1 for get_levelset_grad
@@ -325,12 +275,6 @@ void nodal_levelset_bcs_temperature(MultiFab &nodaldata,
                               amrex::IntVect(lsref));
     lsphi_coarse.FillBoundary(geom.periodicity());
 
-    // bc_applied flag: prevents a node from being processed more than once
-    // within this call.  convert(mfi.tilebox(), IntVect(1,...)) produces
-    // nodal boxes that overlap by one node at tile/box boundaries, so without
-    // this guard a shared boundary node would receive the BC correction twice.
-    // Types 3 and 4 are non-idempotent (they read and modify T_curr), so
-    // double application compounds the correction.
     iMultiFab bc_applied(nodaldata.boxArray(), nodaldata.DistributionMap(),
                          1,  // ncomp
                          0); // nghost — valid-region only
@@ -339,7 +283,6 @@ void nodal_levelset_bcs_temperature(MultiFab &nodaldata,
     const auto plo = geom.ProbLoArray();
     const auto dx = geom.CellSizeArray();
 
-    // Capture by value for GPU kernel
     amrex::Real T_wall_ = T_wall;
     amrex::Real flux_ = flux;
     amrex::Real h_conv_ = h_conv;
@@ -359,7 +302,6 @@ void nodal_levelset_bcs_temperature(MultiFab &nodaldata,
             {
                 IntVect nodeid(AMREX_D_DECL(i, j, k));
 
-                // Skip nodes already processed by a neighboring tile
                 if (flagarr(nodeid, 0))
                     return;
 
@@ -367,42 +309,27 @@ void nodal_levelset_bcs_temperature(MultiFab &nodaldata,
                     plo[XDIR] + i * dx[XDIR], plo[YDIR] + j * dx[YDIR],
                     plo[ZDIR] + k * dx[ZDIR])};
 
-                // lsphi_coarse already at coarse resolution → lsref=1
                 amrex::Real lsval =
                     get_levelset_value(lsarr, plo, dx, xp, /*lsref=*/1);
 
-                // Only act on nodes inside obstacle with particles
                 if (lsval >= 0.0 || arr(nodeid, MASS_SPHEAT) <= shunya)
                     return;
 
-                // Mark processed before applying — prevents second tile from
-                // re-applying the correction to the shared boundary node.
                 flagarr(nodeid, 0) = 1;
 
-                // Distance from this node to the EB surface = |lsval|
-                // (lsval < 0 inside obstacle, magnitude = normal distance)
-                amrex::Real d = -lsval; // positive distance to surface
+                amrex::Real d = -lsval;
 
                 if (bc_type_ == 1)
                 {
-                    // Dirichlet: direct override
                     arr(nodeid, TEMPERATURE) = T_wall_;
                 }
                 else if (bc_type_ == 3)
                 {
-                    // Prescribed flux — ghost-point Neumann:
-                    // -k * dT/dn|_surf = q  (n = outward normal from obstacle)
-                    // T_node = T_curr + (q/k)*d
-                    // k=1 assumed; for variable k use stored nodal conductivity
                     amrex::Real T_curr = arr(nodeid, TEMPERATURE);
                     arr(nodeid, TEMPERATURE) = T_curr + (flux_ / 1.0) * d;
                 }
                 else if (bc_type_ == 4)
                 {
-                    // Convective — ghost-point Robin:
-                    // -k * dT/dn|_surf = h*(T_surf - T_inf)
-                    // Bi = h*d/k  (k=1 assumed)
-                    // T_node = (T_curr + Bi*T_inf) / (1 + Bi)
                     amrex::Real Bi = h_conv_ * d;
                     amrex::Real T_curr = arr(nodeid, TEMPERATURE);
                     arr(nodeid, TEMPERATURE) =
@@ -431,11 +358,8 @@ void nodal_levelset_bcs_temperature(MultiFab &nodaldata,
 
 void store_delta_velocity(MultiFab &nodaldata)
 {
-    // amrex::Print() << "Storing delta velocity\n";
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
-        // const Box &bx = mfi.validbox();
-        //  Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
         Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 
         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
@@ -520,8 +444,6 @@ void Nodal_Time_Update_Momentum(MultiFab &nodaldata,
 {
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
-        // const Box &bx = mfi.validbox();
-        //  Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
         Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 
         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
@@ -629,15 +551,11 @@ void nodal_detect_contact(
 {
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
-        // const Box &bx = mfi.validbox();
 #if (AMREX_SPACEDIM == 1)
-        // Box nodalbox = convert(bx, {1});
         Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 #elif (AMREX_SPACEDIM == 2)
-        // Box nodalbox = convert(bx, {1, 1});
         Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 #else
-        // Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
         Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 #endif
 
@@ -657,7 +575,6 @@ void nodal_detect_contact(
                     const int rb_id = int(nodal_data_arr(
                         IntVect(AMREX_D_DECL(i, j, k)), RIGID_BODY_ID));
 
-                    // Compute contact_alpha = (v_node - v_rigid) � normal
                     amrex::Real contact_alpha = 0.0;
                     for (int d = 0; d < AMREX_SPACEDIM; ++d)
                     {
@@ -671,7 +588,6 @@ void nodal_detect_contact(
 
                     if (contact_alpha >= 0.0)
                     {
-                        // Relative velocity along normal
                         amrex::Real V_relative = 0.0;
                         for (int d = 0; d < AMREX_SPACEDIM; ++d)
                         {
@@ -683,7 +599,6 @@ void nodal_detect_contact(
                                                NORMALX + d);
                         }
 
-                        // Project out normal component
                         for (int d = 0; d < AMREX_SPACEDIM; ++d)
                         {
                             nodal_data_arr(IntVect(AMREX_D_DECL(i, j, k)),
@@ -724,9 +639,6 @@ void initialise_shape_function_indices(iMultiFab &shapefunctionindex,
     const int *domloarr = geom.Domain().loVect();
     const int *domhiarr = geom.Domain().hiVect();
 
-    /*int periodic[AMREX_SPACEDIM] = {
-        geom.isPeriodic(XDIR), geom.isPeriodic(YDIR), geom.isPeriodic(ZDIR)};*/
-
     GpuArray<int, AMREX_SPACEDIM> lo = {
         AMREX_D_DECL(domloarr[0], domloarr[1], domloarr[2])};
     GpuArray<int, AMREX_SPACEDIM> hi = {
@@ -734,8 +646,6 @@ void initialise_shape_function_indices(iMultiFab &shapefunctionindex,
 
     for (MFIter mfi(shapefunctionindex); mfi.isValid(); ++mfi)
     {
-        // const Box &bx = mfi.validbox();
-        //  Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
         Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 
         Array4<int> shapefunctionindex_arr = shapefunctionindex.array(mfi);
@@ -1000,10 +910,6 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
                            [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
                            {
                                IntVect nodeid(AMREX_D_DECL(i, j, k));
-
-                               // Track whether a strong BC has already set
-                               // TEMPERATURE on this node. Prevents weaker BCs
-                               // (adiabatic/none) from overwriting at corners.
                                bool bc_applied = false;
 
                                for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
@@ -1030,7 +936,6 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
 
                                    if (bc_type == 1)
                                    {
-                                       // Dirichlet: hard override
                                        arr(nodeid, TEMPERATURE) = val;
                                        bc_applied = true;
                                    }
@@ -1042,7 +947,6 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
 
                                        if (bc_type == 2 || bc_type == 0)
                                        {
-                                           // Adiabatic/none: T_b = T_interior
                                            if (!bc_applied)
                                            {
                                                arr(nodeid, TEMPERATURE) = T_int;
@@ -1051,16 +955,12 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
                                        }
                                        else if (bc_type == 3)
                                        {
-                                           // Prescribed flux: T_b = T_int +
-                                           // (q/k)*dx
                                            arr(nodeid, TEMPERATURE) =
                                                T_int + val * dx[dir];
                                            bc_applied = true;
                                        }
                                        else if (bc_type == 4)
                                        {
-                                           // Convective: T_b = (T_int +
-                                           // Bi*T_inf)/(1+Bi)
                                            amrex::Real Bi = val * dx[dir];
                                            arr(nodeid, TEMPERATURE) =
                                                (T_int + Bi * Tinf) / (1.0 + Bi);

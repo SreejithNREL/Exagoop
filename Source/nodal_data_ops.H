@@ -76,10 +76,6 @@ void nodal_levelset_bcs(amrex::MultiFab &nodaldata,
                                 AMREX_D_DECL(0.0, 0.0, 0.0)});
 
 #if USE_TEMP
-// Thermal BC on EB surface nodes (phi < 0).
-// Types: 1=Dirichlet, 3=heat-flux (ghost-point), 4=convective (ghost-point).
-// d = |lsval| used as normal distance from node to surface.
-// pre_update unused — kept for API compatibility.
 void nodal_levelset_bcs_temperature(amrex::MultiFab &nodaldata,
                                     const amrex::Geometry geom,
                                     amrex::Real dt,

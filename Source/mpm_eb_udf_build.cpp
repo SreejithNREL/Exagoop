@@ -55,7 +55,6 @@ void build_udf_eb(UDFImplicitFunction udf_if, // copyable — EB2 will copy it
                   amrex::MultiFab *&lsphi_out,
                   amrex::EBFArrayBoxFactory *&ebfactory_out)
 {
-    // Build a refined geometry for the level-set EB
     amrex::Box dom_ls = geom.Domain();
     dom_ls.refine(ls_refinement);
     amrex::Geometry geom_ls(dom_ls);

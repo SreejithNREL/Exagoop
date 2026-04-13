@@ -265,22 +265,9 @@ void MPMParticleContainer::moveParticles(
     bool using_levsets = mpm_ebtools::using_levelset_geometry;
     int lsref = mpm_ebtools::ls_refinement;
 
-    // ------------------------------------------------------------------
-    // Bug 1 + Bug 4 fix: average_down_nodal + FillBoundary
-    //
-    // lsphi is stored at ls_refinement * coarse resolution.
-    // Indexing it directly with a coarse particle MFIter (Bug 4) gives
-    // the wrong tile.  Ghost cells are uninitialised without FillBoundary
-    // (Bug 1) => garbage phi/grad values near tile boundaries.
-    //
-    // Fix: coarsen onto a nodal MultiFab matching the particle iterator,
-    // fill ghost cells, pass lsref=1 to get_levelset_value/grad.
-    // ------------------------------------------------------------------
     amrex::MultiFab lsphi_coarse;
     if (using_levsets)
     {
-        // Derive coarse nodal BA/DM directly from lsphi (which is refined).
-        // Coarsen lsphi's BA by lsref to get the coarse nodal layout.
         BoxArray nodal_ba_coarse = mpm_ebtools::lsphi->boxArray();
         nodal_ba_coarse.coarsen(lsref);
         lsphi_coarse.define(nodal_ba_coarse,
@@ -326,7 +313,6 @@ void MPMParticleContainer::moveParticles(
         amrex::Array4<amrex::Real> lsetarr;
         if (using_levsets)
         {
-            // Bug 4 fix: use lsphi_coarse, NOT mpm_ebtools::lsphi->array(mfi)
             lsetarr = lsphi_coarse.array(mfi);
         }
 #endif
@@ -361,7 +347,6 @@ void MPMParticleContainer::moveParticles(
                     for (int d = 0; d < AMREX_SPACEDIM; ++d)
                         xp[d] = p.pos(d);
 
-                    // lsphi_coarse is at coarse resolution: lsref=1
                     amrex::Real dist =
                         get_levelset_value(lsetarr, plo, dx, xp, /*lsref=*/1);
 
@@ -376,18 +361,12 @@ void MPMParticleContainer::moveParticles(
                             gradmag += normaldir[d] * normaldir[d];
                         gradmag = std::sqrt(gradmag);
 
-                        // Bug 3 fix: skip degenerate nodes deep inside
-                        // obstacle. Dividing by TINYVAL~1e-20 gives ~1e20
-                        // normals.
                         if (gradmag < 1.0e-10)
                             return;
 
                         for (int d = 0; d < AMREX_SPACEDIM; ++d)
                             normaldir[d] /= gradmag;
 
-                        // Only apply BC when particle moves into the wall.
-                        // Level-set gradient points outward: veln > 0 means
-                        // particle is already leaving — leave it alone.
                         amrex::Real veln = 0.0;
                         for (int d = 0; d < AMREX_SPACEDIM; ++d)
                             veln += relvel_in[d] * normaldir[d];

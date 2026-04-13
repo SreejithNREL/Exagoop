@@ -13,24 +13,10 @@ set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
 #Setting ExaGOOP permanent settings. Do NOT change them
 set(EXAGOOP_DIM "3" CACHE STRING "Number of spatial dimensions")
-set(EXAGOOP_PRECISION DOUBLE)
-set(EXAGOOP_ENABLE_EB ON)
+option(EXAGOOP_ENABLE_EB "Enable Embedded Boundary" ON)
 set(EXAGOOP_ENABLE_PARTICLES ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMake")
-
-# ===============================================================
-# EB enforcement (AMReX limitation)
-# ===============================================================
-if(EXAGOOP_DIM EQUAL 1 AND EXAGOOP_ENABLE_EB)
-    message(WARNING "EB requested but not available in 1D. Forcing USE_EB=0.")
-    add_compile_definitions(USE_EB=0)
-elseif(EXAGOOP_ENABLE_EB)
-    add_compile_definitions(USE_EB=1)
-else()
-    add_compile_definitions(USE_EB=0)
-endif()
-
 
 # ===============================================================
 # Precision (match GNUmake: SINGLE or DOUBLE)
@@ -50,7 +36,7 @@ endif()
 
 # HPC options
 option(EXAGOOP_ENABLE_MPI "Enable MPI" OFF)
-option(EXAGOOP_ENABLE_OPENMP "Enable OpenMP" OFF)
+option(EXAGOOP_ENABLE_OMP "Enable OpenMP" OFF)
 option(EXAGOOP_ENABLE_CUDA "Enable CUDA" OFF)
 option(EXAGOOP_ENABLE_HIP "Enable HIP" OFF)
 option(EXAGOOP_ENABLE_SYCL "Enable SyCL" OFF)
@@ -94,7 +80,7 @@ if(EXAGOOP_ENABLE_CUDA)
       "Please use CUDA toolkit version 10.0 or newer.")
   endif()
   if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-    set(CMAKE_CUDA_ARCHITECTURES 90)
+    set(CMAKE_CUDA_ARCHITECTURES native)
   endif()
 endif()
 
@@ -144,7 +130,7 @@ if (EXAGOOP_ENABLE_CUDA)
 endif()
 
 # Debug/opt
-if (CMAKE_BUILD_TYPE MATCHES ".Debug")
+if (CMAKE_BUILD_TYPE MATCHES "Debug")
     set(BTYPE "DEBUG")
 endif()
 
@@ -164,6 +150,14 @@ option(EXAGOOP_USE_HDF5 "Enable HDF5" OFF)
 option(EXAGOOP_USE_HDF5_PARALLEL "Enable parallel HDF5" OFF)
 set(AMReX_HDF5 ${EXAGOOP_USE_HDF5}) 
 set(AMReX_HDF5_PARALLEL ${EXAGOOP_USE_HDF5_PARALLEL})
+
+if(EXAGOOP_USE_HDF5)
+    find_package(HDF5 REQUIRED)
+    if(NOT HDF5_FOUND)
+        message(FATAL_ERROR "HDF5 requested but not found. Set HDF5_ROOT to your HDF5 installation.")
+    endif()
+    message(STATUS "HDF5 found: ${HDF5_INCLUDE_DIRS}")
+endif()
 
 set(AMREX_SUBMOD_LOCATION "${CMAKE_SOURCE_DIR}/Submodules/amrex")
 list(APPEND CMAKE_MODULE_PATH "${AMREX_SUBMOD_LOCATION}/Tools/CMake")

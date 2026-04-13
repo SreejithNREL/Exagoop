@@ -38,8 +38,6 @@ int main(int argc, char *argv[])
         Real output_time = shunya;
         Real output_timePrint = shunya;
         Real diag_timePrint = shunya;
-        // GpuArray<int, AMREX_SPACEDIM> order_surface_integral =
-        // {AMREX_D_DECL(3, 3, 3)};
         std::string msg;
 
         int ng_cells;
@@ -103,9 +101,6 @@ int main(int argc, char *argv[])
             P2G_Temperature(specs, mpm_pc, nodaldata, 1, 1, 1);
             backup_current_temperature(nodaldata);
             Nodal_Time_Update_Temperature(nodaldata, dt, specs.mass_tolerance);
-            // For scheme 1: apply Dirichlet only here — ghost-point BCs
-            // (types 3,4) applied once in the corrector pass below.
-            // For scheme 0: apply all types here (no corrector pass).
             Apply_Nodal_BCs_Temperature(
                 geom, nodaldata, specs, dt,
                 /*dirichlet_only=*/(specs.stress_update_scheme == 1));
@@ -122,18 +117,13 @@ int main(int argc, char *argv[])
                 Update_MP_Positions(specs, mpm_pc, dt); // step 19
             }
 
-            // mpm_pc.updateNeighbors();
-
             if (specs.stress_update_scheme == MUSL)
             {
-                // Algo 2, 19
+                // Algo 2, 19, 20, 21, 25
                 G2P_Momentum(specs, mpm_pc, nodaldata, 1, 0, dt);
                 mpm_pc.updateNeighbors();
-                // 20
                 P2G_Momentum(specs, mpm_pc, nodaldata, 0, 1, 0);
-                // 21
                 Apply_Nodal_BCs(geom, nodaldata, specs, dt);
-                // 25
                 G2P_Momentum(specs, mpm_pc, nodaldata, 0, 1, dt);
 
 #if USE_TEMP
@@ -148,8 +138,6 @@ int main(int argc, char *argv[])
             }
 
             Redistribute_Fill_Update(specs, mpm_pc, steps);
-
-            // mpm_pc.updateNeighbors();
 
             Update_MP_Volume(mpm_pc);
 

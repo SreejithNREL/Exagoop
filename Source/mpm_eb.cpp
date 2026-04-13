@@ -106,10 +106,6 @@ static Geometry refined_geom(const Geometry &geom, int ls_ref)
     return Geometry(dom_ls);
 }
 
-// ---------------------------------------------------------------
-// Path A — UDF C/C++ shared library
-// ---------------------------------------------------------------
-
 /**
  * @brief Builds EB and fills lsphi from a user-provided shared-library UDF.
  *
@@ -209,10 +205,6 @@ static void build_stl_levelset(const Geometry &geom,
 #endif
 }
 
-// ---------------------------------------------------------------
-// Path C — AMReX built-in analytic geometry
-// ---------------------------------------------------------------
-
 /**
  * @brief Builds EB and fills lsphi using AMReX's built-in EB2 shapes.
  *
@@ -300,12 +292,9 @@ static void build_analytic_levelset(const std::string &geom_type,
     }
     else
     {
-        // All other AMReX built-in types: sphere, cylinder, plane, box, etc.
-        // AMReX reads the shape parameters from the eb2.* ParmParse namespace.
         EB2::Build(geom_ls, req_coarsen, 10);
     }
 
-    // Common: factory + lsphi allocation + FillSignedDistance
     const EB2::IndexSpace &ebis = EB2::IndexSpace::top();
     const EB2::Level &eblev = ebis.getLevel(geom);
     const EB2::Level &lslev = ebis.getLevel(geom_ls);
@@ -320,7 +309,6 @@ static void build_analytic_levelset(const std::string &geom_type,
 
     amrex::FillSignedDistance(*lsphi, lslev, *ebfactory, ls_ref);
 
-    // Explicit FillBoundary for correctness across MPI ranks / periodicity
     lsphi->FillBoundary(geom_ls.periodicity());
 }
 
@@ -355,13 +343,12 @@ void init_eb(const Geometry &geom,
 
     if (geom_type == "all_regular")
     {
-        amrex::Print() << "[EB] geom_type = all_regular — no EB geometry\n";
-        return; // using_levelset_geometry stays false
+        amrex::Print() << "\n[EB] geom_type = all_regular — no EB geometry\n";
+        return;
     }
 
     using_levelset_geometry = true;
 
-    // Dispatch to the appropriate path
     if (geom_type == "udf_cpp")
     {
         build_udf_levelset(geom, ba, dm, nghost, ls_refinement);
@@ -375,7 +362,6 @@ void init_eb(const Geometry &geom,
         build_analytic_levelset(geom_type, geom, ba, dm, nghost, ls_refinement);
     }
 
-    // Diagnostic plotfile — cell-centred signed distance field
     {
         Geometry geom_ls = refined_geom(geom, ls_refinement);
         BoxArray plot_ba = ba;

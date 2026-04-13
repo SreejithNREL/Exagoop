@@ -54,11 +54,9 @@ class UDFLoader
         }
     }
 
-    // Non-copyable
     UDFLoader(const UDFLoader &) = delete;
     UDFLoader &operator=(const UDFLoader &) = delete;
 
-    // Move-constructible
     UDFLoader(UDFLoader &&other) noexcept : m_handle(other.m_handle)
     {
         other.m_handle = nullptr;
@@ -131,14 +129,11 @@ class UDFImplicitFunction
   public:
     using PhiFn = double (*)(double, double, double);
 
-    /// Borrow the function pointer from an already-open UDFLoader.
-    /// The loader must outlive this object.
     explicit UDFImplicitFunction(const UDFLoader &loader)
     {
         m_phi_fn = loader.symbol<PhiFn>("levelset_phi");
     }
 
-    /// Copyable — AMReX EB2 requires this.
     UDFImplicitFunction(const UDFImplicitFunction &) = default;
     UDFImplicitFunction &operator=(const UDFImplicitFunction &) = default;
 
