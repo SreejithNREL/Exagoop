@@ -40,12 +40,23 @@
   ],
   "CFL": 0.1,
   "alpha_pic_flip": 1.0,
-  "order_scheme": 1,
+  "order_scheme": 3,
   "stress_update_scheme": "MUSL",
-  "output_tag": "1D_Axial_Bar_Vibration_dim1_npcx2_ord1_flip1.0_susMUSL_CFL0.1_USEHDFTrue_OFORMascii_c943b1",
+  "output_tag": "1D_Axial_Bar_Vibration_dim1_npcx2_ord3_flip1.0_susMUSL_CFL0.1_USEHDFFalse_OFORMascii_MPI=True_CUDAFalse_HIPFalse_OMPFalse_SYCLFalse_EBFalse_TEMPFalse_BuildSystemcmake_d2fcbe",
   "input_filename": "Inputs_1DAxialBarVibration.inp",
-  "build_with_hdf": true,
+  "build_with_hdf": [
+    true,
+    false
+  ],
   "output_format": "ascii",
   "materialpoint_filename": "mpm_particles.dat",
-  "plot_to_check": true
+  "plot_to_check": true,
+  "build_system": "cmake",
+  "use_mpi": true,
+  "use_cuda": false,
+  "use_hip": false,
+  "use_omp": false,
+  "use_sycl": false,
+  "use_eb": false,
+  "use_temp": false
 }

@@ -1526,7 +1526,7 @@ def write_inputs_file(
 
         # Input Material Points
         write_block(f, [
-            ("mpm.use_autogen", "1"),
+            ("mpm.use_autogen", "0"),
             ("mpm.mincoords_autogen", "0.0 0.0 0.0"),
             ("mpm.maxcoords_autogen", "1.0 1.0 1.0"),
             ("mpm.vel_autogen", "0.0 0.0 0.0"),

@@ -37,11 +37,23 @@
   ],
   "CFL": 0.1,
   "alpha_pic_flip": 1.0,
-  "order_scheme": 3,
+  "order_scheme": 1,
   "stress_update_scheme": "MUSL",
-  "output_tag": "1D_Heat_Conduction_npcx2_ord3_susMUSL_USEHDFFalse_OFORMascii_b3c09b",
+  "output_tag": "1D_Heat_Conduction_npcx2_ord1_susMUSL_USEHDFFalse_OFORMascii_MPI=True_CUDAFalse_HIPFalse_OMPFalse_SYCLFalse_EBFalse_TEMPTrue_BuildSystemcmake_32164c",
   "input_filename": "Inputs_1DHeatConduction.inp",
   "output_format": "ascii",
   "materialpoint_filename": "mpm_particles.dat",
-  "plot_to_check": true
+  "plot_to_check": true,
+  "build_with_hdf": [
+    true,
+    false
+  ],
+  "build_system": "cmake",
+  "use_mpi": true,
+  "use_cuda": false,
+  "use_hip": false,
+  "use_omp": false,
+  "use_sycl": false,
+  "use_eb": false,
+  "use_temp": true
 }
