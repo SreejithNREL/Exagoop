@@ -1560,7 +1560,7 @@ def write_inputs_file(
 
         # Simulation Run Parameters
         write_block(f, [
-            ("mpm.final_time", "1.0"),
+            ("mpm.final_time", "0.1"),
             ("mpm.max_steps", "5000000"),
             ("mpm.screen_output_time", "0.0001"),
             ("mpm.write_output_time", "0.01"),
