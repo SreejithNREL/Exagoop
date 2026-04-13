@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
             store_delta_temperature(nodaldata);
 #endif
 
-            if (specs.stress_update_scheme == 0)
+            if (specs.stress_update_scheme == USL)
             {
                 // Algo 1, step 18, 20, 21, 23 Vacoeboil;s paper
                 G2P_Momentum(specs, mpm_pc, nodaldata, 1, 1, dt);
@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
 
             // mpm_pc.updateNeighbors();
 
-            if (specs.stress_update_scheme == 1)
+            if (specs.stress_update_scheme == MUSL)
             {
                 // Algo 2, 19
                 G2P_Momentum(specs, mpm_pc, nodaldata, 1, 0, dt);
@@ -139,7 +139,8 @@ int main(int argc, char *argv[])
 #if USE_TEMP
                 G2P_Temperature(specs, mpm_pc, nodaldata, 1, 0, dt);
                 P2G_Temperature(specs, mpm_pc, nodaldata, 1, 0, 1);
-                Apply_Nodal_BCs_Temperature(geom, nodaldata, specs, dt, /*dirichlet_only=*/false);
+                Apply_Nodal_BCs_Temperature(geom, nodaldata, specs, dt,
+                                            /*dirichlet_only=*/false);
                 G2P_Temperature(specs, mpm_pc, nodaldata, 0, 1, dt);
 #endif
 

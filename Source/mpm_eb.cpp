@@ -52,7 +52,6 @@ MultiFab *lsphi = nullptr;
 int ls_refinement = 1;
 bool using_levelset_geometry = false;
 
-
 /**
  * @brief Computes required_coarsening_level = log2(ls_ref).
  *
@@ -133,7 +132,8 @@ static void build_udf_levelset(const Geometry &geom,
     amrex::ParmParse pp("eb2");
     pp.get("udf_so_file", so_file);
 
-    amrex::Print() << "\n[EB] Reading from UDF shared library: " << so_file << "\n";
+    amrex::Print() << "\n[EB] Reading from UDF shared library: " << so_file
+                   << "\n";
 
     UDFLoader loader(so_file);
     UDFImplicitFunction udf_if(loader);
@@ -186,7 +186,6 @@ static void build_stl_levelset(const Geometry &geom,
     pp.get("stl_file", stl_file);
 
     amrex::Print() << "\n[EB] Reading STL file: " << stl_file << "\n";
-
 
     Geometry geom_ls = refined_geom(geom, ls_ref);
     int req_coarsen = coarsening_level_for_refinement(ls_ref);

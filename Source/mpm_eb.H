@@ -66,7 +66,7 @@ extern bool using_levelset_geometry;
 void init_eb(const Geometry &geom,
              const BoxArray &ba,
              const DistributionMapping &dm);
-}
+} // namespace mpm_ebtools
 #endif
 
 // ============================================================

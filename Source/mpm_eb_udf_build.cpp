@@ -75,7 +75,8 @@ void build_udf_eb(UDFImplicitFunction udf_if, // copyable — EB2 will copy it
     const amrex::EB2::IndexSpace &ebis = amrex::EB2::IndexSpace::top();
     const amrex::EB2::Level &eblev = ebis.getLevel(geom);
 
-    ebfactory_out = new amrex::EBFArrayBoxFactory(eblev, geom, ba, dm, {nghost, nghost, nghost}, amrex::EBSupport::full);
+    ebfactory_out = new amrex::EBFArrayBoxFactory(
+        eblev, geom, ba, dm, {nghost, nghost, nghost}, amrex::EBSupport::full);
 
     amrex::BoxArray ls_ba = amrex::convert(ba, amrex::IntVect::TheNodeVector());
     ls_ba.refine(ls_refinement);

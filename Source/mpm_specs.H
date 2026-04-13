@@ -363,7 +363,24 @@ class MPMspecs
         }
 
         pp.query("fixed_timestep", fixed_timestep);
-        pp.query("stress_update_scheme", stress_update_scheme);
+        std::string sus_string = "USL";
+        pp.query("stress_update_scheme", sus_string);
+        if (sus_string == "USL")
+        {
+            stress_update_scheme = USL;
+        }
+        else if (sus_string == "MUSL")
+        {
+            stress_update_scheme = MUSL;
+        }
+        else
+        {
+            std::string error_msg = "\nError! Stress update scheme  should be "
+                                    "USL/MUSL. But found " +
+                                    sus_string;
+            amrex::Abort(error_msg);
+        }
+
         if (fixed_timestep == 1)
         {
             pp.get("timestep", timestep);

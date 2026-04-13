@@ -1481,7 +1481,7 @@ def write_inputs_file(
     dimensions: int,
     order_scheme: int,
     CFL: float,
-    stress_update_scheme: int,
+    stress_update_scheme: str,
     output_tag: str,
     constitutive_model: dict,
     enable_temperature: bool,

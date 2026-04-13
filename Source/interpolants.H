@@ -38,12 +38,11 @@ AMREX_GPU_DEVICE AMREX_GPU_CONSTANT
         {0, 0, 1, 1, 2, -1}  // type 4
 };
 static constexpr int interval_map_quadbspline_host[5][6] = {
-        {-1, -1, -1, -1, -1, -1}, // type 0 filler
-        {0, 0, 1, 2, 3,
-         3}, // type 1 (fixed): collapse bins 0–1→0, 2→1, 3→2, 4–5→3
-        {0, 1, 1, 2, 2, -1}, // type 2
-        {0, 0, 1, 1, 2, 2},  // type 3
-        {0, 0, 1, 1, 2, -1}  // type 4
+    {-1, -1, -1, -1, -1, -1}, // type 0 filler
+    {0, 0, 1, 2, 3, 3},  // type 1 (fixed): collapse bins 0–1→0, 2→1, 3→2, 4–5→3
+    {0, 1, 1, 2, 2, -1}, // type 2
+    {0, 0, 1, 1, 2, 2},  // type 3
+    {0, 0, 1, 1, 2, -1}  // type 4
 };
 #ifdef AMREX_USE_GPU
 AMREX_GPU_DEVICE AMREX_GPU_CONSTANT

@@ -72,7 +72,7 @@
   ],
   "CFL": 0.1,
   "order_scheme": 3,
-  "stress_update_scheme": 1,
+  "stress_update_scheme": "USL",
   "output_tag": "Elastic_disk_collision__dim2_npcx4_ord3_sus1_USEHDFFalse_OFORMascii_b170c7",
   "input_filename": "Inputs_ElasticDiskCollision.inp",
   "output_format": "ascii",

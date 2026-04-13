@@ -9,8 +9,8 @@
     "ny": 100
   },
   "ppc": [
-    1.2,
-    1.2
+    2,
+    2
   ],
   "bodies": [
     {
@@ -38,8 +38,8 @@
   "CFL": 0.1,
   "alpha_pic_flip": 1.0,
   "order_scheme": 3,
-  "stress_update_scheme": 1,
-  "output_tag": "1D_Heat_Conduction_npcx1.2_ord3_sus1_USEHDFFalse_OFORMascii_a56d19",
+  "stress_update_scheme": "MUSL",
+  "output_tag": "1D_Heat_Conduction_npcx2_ord3_susMUSL_USEHDFFalse_OFORMascii_b3c09b",
   "input_filename": "Inputs_1DHeatConduction.inp",
   "output_format": "ascii",
   "materialpoint_filename": "mpm_particles.dat",

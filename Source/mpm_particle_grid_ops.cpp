@@ -556,7 +556,8 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
                                             p.rdata(realData::mass) *
                                             basisvalue;
                                         amrex::Gpu::Atomic::AddNoRet(
-                                            &nodal_data_arr(ivlocal, MASS_INDEX),
+                                            &nodal_data_arr(ivlocal,
+                                                            MASS_INDEX),
                                             mass_contrib);
                                     }
                                     if (update_vel)
@@ -577,7 +578,10 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
                                         for (int dim = 0; dim < AMREX_SPACEDIM;
                                              dim++)
                                         {
-                                            amrex::Gpu::Atomic::AddNoRet(&nodal_data_arr(ivlocal,VELX_INDEX + dim),p_contrib[dim]);
+                                            amrex::Gpu::Atomic::AddNoRet(
+                                                &nodal_data_arr(
+                                                    ivlocal, VELX_INDEX + dim),
+                                                p_contrib[dim]);
                                         }
                                     }
 
@@ -640,10 +644,10 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
                                              dim++)
                                         {
                                             amrex::Gpu::Atomic::AddNoRet(
-                                                &nodal_data_arr(ivlocal,
-                                                                FRCX_INDEX + dim),
+                                                &nodal_data_arr(
+                                                    ivlocal, FRCX_INDEX + dim),
                                                 bforce_contrib[dim] +
-                                                intforce_contrib[dim]);
+                                                    intforce_contrib[dim]);
                                         }
                                     }
                                 }
@@ -874,7 +878,8 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
                                             p.rdata(realData::temperature) *
                                             basisvalue;
                                         amrex::Gpu::Atomic::AddNoRet(
-                                            &nodal_data_arr(ivlocal, MASS_SPHEAT),
+                                            &nodal_data_arr(ivlocal,
+                                                            MASS_SPHEAT),
                                             mass_spheat_contrib);
                                         amrex::Gpu::Atomic::AddNoRet(
                                             &nodal_data_arr(ivlocal,

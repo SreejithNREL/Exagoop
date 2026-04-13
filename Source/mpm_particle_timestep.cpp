@@ -101,7 +101,7 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
                         << p.idata(intData::constitutive_model) << " pos=("
                         << p.pos(0) << "," << p.pos(1) << ")\n";
 #endif
-                    return amrex::Real(1.0e10); 
+                    return amrex::Real(1.0e10);
                 }
                 return dt_p;
             }
@@ -188,8 +188,8 @@ void MPMParticleContainer::updateVolume()
                     }
                     else
                     {
-                        // Degenerate particle — clamp to avoid Inf/NaN
-                        // propagation. Keep previous volume/density unchanged.
+                    // Degenerate particle — clamp to avoid Inf/NaN
+                    // propagation. Keep previous volume/density unchanged.
 #ifndef __CUDA_ARCH__
                         amrex::AllPrint()
                             << "WARNING: detF <= 0 at pos=(" << p.pos(0) << ","
