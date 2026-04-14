@@ -226,6 +226,20 @@ void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
                                  [[maybe_unused]] amrex::Real dt,
                                  bool dirichlet_only)
 {
+
+#if USE_EB
+    if (mpm_ebtools::using_levelset_geometry)
+    {
+        int eb_bc = dirichlet_only ? (specs.levelset_temp_bc == 1 ? 1 : 0)
+                                   : specs.levelset_temp_bc;
+        nodal_levelset_bcs_temperature(
+            nodaldata, geom, dt, eb_bc, specs.levelset_temp_Twall,
+            specs.levelset_temp_flux, specs.levelset_temp_h,
+            specs.levelset_temp_Tinf,
+            /*pre_update=*/false);
+    }
+#endif
+
     if (!dirichlet_only)
     {
         nodal_bcs_temperature(geom, nodaldata, specs.bclo_temp.data(),
@@ -249,20 +263,6 @@ void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
                               specs.bchi_Tinf.data(),
                               /*pre_update=*/false);
     }
-
-#if USE_EB
-    if (mpm_ebtools::using_levelset_geometry)
-    {
-        int eb_bc = dirichlet_only ? (specs.levelset_temp_bc == 1 ? 1 : 0)
-                                   : specs.levelset_temp_bc;
-        nodal_levelset_bcs_temperature(
-            nodaldata, geom, dt, eb_bc, specs.levelset_temp_Twall,
-            specs.levelset_temp_flux, specs.levelset_temp_h,
-            specs.levelset_temp_Tinf,
-            /*pre_update=*/false);
-    }
-#endif
-
     // store_delta_temperature is called explicitly in main.cpp
 }
 #endif

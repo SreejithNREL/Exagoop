@@ -408,7 +408,8 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
 
-        const Box &nodalbox = mfi.validbox();
+        //const Box &nodalbox = mfi.validbox();
+        const Box &nodalbox = convert(mfi.validbox(), IntVect(AMREX_D_DECL(1,1,1)));
         auto nodal_data_arr = nodaldata.array(mfi);
         amrex::ParallelFor(
             nodalbox,
@@ -720,7 +721,8 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
         for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
         {
 
-            const Box &nodalbox = mfi.validbox();
+            //const Box &nodalbox = mfi.validbox();
+        	const Box &nodalbox = convert(mfi.validbox(), IntVect(AMREX_D_DECL(1,1,1)));
             auto nodal_data_arr = nodaldata.array(mfi);
             amrex::ParallelFor(
                 nodalbox,
