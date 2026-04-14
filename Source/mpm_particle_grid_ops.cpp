@@ -408,8 +408,9 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
 
-        //const Box &nodalbox = mfi.validbox();
-        const Box &nodalbox = convert(mfi.validbox(), IntVect(AMREX_D_DECL(1,1,1)));
+        // const Box &nodalbox = mfi.validbox();
+        const Box &nodalbox =
+            convert(mfi.validbox(), IntVect(AMREX_D_DECL(1, 1, 1)));
         auto nodal_data_arr = nodaldata.array(mfi);
         amrex::ParallelFor(
             nodalbox,
@@ -625,6 +626,16 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
             });
     }
 
+    if (update_vel)
+    {
+        // nodaldata.SumBoundary(MASS_INDEX, 1, geom.periodicity());
+        // nodaldata.SumBoundary(VELX_INDEX, 3, geom.periodicity());
+    }
+    if (update_forces)
+    {
+        // nodaldata.SumBoundary(STRESS_INDEX, 6, geom.periodicity());
+    }
+
     // Normalize velocities and stresses
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
@@ -721,8 +732,9 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
         for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
         {
 
-            //const Box &nodalbox = mfi.validbox();
-        	const Box &nodalbox = convert(mfi.validbox(), IntVect(AMREX_D_DECL(1,1,1)));
+            // const Box &nodalbox = mfi.validbox();
+            const Box &nodalbox =
+                convert(mfi.validbox(), IntVect(AMREX_D_DECL(1, 1, 1)));
             auto nodal_data_arr = nodaldata.array(mfi);
             amrex::ParallelFor(
                 nodalbox,
@@ -866,6 +878,15 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
                 }
 #endif
             });
+    }
+
+    if (update_mass_temp)
+    {
+        nodaldata.SumBoundary(MASS_SPHEAT, 2, geom.periodicity());
+    }
+    if (update_source)
+    {
+        nodaldata.SumBoundary(SOURCE_TEMP_INDEX, 1, geom.periodicity());
     }
 
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)

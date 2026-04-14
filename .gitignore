@@ -34,6 +34,7 @@ build_matrix_*.json
 build_matrix_*.txt
 Tests/**/ebplt*
 Tests/**/plt*
+Tests/Dam_Break_3D/*
 
 # IDE files
 .cproject
