@@ -55,9 +55,16 @@ function(build_exagoop_exe exagoop_exe_name)
   # Force mpm_eb_udf_build.cpp to compile as CXX even in CUDA builds.
   # This must be set AFTER target_sources and BEFORE the CUDA block.
   # ---------------------------------------------------------------
+
+  # AFTER: pre-include the shim to pre-empt AMReX_GpuQualifiers.H with
+  # empty GPU qualifiers before AMReX_Config.H bakes in AMREX_USE_GPU.
+  # CMAKE_CURRENT_LIST_DIR is the CMake/ directory where this file lives.
   set_source_files_properties(
-      ${SRC_DIR}/mpm_eb_udf_build.cpp
-      PROPERTIES LANGUAGE CXX)
+    ${SRC_DIR}/mpm_eb_udf_build.cpp
+    PROPERTIES
+        LANGUAGE CXX
+        COMPILE_OPTIONS
+            "-include;${CMAKE_CURRENT_LIST_DIR}/amrex_gpu_host_only.h")
 
   # ---------------------------------------------------------------
   # Windows-specific compile definitions and flags

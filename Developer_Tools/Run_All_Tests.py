@@ -360,7 +360,7 @@ def Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg):
         # Run simulation
         if(just_compile_dont_run==False):
             if(use_mpi):
-                run_cmd(f"cd {test_dir} && mpirun -np 4 {exe} {cfg['input_file']}")
+                run_cmd(f"cd {test_dir} && mpirun -np 4 ./{exe} {cfg['input_file']}")
             
             if(use_mpi==False):
                 run_cmd(f"cd {test_dir} && ./{exe} {cfg['input_file']} mpm.max_grid_size=256")
@@ -580,7 +580,7 @@ def Run_ParameterSweep_1D_HeatConduction(cfg):
         # Run simulation
         if(just_compile_dont_run==False):
             if(use_mpi):
-                run_cmd(f"cd {test_dir} && mpirun -np 4 {exe} {cfg['input_file']}")
+                run_cmd(f"cd {test_dir} && mpirun -np 4 ./{exe} {cfg['input_file']}")
             
             if(use_mpi==False):
                 run_cmd(f"cd {test_dir} && ./{exe} {cfg['input_file']} mpm.max_grid_size=256")
@@ -776,8 +776,11 @@ def Run_ParameterSweep_1D_HeatConduction_HeatFlux(cfg):
         
         # Run simulation
         if(just_compile_dont_run==False):
-            if(use_mpi):
-                run_cmd(f"cd {test_dir} && mpirun -np 4 {exe} {cfg['input_file']}")
+            if(use_mpi and use_cuda):
+                run_cmd(f"cd {test_dir} && mpirun -np 1 ./{exe} {cfg['input_file']}")
+                
+            if(use_mpi and use_cuda is not True):
+                run_cmd(f"cd {test_dir} && mpirun -np 4 ./{exe} {cfg['input_file']}")
             
             if(use_mpi==False):
                 run_cmd(f"cd {test_dir} && ./{exe} {cfg['input_file']} mpm.max_grid_size=256")
@@ -973,8 +976,11 @@ def Run_ParameterSweep_1D_HeatConduction_Convective(cfg):
         
         # Run simulation
         if(just_compile_dont_run==False):
-            if(use_mpi):
-                run_cmd(f"cd {test_dir} && mpirun -np 4 {exe} {cfg['input_file']}")
+            if(use_mpi and use_cuda):
+                run_cmd(f"cd {test_dir} && mpirun -np 1 ./{exe} {cfg['input_file']}")
+                
+            if(use_mpi and use_cuda is not True):
+                run_cmd(f"cd {test_dir} && mpirun -np 4 ./{exe} {cfg['input_file']}")
             
             if(use_mpi==False):
                 run_cmd(f"cd {test_dir} && ./{exe} {cfg['input_file']} mpm.max_grid_size=256")
@@ -1169,8 +1175,11 @@ def Run_ParameterSweep_2D_HeatConduction(cfg):
         
         # Run simulation
         if(just_compile_dont_run==False):
-            if(use_mpi):
-                run_cmd(f"cd {test_dir} && mpirun -np 4 {exe} {cfg['input_file']}")
+            if(use_mpi and use_cuda):
+                run_cmd(f"cd {test_dir} && mpirun -np 1 ./{exe} {cfg['input_file']}")
+                
+            if(use_mpi and use_cuda is not True):
+                run_cmd(f"cd {test_dir} && mpirun -np 4 ./{exe} {cfg['input_file']}")
             
             if(use_mpi==False):
                 run_cmd(f"cd {test_dir} && ./{exe} {cfg['input_file']} mpm.max_grid_size=256")
@@ -1375,8 +1384,11 @@ def Run_ParameterSweep_2D_HeatConduction_Cylinder_Dirichlet(cfg):
         
         # Run simulation
         if(just_compile_dont_run==False):
-            if(use_mpi):
-                run_cmd(f"cd {test_dir} && mpirun -np 4 {exe} {cfg['input_file']}")
+            if(use_mpi and use_cuda):
+                run_cmd(f"cd {test_dir} && mpirun -np 1 ./{exe} {cfg['input_file']}")
+                
+            if(use_mpi and use_cuda is not True):
+                run_cmd(f"cd {test_dir} && mpirun -np 4 ./{exe} {cfg['input_file']}")
             
             if(use_mpi==False):
                 run_cmd(f"cd {test_dir} && ./{exe} {cfg['input_file']} mpm.max_grid_size=256")
@@ -1573,8 +1585,11 @@ def Run_ParameterSweep_Dambreak(cfg):
         
         # Run simulation
         if(just_compile_dont_run==False):
-            if(use_mpi):
-                run_cmd(f"cd {test_dir} && mpirun -np 4 {exe} {cfg['input_file']}")
+            if(use_mpi and use_cuda):
+                run_cmd(f"cd {test_dir} && mpirun -np 1 ./{exe} {cfg['input_file']}")
+                
+            if(use_mpi and use_cuda is not True):
+                run_cmd(f"cd {test_dir} && mpirun -np 4 ./{exe} {cfg['input_file']}")
             
             if(use_mpi==False):
                 run_cmd(f"cd {test_dir} && ./{exe} {cfg['input_file']} mpm.max_grid_size=256")
@@ -1767,8 +1782,11 @@ def Run_ParameterSweep_EDC(cfg):
         run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")       
         
         if(just_compile_dont_run==False):
-            if(use_mpi):
-                run_cmd(f"cd {test_dir} && mpirun -np 4 {exe} {cfg['input_file']}")
+            if(use_mpi and use_cuda):
+                run_cmd(f"cd {test_dir} && mpirun -np 1 ./{exe} {cfg['input_file']}")
+                
+            if(use_mpi and use_cuda is not True):
+                run_cmd(f"cd {test_dir} && mpirun -np 4 ./{exe} {cfg['input_file']}")
             
             if(use_mpi==False):
                 run_cmd(f"cd {test_dir} && ./{exe} {cfg['input_file']} mpm.max_grid_size=256")
@@ -2215,16 +2233,16 @@ TEST_CASES = {
         "parameter_space": {
             "dimension": [1],
             "np_per_cell_x": [2],
-            "order_scheme": [1,2,3],
+            "order_scheme": [1],
             "alpha_pic_flip": [1.0],            
-            "stress_update_scheme": ["USL","MUSL"],
+            "stress_update_scheme": ["MUSL"],
             "CFL": [0.1],
             "build_with_hdf": [False],
             "output_format": ["ascii"],
             "filename_prefix": ["mpm_particles"],            
-            "build_system": ["gnumake","cmake"],
-            "use_mpi": [True, False],
-            "use_cuda": [False],
+            "build_system": ["cmake","gnumake"],
+            "use_mpi": [True,False],
+            "use_cuda": [True],
             "use_hip": [False],
             "use_omp": [False],
             "use_sycl": [False],
@@ -2245,14 +2263,14 @@ TEST_CASES = {
         "parameter_space": {
             "dimension": [1],
             "np_per_cell_x": [2],            
-            "order_scheme": [1,2,3],            
-            "stress_update_scheme": ["MUSL","USL"],
+            "order_scheme": [1],            
+            "stress_update_scheme": ["MUSL"],
             "build_with_hdf": [False],
             "output_format": ["ascii"],
             "filename_prefix": ["mpm_particles"],
-            "build_system": ["gnumake","cmake"],
-            "use_mpi": [True, False],
-            "use_cuda": [False],
+            "build_system": ["gnumake"],
+            "use_mpi": [True,False],
+            "use_cuda": [True],
             "use_hip": [False],
             "use_omp": [False],
             "use_sycl": [False],
@@ -2270,14 +2288,14 @@ TEST_CASES = {
         "parameter_space": {
             "dimension": [2],
             "np_per_cell_x": [2],            
-            "order_scheme": [1,2,3],            
-            "stress_update_scheme": ["USL","MUSL"],
+            "order_scheme": [1],            
+            "stress_update_scheme": ["MUSL"],
             "build_with_hdf": [False],
             "output_format": ["ascii"],
             "filename_prefix": ["mpm_particles"],
-            "build_system": ["gnumake","cmake"],
-            "use_mpi": [True, False],
-            "use_cuda": [False],
+            "build_system": ["gnumake"],
+            "use_mpi": [True,False],
+            "use_cuda": [True],
             "use_hip": [False],
             "use_omp": [False],
             "use_sycl": [False],
@@ -2295,14 +2313,14 @@ TEST_CASES = {
         "parameter_space": {
             "dimension": [2],
             "np_per_cell_x": [2],            
-            "order_scheme": [1,2,3],            
-            "stress_update_scheme": ["MUSL","USL"],
+            "order_scheme": [1],            
+            "stress_update_scheme": ["MUSL"],
             "build_with_hdf": [False],
             "output_format": ["ascii"],
             "filename_prefix": ["mpm_particles"],
-            "build_system": ["gnumake","cmake"],
+            "build_system": ["gnumake"],
             "use_mpi": [True,False],
-            "use_cuda": [False],
+            "use_cuda": [True],
             "use_hip": [False],
             "use_omp": [False],
             "use_sycl": [False],
@@ -2320,13 +2338,13 @@ TEST_CASES = {
         "parameter_space": {            
             "np_per_cell_x": [2],            
             "order_scheme": [1],            
-            "stress_update_scheme": ["MUSL","USL"],
+            "stress_update_scheme": ["MUSL"],
             "build_with_hdf": [False],
             "output_format": ["ascii"],
             "filename_prefix": ["mpm_particles"],
-            "build_system": ["gnumake","cmake"],
-            "use_mpi": [True, False],
-            "use_cuda": [False],
+            "build_system": ["gnumake"],
+            "use_mpi": [True,False],
+            "use_cuda": [True],
             "use_hip": [False],
             "use_omp": [False],
             "use_sycl": [False],
@@ -2343,14 +2361,14 @@ TEST_CASES = {
         ],
         "parameter_space": {            
             "np_per_cell_x": [2],            
-            "order_scheme": [1,2,3],            
-            "stress_update_scheme": ["USL","MUSL"],
+            "order_scheme": [1],            
+            "stress_update_scheme": ["MUSL"],
             "build_with_hdf": [False],
             "output_format": ["ascii"],
             "filename_prefix": ["mpm_particles"],
-            "build_system": ["gnumake","cmake"],
-            "use_mpi": [False,True],
-            "use_cuda": [False],
+            "build_system": ["gnumake"],
+            "use_mpi": [True,False],
+            "use_cuda": [True],
             "use_hip": [False],
             "use_omp": [False],
             "use_sycl": [False],
@@ -2369,14 +2387,14 @@ TEST_CASES = {
             "dimension": [2], 
             "no_of_cell_in_x": [100],      
             "np_per_cell_x": [1],            
-            "order_scheme": [1,2,3],            
+            "order_scheme": [1],            
             "stress_update_scheme": ["MUSL"],
             "build_with_hdf": [False],
             "output_format": ["ascii"],
             "filename_prefix": ["mpm_particles"],   
-            "build_system": ["gnumake","cmake"],
+            "build_system": ["gnumake"],
             "use_mpi": [True,False],
-            "use_cuda": [False],
+            "use_cuda": [True],
             "use_hip": [False],
             "use_omp": [False],
             "use_sycl": [False],
@@ -2399,9 +2417,9 @@ TEST_CASES = {
             "build_with_hdf": [False],
             "output_format": ["ascii"],
             "filename_prefix": ["mpm_particles"],
-            "build_system": ["gnumake","cmake"],
+            "build_system": ["gnumake"],
             "use_mpi": [True,False],
-            "use_cuda": [False],
+            "use_cuda": [True],
             "use_hip": [False],
             "use_omp": [False],
             "use_sycl": [False],
@@ -2526,11 +2544,13 @@ def _run_parameter_sweeps():
         diagn_dir = os.path.join(test_dir, "Diagnostics")
         tmp_build_dir = os.path.join(test_dir, "tmp_build_dir")
         submodules_dir = os.path.join(test_dir, "Submodules")
+        cmakefiles_dir = os.path.join(test_dir, "CMakeFiles")
         
         Delete_Folder(sol_dir)
         Delete_Folder(diagn_dir)
         Delete_Folder(tmp_build_dir)
         Delete_Folder(submodules_dir)
+        Delete_Folder(cmakefiles_dir)
         
         Delete_File_Start_End_Pattern(test_dir,"ExaGOOP",".ex")
         Delete_File_Exact(test_dir,"cmake_run.sh")
@@ -2554,16 +2574,16 @@ def _run_parameter_sweeps():
             #Run_ParameterSweep_1D_HeatConduction_HeatFlux(cfg)
         elif test_name == "1D_Heat_Conduction_Convective":
             print('Nothing to do')
-            #Run_ParameterSweep_1D_HeatConduction_Convective(cfg)
+            Run_ParameterSweep_1D_HeatConduction_Convective(cfg)
         elif test_name == "2D_Heat_Conduction":
             print('Nothing to do')
-            #Run_ParameterSweep_2D_HeatConduction(cfg)
+            Run_ParameterSweep_2D_HeatConduction(cfg)
         elif test_name == "2D_Heat_Conduction_Cylinder_Dirichlet":
             print('Nothing to do')
-            #Run_ParameterSweep_2D_HeatConduction_Cylinder_Dirichlet(cfg)
+            Run_ParameterSweep_2D_HeatConduction_Cylinder_Dirichlet(cfg)
         elif test_name == "Dam_Break":
             print('Nothing to do')
-            #Run_ParameterSweep_Dambreak(cfg)
+            Run_ParameterSweep_Dambreak(cfg)
         elif test_name == "Elastic_disk_collision":
             print('Nothing to do')
             Run_ParameterSweep_EDC(cfg)
