@@ -32,12 +32,17 @@
  */
 // clang-format on
 
+// Opt in to EB2 geometry-building headers BEFORE including mpm_eb.H.
+// This TU calls EB2::Build / EB2::makeShop and needs the full EB2 IF
+// template machinery.  It is compiled as CXX (never by nvcc) so there
+// is no risk of the GShopLevel/GFab template ODR issue.
+// See the EXAGOOP_INCLUDE_EB2_IF comment in mpm_eb.H for details.
+#define EXAGOOP_INCLUDE_EB2_IF
+
 #include <mpm_eb.H>
 #include <mpm_udf_loader.H>
 
 #if USE_EB
-#include <AMReX_EB2.H>
-#include <AMReX_EB_utils.H>
 #include <AMReX_MultiFabUtil.H>
 #endif
 

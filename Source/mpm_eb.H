@@ -7,6 +7,22 @@
 #include <AMReX_MultiFab.H>
 
 #if USE_EB
+// EB data-access headers — needed in every TU that touches EB cell flags,
+// face areas, EBFArrayBoxFactory, etc.  Safe to include from CUDA TUs.
+#include <AMReX_EBFArrayBox.H>
+#include <AMReX_EBFabFactory.H>
+#include <AMReX_EB_utils.H>
+
+// EB2 geometry-building headers — only required in the TU(s) that call
+// EB2::Build / EB2::makeShop (mpm_eb.cpp, mpm_eb_udf_build.cpp).
+//
+// CUDA TUs must NOT see these headers: nvcc compiles the heavy GShopLevel /
+// GeometryShop / GFab template machinery into host code that differs subtly
+// from g++'s output, causing segfaults in BaseFab<uint32_t>::define() during
+// geometry construction (ODR violation on the template instantiation).
+//
+// Define EXAGOOP_INCLUDE_EB2_IF before including this header to opt in.
+#ifdef EXAGOOP_INCLUDE_EB2_IF
 #include <AMReX_EB2.H>
 #include <AMReX_EB2_IF.H>
 #include <AMReX_EB2_IF_Cylinder.H>
@@ -15,10 +31,8 @@
 #include <AMReX_EB2_IF_Intersection.H>
 #include <AMReX_EB2_IF_Union.H>
 #include <AMReX_EB2_IF_Translation.H>
-#include <AMReX_EBFArrayBox.H>
-#include <AMReX_EBFabFactory.H>
-#include <AMReX_EB_utils.H>
-#endif
+#endif // EXAGOOP_INCLUDE_EB2_IF
+#endif // USE_EB
 
 #include <AMReX_PlotFileUtil.H>
 #include <constants.H>

@@ -162,8 +162,17 @@ endif()
 set(AMREX_SUBMOD_LOCATION "${CMAKE_SOURCE_DIR}/Submodules/amrex")
 list(APPEND CMAKE_MODULE_PATH "${AMREX_SUBMOD_LOCATION}/Tools/CMake")
 include(SetAmrexOptions)
+set(AMReX_INLINE_LIMIT "43210" CACHE STRING "AMReX inline limit" FORCE)
 add_subdirectory(${AMREX_SUBMOD_LOCATION})
 include(SetAmrexCompileFlags)
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set(_amrex_target amrex_${EXAGOOP_DIM}d)
+    target_compile_options(${_amrex_target} PRIVATE
+        $<$<COMPILE_LANGUAGE:CXX>:-finline-limit=43210>
+    )
+    message(STATUS "Applied -finline-limit=43210 directly to ${_amrex_target}")
+endif()
 
 # ===============================================================
 # Parallelism macros (match GNUmake)

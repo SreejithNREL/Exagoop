@@ -52,19 +52,46 @@ function(build_exagoop_exe exagoop_exe_name)
   )
 
   # ---------------------------------------------------------------
-  # Force mpm_eb_udf_build.cpp to compile as CXX even in CUDA builds.
-  # This must be set AFTER target_sources and BEFORE the CUDA block.
+  # mpm_eb.cpp and mpm_eb_udf_build.cpp must ALWAYS be compiled by g++
+  # (LANGUAGE CXX), never by nvcc.
+  #
+  # mpm_eb_udf_build.cpp (pre-existing requirement):
+  #   EB2::Build with a host-lambda causes nvcc's device-function scanner to
+  #   pull in stub.c, producing an unresolvable link error.
+  #
+  # mpm_eb.cpp (new requirement):
+  #   nvcc compiling the GShopLevel<GeometryShop<SphereIF>> / GFab / MultiGFab
+  #   template machinery generates host code that differs subtly from g++'s
+  #   output (different template instantiation), causing a segfault inside
+  #   BaseFab<uint32_t>::define() during EB2::Build at runtime.
+  #
+  # Both files use the LIGHTER shim (amrex_cxx_qualifiers_only.h) rather than
+  # the old heavy shim (amrex_gpu_host_only.h).  The lighter shim:
+  #   - keeps AMREX_USE_GPU/CUDA defined → class layouts identical to CUDA TUs
+  #     (prevents ABI mismatch for heap-allocated EBFArrayBoxFactory / MultiFab)
+  #   - strips GPU function qualifiers → g++ compiles AMREX_GPU_HOST_DEVICE as
+  #     ordinary inline functions
+  #   - includes <cuda_runtime_api.h> → g++ resolves cudaStream_t / cudaEvent_t
+  #     that appear in AMReX class definitions under #ifdef AMREX_USE_CUDA
+  #
+  # We also pass the CUDA toolkit include directories (-I flags) so that g++
+  # can find cuda_runtime_api.h when AMREX_USE_CUDA is defined.
+  # CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES is set automatically by CMake when
+  # enable_language(CUDA) has been called.
   # ---------------------------------------------------------------
 
-  # AFTER: pre-include the shim to pre-empt AMReX_GpuQualifiers.H with
-  # empty GPU qualifiers before AMReX_Config.H bakes in AMREX_USE_GPU.
-  # CMAKE_CURRENT_LIST_DIR is the CMake/ directory where this file lives.
+  set(_cxx_eb_opts
+      "-include" "${CMAKE_CURRENT_LIST_DIR}/amrex_cxx_qualifiers_only.h")
+  foreach(_dir ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+      list(APPEND _cxx_eb_opts "-I${_dir}")
+  endforeach()
+
   set_source_files_properties(
+    ${SRC_DIR}/mpm_eb.cpp
     ${SRC_DIR}/mpm_eb_udf_build.cpp
     PROPERTIES
         LANGUAGE CXX
-        COMPILE_OPTIONS
-            "-include;${CMAKE_CURRENT_LIST_DIR}/amrex_gpu_host_only.h")
+        COMPILE_OPTIONS "${_cxx_eb_opts}")
 
   # ---------------------------------------------------------------
   # Windows-specific compile definitions and flags
@@ -83,23 +110,35 @@ function(build_exagoop_exe exagoop_exe_name)
   endif()
 
   # ---------------------------------------------------------------
-  # CUDA: compile all .cpp sources as CUDA except the CXX-only file.
-  # The set_source_files_properties above pins mpm_eb_udf_build.cpp
-  # to CXX before this loop runs, so it is excluded automatically by
-  # the INCLUDE REGEX filter (it matches .cpp but its LANGUAGE property
-  # is already CXX, which CUDA's language override should not touch —
-  # however we explicitly remove it from the list to be safe).
+  # CUDA: mark all remaining .cpp sources as CUDA TUs.
+  #
+  # mpm_eb.cpp and mpm_eb_udf_build.cpp are already pinned to CXX above
+  # and are removed from the list before the LANGUAGE CUDA override.
+  #
+  # Why we do NOT set CUDA_SEPARABLE_COMPILATION ON here:
+  #   AMReX is compiled with RDC (AMReX_GPU_RDC defaults to ON).  If
+  #   ExaGOOP's CUDA TUs also used RDC, the GPU-annotated inline functions
+  #   from AMReX_EB2_IF_*.H (included via mpm_eb.H) would be emitted as
+  #   exported device symbols in both AMReX's objects AND ExaGOOP's objects,
+  #   creating an ODR violation that corrupts the host heap at runtime.
+  #   Without RDC, ExaGOOP's device code is compiled to standalone cubins;
+  #   every AMREX_FORCE_INLINE device function is inlined at its call site
+  #   and no device symbols are exported, so there is nothing to clash with
+  #   AMReX's RDC objects.  ExaGOOP has no cross-TU device calls, so RDC
+  #   is not needed.
   # ---------------------------------------------------------------
   if(EXAGOOP_ENABLE_CUDA)
     get_target_property(ALL_SOURCES ${EXAGOOP_EXE_NAME} SOURCES)
     set(CUDA_SOURCES ${ALL_SOURCES})
     list(FILTER CUDA_SOURCES INCLUDE REGEX "\\.cpp$")
-    # Remove the CXX-only file from the CUDA compilation list
+    # Both CXX-pinned files are already excluded; remove them from the list
+    # so the LANGUAGE CUDA assignment below cannot override their CXX setting.
     list(REMOVE_ITEM CUDA_SOURCES "${SRC_DIR}/mpm_eb_udf_build.cpp")
+    list(REMOVE_ITEM CUDA_SOURCES "${SRC_DIR}/mpm_eb.cpp")
+
     set_source_files_properties(${CUDA_SOURCES} PROPERTIES LANGUAGE CUDA)
 
-    set_target_properties(${EXAGOOP_EXE_NAME}
-        PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+    # No CUDA_SEPARABLE_COMPILATION — see comment above.
     target_compile_options(${EXAGOOP_EXE_NAME} PRIVATE
         $<$<COMPILE_LANGUAGE:CUDA>:-Xptxas --disable-optimizer-constants>)
   endif()

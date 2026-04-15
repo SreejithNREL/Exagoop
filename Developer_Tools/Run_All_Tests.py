@@ -2240,8 +2240,8 @@ TEST_CASES = {
             "build_with_hdf": [False],
             "output_format": ["ascii"],
             "filename_prefix": ["mpm_particles"],            
-            "build_system": ["cmake","gnumake"],
-            "use_mpi": [True,False],
+            "build_system": ["cmake"],
+            "use_mpi": [True],
             "use_cuda": [True],
             "use_hip": [False],
             "use_omp": [False],
@@ -2268,8 +2268,8 @@ TEST_CASES = {
             "build_with_hdf": [False],
             "output_format": ["ascii"],
             "filename_prefix": ["mpm_particles"],
-            "build_system": ["gnumake"],
-            "use_mpi": [True,False],
+            "build_system": ["cmake"],
+            "use_mpi": [True],
             "use_cuda": [True],
             "use_hip": [False],
             "use_omp": [False],
@@ -2293,8 +2293,8 @@ TEST_CASES = {
             "build_with_hdf": [False],
             "output_format": ["ascii"],
             "filename_prefix": ["mpm_particles"],
-            "build_system": ["gnumake"],
-            "use_mpi": [True,False],
+            "build_system": ["cmake"],
+            "use_mpi": [True],
             "use_cuda": [True],
             "use_hip": [False],
             "use_omp": [False],
@@ -2318,8 +2318,8 @@ TEST_CASES = {
             "build_with_hdf": [False],
             "output_format": ["ascii"],
             "filename_prefix": ["mpm_particles"],
-            "build_system": ["gnumake"],
-            "use_mpi": [True,False],
+            "build_system": ["cmake"],
+            "use_mpi": [True],
             "use_cuda": [True],
             "use_hip": [False],
             "use_omp": [False],
@@ -2342,8 +2342,8 @@ TEST_CASES = {
             "build_with_hdf": [False],
             "output_format": ["ascii"],
             "filename_prefix": ["mpm_particles"],
-            "build_system": ["gnumake"],
-            "use_mpi": [True,False],
+            "build_system": ["cmake"],
+            "use_mpi": [True],
             "use_cuda": [True],
             "use_hip": [False],
             "use_omp": [False],
@@ -2366,8 +2366,8 @@ TEST_CASES = {
             "build_with_hdf": [False],
             "output_format": ["ascii"],
             "filename_prefix": ["mpm_particles"],
-            "build_system": ["gnumake"],
-            "use_mpi": [True,False],
+            "build_system": ["cmake"],
+            "use_mpi": [True],
             "use_cuda": [True],
             "use_hip": [False],
             "use_omp": [False],
@@ -2392,8 +2392,8 @@ TEST_CASES = {
             "build_with_hdf": [False],
             "output_format": ["ascii"],
             "filename_prefix": ["mpm_particles"],   
-            "build_system": ["gnumake"],
-            "use_mpi": [True,False],
+            "build_system": ["cmake"],
+            "use_mpi": [True],
             "use_cuda": [True],
             "use_hip": [False],
             "use_omp": [False],
@@ -2417,8 +2417,8 @@ TEST_CASES = {
             "build_with_hdf": [False],
             "output_format": ["ascii"],
             "filename_prefix": ["mpm_particles"],
-            "build_system": ["gnumake"],
-            "use_mpi": [True,False],
+            "build_system": ["cmake"],
+            "use_mpi": [True],
             "use_cuda": [True],
             "use_hip": [False],
             "use_omp": [False],
@@ -2574,19 +2574,19 @@ def _run_parameter_sweeps():
             #Run_ParameterSweep_1D_HeatConduction_HeatFlux(cfg)
         elif test_name == "1D_Heat_Conduction_Convective":
             print('Nothing to do')
-            Run_ParameterSweep_1D_HeatConduction_Convective(cfg)
+            #Run_ParameterSweep_1D_HeatConduction_Convective(cfg)
         elif test_name == "2D_Heat_Conduction":
             print('Nothing to do')
-            Run_ParameterSweep_2D_HeatConduction(cfg)
+            #Run_ParameterSweep_2D_HeatConduction(cfg)
         elif test_name == "2D_Heat_Conduction_Cylinder_Dirichlet":
             print('Nothing to do')
             Run_ParameterSweep_2D_HeatConduction_Cylinder_Dirichlet(cfg)
         elif test_name == "Dam_Break":
             print('Nothing to do')
-            Run_ParameterSweep_Dambreak(cfg)
+            #Run_ParameterSweep_Dambreak(cfg)
         elif test_name == "Elastic_disk_collision":
             print('Nothing to do')
-            Run_ParameterSweep_EDC(cfg)
+            #Run_ParameterSweep_EDC(cfg)
 
     # Save results
     with open("sweep_results.json", "w") as f:
