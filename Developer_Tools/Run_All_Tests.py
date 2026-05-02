@@ -1085,7 +1085,7 @@ TEST_CASES = {
             "order_scheme": [2],
             "alpha_pic_flip": [1.0],
             "order_scheme": [1],
-            "stress_update_scheme": [1],
+            "stress_update_scheme": ["MUSL"],
             "CFL": [0.1],
             "build_with_hdf": [True,False],
             "output_format": ["ascii","hdf5"],
@@ -1106,7 +1106,7 @@ TEST_CASES = {
             "dimension": [1],
             "np_per_cell_x": [1],            
             "order_scheme": [2],            
-            "stress_update_scheme": [1],
+            "stress_update_scheme": ["MUSL"],
             "build_with_hdf": [True,False],
             "output_format": ["ascii","hdf5"],
             "filename_prefix": ["mpm_particles"]        
@@ -1122,7 +1122,7 @@ TEST_CASES = {
         "parameter_space": {            
             "np_per_cell_x": [1],            
             "order_scheme": [2],            
-            "stress_update_scheme": [1],
+            "stress_update_scheme": ["MUSL"],
             "build_with_hdf": [True,False],
             "output_format": ["ascii","hdf5"],
             "filename_prefix": ["mpm_particles"]        
@@ -1140,7 +1140,7 @@ TEST_CASES = {
             "no_of_cell_in_x": [100],      
             "np_per_cell_x": [1],            
             "order_scheme": [2],            
-            "stress_update_scheme": [1],
+            "stress_update_scheme": ["MUSL"],
             "build_with_hdf": [True,False],
             "output_format": ["ascii","hdf5"],
             "filename_prefix": ["mpm_particles"]            
@@ -1157,7 +1157,7 @@ TEST_CASES = {
             "dimension": [2],        
             "np_per_cell_x": [4],            
             "order_scheme": [2],            
-            "stress_update_scheme": [1],
+            "stress_update_scheme": ["MUSL"],
             "build_with_hdf": [True,False],
             "output_format": ["ascii","hdf5"],
             "filename_prefix": ["mpm_particles"]       

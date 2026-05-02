@@ -3,17 +3,16 @@ AMREX_HOME ?= ${MPM_HOME}/Submodules/amrex
 
 EBASE = ExaGOOP
 
-include $(MPM_HOME)/Build_Gnumake/Make.local 
-include $(AMREX_HOME)/Tools/GNUMake/Make.defs
+include $(MPM_HOME)/Build_Gnumake/Make.local
+NVCC_HOST_COMP ?= gnu
 
 # ===============================================================
 # AMReX configuration
 # ===============================================================
-DIM     = 2
+DIM        = 2
 COMP       = gnu
 PRECISION  = DOUBLE
 USE_EB     = TRUE
-USE_HYPRE  = FALSE
 
 # ===============================================================
 # Profiling
@@ -45,9 +44,8 @@ THREAD_SANITIZER  = FALSE
 # ===============================================================
 # ExaGOOP configuration
 # ===============================================================
-USE_TEMP     = TRUE
+USE_TEMP      = FALSE
 USE_PARTICLES = TRUE
-
 # ===============================================================
 # Precision 
 # ===============================================================
