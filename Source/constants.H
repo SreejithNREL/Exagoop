@@ -95,6 +95,9 @@
 #define BC_PARTIALSLIPWALL 3
 #define BC_OUTFLOW 4
 
+#define USL 0
+#define MUSL 1
+
 #define ACCG 9.81
 
 const int print_length = 60;
