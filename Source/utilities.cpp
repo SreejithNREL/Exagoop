@@ -2,13 +2,13 @@
 // #include <AMReX_MultiFab.H>
 #include <AMReX_PlotFileUtil.H>
 #include <aesthetics.H>
-#include <iomanip>  // for std::setprecision
-#include <iostream> // optional, if you use std::cout
+#include <iomanip>
+#include <iostream>
 #include <mpm_check_pair.H>
 #include <mpm_eb.H>
 #include <nodal_data_ops.H>
-#include <sstream> // optional, if you later use string streams
-#include <string>  // for std::string
+#include <sstream>
+#include <string>
 
 /**
  * @brief Writes all particle, grid, and level‑set outputs for the current step.

@@ -55,8 +55,6 @@ void backup_current_velocity(MultiFab &nodaldata)
 {
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
-        // const Box &bx = mfi.validbox();
-        //  Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
         Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 
         Array4<Real> nodal_data_arr = nodaldata.array(mfi);

@@ -89,7 +89,8 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
                     dxmin = amrex::min(dxmin, dx[d]);
                 }
 
-                return dxmin / (Cs + velmag);
+                amrex::Real dt_p = dxmin / (Cs + velmag);
+                return dt_p;
             }
             return std::numeric_limits<amrex::Real>::max();
         });
@@ -131,7 +132,7 @@ void MPMParticleContainer::updateVolume()
     {
         auto &ptile = plev[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
         auto &aos = ptile.GetArrayOfStructs();
-        const size_t np = aos.numParticles();
+        const int np = aos.numRealParticles();
         ParticleType *pstruct = aos().dataPtr();
 
         amrex::ParallelFor(
@@ -265,7 +266,7 @@ void MPMParticleContainer::moveParticles(
     {
         auto &ptile = plev[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
         auto &aos = ptile.GetArrayOfStructs();
-        const size_t np = aos.numParticles();
+        const size_t np = aos.numRealParticles();
         ParticleType *pstruct = aos().dataPtr();
 
 #if USE_EB
