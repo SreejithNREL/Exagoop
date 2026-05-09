@@ -38,8 +38,6 @@ int main(int argc, char *argv[])
         Real output_time = shunya;
         Real output_timePrint = shunya;
         Real diag_timePrint = shunya;
-        // GpuArray<int, AMREX_SPACEDIM> order_surface_integral =
-        // {AMREX_D_DECL(3, 3, 3)};
         std::string msg;
 
         int ng_cells;

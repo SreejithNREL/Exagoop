@@ -12,9 +12,7 @@
 #define PI 3.141592654
 #define three 3.0
 #define two 2.0
-#define eka                                                                    \
-    1.0 // one in sanskrit. naming as 'one' creates problems during cuda
-        // compilation
+#define eka 1.0	//naming it as one creates issues on cuda
 #define four 4.0
 #define onebysix 0.16666666666667
 #define onebythree 0.333333333333
@@ -22,7 +20,7 @@
 #define twobythree 0.6666666666667
 #define fourth 0.25
 #define eighth 0.125
-#define shunya 0.0 // zero in sanskrit.
+#define shunya 0.0 //naming it as zero creates issues on cuda
 #define TINYVAL 1e-20
 #define BIGVAL 1e20
 

@@ -8,7 +8,10 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <ctime>
 
-#define CCCL_IGNORE_MSVC_TRADITIONAL_PREPROCESSOR_WARNING
+
+#define CCCL_IGNORE_MSVC_TRADITIONAL_PREPROCESSOR_WARNING //Suppress warning while detecting msvc compilers when running on CUDA
+
+//get host name
 
 #ifdef _WIN32
 #include <winsock2.h>
