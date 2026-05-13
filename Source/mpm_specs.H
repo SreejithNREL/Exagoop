@@ -424,8 +424,8 @@ class MPMspecs
         bclo[2] = BC_SLIPWALL;
         bchi[2] = BC_SLIPWALL;
 #endif
-        pp.queryarr("bc_lower", bclo);
-        pp.queryarr("bc_upper", bchi);
+        pp.queryarr("bc_lower_mom", bclo);
+        pp.queryarr("bc_upper_mom", bchi);
 
 #if USE_TEMP
         pp.queryarr("bc_lower_temp", bclo_temp);
