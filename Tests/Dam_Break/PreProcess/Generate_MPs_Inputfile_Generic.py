@@ -1600,18 +1600,16 @@ def write_inputs_file(
 
         # Boundary Conditions
         write_block(f, [
-            ("mpm.bc_lower", "2 2 0"),
-            ("mpm.bc_upper", "2 2 0"),
+            ("mpm.bc_xlo_mom", "slip"),
+            ("mpm.bc_xhi_mom", "slip"),
+            ("mpm.bc_ylo_mom", "slip"),
+            ("mpm.bc_yhi_mom", "slip"),
             ("mpm.bc_lower_temp", "1 1 0"),
             ("mpm.bc_upper_temp", "1 1 0"),
             ("mpm.bc_lower_tempval", "1.0 1.0 0"),
             ("mpm.bc_upper_tempval", "1.0 1.0 0"),
             ("mpm.levelset_bc", "2 0 0"),
             ("mpm.levelset_wall_mu", "2 0 0"),
-            ("mpm.wall_mu_lo", "2 0 0"),
-            ("mpm.wall_mu_hi", "2 0 0"),
-            ("mpm.wall_vel_lo", "0 0 0 0 0 0 0 0 0"),
-            ("mpm.wall_vel_hi", "0 0 0 0 0 0 0 0 0")
         ], comment="Boundary Conditions")
 
         # Diagnostics

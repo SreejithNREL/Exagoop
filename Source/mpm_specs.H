@@ -413,7 +413,6 @@ class MPMspecs
             pp.query("write_diag_output_time", write_diag_output_time);
         }
 
-        // by default it is periodic
         bclo[0] = BC_SLIPWALL;
         bchi[0] = BC_SLIPWALL;
 #if (AMREX_SPACEDIM >= 2)
@@ -424,8 +423,56 @@ class MPMspecs
         bclo[2] = BC_SLIPWALL;
         bchi[2] = BC_SLIPWALL;
 #endif
-        pp.queryarr("bc_lower_mom", bclo);
-        pp.queryarr("bc_upper_mom", bchi);
+
+        auto bc_str_to_int = [](const std::string &s) -> int {
+            if (s == "periodic")    return BC_PERIODIC;
+            if (s == "noslip")      return BC_NOSLIPWALL;
+            if (s == "slip")        return BC_SLIPWALL;
+            if (s == "partialslip") return BC_PARTIALSLIPWALL;
+            if (s == "outflow")     return BC_OUTFLOW;
+            amrex::Abort("\nUnknown BC type: " + s);
+            return -1;
+        };
+
+        const std::string face_lo_keys[3] = {"bc_xlo_mom", "bc_ylo_mom", "bc_zlo_mom"};
+        const std::string face_hi_keys[3] = {"bc_xhi_mom", "bc_yhi_mom", "bc_zhi_mom"};
+        const std::string face_lo_ns[3]   = {"mpm.bc_xlo_mom", "mpm.bc_ylo_mom", "mpm.bc_zlo_mom"};
+        const std::string face_hi_ns[3]   = {"mpm.bc_xhi_mom", "mpm.bc_yhi_mom", "mpm.bc_zhi_mom"};
+
+        for (int d = 0; d < AMREX_SPACEDIM; d++)
+        {
+            std::string bc_str;
+            if (pp.query(face_lo_keys[d].c_str(), bc_str))
+            {
+                bclo[d] = bc_str_to_int(bc_str);
+            }
+            if (pp.query(face_hi_keys[d].c_str(), bc_str))
+            {
+                bchi[d] = bc_str_to_int(bc_str);
+            }
+
+            ParmParse pp_lo(face_lo_ns[d]);
+            pp_lo.query("wall_mu", wall_mu_lo[d]);
+            Vector<Real> wvel_lo(AMREX_SPACEDIM, 0.0);
+            if (pp_lo.queryarr("wall_vel", wvel_lo))
+            {
+                for (int c = 0; c < AMREX_SPACEDIM; c++)
+                {
+                    wall_vel_lo[d * AMREX_SPACEDIM + c] = wvel_lo[c];
+                }
+            }
+
+            ParmParse pp_hi(face_hi_ns[d]);
+            pp_hi.query("wall_mu", wall_mu_hi[d]);
+            Vector<Real> wvel_hi(AMREX_SPACEDIM, 0.0);
+            if (pp_hi.queryarr("wall_vel", wvel_hi))
+            {
+                for (int c = 0; c < AMREX_SPACEDIM; c++)
+                {
+                    wall_vel_hi[d * AMREX_SPACEDIM + c] = wvel_hi[c];
+                }
+            }
+        }
 
 #if USE_TEMP
         pp.queryarr("bc_lower_temp", bclo_temp);
@@ -437,18 +484,6 @@ class MPMspecs
 
         pp.query("levelset_bc", levelset_bc);
         pp.query("levelset_wall_mu", levelset_wall_mu);
-
-        pp.query("wall_mu_lo", wall_mu_lo);
-        pp.query("wall_mu_hi", wall_mu_hi);
-
-        for (int i = 0; i < AMREX_SPACEDIM * AMREX_SPACEDIM; i++)
-        {
-            wall_vel_lo[i] = 0.0;
-            wall_vel_hi[i] = 0.0;
-        }
-
-        pp.query("wall_vel_lo", wall_vel_lo);
-        pp.query("wall_vel_hi", wall_vel_hi);
     }
 
     std::string Convert_arr_string(Array<Real, AMREX_SPACEDIM> arr)
