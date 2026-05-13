@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
             P2G_Momentum(specs, mpm_pc, nodaldata, 1, 1, 1);
             backup_current_velocity(nodaldata);
             Nodal_Time_Update_Momentum(nodaldata, dt, specs.mass_tolerance);
-            Apply_Nodal_BCs(geom, nodaldata, specs, dt);
+            Apply_Nodal_BCs(geom, nodaldata, specs, dt, time);
 
 #if USE_TEMP
             P2G_Temperature(specs, mpm_pc, nodaldata, 1, 1, 1);
@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
                 // 20
                 P2G_Momentum(specs, mpm_pc, nodaldata, 0, 1, 0);
                 // 21
-                Apply_Nodal_BCs(geom, nodaldata, specs, dt);
+                Apply_Nodal_BCs(geom, nodaldata, specs, dt, time);
                 // 25
                 G2P_Momentum(specs, mpm_pc, nodaldata, 0, 1, dt);
 

@@ -177,7 +177,11 @@ class MPMParticleContainer
                        amrex::Real wall_mu_hi[AMREX_SPACEDIM],
                        amrex::Real wall_vel_lo[AMREX_SPACEDIM * AMREX_SPACEDIM],
                        amrex::Real wall_vel_hi[AMREX_SPACEDIM * AMREX_SPACEDIM],
-                       amrex::Real lset_wall_mu);
+                       amrex::Real lset_wall_mu,
+                       amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM>
+                           udf_wall_vel_lo_dev,
+                       amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM>
+                           udf_wall_vel_hi_dev);
 
     /**
      * @brief Updates particle volume, density, and Jacobian from the

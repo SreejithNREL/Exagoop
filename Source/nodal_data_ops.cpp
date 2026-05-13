@@ -1,5 +1,6 @@
 // clang-format off
 #include <nodal_data_ops.H>
+#include <mpm_specs.H>
 #include <mpm_eb.H>
 #include <mpm_kernels.H>
 #include <AMReX_iMultiFab.H>
@@ -687,7 +688,6 @@ void nodal_bcs(const amrex::Geometry geom,
                     relvel_out[d] = relvel_in[d];
                 }
 
-                // Loop over each dimension for boundary conditions
                 for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
                 {
                     if (nodeid[dir] == domlo[dir])
@@ -701,6 +701,9 @@ void nodal_bcs(const amrex::Geometry geom,
                         normaldir[dir] = 1.0;
                         applybc(relvel_in, relvel_out, wall_mu_lo[dir],
                                 normaldir, bclo[dir]);
+                        for (int c = 0; c < AMREX_SPACEDIM; ++c)
+                            nodal_data_arr(nodeid, VELX_INDEX + c) =
+                                relvel_out[c] + wallvel[c];
                     }
                     else if (nodeid[dir] == domhi[dir] + 1)
                     {
@@ -713,14 +716,10 @@ void nodal_bcs(const amrex::Geometry geom,
                         normaldir[dir] = -1.0;
                         applybc(relvel_in, relvel_out, wall_mu_hi[dir],
                                 normaldir, bchi[dir]);
+                        for (int c = 0; c < AMREX_SPACEDIM; ++c)
+                            nodal_data_arr(nodeid, VELX_INDEX + c) =
+                                relvel_out[c] + wallvel[c];
                     }
-                    nodal_data_arr(nodeid, VELX_INDEX + dir) =
-                        relvel_out[dir] + wallvel[dir];
-                }
-
-                // Update nodal velocities
-                for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                {
                 }
             });
     }
@@ -871,4 +870,242 @@ void Reset_Nodaldata_to_Zero(amrex::MultiFab &nodaldata, int ng_cells_nodaldata)
     if (testing == 1)
         amrex::Print() << "\n Reseting Nodal Data to shunya \n";
     nodaldata.setVal(shunya, ng_cells_nodaldata);
+}
+
+void compute_udf_wall_vel_at_nodes(const amrex::Geometry &geom,
+                                   MPMspecs &specs,
+                                   amrex::Real t)
+{
+    const auto dx     = geom.CellSizeArray();
+    const auto plo_g  = geom.ProbLoArray();
+    const auto phi_g  = geom.ProbHiArray();
+
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        int p0 = (d == 0) ? 1 : 0;
+#if (AMREX_SPACEDIM == 3)
+        int p1 = (d == 2) ? 1 : 2;
+#endif
+
+        if (specs.udf_func_ptr_lo[d] != nullptr)
+        {
+#if (AMREX_SPACEDIM == 1)
+            int n_nodes = 1;
+#elif (AMREX_SPACEDIM == 2)
+            int n_nodes = specs.ncells[p0] + 1;
+#else
+            int n_nodes = (specs.ncells[p0] + 1) * (specs.ncells[p1] + 1);
+#endif
+            amrex::Vector<amrex::Real> hv(n_nodes * AMREX_SPACEDIM, 0.0);
+
+#if (AMREX_SPACEDIM == 1)
+            {
+                double vel[3] = {0.0, 0.0, 0.0};
+                specs.udf_func_ptr_lo[d]((double)plo_g[0], 0.0, 0.0,
+                                         (double)t, vel);
+                for (int c = 0; c < AMREX_SPACEDIM; ++c)
+                    hv[c] = (amrex::Real)vel[c];
+            }
+#elif (AMREX_SPACEDIM == 2)
+            for (int j = 0; j <= specs.ncells[p0]; ++j)
+            {
+                double cx = (d == 0) ? (double)plo_g[0]
+                                     : (double)(plo_g[0] + j * dx[0]);
+                double cy = (d == 1) ? (double)plo_g[1]
+                                     : (double)(plo_g[1] + j * dx[1]);
+                double vel[3] = {0.0, 0.0, 0.0};
+                specs.udf_func_ptr_lo[d](cx, cy, 0.0, (double)t, vel);
+                for (int c = 0; c < AMREX_SPACEDIM; ++c)
+                    hv[j * AMREX_SPACEDIM + c] = (amrex::Real)vel[c];
+            }
+#else
+            for (int j = 0; j <= specs.ncells[p0]; ++j)
+            {
+                for (int k = 0; k <= specs.ncells[p1]; ++k)
+                {
+                    double coords[3] = {0.0, 0.0, 0.0};
+                    coords[d]  = (double)plo_g[d];
+                    coords[p0] = (double)(plo_g[p0] + j * dx[p0]);
+                    coords[p1] = (double)(plo_g[p1] + k * dx[p1]);
+                    double vel[3] = {0.0, 0.0, 0.0};
+                    specs.udf_func_ptr_lo[d](coords[0], coords[1], coords[2],
+                                             (double)t, vel);
+                    int flat = (j * (specs.ncells[p1] + 1) + k) * AMREX_SPACEDIM;
+                    for (int c = 0; c < AMREX_SPACEDIM; ++c)
+                        hv[flat + c] = (amrex::Real)vel[c];
+                }
+            }
+#endif
+            specs.udf_wall_vel_nodes_lo[d].resize(hv.size());
+            amrex::Gpu::copy(amrex::Gpu::hostToDevice, hv.begin(), hv.end(),
+                             specs.udf_wall_vel_nodes_lo[d].begin());
+        }
+
+        if (specs.udf_func_ptr_hi[d] != nullptr)
+        {
+#if (AMREX_SPACEDIM == 1)
+            int n_nodes = 1;
+#elif (AMREX_SPACEDIM == 2)
+            int n_nodes = specs.ncells[p0] + 1;
+#else
+            int n_nodes = (specs.ncells[p0] + 1) * (specs.ncells[p1] + 1);
+#endif
+            amrex::Vector<amrex::Real> hv(n_nodes * AMREX_SPACEDIM, 0.0);
+
+#if (AMREX_SPACEDIM == 1)
+            {
+                double vel[3] = {0.0, 0.0, 0.0};
+                specs.udf_func_ptr_hi[d]((double)phi_g[0], 0.0, 0.0,
+                                         (double)t, vel);
+                for (int c = 0; c < AMREX_SPACEDIM; ++c)
+                    hv[c] = (amrex::Real)vel[c];
+            }
+#elif (AMREX_SPACEDIM == 2)
+            for (int j = 0; j <= specs.ncells[p0]; ++j)
+            {
+                double cx = (d == 0) ? (double)phi_g[0]
+                                     : (double)(plo_g[0] + j * dx[0]);
+                double cy = (d == 1) ? (double)phi_g[1]
+                                     : (double)(plo_g[1] + j * dx[1]);
+                double vel[3] = {0.0, 0.0, 0.0};
+                specs.udf_func_ptr_hi[d](cx, cy, 0.0, (double)t, vel);
+                for (int c = 0; c < AMREX_SPACEDIM; ++c)
+                    hv[j * AMREX_SPACEDIM + c] = (amrex::Real)vel[c];
+            }
+#else
+            for (int j = 0; j <= specs.ncells[p0]; ++j)
+            {
+                for (int k = 0; k <= specs.ncells[p1]; ++k)
+                {
+                    double coords[3] = {0.0, 0.0, 0.0};
+                    coords[d]  = (double)phi_g[d];
+                    coords[p0] = (double)(plo_g[p0] + j * dx[p0]);
+                    coords[p1] = (double)(plo_g[p1] + k * dx[p1]);
+                    double vel[3] = {0.0, 0.0, 0.0};
+                    specs.udf_func_ptr_hi[d](coords[0], coords[1], coords[2],
+                                             (double)t, vel);
+                    int flat = (j * (specs.ncells[p1] + 1) + k) * AMREX_SPACEDIM;
+                    for (int c = 0; c < AMREX_SPACEDIM; ++c)
+                        hv[flat + c] = (amrex::Real)vel[c];
+                }
+            }
+#endif
+            specs.udf_wall_vel_nodes_hi[d].resize(hv.size());
+            amrex::Gpu::copy(amrex::Gpu::hostToDevice, hv.begin(), hv.end(),
+                             specs.udf_wall_vel_nodes_hi[d].begin());
+        }
+    }
+    amrex::Gpu::streamSynchronize();
+}
+
+void apply_udf_nodal_bcs(const amrex::Geometry &geom,
+                         amrex::MultiFab &nodaldata,
+                         MPMspecs &specs)
+{
+    bool any_udf = false;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        if (specs.udf_func_ptr_lo[d] || specs.udf_func_ptr_hi[d])
+        {
+            any_udf = true;
+            break;
+        }
+    }
+    if (!any_udf) return;
+
+    const int *domloarr = geom.Domain().loVect();
+    const int *domhiarr = geom.Domain().hiVect();
+
+    amrex::GpuArray<int, AMREX_SPACEDIM> domlo, domhi;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        domlo[d] = domloarr[d];
+        domhi[d] = domhiarr[d];
+    }
+
+    amrex::GpuArray<int, AMREX_SPACEDIM> bclo_arr, bchi_arr;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        bclo_arr[d] = specs.bclo[d];
+        bchi_arr[d] = specs.bchi[d];
+    }
+
+    amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM> udf_lo_ptrs,
+        udf_hi_ptrs;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        udf_lo_ptrs[d] = specs.udf_func_ptr_lo[d]
+                             ? specs.udf_wall_vel_nodes_lo[d].data()
+                             : nullptr;
+        udf_hi_ptrs[d] = specs.udf_func_ptr_hi[d]
+                             ? specs.udf_wall_vel_nodes_hi[d].data()
+                             : nullptr;
+    }
+
+    amrex::GpuArray<int, AMREX_SPACEDIM> ncells_arr;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        ncells_arr[d] = specs.ncells[d];
+
+    for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
+    {
+        Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
+        Array4<amrex::Real> arr = nodaldata.array(mfi);
+
+        amrex::ParallelFor(
+            nodalbox,
+            [=] AMREX_GPU_DEVICE(AMREX_D_DECL(int i, int j, int k)) noexcept
+            {
+                IntVect nodeid(AMREX_D_DECL(i, j, k));
+
+                for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
+                {
+                    const amrex::Real *udf_ptr = nullptr;
+                    int bc_type               = -1;
+
+                    if (nodeid[dir] == domlo[dir] &&
+                        udf_lo_ptrs[dir] != nullptr)
+                    {
+                        udf_ptr = udf_lo_ptrs[dir];
+                        bc_type = bclo_arr[dir];
+                    }
+                    else if (nodeid[dir] == domhi[dir] + 1 &&
+                             udf_hi_ptrs[dir] != nullptr)
+                    {
+                        udf_ptr = udf_hi_ptrs[dir];
+                        bc_type = bchi_arr[dir];
+                    }
+
+                    if (udf_ptr == nullptr) continue;
+
+                    int p0 = (dir == 0) ? 1 : 0;
+#if (AMREX_SPACEDIM == 3)
+                    int p1 = (dir == 2) ? 1 : 2;
+#endif
+
+                    int flat = 0;
+#if (AMREX_SPACEDIM == 1)
+                    flat = 0;
+#elif (AMREX_SPACEDIM == 2)
+                    flat = nodeid[p0] * AMREX_SPACEDIM;
+#else
+                    flat = (nodeid[p0] * (ncells_arr[p1] + 1) + nodeid[p1]) *
+                           AMREX_SPACEDIM;
+#endif
+
+                    amrex::Real W[AMREX_SPACEDIM];
+                    for (int c = 0; c < AMREX_SPACEDIM; ++c)
+                        W[c] = udf_ptr[flat + c];
+
+                    if (bc_type == BC_NOSLIPWALL)
+                    {
+                        for (int c = 0; c < AMREX_SPACEDIM; ++c)
+                            arr(nodeid, VELX_INDEX + c) = W[c];
+                    }
+                    else
+                    {
+                        arr(nodeid, VELX_INDEX + dir) = W[dir];
+                    }
+                }
+            });
+    }
 }

@@ -317,9 +317,10 @@ override this to match the problem dimension.
   ``ExaGOOP2d.gnu.MPI.ex`` or ``ExaGOOP3d.gnu.MPI.ex``.
 - Setting ``DIM=1`` forces ``USE_EB=FALSE`` (AMReX EB is not
   supported in 1D).
-- ``mpm.ppc``, ``mpm.prob_lo``, ``mpm.bc_lower``, and all other
-  spatially-indexed parameters expect exactly ``SPACEDIM`` entries in
-  the input file.
+- ``mpm.ppc``, ``mpm.prob_lo``, and all other spatially-indexed
+  parameters expect exactly ``SPACEDIM`` entries in the input file.
+  Per-face momentum BC keys (``mpm.bc_xlo_mom``, ``mpm.bc_ylo_mom``,
+  etc.) exist for each of the ``2 * SPACEDIM`` domain faces.
 
 
 ----

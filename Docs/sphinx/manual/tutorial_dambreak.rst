@@ -128,21 +128,35 @@ Problem-specific parameters are set next. ``mpm.final_time`` and ``mpm.max_steps
 	mpm.write_output_time=0.01                      #How frequently to write output files
 	mpm.num_redist = 1                              #How frequently to redistribute
 	
-Finally, the problems specific boundary conditions are specified using the Boundary conditions block as shown below,
+Finally, the problem-specific boundary conditions are specified using the boundary conditions block.  Each domain face is named individually using the pattern ``mpm.bc_<face>_mom``, where ``<face>`` is one of ``xlo``, ``xhi``, ``ylo``, ``yhi``, ``zlo``, or ``zhi``.  For the 2-D dam break problem (periodic in z), the block looks like:
 
 .. code-block:: bash
-	
-	#Boundary conditions
-	mpm.bc_lower= 2 2 0                      #0->Periodic 1->NoSlipWall 2->SlipWall 3->PartialSlipWall 4->Outflow
-	mpm.bc_upper= 2 2 0                      #0->Periodic 1->NoSlipWall 2->SlipWall 3->PartialSlipWall 4->Outflow
 
-``bc_lower`` and ``bc_upper`` set the boundary condition type on each face of the computational domain. Each array entry corresponds to one spatial direction (x, y, z). The five supported flags are:
+   #Boundary conditions
+   mpm.bc_xlo_mom = slip
+   mpm.bc_xhi_mom = slip
+   mpm.bc_ylo_mom = slip
+   mpm.bc_yhi_mom = slip
+   # z faces left at default (periodic, matching mpm.is_it_periodic = 0 0 1)
 
-* ``0`` — Periodic (must match the corresponding ``mpm.is_it_periodic`` entry)
-* ``1`` — No-slip wall (zero velocity enforced at the boundary node)
-* ``2`` — Slip wall (zero normal velocity; tangential velocity unconstrained)
-* ``3`` — Partial-slip wall (Coulomb friction; requires ``mpm.wall_mu_lo`` / ``mpm.wall_mu_hi`` to set the friction coefficient)
-* ``4`` — Outflow (no velocity constraint applied at the boundary)
+The BC type for each face is a string keyword.  The five supported values are:
+
+* ``periodic`` — periodic face (must match the corresponding ``mpm.is_it_periodic`` entry)
+* ``noslip`` — no-slip wall (all velocity components enforced to the wall velocity at boundary nodes)
+* ``slip`` — slip wall (zero normal velocity; tangential velocity unconstrained)
+* ``partialslip`` — partial-slip wall with Coulomb friction (set friction coefficient via ``mpm.bc_<face>_mom.wall_mu``)
+* ``outflow`` — outflow (no velocity constraint applied at the boundary)
+
+**Optional per-face sub-parameters**
+
+A constant wall velocity or friction coefficient can be set for any face using sub-namespace keys:
+
+.. code-block:: bash
+
+   mpm.bc_zlo_mom.wall_vel = 0.0 0.0 -1.0   # wall velocity vector (m/s)
+   mpm.bc_zlo_mom.wall_mu  = 0.3             # friction coefficient (partialslip only)
+
+For spatially and temporally varying wall velocities, see :ref:`udf_moving_wall`.
 	
 Generating initial material point file
 --------------------------------------

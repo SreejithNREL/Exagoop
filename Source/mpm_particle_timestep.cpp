@@ -225,7 +225,9 @@ void MPMParticleContainer::moveParticles(
     amrex::Real wall_mu_hi[AMREX_SPACEDIM],
     amrex::Real wall_vel_lo[AMREX_SPACEDIM * AMREX_SPACEDIM],
     amrex::Real wall_vel_hi[AMREX_SPACEDIM * AMREX_SPACEDIM],
-    [[maybe_unused]] amrex::Real lset_wall_mu)
+    [[maybe_unused]] amrex::Real lset_wall_mu,
+    amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM> udf_wall_vel_lo_dev,
+    amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM> udf_wall_vel_hi_dev)
 {
     BL_PROFILE("MPMParticleContainer::moveParticles");
 
@@ -262,6 +264,11 @@ void MPMParticleContainer::moveParticles(
         wall_mu_hi_arr[d] = wall_mu_hi[d];
     }
 
+    const auto domain = Geom(lev).Domain();
+    GpuArray<int, AMREX_SPACEDIM> ncells_arr;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        ncells_arr[d] = domain.length(d);
+
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         auto &ptile = plev[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
@@ -276,6 +283,11 @@ void MPMParticleContainer::moveParticles(
             lsetarr = mpm_ebtools::lsphi->array(mfi);
         }
 #endif
+
+        const amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM> udf_lo_ptrs =
+            udf_wall_vel_lo_dev;
+        const amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM> udf_hi_ptrs =
+            udf_wall_vel_hi_dev;
 
         amrex::ParallelFor(
             np,
@@ -351,13 +363,74 @@ void MPMParticleContainer::moveParticles(
                 {
                     if (p.pos(dir) < plo[dir])
                     {
-                        // subtract wall velocity
                         for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                        {
                             wallvel[d] =
                                 wall_vel_lo_arr[dir * AMREX_SPACEDIM + d];
-                            relvel_in[d] -= wallvel[d];
+
+                        if (udf_lo_ptrs[dir] != nullptr)
+                        {
+                            int p0 = (dir == 0) ? 1 : 0;
+#if (AMREX_SPACEDIM == 2)
+                            amrex::Real frac =
+                                (p.pos(p0) - plo[p0]) / dx[p0];
+                            frac = amrex::max(
+                                amrex::Real(0.0),
+                                amrex::min(amrex::Real(ncells_arr[p0]), frac));
+                            int j0 = (int)frac;
+                            int j1 = amrex::min(j0 + 1, ncells_arr[p0]);
+                            amrex::Real wt1 = frac - j0;
+                            amrex::Real wt0 = amrex::Real(1.0) - wt1;
+                            for (int c = 0; c < AMREX_SPACEDIM; ++c)
+                                wallvel[c] =
+                                    wt0 * udf_lo_ptrs[dir]
+                                              [j0 * AMREX_SPACEDIM + c] +
+                                    wt1 * udf_lo_ptrs[dir]
+                                              [j1 * AMREX_SPACEDIM + c];
+#elif (AMREX_SPACEDIM == 3)
+                            int p1 = (dir == 2) ? 1 : 2;
+                            amrex::Real frac0 =
+                                (p.pos(p0) - plo[p0]) / dx[p0];
+                            amrex::Real frac1 =
+                                (p.pos(p1) - plo[p1]) / dx[p1];
+                            frac0 = amrex::max(
+                                amrex::Real(0.0),
+                                amrex::min(amrex::Real(ncells_arr[p0]), frac0));
+                            frac1 = amrex::max(
+                                amrex::Real(0.0),
+                                amrex::min(amrex::Real(ncells_arr[p1]), frac1));
+                            int j0 = (int)frac0;
+                            int j1 = amrex::min(j0 + 1, ncells_arr[p0]);
+                            int k0 = (int)frac1;
+                            int k1 = amrex::min(k0 + 1, ncells_arr[p1]);
+                            amrex::Real wx1 = frac0 - j0;
+                            amrex::Real wx0 = amrex::Real(1.0) - wx1;
+                            amrex::Real wy1 = frac1 - k0;
+                            amrex::Real wy0 = amrex::Real(1.0) - wy1;
+                            int n1 = ncells_arr[p1] + 1;
+                            for (int c = 0; c < AMREX_SPACEDIM; ++c)
+                                wallvel[c] =
+                                    wx0 * wy0 *
+                                        udf_lo_ptrs[dir]
+                                            [(j0 * n1 + k0) * AMREX_SPACEDIM +
+                                             c] +
+                                    wx0 * wy1 *
+                                        udf_lo_ptrs[dir]
+                                            [(j0 * n1 + k1) * AMREX_SPACEDIM +
+                                             c] +
+                                    wx1 * wy0 *
+                                        udf_lo_ptrs[dir]
+                                            [(j1 * n1 + k0) * AMREX_SPACEDIM +
+                                             c] +
+                                    wx1 * wy1 *
+                                        udf_lo_ptrs[dir]
+                                            [(j1 * n1 + k1) * AMREX_SPACEDIM +
+                                             c];
+#endif
                         }
+
+                        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                            relvel_in[d] -= wallvel[d];
+
                         amrex::Real normaldir[AMREX_SPACEDIM] = {0};
                         normaldir[dir] = 1.0;
                         int modify_pos =
@@ -367,15 +440,80 @@ void MPMParticleContainer::moveParticles(
                         {
                             p.pos(dir) = 2.0 * plo[dir] - p.pos(dir);
                         }
+                        for (int c = 0; c < AMREX_SPACEDIM; ++c)
+                            p.rdata(realData::xvel + c) =
+                                relvel_out[c] + wallvel[c];
                     }
                     else if (p.pos(dir) > phi[dir])
                     {
                         for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                        {
                             wallvel[d] =
                                 wall_vel_hi_arr[dir * AMREX_SPACEDIM + d];
-                            relvel_in[d] -= wallvel[d];
+
+                        if (udf_hi_ptrs[dir] != nullptr)
+                        {
+                            int p0 = (dir == 0) ? 1 : 0;
+#if (AMREX_SPACEDIM == 2)
+                            amrex::Real frac =
+                                (p.pos(p0) - plo[p0]) / dx[p0];
+                            frac = amrex::max(
+                                amrex::Real(0.0),
+                                amrex::min(amrex::Real(ncells_arr[p0]), frac));
+                            int j0 = (int)frac;
+                            int j1 = amrex::min(j0 + 1, ncells_arr[p0]);
+                            amrex::Real wt1 = frac - j0;
+                            amrex::Real wt0 = amrex::Real(1.0) - wt1;
+                            for (int c = 0; c < AMREX_SPACEDIM; ++c)
+                                wallvel[c] =
+                                    wt0 * udf_hi_ptrs[dir]
+                                              [j0 * AMREX_SPACEDIM + c] +
+                                    wt1 * udf_hi_ptrs[dir]
+                                              [j1 * AMREX_SPACEDIM + c];
+#elif (AMREX_SPACEDIM == 3)
+                            int p1 = (dir == 2) ? 1 : 2;
+                            amrex::Real frac0 =
+                                (p.pos(p0) - plo[p0]) / dx[p0];
+                            amrex::Real frac1 =
+                                (p.pos(p1) - plo[p1]) / dx[p1];
+                            frac0 = amrex::max(
+                                amrex::Real(0.0),
+                                amrex::min(amrex::Real(ncells_arr[p0]), frac0));
+                            frac1 = amrex::max(
+                                amrex::Real(0.0),
+                                amrex::min(amrex::Real(ncells_arr[p1]), frac1));
+                            int j0 = (int)frac0;
+                            int j1 = amrex::min(j0 + 1, ncells_arr[p0]);
+                            int k0 = (int)frac1;
+                            int k1 = amrex::min(k0 + 1, ncells_arr[p1]);
+                            amrex::Real wx1 = frac0 - j0;
+                            amrex::Real wx0 = amrex::Real(1.0) - wx1;
+                            amrex::Real wy1 = frac1 - k0;
+                            amrex::Real wy0 = amrex::Real(1.0) - wy1;
+                            int n1 = ncells_arr[p1] + 1;
+                            for (int c = 0; c < AMREX_SPACEDIM; ++c)
+                                wallvel[c] =
+                                    wx0 * wy0 *
+                                        udf_hi_ptrs[dir]
+                                            [(j0 * n1 + k0) * AMREX_SPACEDIM +
+                                             c] +
+                                    wx0 * wy1 *
+                                        udf_hi_ptrs[dir]
+                                            [(j0 * n1 + k1) * AMREX_SPACEDIM +
+                                             c] +
+                                    wx1 * wy0 *
+                                        udf_hi_ptrs[dir]
+                                            [(j1 * n1 + k0) * AMREX_SPACEDIM +
+                                             c] +
+                                    wx1 * wy1 *
+                                        udf_hi_ptrs[dir]
+                                            [(j1 * n1 + k1) * AMREX_SPACEDIM +
+                                             c];
+#endif
                         }
+
+                        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                            relvel_in[d] -= wallvel[d];
+
                         amrex::Real normaldir[AMREX_SPACEDIM] = {0};
                         normaldir[dir] = -1.0;
                         int modify_pos =
@@ -385,9 +523,10 @@ void MPMParticleContainer::moveParticles(
                         {
                             p.pos(dir) = 2.0 * phi[dir] - p.pos(dir);
                         }
+                        for (int c = 0; c < AMREX_SPACEDIM; ++c)
+                            p.rdata(realData::xvel + c) =
+                                relvel_out[c] + wallvel[c];
                     }
-                    p.rdata(realData::xvel + dir) =
-                        relvel_out[dir] + wallvel[dir];
                 }
             });
     }

@@ -7,7 +7,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Axial vibration of an elastic bar &mdash; ExaGOOP 22.12 documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/theme.css?v=df66b05f" />
       <link rel="stylesheet" type="text/css" href="_static/css/custom.css" />
@@ -65,6 +65,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="#collision-of-two-dimensional-elastic-disks">Collision of two-dimensional elastic disks</a></li>
 <li class="toctree-l1"><a class="reference internal" href="#dam-break-simulation">Dam break simulation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#torsion-of-a-three-dimensional-elastic-column">Torsion of a three-dimensional elastic column</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorial:</span></p>
 <ul>
@@ -80,6 +81,7 @@
 <p class="caption" role="heading"><span class="caption-text">Physics Modules:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="temperature_module.html">Temperature Module (<code class="docutils literal notranslate"><span class="pre">USE_TEMP</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="udf_moving_wall.html">UDF Moving Wall Boundary Conditions</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">References:</span></p>
 <ul>
@@ -110,7 +112,7 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <p>ExaGOOP utilizes the formulation outlined in the previous section. This section presents three validation and verification test cases using ExaGOOP.</p>
+  <p>ExaGOOP utilizes the formulation outlined in the previous section. This section presents validation and verification test cases using ExaGOOP.</p>
 <section id="axial-vibration-of-an-elastic-bar">
 <h1>Axial vibration of an elastic bar<a class="headerlink" href="#axial-vibration-of-an-elastic-bar" title="Link to this heading"></a></h1>
 <p>In this test case, the free, axial vibration of a continuum bar made of a linearly elastic material is studied. This is one of the test cases for which the exact solution is known.</p>
@@ -318,7 +320,7 @@ material points. This inaccuracy can be reduced by refining the background grid 
 <section id="dam-break-simulation">
 <h1>Dam break simulation<a class="headerlink" href="#dam-break-simulation" title="Link to this heading"></a></h1>
 <p>ExaGOOP’s capability in simulating fluids is demonstrated using the 2-D dam break test case. The test case consists of an initial column of
-water of height <span class="math notranslate nohighlight">\(H_0\)</span> and width <span class="math notranslate nohighlight">\(L_0\)</span> located inside a square domain, as shown in <a class="reference internal" href="#f-dambreak-compdom"><span class="std std-numref">Fig. 11</span></a> (a). When <span class="math notranslate nohighlight">\(t=0\)</span>, the water column is released, allowing it to flow downward due to gravity. Over time, the water gradually fills the entire domain. Experimental measurements of the water front are available <span id="id1">[<a class="reference internal" href="references.html#id2" title="J. C. Martin, W. J. Moyce, J. C. Martin, W. J. Moyce, William George Penney, A. T. Price, and C. K. Thornhill. Part iv. an experimental study of the collapse of liquid columns on a rigid horizontal plane. Philosophical Transactions of the Royal Society of London. Series A, Mathematical and Physical Sciences, 244(882):312-324, 1952. doi:10.1098/rsta.1952.0006.">3</a>]</span> for comparison with MPM results.</p>
+water of height <span class="math notranslate nohighlight">\(H_0\)</span> and width <span class="math notranslate nohighlight">\(L_0\)</span> located inside a square domain, as shown in <a class="reference internal" href="#f-dambreak-compdom"><span class="std std-numref">Fig. 11</span></a> (a). When <span class="math notranslate nohighlight">\(t=0\)</span>, the water column is released, allowing it to flow downward due to gravity. Over time, the water gradually fills the entire domain. Experimental measurements of the water front are available <span class="bibtex-citation" id="id1">[<a class="reference internal" href="references.html#id2" title="J. C. Martin, W. J. Moyce, J. C. Martin, W. J. Moyce, William George Penney, A. T. Price, and C. K. Thornhill. Part iv. an experimental study of the collapse of liquid columns on a rigid horizontal plane. Philosophical Transactions of the Royal Society of London. Series A, Mathematical and Physical Sciences, 244(882):312-324, 1952. doi:10.1098/rsta.1952.0006.">3</a>]</span> for comparison with MPM results.</p>
 <p>For the MPM simulations, the domain is structured as shown in <a class="reference internal" href="#f-dambreak-compdom"><span class="std std-numref">Fig. 11</span></a> (b). A square domain with a side length of 0.4m is selected to create the background grid, which is discretized into 100 cells in each direction. The height of the water column is set at 0.2 m, and the width is 0.1 m. Unlike previous test cases discussed, water is treated as a fluid, necessitating the specification of an appropriate equation of state. In this study, water is modelled using a barotopic equation of state that relates pressure to the density of water as,</p>
 <div class="math notranslate nohighlight">
 \[\begin{aligned}
@@ -343,7 +345,7 @@ Simulation is performed using <span class="math notranslate nohighlight">\(CFL=0
 </figcaption>
 </figure>
 <p><a class="reference internal" href="#f-dambreak-mpm-exp"><span class="std std-numref">Fig. 13</span></a> presents a comparison of the water front calculated using ExaGOOP and the experimentally obtained water front values
-<span id="id2">[<a class="reference internal" href="references.html#id2" title="J. C. Martin, W. J. Moyce, J. C. Martin, W. J. Moyce, William George Penney, A. T. Price, and C. K. Thornhill. Part iv. an experimental study of the collapse of liquid columns on a rigid horizontal plane. Philosophical Transactions of the Royal Society of London. Series A, Mathematical and Physical Sciences, 244(882):312-324, 1952. doi:10.1098/rsta.1952.0006.">3</a>]</span> at various times. The solid line indicates the ExaGOOP solution and the red circles denote the experimental data from <span id="id3">[<a class="reference internal" href="references.html#id2" title="J. C. Martin, W. J. Moyce, J. C. Martin, W. J. Moyce, William George Penney, A. T. Price, and C. K. Thornhill. Part iv. an experimental study of the collapse of liquid columns on a rigid horizontal plane. Philosophical Transactions of the Royal Society of London. Series A, Mathematical and Physical Sciences, 244(882):312-324, 1952. doi:10.1098/rsta.1952.0006.">3</a>]</span>. A strong correlation is observed between the numerical and experimental values, thereby validating the solver.</p>
+<span class="bibtex-citation" id="id2">[<a class="reference internal" href="references.html#id2" title="J. C. Martin, W. J. Moyce, J. C. Martin, W. J. Moyce, William George Penney, A. T. Price, and C. K. Thornhill. Part iv. an experimental study of the collapse of liquid columns on a rigid horizontal plane. Philosophical Transactions of the Royal Society of London. Series A, Mathematical and Physical Sciences, 244(882):312-324, 1952. doi:10.1098/rsta.1952.0006.">3</a>]</span> at various times. The solid line indicates the ExaGOOP solution and the red circles denote the experimental data from <span class="bibtex-citation" id="id3">[<a class="reference internal" href="references.html#id2" title="J. C. Martin, W. J. Moyce, J. C. Martin, W. J. Moyce, William George Penney, A. T. Price, and C. K. Thornhill. Part iv. an experimental study of the collapse of liquid columns on a rigid horizontal plane. Philosophical Transactions of the Royal Society of London. Series A, Mathematical and Physical Sciences, 244(882):312-324, 1952. doi:10.1098/rsta.1952.0006.">3</a>]</span>. A strong correlation is observed between the numerical and experimental values, thereby validating the solver.</p>
 <div class="figure-grid" style="display: flex; flex-wrap: wrap; gap: 1em; justify-content: center;">
   <div style="flex: 0 0 23%;">
     <img src="./_images/DB1.png" alt="DB1" style="width: 100%;">
@@ -377,9 +379,75 @@ Simulation is performed using <span class="math notranslate nohighlight">\(CFL=0
 <a class="reference internal image-reference" href="_images/none.png"><img alt="Simulation Snapshots Overview" src="_images/none.png" style="width: 0px; height: 0px;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 13 </span><span class="caption-text">Comparison of the water front location with time. Solid line shows ExaGOOP solution and red circles indicate experimental data from <span id="id4">[<a class="reference internal" href="references.html#id2" title="J. C. Martin, W. J. Moyce, J. C. Martin, W. J. Moyce, William George Penney, A. T. Price, and C. K. Thornhill. Part iv. an experimental study of the collapse of liquid columns on a rigid horizontal plane. Philosophical Transactions of the Royal Society of London. Series A, Mathematical and Physical Sciences, 244(882):312-324, 1952. doi:10.1098/rsta.1952.0006.">3</a>]</span></span><a class="headerlink" href="#f-dambreak-mpm-exp" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 13 </span><span class="caption-text">Comparison of the water front location with time. Solid line shows ExaGOOP solution and red circles indicate experimental data from <span class="bibtex-citation" id="id4">[<a class="reference internal" href="references.html#id2" title="J. C. Martin, W. J. Moyce, J. C. Martin, W. J. Moyce, William George Penney, A. T. Price, and C. K. Thornhill. Part iv. an experimental study of the collapse of liquid columns on a rigid horizontal plane. Philosophical Transactions of the Royal Society of London. Series A, Mathematical and Physical Sciences, 244(882):312-324, 1952. doi:10.1098/rsta.1952.0006.">3</a>]</span></span><a class="headerlink" href="#f-dambreak-mpm-exp" title="Link to this image"></a></p>
 </figcaption>
 </figure>
+</section>
+<section id="torsion-of-a-three-dimensional-elastic-column">
+<h1>Torsion of a three-dimensional elastic column<a class="headerlink" href="#torsion-of-a-three-dimensional-elastic-column" title="Link to this heading"></a></h1>
+<p>This test case verifies the <a class="reference internal" href="udf_moving_wall.html#udf-moving-wall"><span class="std std-ref">UDF Moving Wall Boundary Conditions</span></a> feature by twisting a
+linearly elastic column about its axis using a rotating top wall and
+comparing the resulting twist-angle profile against the analytical
+quasi-static solution.</p>
+<p><strong>Problem configuration</strong></p>
+<p>A square-cross-section elastic column occupies the domain
+<span class="math notranslate nohighlight">\([-W, W]^2 \times [0, L]\)</span> with half-width <span class="math notranslate nohighlight">\(W = 0.25\)</span> m and
+height <span class="math notranslate nohighlight">\(L = 2\)</span> m.  The background nodal grid spans
+<span class="math notranslate nohighlight">\([-B, B]^2 \times [0, L]\)</span> with <span class="math notranslate nohighlight">\(B = 0.6\)</span> m and is
+discretised into <span class="math notranslate nohighlight">\(12 \times 12 \times 20\)</span> cells.  Material
+properties are <span class="math notranslate nohighlight">\(E = 10^7\)</span> Pa, <span class="math notranslate nohighlight">\(\nu = 0.3\)</span>, and
+<span class="math notranslate nohighlight">\(\rho = 1000\)</span> kg/m³.</p>
+<p>Boundary conditions are:</p>
+<ul>
+<li><p><strong>Bottom face</strong> (<span class="math notranslate nohighlight">\(z = 0\)</span>): no-slip, zero velocity — clamped base.</p></li>
+<li><p><strong>Lateral faces</strong> (<span class="math notranslate nohighlight">\(x = \pm B\)</span>,  <span class="math notranslate nohighlight">\(y = \pm B\)</span>): slip walls.</p></li>
+<li><p><strong>Top face</strong> (<span class="math notranslate nohighlight">\(z = L\)</span>): no-slip with a UDF imposing solid-body
+rotation about the <span class="math notranslate nohighlight">\(z\)</span>-axis at angular velocity
+<span class="math notranslate nohighlight">\(\omega = 0.5\)</span> rad/s:</p>
+<div class="math notranslate nohighlight">
+\[v_x = -\omega y, \qquad v_y = \omega x, \qquad v_z = 0.\]</div>
+</li>
+</ul>
+<p>The UDF is provided as a compiled shared library (<code class="docutils literal notranslate"><span class="pre">libwall_twist</span></code>).  The
+relevant input file lines are:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mpm.bc_zlo_mom<span class="w">            </span><span class="o">=</span><span class="w"> </span>noslip
+mpm.bc_zhi_mom<span class="w">            </span><span class="o">=</span><span class="w"> </span>noslip
+mpm.bc_zhi_mom.udf_lib<span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;./UDF/libwall_twist.dylib&quot;</span>
+mpm.bc_zhi_mom.udf_func<span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;wall_vel_twist&quot;</span>
+</pre></div>
+</div>
+<p><strong>Analytical solution</strong></p>
+<p>Under quasi-static loading the twist angle grows linearly with height and
+linearly with time.  For an elastic column driven by a rotating top wall,
+the expected twist angle at height <span class="math notranslate nohighlight">\(z\)</span> and time <span class="math notranslate nohighlight">\(t\)</span> is:</p>
+<div class="math notranslate nohighlight">
+\[\theta(z, t) = \omega \, t \, \frac{z}{L}.\]</div>
+<p>At <span class="math notranslate nohighlight">\(z = 0\)</span> the angle is zero (clamped base) and at <span class="math notranslate nohighlight">\(z = L\)</span>
+the angle equals <span class="math notranslate nohighlight">\(\omega t\)</span> (enforced by the wall).</p>
+<p><strong>ExaGOOP results</strong></p>
+<p>The MPM simulation is run to <span class="math notranslate nohighlight">\(t = 4\)</span> s using
+<span class="math notranslate nohighlight">\(\text{CFL} = 0.3\)</span> and the USL stress-update scheme with
+<span class="math notranslate nohighlight">\(2^3 = 8\)</span> material points per cell, giving 4000 material points
+in total.</p>
+<p><a class="reference internal" href="#f-twist-profile"><span class="std std-numref">Fig. 14</span></a> shows the twist-angle profile
+<span class="math notranslate nohighlight">\(\theta(z)\)</span> at a representative time snapshot compared to the
+analytical linear profile.  The base (<span class="math notranslate nohighlight">\(z = 0\)</span>) remains fixed and
+the angle grows linearly towards the top, in close agreement with the
+analytical prediction.</p>
+<figure class="align-center" id="f-twist-profile" style="width: 100%">
+<a class="reference internal image-reference" href="_images/none.png"><img alt="Twist angle profile" src="_images/none.png" style="width: 0px; height: 0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 14 </span><span class="caption-text">Twist-angle profile <span class="math notranslate nohighlight">\(\theta(z)\)</span> at a representative time
+snapshot.  Red markers show the MPM result (mean rotation angle per
+horizontal layer); dashed line shows the analytical solution
+<span class="math notranslate nohighlight">\(\theta = \omega t z / L\)</span>.</span><a class="headerlink" href="#f-twist-profile" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<p>The test case is located in <code class="docutils literal notranslate"><span class="pre">Tests/3D_Twisted_Column/</span></code>.  Pre-processing
+and post-processing scripts are provided in the <code class="docutils literal notranslate"><span class="pre">PreProcess/</span></code> and
+<code class="docutils literal notranslate"><span class="pre">PostProcess/</span></code> subdirectories respectively.  The UDF source and
+platform-aware <code class="docutils literal notranslate"><span class="pre">Makefile</span></code> are in <code class="docutils literal notranslate"><span class="pre">UDF/</span></code>.</p>
 </section>
 
 

@@ -40,7 +40,8 @@ void P2G_Temperature(MPMspecs &specs,
 void Apply_Nodal_BCs(amrex::Geometry &geom,
                      amrex::MultiFab &nodaldata,
                      MPMspecs &specs,
-                     amrex::Real dt);
+                     amrex::Real dt,
+                     amrex::Real t);
 void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
                                  amrex::MultiFab &nodaldata,
                                  MPMspecs &specs,

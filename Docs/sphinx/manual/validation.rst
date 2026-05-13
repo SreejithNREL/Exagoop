@@ -1,5 +1,5 @@
 
-ExaGOOP utilizes the formulation outlined in the previous section. This section presents three validation and verification test cases using ExaGOOP.
+ExaGOOP utilizes the formulation outlined in the previous section. This section presents validation and verification test cases using ExaGOOP.
 
 Axial vibration of an elastic bar
 ---------------------------------
@@ -368,5 +368,90 @@ Simulation is performed using :math:`CFL=0.1` and :math:`\alpha_{P-F}=0.95`. The
    :alt: Simulation Snapshots Overview
    
    Comparison of the water front location with time. Solid line shows ExaGOOP solution and red circles indicate experimental data from :cite:`martin1952`
+
+
+Torsion of a three-dimensional elastic column
+----------------------------------------------
+
+This test case verifies the :ref:`udf_moving_wall` feature by twisting a
+linearly elastic column about its axis using a rotating top wall and
+comparing the resulting twist-angle profile against the analytical
+quasi-static solution.
+
+**Problem configuration**
+
+A square-cross-section elastic column occupies the domain
+:math:`[-W, W]^2 \times [0, L]` with half-width :math:`W = 0.25` m and
+height :math:`L = 2` m.  The background nodal grid spans
+:math:`[-B, B]^2 \times [0, L]` with :math:`B = 0.6` m and is
+discretised into :math:`12 \times 12 \times 20` cells.  Material
+properties are :math:`E = 10^7` Pa, :math:`\nu = 0.3`, and
+:math:`\rho = 1000` kg/m³.
+
+Boundary conditions are:
+
+- **Bottom face** (:math:`z = 0`): no-slip, zero velocity — clamped base.
+- **Lateral faces** (:math:`x = \pm B`,  :math:`y = \pm B`): slip walls.
+- **Top face** (:math:`z = L`): no-slip with a UDF imposing solid-body
+  rotation about the :math:`z`-axis at angular velocity
+  :math:`\omega = 0.5` rad/s:
+
+  .. math::
+
+     v_x = -\omega y, \qquad v_y = \omega x, \qquad v_z = 0.
+
+The UDF is provided as a compiled shared library (``libwall_twist``).  The
+relevant input file lines are:
+
+.. code-block:: bash
+
+   mpm.bc_zlo_mom            = noslip
+   mpm.bc_zhi_mom            = noslip
+   mpm.bc_zhi_mom.udf_lib    = "./UDF/libwall_twist.dylib"
+   mpm.bc_zhi_mom.udf_func   = "wall_vel_twist"
+
+**Analytical solution**
+
+Under quasi-static loading the twist angle grows linearly with height and
+linearly with time.  For an elastic column driven by a rotating top wall,
+the expected twist angle at height :math:`z` and time :math:`t` is:
+
+.. math::
+
+   \theta(z, t) = \omega \, t \, \frac{z}{L}.
+
+At :math:`z = 0` the angle is zero (clamped base) and at :math:`z = L`
+the angle equals :math:`\omega t` (enforced by the wall).
+
+**ExaGOOP results**
+
+The MPM simulation is run to :math:`t = 4` s using
+:math:`\text{CFL} = 0.3` and the USL stress-update scheme with
+:math:`2^3 = 8` material points per cell, giving 4000 material points
+in total.
+
+:numref:`f-twist-profile` shows the twist-angle profile
+:math:`\theta(z)` at a representative time snapshot compared to the
+analytical linear profile.  The base (:math:`z = 0`) remains fixed and
+the angle grows linearly towards the top, in close agreement with the
+analytical prediction.
+
+.. figure:: ../landing/_images/none.png
+   :name: f-twist-profile
+   :height: 0
+   :width: 0
+   :figwidth: 100%
+   :align: center
+   :alt: Twist angle profile
+
+   Twist-angle profile :math:`\theta(z)` at a representative time
+   snapshot.  Red markers show the MPM result (mean rotation angle per
+   horizontal layer); dashed line shows the analytical solution
+   :math:`\theta = \omega t z / L`.
+
+The test case is located in ``Tests/3D_Twisted_Column/``.  Pre-processing
+and post-processing scripts are provided in the ``PreProcess/`` and
+``PostProcess/`` subdirectories respectively.  The UDF source and
+platform-aware ``Makefile`` are in ``UDF/``.
 
 

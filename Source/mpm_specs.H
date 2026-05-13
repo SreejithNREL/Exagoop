@@ -4,8 +4,12 @@
 #include <AMReX.H>
 #include <AMReX_REAL.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_GpuContainers.H>
 #include <constants.H>
+#include <dlfcn.h>
 // clang-format on
+
+typedef void (*WallVelUDFFuncPtr)(double, double, double, double, double*);
 
 using namespace amrex;
 
@@ -237,7 +241,23 @@ class MPMspecs
     Array<Real, AMREX_SPACEDIM * AMREX_SPACEDIM> wall_vel_lo{0.0};
     Array<Real, AMREX_SPACEDIM * AMREX_SPACEDIM> wall_vel_hi{0.0};
 
+    void* udf_handle_lo[AMREX_SPACEDIM] = {};
+    void* udf_handle_hi[AMREX_SPACEDIM] = {};
+    WallVelUDFFuncPtr udf_func_ptr_lo[AMREX_SPACEDIM] = {};
+    WallVelUDFFuncPtr udf_func_ptr_hi[AMREX_SPACEDIM] = {};
+    amrex::Gpu::DeviceVector<amrex::Real> udf_wall_vel_nodes_lo[AMREX_SPACEDIM];
+    amrex::Gpu::DeviceVector<amrex::Real> udf_wall_vel_nodes_hi[AMREX_SPACEDIM];
+
     Real levset_mu = 0.1;
+
+    ~MPMspecs()
+    {
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        {
+            if (udf_handle_lo[d]) dlclose(udf_handle_lo[d]);
+            if (udf_handle_hi[d]) dlclose(udf_handle_hi[d]);
+        }
+    }
 
     void read_mpm_specs()
     {
@@ -461,6 +481,20 @@ class MPMspecs
                     wall_vel_lo[d * AMREX_SPACEDIM + c] = wvel_lo[c];
                 }
             }
+            {
+                std::string udf_lib_lo, udf_func_lo;
+                bool has_lib = pp_lo.query("udf_lib", udf_lib_lo);
+                bool has_func = pp_lo.query("udf_func", udf_func_lo);
+                if (has_lib && has_func)
+                {
+                    udf_handle_lo[d] = dlopen(udf_lib_lo.c_str(), RTLD_NOW);
+                    if (!udf_handle_lo[d])
+                        amrex::Abort(std::string("dlopen failed for lo face: ") + dlerror());
+                    udf_func_ptr_lo[d] = (WallVelUDFFuncPtr)dlsym(udf_handle_lo[d], udf_func_lo.c_str());
+                    if (!udf_func_ptr_lo[d])
+                        amrex::Abort(std::string("dlsym failed for lo face: ") + dlerror());
+                }
+            }
 
             ParmParse pp_hi(face_hi_ns[d]);
             pp_hi.query("wall_mu", wall_mu_hi[d]);
@@ -470,6 +504,20 @@ class MPMspecs
                 for (int c = 0; c < AMREX_SPACEDIM; c++)
                 {
                     wall_vel_hi[d * AMREX_SPACEDIM + c] = wvel_hi[c];
+                }
+            }
+            {
+                std::string udf_lib_hi, udf_func_hi;
+                bool has_lib = pp_hi.query("udf_lib", udf_lib_hi);
+                bool has_func = pp_hi.query("udf_func", udf_func_hi);
+                if (has_lib && has_func)
+                {
+                    udf_handle_hi[d] = dlopen(udf_lib_hi.c_str(), RTLD_NOW);
+                    if (!udf_handle_hi[d])
+                        amrex::Abort(std::string("dlopen failed for hi face: ") + dlerror());
+                    udf_func_ptr_hi[d] = (WallVelUDFFuncPtr)dlsym(udf_handle_hi[d], udf_func_hi.c_str());
+                    if (!udf_func_ptr_hi[d])
+                        amrex::Abort(std::string("dlsym failed for hi face: ") + dlerror());
                 }
             }
         }

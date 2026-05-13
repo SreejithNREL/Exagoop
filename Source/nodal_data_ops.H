@@ -74,4 +74,11 @@ void Create_Output_Directories(MPMspecs &specs);
 void Reset_Nodaldata_to_Zero(amrex::MultiFab &nodaldata,
                              int ng_cells_nodaldata);
 
+void compute_udf_wall_vel_at_nodes(const amrex::Geometry &geom,
+                                   MPMspecs &specs,
+                                   amrex::Real t);
+void apply_udf_nodal_bcs(const amrex::Geometry &geom,
+                         amrex::MultiFab &nodaldata,
+                         MPMspecs &specs);
+
 #endif

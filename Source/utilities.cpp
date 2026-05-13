@@ -186,12 +186,15 @@ void P2G_Temperature(MPMspecs &specs,
 void Apply_Nodal_BCs(amrex::Geometry &geom,
                      amrex::MultiFab &nodaldata,
                      MPMspecs &specs,
-                     amrex::Real dt)
+                     amrex::Real dt,
+                     amrex::Real t)
 {
-
     nodal_bcs(geom, nodaldata, specs.bclo.data(), specs.bchi.data(),
               specs.wall_mu_lo.data(), specs.wall_mu_hi.data(),
               specs.wall_vel_lo.data(), specs.wall_vel_hi.data(), dt);
+
+    compute_udf_wall_vel_at_nodes(geom, specs, t);
+    apply_udf_nodal_bcs(geom, nodaldata, specs);
 
 #if USE_EB
     if (mpm_ebtools::using_levelset_geometry)
@@ -201,7 +204,6 @@ void Apply_Nodal_BCs(amrex::Geometry &geom,
     }
 #endif
 
-    // Calculate velocity diff
     store_delta_velocity(nodaldata);
 }
 
@@ -317,10 +319,22 @@ void Update_MP_Positions(MPMspecs &specs,
                          MPMParticleContainer &mpm_pc,
                          amrex::Real dt)
 {
+    amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM> udf_lo_ptrs,
+        udf_hi_ptrs;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        udf_lo_ptrs[d] = specs.udf_func_ptr_lo[d]
+                             ? specs.udf_wall_vel_nodes_lo[d].data()
+                             : nullptr;
+        udf_hi_ptrs[d] = specs.udf_func_ptr_hi[d]
+                             ? specs.udf_wall_vel_nodes_hi[d].data()
+                             : nullptr;
+    }
     mpm_pc.moveParticles(dt, specs.bclo.data(), specs.bchi.data(),
                          specs.levelset_bc, specs.wall_mu_lo.data(),
                          specs.wall_mu_hi.data(), specs.wall_vel_lo.data(),
-                         specs.wall_vel_hi.data(), specs.levelset_wall_mu);
+                         specs.wall_vel_hi.data(), specs.levelset_wall_mu,
+                         udf_lo_ptrs, udf_hi_ptrs);
 }
 
 /**

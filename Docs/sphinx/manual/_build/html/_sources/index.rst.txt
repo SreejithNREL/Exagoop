@@ -41,6 +41,7 @@ The Material Point Method (MPM) is a ‘mesh-free’ technique that has garnered
    :caption: Physics Modules:
 
    temperature_module
+   udf_moving_wall
 
 .. toctree::
    :maxdepth: 2

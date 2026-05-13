@@ -7,7 +7,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Build Options Reference &mdash; ExaGOOP 22.12 documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/theme.css?v=df66b05f" />
       <link rel="stylesheet" type="text/css" href="_static/css/custom.css" />
@@ -60,6 +60,7 @@
 <li class="toctree-l1"><a class="reference internal" href="validation.html">Axial vibration of an elastic bar</a></li>
 <li class="toctree-l1"><a class="reference internal" href="validation.html#collision-of-two-dimensional-elastic-disks">Collision of two-dimensional elastic disks</a></li>
 <li class="toctree-l1"><a class="reference internal" href="validation.html#dam-break-simulation">Dam break simulation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="validation.html#torsion-of-a-three-dimensional-elastic-column">Torsion of a three-dimensional elastic column</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorial:</span></p>
 <ul>
@@ -86,6 +87,7 @@
 <p class="caption" role="heading"><span class="caption-text">Physics Modules:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="temperature_module.html">Temperature Module (<code class="docutils literal notranslate"><span class="pre">USE_TEMP</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="udf_moving_wall.html">UDF Moving Wall Boundary Conditions</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">References:</span></p>
 <ul>
@@ -406,9 +408,10 @@ sized at compile time.</p></li>
 <code class="docutils literal notranslate"><span class="pre">ExaGOOP2d.gnu.MPI.ex</span></code> or <code class="docutils literal notranslate"><span class="pre">ExaGOOP3d.gnu.MPI.ex</span></code>.</p></li>
 <li><p>Setting <code class="docutils literal notranslate"><span class="pre">DIM=1</span></code> forces <code class="docutils literal notranslate"><span class="pre">USE_EB=FALSE</span></code> (AMReX EB is not
 supported in 1D).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">mpm.ppc</span></code>, <code class="docutils literal notranslate"><span class="pre">mpm.prob_lo</span></code>, <code class="docutils literal notranslate"><span class="pre">mpm.bc_lower</span></code>, and all other
-spatially-indexed parameters expect exactly <code class="docutils literal notranslate"><span class="pre">SPACEDIM</span></code> entries in
-the input file.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mpm.ppc</span></code>, <code class="docutils literal notranslate"><span class="pre">mpm.prob_lo</span></code>, and all other spatially-indexed
+parameters expect exactly <code class="docutils literal notranslate"><span class="pre">SPACEDIM</span></code> entries in the input file.
+Per-face momentum BC keys (<code class="docutils literal notranslate"><span class="pre">mpm.bc_xlo_mom</span></code>, <code class="docutils literal notranslate"><span class="pre">mpm.bc_ylo_mom</span></code>,
+etc.) exist for each of the <code class="docutils literal notranslate"><span class="pre">2</span> <span class="pre">*</span> <span class="pre">SPACEDIM</span></code> domain faces.</p></li>
 </ul>
 </section>
 <hr class="docutils" />
