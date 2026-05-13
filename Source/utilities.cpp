@@ -227,15 +227,17 @@ void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
                                  MPMspecs &specs,
                                  [[maybe_unused]] amrex::Real dt)
 {
-    amrex::Array<amrex::Real, AMREX_SPACEDIM> temp_lo;
-    amrex::Array<amrex::Real, AMREX_SPACEDIM> temp_hi;
-    for (int d = 0; d < AMREX_SPACEDIM; ++d)
-    {
-        temp_lo[d] = specs.bclo_tempval[d];
-        temp_hi[d] = specs.bchi_tempval[d];
-    }
-    nodal_bcs_temperature(geom, nodaldata, specs.bclo.data(), specs.bchi.data(),
-                          temp_lo.data(), temp_hi.data());
+    nodal_bcs_temperature(geom, nodaldata,
+                          specs.bclo_temp.data(),
+                          specs.bchi_temp.data(),
+                          specs.bc_temp_T_wall_lo.data(),
+                          specs.bc_temp_T_wall_hi.data(),
+                          specs.bc_temp_flux_lo.data(),
+                          specs.bc_temp_flux_hi.data(),
+                          specs.bc_temp_h_lo.data(),
+                          specs.bc_temp_h_hi.data(),
+                          specs.bc_temp_Tinf_lo.data(),
+                          specs.bc_temp_Tinf_hi.data());
     store_delta_temperature(nodaldata);
 }
 #endif

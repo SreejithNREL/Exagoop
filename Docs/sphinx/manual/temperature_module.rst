@@ -95,35 +95,44 @@ by the reader regardless of what the file contains.
 Temperature boundary conditions
 ---------------------------------
 
-Two arrays control the thermal boundary condition at each face of the
-domain.  Each array has ``SPACEDIM`` entries, one per spatial direction.
+Temperature BCs follow the same per-face naming convention as the momentum
+BCs.  Each domain face is identified by an axis prefix (``x``, ``y``, ``z``)
+and a side suffix (``lo``, ``hi``), giving keys of the form
+``mpm.bc_xlo_temp``, ``mpm.bc_xhi_temp``, ``mpm.bc_ylo_temp``, etc.
 
 .. list-table::
    :header-rows: 1
-   :widths: 32 12 14 42
+   :widths: 38 12 14 36
 
    * - Parameter
      - Type
      - Default
      - Description
-   * - ``mpm.bc_lower_temp``
-     - ``string[SPACEDIM]``
-     - ``dirichlet`` (all faces)
-     - BC type at each lower face (see keyword table below).
-   * - ``mpm.bc_upper_temp``
-     - ``string[SPACEDIM]``
-     - ``dirichlet`` (all faces)
-     - BC type at each upper face (see keyword table below).
-   * - ``mpm.bc_lower_tempval``
-     - ``Real[SPACEDIM]``
-     - ``[0.0 0.0 0.0]``
-     - Dirichlet temperature value at each lower face.
-   * - ``mpm.bc_upper_tempval``
-     - ``Real[SPACEDIM]``
-     - ``[0.0 0.0 0.0]``
-     - Dirichlet temperature value at each upper face.
+   * - ``mpm.bc_<face>_temp``
+     - ``string``
+     - ``dirichlet`` (non-periodic faces); ``periodic`` (periodic faces)
+     - BC type for the named face (see keyword table below).
+   * - ``mpm.bc_<face>_temp.T_wall``
+     - ``Real``
+     - ``0.0``
+     - Wall temperature :math:`T_w` for ``dirichlet`` faces.
+   * - ``mpm.bc_<face>_temp.flux``
+     - ``Real``
+     - ``0.0``
+     - Prescribed temperature gradient :math:`\partial T / \partial n` for
+       ``heatflux`` faces.  For a dimensional heat flux :math:`q`, set
+       ``flux`` = :math:`-q / k` where :math:`k` is the material thermal
+       conductivity.
+   * - ``mpm.bc_<face>_temp.h``
+     - ``Real``
+     - ``0.0``
+     - Heat transfer coefficient :math:`h` for ``convective`` faces.
+   * - ``mpm.bc_<face>_temp.T_inf``
+     - ``Real``
+     - ``0.0``
+     - Ambient temperature :math:`T_\infty` for ``convective`` faces.
 
-The four recognised BC type keywords are:
+The five recognised BC type keywords are:
 
 .. list-table::
    :header-rows: 1
@@ -132,32 +141,26 @@ The four recognised BC type keywords are:
    * - Keyword
      - Meaning
    * - ``periodic``
-     - Periodic face (must match the corresponding ``mpm.is_it_periodic``
-       entry).
+     - Periodic face.  Automatically set for directions where
+       ``mpm.is_it_periodic`` is 1; no sub-parameters needed.
    * - ``dirichlet``
-     - Fixed temperature wall.  The nodal temperature on that face is
-       overwritten each step with the value from ``bc_lower_tempval`` /
-       ``bc_upper_tempval``.
+     - Fixed-temperature wall.  The nodal temperature is overwritten each
+       step with ``mpm.bc_<face>_temp.T_wall``.
+   * - ``adiabatic``
+     - Zero heat-flux (insulated) wall.  The boundary node temperature is
+       set equal to the first interior neighbour, enforcing
+       :math:`\partial T / \partial n = 0`.  No sub-parameters needed.
    * - ``heatflux``
-     - Prescribed heat-flux wall.  The flux value is read from
-       ``bc_lower_tempval`` / ``bc_upper_tempval`` (reserved for future
-       full implementation).
+     - Prescribed heat-flux wall.  The boundary node temperature is set
+       using a ghost-point formula:
+       :math:`T_b = T_\text{int} + \texttt{flux} \cdot \Delta x`,
+       where :math:`T_\text{int}` is the first interior neighbour and
+       :math:`\Delta x` is the cell width in the face-normal direction.
    * - ``convective``
-     - Convective (Robin) wall.  The reference temperature is read from
-       ``bc_lower_tempval`` / ``bc_upper_tempval`` (reserved for future
-       full implementation).
-
-.. note::
-
-   The temperature BC solver currently **applies Dirichlet conditions
-   only** at every time step via ``nodal_bcs_temperature()``.  The
-   ``heatflux`` and ``convective`` keywords are parsed and stored but their
-   specific nodal treatments are not yet implemented; faces carrying those
-   types receive no boundary modification in the current release.
-   Adiabatic (zero-flux) walls are the effective behaviour when no
-   ``bcval`` entries are set (the default value of ``0.0`` prescribes
-   :math:`T = 0` on those faces, so non-zero Dirichlet temperatures must
-   be specified explicitly).
+     - Convective (Robin) wall.  The boundary temperature is set via a
+       Biot-number weighting:
+       :math:`T_b = (T_\text{int} + \text{Bi} \cdot T_\infty) / (1 + \text{Bi})`,
+       where :math:`\text{Bi} = h \cdot \Delta x`.
 
 
 Nodal fields added by the temperature module
@@ -299,19 +302,18 @@ fixed temperatures at the lower and upper :math:`y`-faces:
 
    # -------------------------------------------------------------------
    # Temperature boundary conditions
-   # One value per spatial direction (x  y  z)
    # -------------------------------------------------------------------
-   mpm.bc_lower_tempval = 0.0  400.0  0.0   # Dirichlet T at lower faces (K)
-   mpm.bc_upper_tempval = 0.0  300.0  0.0   # Dirichlet T at upper faces (K)
+   mpm.bc_ylo_temp          = dirichlet
+   mpm.bc_ylo_temp.T_wall   = 400.0
 
-   mpm.bc_lower_temp    = periodic  dirichlet  periodic
-   mpm.bc_upper_temp    = periodic  dirichlet  periodic
+   mpm.bc_yhi_temp          = dirichlet
+   mpm.bc_yhi_temp.T_wall   = 300.0
 
-In this example the :math:`x`- and :math:`z`-faces have a prescribed
-temperature of 0 K (effectively insulated when the domain temperature is
-initialised to 300 K), while the lower :math:`y`-face is held at 400 K
-and the upper :math:`y`-face at 300 K, imposing a temperature gradient in
-the :math:`y`-direction.
+In this example the :math:`x`- and :math:`z`-faces are left at their
+defaults (``dirichlet`` with ``T_wall = 0.0`` for non-periodic directions),
+while the lower :math:`y`-face is held at 400 K and the upper
+:math:`y`-face at 300 K, imposing a temperature gradient in the
+:math:`y`-direction.
 
 .. warning::
 

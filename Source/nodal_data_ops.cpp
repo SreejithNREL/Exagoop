@@ -747,42 +747,54 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
                            MultiFab &nodaldata,
                            int bcloarr[AMREX_SPACEDIM],
                            int bchiarr[AMREX_SPACEDIM],
-                           amrex::Real dirichlet_temperature_lo[AMREX_SPACEDIM],
-                           amrex::Real dirichlet_temperature_hi[AMREX_SPACEDIM])
+                           amrex::Real T_wall_lo[AMREX_SPACEDIM],
+                           amrex::Real T_wall_hi[AMREX_SPACEDIM],
+                           amrex::Real flux_lo[AMREX_SPACEDIM],
+                           amrex::Real flux_hi[AMREX_SPACEDIM],
+                           amrex::Real h_lo[AMREX_SPACEDIM],
+                           amrex::Real h_hi[AMREX_SPACEDIM],
+                           amrex::Real Tinf_lo[AMREX_SPACEDIM],
+                           amrex::Real Tinf_hi[AMREX_SPACEDIM])
 {
-
+    const auto dx = geom.CellSize();
     const int *domloarr = geom.Domain().loVect();
     const int *domhiarr = geom.Domain().hiVect();
 
     GpuArray<int, AMREX_SPACEDIM> domlo;
     GpuArray<int, AMREX_SPACEDIM> domhi;
-    for (int d = 0; d < AMREX_SPACEDIM; ++d)
-    {
-        domlo[d] = domloarr[d];
-        domhi[d] = domhiarr[d];
-    }
-
     GpuArray<int, AMREX_SPACEDIM> bclo;
     GpuArray<int, AMREX_SPACEDIM> bchi;
-    for (int d = 0; d < AMREX_SPACEDIM; ++d)
-    {
-        bclo[d] = bcloarr[d];
-        bchi[d] = bchiarr[d];
-    }
+    GpuArray<amrex::Real, AMREX_SPACEDIM> T_wall_lo_g;
+    GpuArray<amrex::Real, AMREX_SPACEDIM> T_wall_hi_g;
+    GpuArray<amrex::Real, AMREX_SPACEDIM> flux_lo_g;
+    GpuArray<amrex::Real, AMREX_SPACEDIM> flux_hi_g;
+    GpuArray<amrex::Real, AMREX_SPACEDIM> h_lo_g;
+    GpuArray<amrex::Real, AMREX_SPACEDIM> h_hi_g;
+    GpuArray<amrex::Real, AMREX_SPACEDIM> Tinf_lo_g;
+    GpuArray<amrex::Real, AMREX_SPACEDIM> Tinf_hi_g;
+    GpuArray<amrex::Real, AMREX_SPACEDIM> dx_g;
 
-    GpuArray<amrex::Real, AMREX_SPACEDIM> wall_temp_lo;
-    GpuArray<amrex::Real, AMREX_SPACEDIM> wall_temp_hi;
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
     {
-        wall_temp_lo[d] = dirichlet_temperature_lo[d];
-        wall_temp_hi[d] = dirichlet_temperature_hi[d];
+        domlo[d]      = domloarr[d];
+        domhi[d]      = domhiarr[d];
+        bclo[d]       = bcloarr[d];
+        bchi[d]       = bchiarr[d];
+        T_wall_lo_g[d] = T_wall_lo[d];
+        T_wall_hi_g[d] = T_wall_hi[d];
+        flux_lo_g[d]  = flux_lo[d];
+        flux_hi_g[d]  = flux_hi[d];
+        h_lo_g[d]     = h_lo[d];
+        h_hi_g[d]     = h_hi[d];
+        Tinf_lo_g[d]  = Tinf_lo[d];
+        Tinf_hi_g[d]  = Tinf_hi[d];
+        dx_g[d]       = dx[d];
     }
 
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
         Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
-
-        Array4<amrex::Real> nodal_data_arr = nodaldata.array(mfi);
+        Array4<amrex::Real> arr = nodaldata.array(mfi);
 
         amrex::ParallelFor(nodalbox,
                            [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
@@ -791,20 +803,41 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
                                (void)k;
                                IntVect nodeid(AMREX_D_DECL(i, j, k));
 
-                               // Loop over each dimension
                                for (int d = 0; d < AMREX_SPACEDIM; ++d)
                                {
-                                   // At lower boundary in dimension d
-                                   if (nodeid[d] == domlo[d])
+                                   bool is_lo = (nodeid[d] == domlo[d]);
+                                   bool is_hi = (nodeid[d] == domhi[d] + 1);
+
+                                   if (is_lo || is_hi)
                                    {
-                                       nodal_data_arr(nodeid, TEMPERATURE) =
-                                           wall_temp_lo[d];
-                                   }
-                                   // At upper boundary in dimension d
-                                   else if (nodeid[d] == domhi[d] + 1)
-                                   {
-                                       nodal_data_arr(nodeid, TEMPERATURE) =
-                                           wall_temp_hi[d];
+                                       int bc_type = is_lo ? bclo[d] : bchi[d];
+                                       int sign    = is_lo ? 1 : -1;
+
+                                       IntVect nb = nodeid;
+                                       nb[d]     += sign;
+                                       amrex::Real T_int = arr(nb, TEMPERATURE);
+
+                                       if (bc_type == 1)
+                                       {
+                                           amrex::Real Tw = is_lo ? T_wall_lo_g[d] : T_wall_hi_g[d];
+                                           arr(nodeid, TEMPERATURE) = Tw;
+                                       }
+                                       else if (bc_type == 2)
+                                       {
+                                           arr(nodeid, TEMPERATURE) = T_int;
+                                       }
+                                       else if (bc_type == 3)
+                                       {
+                                           amrex::Real fl = is_lo ? flux_lo_g[d] : flux_hi_g[d];
+                                           arr(nodeid, TEMPERATURE) = T_int + fl * dx_g[d];
+                                       }
+                                       else if (bc_type == 4)
+                                       {
+                                           amrex::Real hc   = is_lo ? h_lo_g[d]    : h_hi_g[d];
+                                           amrex::Real Tinf = is_lo ? Tinf_lo_g[d] : Tinf_hi_g[d];
+                                           amrex::Real Bi   = hc * dx_g[d];
+                                           arr(nodeid, TEMPERATURE) = (T_int + Bi * Tinf) / (1.0 + Bi);
+                                       }
                                    }
                                }
                            });

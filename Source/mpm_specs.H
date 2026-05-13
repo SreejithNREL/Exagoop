@@ -206,8 +206,14 @@ class MPMspecs
 #if USE_TEMP
     Vector<int> bclo_temp;
     Vector<int> bchi_temp;
-    Vector<amrex::Real> bclo_tempval;
-    Vector<amrex::Real> bchi_tempval;
+    Array<Real, AMREX_SPACEDIM> bc_temp_T_wall_lo{AMREX_D_DECL(0.0, 0.0, 0.0)};
+    Array<Real, AMREX_SPACEDIM> bc_temp_T_wall_hi{AMREX_D_DECL(0.0, 0.0, 0.0)};
+    Array<Real, AMREX_SPACEDIM> bc_temp_flux_lo{AMREX_D_DECL(0.0, 0.0, 0.0)};
+    Array<Real, AMREX_SPACEDIM> bc_temp_flux_hi{AMREX_D_DECL(0.0, 0.0, 0.0)};
+    Array<Real, AMREX_SPACEDIM> bc_temp_h_lo{AMREX_D_DECL(0.0, 0.0, 0.0)};
+    Array<Real, AMREX_SPACEDIM> bc_temp_h_hi{AMREX_D_DECL(0.0, 0.0, 0.0)};
+    Array<Real, AMREX_SPACEDIM> bc_temp_Tinf_lo{AMREX_D_DECL(0.0, 0.0, 0.0)};
+    Array<Real, AMREX_SPACEDIM> bc_temp_Tinf_hi{AMREX_D_DECL(0.0, 0.0, 0.0)};
 #endif
 
     GpuArray<int, AMREX_SPACEDIM> order_scheme_directional{
@@ -266,6 +272,11 @@ class MPMspecs
 #if USE_TEMP
         bclo_temp.resize(AMREX_SPACEDIM);
         bchi_temp.resize(AMREX_SPACEDIM);
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        {
+            bclo_temp[d] = periodic[d] ? 0 : 1;
+            bchi_temp[d] = periodic[d] ? 0 : 1;
+        }
 #endif
 
         // autogen_mincoords.resize(AMREX_SPACEDIM);
@@ -526,23 +537,42 @@ class MPMspecs
         auto bc_temp_str_to_int = [](const std::string &s) -> int {
             if (s == "periodic")   return 0;
             if (s == "dirichlet")  return 1;
+            if (s == "adiabatic")  return 2;
             if (s == "heatflux")   return 3;
             if (s == "convective") return 4;
             amrex::Abort("\nUnknown temperature BC type: " + s);
             return -1;
         };
-        Vector<std::string> bclo_temp_str(AMREX_SPACEDIM, "dirichlet");
-        Vector<std::string> bchi_temp_str(AMREX_SPACEDIM, "dirichlet");
-        pp.queryarr("bc_lower_temp", bclo_temp_str);
-        pp.queryarr("bc_upper_temp", bchi_temp_str);
+
+        const std::string face_lo_temp_keys[3] = {"bc_xlo_temp", "bc_ylo_temp", "bc_zlo_temp"};
+        const std::string face_hi_temp_keys[3] = {"bc_xhi_temp", "bc_yhi_temp", "bc_zhi_temp"};
+        const std::string face_lo_temp_ns[3]   = {"mpm.bc_xlo_temp", "mpm.bc_ylo_temp", "mpm.bc_zlo_temp"};
+        const std::string face_hi_temp_ns[3]   = {"mpm.bc_xhi_temp", "mpm.bc_yhi_temp", "mpm.bc_zhi_temp"};
+
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
         {
-            bclo_temp[d] = bc_temp_str_to_int(bclo_temp_str[d]);
-            bchi_temp[d] = bc_temp_str_to_int(bchi_temp_str[d]);
-        }
+            std::string bc_temp_str;
+            if (pp.query(face_lo_temp_keys[d].c_str(), bc_temp_str))
+            {
+                bclo_temp[d] = bc_temp_str_to_int(bc_temp_str);
+            }
+            if (pp.query(face_hi_temp_keys[d].c_str(), bc_temp_str))
+            {
+                bchi_temp[d] = bc_temp_str_to_int(bc_temp_str);
+            }
 
-        pp.queryarr("bc_lower_tempval", bclo_tempval);
-        pp.queryarr("bc_upper_tempval", bchi_tempval);
+            ParmParse pp_lo_temp(face_lo_temp_ns[d]);
+            pp_lo_temp.query("T_wall", bc_temp_T_wall_lo[d]);
+            pp_lo_temp.query("flux",   bc_temp_flux_lo[d]);
+            pp_lo_temp.query("h",      bc_temp_h_lo[d]);
+            pp_lo_temp.query("T_inf",  bc_temp_Tinf_lo[d]);
+
+            ParmParse pp_hi_temp(face_hi_temp_ns[d]);
+            pp_hi_temp.query("T_wall", bc_temp_T_wall_hi[d]);
+            pp_hi_temp.query("flux",   bc_temp_flux_hi[d]);
+            pp_hi_temp.query("h",      bc_temp_h_hi[d]);
+            pp_hi_temp.query("T_inf",  bc_temp_Tinf_hi[d]);
+        }
 #endif
 
         pp.query("levelset_bc", levelset_bc);
