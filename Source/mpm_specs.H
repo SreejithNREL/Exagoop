@@ -523,8 +523,23 @@ class MPMspecs
         }
 
 #if USE_TEMP
-        pp.queryarr("bc_lower_temp", bclo_temp);
-        pp.queryarr("bc_upper_temp", bchi_temp);
+        auto bc_temp_str_to_int = [](const std::string &s) -> int {
+            if (s == "periodic")   return 0;
+            if (s == "dirichlet")  return 1;
+            if (s == "heatflux")   return 3;
+            if (s == "convective") return 4;
+            amrex::Abort("\nUnknown temperature BC type: " + s);
+            return -1;
+        };
+        Vector<std::string> bclo_temp_str(AMREX_SPACEDIM, "dirichlet");
+        Vector<std::string> bchi_temp_str(AMREX_SPACEDIM, "dirichlet");
+        pp.queryarr("bc_lower_temp", bclo_temp_str);
+        pp.queryarr("bc_upper_temp", bchi_temp_str);
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        {
+            bclo_temp[d] = bc_temp_str_to_int(bclo_temp_str[d]);
+            bchi_temp[d] = bc_temp_str_to_int(bchi_temp_str[d]);
+        }
 
         pp.queryarr("bc_lower_tempval", bclo_tempval);
         pp.queryarr("bc_upper_tempval", bchi_tempval);

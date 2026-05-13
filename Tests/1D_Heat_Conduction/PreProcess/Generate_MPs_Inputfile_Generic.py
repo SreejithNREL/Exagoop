@@ -1602,8 +1602,8 @@ def write_inputs_file(
         write_block(f, [
             ("mpm.bc_xlo_mom", "noslip"),
             ("mpm.bc_xhi_mom", "noslip"),
-            ("mpm.bc_lower_temp", "1 0 0"),
-            ("mpm.bc_upper_temp", "1 0 0"),
+            ("mpm.bc_lower_temp", "dirichlet periodic periodic"),
+            ("mpm.bc_upper_temp", "dirichlet periodic periodic"),
             ("mpm.bc_lower_tempval", "0.0 0.0 0"),
             ("mpm.bc_upper_tempval", "1.0 0.0 0"),
             ("mpm.levelset_bc", "2 0 0"),

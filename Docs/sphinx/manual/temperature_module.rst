@@ -107,13 +107,13 @@ domain.  Each array has ``SPACEDIM`` entries, one per spatial direction.
      - Default
      - Description
    * - ``mpm.bc_lower_temp``
-     - ``int[SPACEDIM]``
-     - ``[1 1 1]``
-     - BC type at each lower face (see flag table below).
+     - ``string[SPACEDIM]``
+     - ``dirichlet`` (all faces)
+     - BC type at each lower face (see keyword table below).
    * - ``mpm.bc_upper_temp``
-     - ``int[SPACEDIM]``
-     - ``[1 1 1]``
-     - BC type at each upper face (see flag table below).
+     - ``string[SPACEDIM]``
+     - ``dirichlet`` (all faces)
+     - BC type at each upper face (see keyword table below).
    * - ``mpm.bc_lower_tempval``
      - ``Real[SPACEDIM]``
      - ``[0.0 0.0 0.0]``
@@ -123,18 +123,41 @@ domain.  Each array has ``SPACEDIM`` entries, one per spatial direction.
      - ``[0.0 0.0 0.0]``
      - Dirichlet temperature value at each upper face.
 
+The four recognised BC type keywords are:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 80
+
+   * - Keyword
+     - Meaning
+   * - ``periodic``
+     - Periodic face (must match the corresponding ``mpm.is_it_periodic``
+       entry).
+   * - ``dirichlet``
+     - Fixed temperature wall.  The nodal temperature on that face is
+       overwritten each step with the value from ``bc_lower_tempval`` /
+       ``bc_upper_tempval``.
+   * - ``heatflux``
+     - Prescribed heat-flux wall.  The flux value is read from
+       ``bc_lower_tempval`` / ``bc_upper_tempval`` (reserved for future
+       full implementation).
+   * - ``convective``
+     - Convective (Robin) wall.  The reference temperature is read from
+       ``bc_lower_tempval`` / ``bc_upper_tempval`` (reserved for future
+       full implementation).
+
 .. note::
 
-   The temperature BC system currently implements **Dirichlet conditions
-   only**.  At every time step, ``nodal_bcs_temperature()`` overwrites the
-   nodal temperature on the domain boundary planes with the values in
-   ``bc_lower_tempval`` / ``bc_upper_tempval``.  The ``bc_lower_temp`` and
-   ``bc_upper_temp`` flag arrays are read and stored but are not yet used
-   to select different BC types at individual faces; all faces receive the
-   Dirichlet treatment unconditionally.  Adiabatic (zero-flux) walls are
-   the effective behaviour when no ``bcval`` entries are set (the default
-   value of ``0.0`` prescribes :math:`T = 0` on those faces, so non-zero
-   Dirichlet temperatures must be specified explicitly).
+   The temperature BC solver currently **applies Dirichlet conditions
+   only** at every time step via ``nodal_bcs_temperature()``.  The
+   ``heatflux`` and ``convective`` keywords are parsed and stored but their
+   specific nodal treatments are not yet implemented; faces carrying those
+   types receive no boundary modification in the current release.
+   Adiabatic (zero-flux) walls are the effective behaviour when no
+   ``bcval`` entries are set (the default value of ``0.0`` prescribes
+   :math:`T = 0` on those faces, so non-zero Dirichlet temperatures must
+   be specified explicitly).
 
 
 Nodal fields added by the temperature module
@@ -281,10 +304,8 @@ fixed temperatures at the lower and upper :math:`y`-faces:
    mpm.bc_lower_tempval = 0.0  400.0  0.0   # Dirichlet T at lower faces (K)
    mpm.bc_upper_tempval = 0.0  300.0  0.0   # Dirichlet T at upper faces (K)
 
-   # bc_lower_temp / bc_upper_temp flag arrays are read but currently
-   # all faces receive Dirichlet treatment; leave at default or omit.
-   mpm.bc_lower_temp    = 1  1  1
-   mpm.bc_upper_temp    = 1  1  1
+   mpm.bc_lower_temp    = periodic  dirichlet  periodic
+   mpm.bc_upper_temp    = periodic  dirichlet  periodic
 
 In this example the :math:`x`- and :math:`z`-faces have a prescribed
 temperature of 0 K (effectively insulated when the domain temperature is
