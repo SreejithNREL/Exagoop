@@ -71,9 +71,9 @@
     }
   ],
   "CFL": 0.1,
-  "order_scheme": 1,
-  "stress_update_scheme": 1,
-  "output_tag": "Elastic_disk_collision__dim2_npcx4_ord1_sus1_USEHDFFalse_OFORMascii_6eff43",
+  "order_scheme": 2,
+  "stress_update_scheme": "MUSL",
+  "output_tag": "Elastic_disk_collision__dim2_npcx4_ord2_susMUSL_USEHDFFalse_OFORMascii_df0076",
   "input_filename": "Inputs_ElasticDiskCollision.inp",
   "output_format": "ascii",
   "materialpoint_filename": "mpm_particles.dat",

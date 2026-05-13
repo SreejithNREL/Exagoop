@@ -2,6 +2,7 @@
 #include <nodal_data_ops.H>
 #include <mpm_eb.H>
 #include <mpm_kernels.H>
+#include <AMReX_iMultiFab.H>
 // clang-format on
 
 using namespace amrex;
@@ -316,8 +317,6 @@ void Nodal_Time_Update_Momentum(MultiFab &nodaldata,
 {
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
-        // const Box &bx = mfi.validbox();
-        //  Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
         Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 
         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
@@ -425,15 +424,11 @@ void nodal_detect_contact(
 {
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
-        // const Box &bx = mfi.validbox();
 #if (AMREX_SPACEDIM == 1)
-        // Box nodalbox = convert(bx, {1});
         Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 #elif (AMREX_SPACEDIM == 2)
-        // Box nodalbox = convert(bx, {1, 1});
         Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 #else
-        // Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
         Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 #endif
 
@@ -453,7 +448,6 @@ void nodal_detect_contact(
                     const int rb_id = int(nodal_data_arr(
                         IntVect(AMREX_D_DECL(i, j, k)), RIGID_BODY_ID));
 
-                    // Compute contact_alpha = (v_node - v_rigid) � normal
                     amrex::Real contact_alpha = 0.0;
                     for (int d = 0; d < AMREX_SPACEDIM; ++d)
                     {
@@ -467,7 +461,6 @@ void nodal_detect_contact(
 
                     if (contact_alpha >= 0.0)
                     {
-                        // Relative velocity along normal
                         amrex::Real V_relative = 0.0;
                         for (int d = 0; d < AMREX_SPACEDIM; ++d)
                         {
@@ -479,7 +472,6 @@ void nodal_detect_contact(
                                                NORMALX + d);
                         }
 
-                        // Project out normal component
                         for (int d = 0; d < AMREX_SPACEDIM; ++d)
                         {
                             nodal_data_arr(IntVect(AMREX_D_DECL(i, j, k)),
@@ -520,9 +512,6 @@ void initialise_shape_function_indices(iMultiFab &shapefunctionindex,
     const int *domloarr = geom.Domain().loVect();
     const int *domhiarr = geom.Domain().hiVect();
 
-    /*int periodic[AMREX_SPACEDIM] = {
-        geom.isPeriodic(XDIR), geom.isPeriodic(YDIR), geom.isPeriodic(ZDIR)};*/
-
     GpuArray<int, AMREX_SPACEDIM> lo = {
         AMREX_D_DECL(domloarr[0], domloarr[1], domloarr[2])};
     GpuArray<int, AMREX_SPACEDIM> hi = {
@@ -530,8 +519,6 @@ void initialise_shape_function_indices(iMultiFab &shapefunctionindex,
 
     for (MFIter mfi(shapefunctionindex); mfi.isValid(); ++mfi)
     {
-        // const Box &bx = mfi.validbox();
-        //  Box nodalbox = convert(bx, {AMREX_D_DECL(1, 1, 1)});
         Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 
         Array4<int> shapefunctionindex_arr = shapefunctionindex.array(mfi);

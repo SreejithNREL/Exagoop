@@ -383,7 +383,6 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
     amrex::GpuArray<int, AMREX_SPACEDIM> order_scheme_directional,
     amrex::GpuArray<int, AMREX_SPACEDIM> periodic)
 {
-    // if(testing==1) amrex::Print()<<"\n Entered deposit_onto_grid_momentum";
 
     const int lev = 0;
     const Geometry &geom = Geom(lev);

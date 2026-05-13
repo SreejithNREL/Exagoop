@@ -55,9 +55,7 @@ void MPMParticleContainer::apply_constitutive_model(
         auto &ptile = plev[index];
         auto &aos = ptile.GetArrayOfStructs();
 
-        int np = aos.numRealParticles();
-        int ng = aos.numNeighborParticles();
-        int nt = np + ng;
+        const int nt = aos.numRealParticles();
 
         ParticleType *pstruct = aos().dataPtr();
 
@@ -180,9 +178,7 @@ void MPMParticleContainer::apply_constitutive_model_delta(
         auto &ptile = plev[index];
         auto &aos = ptile.GetArrayOfStructs();
 
-        const int np = aos.numRealParticles();
-        const int ng = aos.numNeighborParticles();
-        const int nt = np + ng;
+        const int nt = aos.numRealParticles();
 
         ParticleType *pstruct = aos().dataPtr();
 

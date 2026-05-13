@@ -1481,7 +1481,7 @@ def write_inputs_file(
     dimensions: int,
     order_scheme: int,
     CFL: float,
-    stress_update_scheme: int,
+    stress_update_scheme: str,
     output_tag: str,
     constitutive_model: dict,
     enable_temperature: bool,
@@ -1559,7 +1559,7 @@ def write_inputs_file(
             ("mpm.max_steps", "5000000"),
             ("mpm.screen_output_time", "0.0001"),
             ("mpm.write_output_time", "0.01"),
-            ("mpm.num_redist", "1")
+            ("mpm.num_redist", "10")
         ], comment="Simulation Run Parameters")
 
         # Timestepping

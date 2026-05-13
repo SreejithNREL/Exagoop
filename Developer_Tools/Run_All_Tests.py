@@ -11,6 +11,10 @@ import re
 import time
 import tempfile
 from pathlib import Path
+import sys
+#from builtins import None
+
+just_compile_dont_run = False
 
 def update_makefile_dim(MAKEFILE_PATH,dim):
     lines = []
@@ -23,6 +27,62 @@ def update_makefile_dim(MAKEFILE_PATH,dim):
     with open(MAKEFILE_PATH, "w") as f:
         f.writelines(lines)
         
+def bool_to_gnumake(value: bool) -> str:
+    return "TRUE" if value else "FALSE"
+
+def build_and_get_executable_gnumake(test_dir: Path, use_hdf: bool) -> str | None:
+    """
+    Run gnumake build, capture output,
+    and extract executable name from line like:
+    "Linking ExaGOOP1d.gnu.MPI.ex ..."
+    """
+    hdf_flags = "USE_HDF5=TRUE AMREX_USE_HDF5=TRUE" if use_hdf else "USE_HDF5=FALSE AMREX_USE_HDF5=FALSE"
+
+    result = subprocess.run(
+        f"make -j{os.cpu_count()} {hdf_flags}",
+        cwd=test_dir,
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True
+    )
+    print(result.stdout)
+
+    if result.returncode != 0:
+        print("❌ GNUmake build failed")
+        return None
+
+    # Extract from "Linking ExaGOOP1d.gnu.MPI.ex ..."
+    match = re.search(r'Linking\s+(\S+\.ex)', result.stdout)
+    if match:
+        exe_name = match.group(1)
+        print(f"  ✅ Executable: {exe_name}")
+        return exe_name
+    else:
+        print("  ⚠️  Could not extract executable name from build output")
+        return None
+    
+def patch_gnumakefile(gnumakefile: Path, overrides: dict) -> str:
+    """
+    Read GNUmakefile, replace KEY = VALUE entries with new values,
+    return the patched content as a string.
+    """
+    content = gnumakefile.read_text()
+
+    for key, value in overrides.items():
+        # Matches:  KEY   = VALUE  (with optional spaces around =)
+        pattern     = rf'^({key}\s*=\s*)\S+'
+        replacement = rf'\g<1>{value}'
+        new_content, count = re.subn(pattern, replacement, content, flags=re.MULTILINE)
+
+        if count == 0:
+            print(f"  ⚠️  Warning: {key} not found in GNUmakefile — skipping")
+        else:
+            print(f"  ✏️  Patched {key} = {value}")
+            content = new_content
+
+    return content
+        
 def update_makefile_usetemp(MAKEFILE_PATH,usetemp):
     lines = []
     with open(MAKEFILE_PATH, "r") as f:
@@ -34,6 +94,68 @@ def update_makefile_usetemp(MAKEFILE_PATH,usetemp):
     with open(MAKEFILE_PATH, "w") as f:
         f.writelines(lines)
 
+def bool_to_cmake(value: bool) -> str:
+    return "ON" if value else "OFF"
+
+def patch_cmake_sh(cmake_sh: Path, overrides: dict) -> str:
+    content = cmake_sh.read_text()
+
+    # Patch -DKEY=VALUE entries
+    for key, value in overrides.items():
+        pattern     = rf'(-D{key}(?::[A-Z]+)?=)\S+'
+        replacement = rf'\g<1>{value}'
+        new_content, count = re.subn(pattern, replacement, content)
+
+        if count == 0:
+            print(f"  ⚠️  Warning: -D{key} not found in cmake.sh — skipping")
+        else:
+            print(f"  ✏️  Patched {key} = {value}")
+            content = new_content
+
+    # Fix cmake source directory path
+    # Matches the trailing .. at the end of the cmake command
+    content = re.sub(r'(\s)\.\.$', r'\1../../', content, flags=re.MULTILINE)
+
+    return content
+
+def build_and_get_executable(build_dir: Path, patched_sh: Path) -> str | None:
+    # Step 1 — Configure
+    print(f"\n  [CONFIGURE] Running {patched_sh} ...\n")
+    config_result = subprocess.run(
+        ["bash", str(patched_sh)],
+        cwd=build_dir,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True
+    )
+    print(config_result.stdout)
+    if config_result.returncode != 0:
+        print("❌ CMake configure failed")
+        return None
+
+    # Step 2 — Build
+    print(f"\n  [BUILD] cmake --build ...\n")
+    build_result = subprocess.run(
+        ["cmake", "--build", ".", "--parallel", str(os.cpu_count())],
+        cwd=build_dir,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True
+    )
+    print(build_result.stdout)
+    if build_result.returncode != 0:
+        print("❌ CMake build failed")
+        return None
+
+    # Step 3 — Extract executable name
+    match = re.search(r'Built target\s+(\S+\.ex)', build_result.stdout)
+    if match:
+        exe_name = match.group(1)
+        print(f"  ✅ Executable: {exe_name}")
+        return exe_name
+    else:
+        print("  ⚠️  Could not extract executable name from build output")
+        return None
 
 # ============================================================
 # Utility: Run shell commands
@@ -81,8 +203,19 @@ def copy_gnumake_to_test(root, test_dir):
     shutil.copy(src, dst)
 
 
-def Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg):
-    # Parameter sweep setup
+def Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg):    
+    # Parameter sweep setup           
+    #common settings for all test cases
+    build_systems=cfg["parameter_space"]["build_system"]
+    use_mpis=cfg["parameter_space"]["use_mpi"]
+    use_cudas=cfg["parameter_space"]["use_cuda"]
+    use_hips=cfg["parameter_space"]["use_hip"]
+    use_omps=cfg["parameter_space"]["use_omp"]
+    use_sycls=cfg["parameter_space"]["use_sycl"]
+    use_ebs=cfg["parameter_space"]["use_eb"]
+    use_temps=cfg["parameter_space"]["use_temp"]
+    
+    #test case specific values
     dims = cfg["parameter_space"]["dimension"]
     npcx_vals = cfg["parameter_space"]["np_per_cell_x"]
     order_vals = cfg["parameter_space"]["order_scheme"]
@@ -96,9 +229,12 @@ def Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg):
     test_name = "1D_Axial_Bar_Vibration"
     test_dir = os.path.join(ROOT, "Tests", test_name)
 
-    for dim, npcx, order, flip, sus, cfl, bwh, of in itertools.product(
-        dims, npcx_vals, order_vals, flip_vals, sus_vals, cfl_vals,bwhs,output_formats
+    for dim, npcx, order, flip, sus, cfl, bwh, of, use_mpi, use_cuda, use_hip, use_omp, use_sycl, use_eb, use_temp, build_system  in itertools.product(
+        dims, npcx_vals, order_vals, flip_vals, sus_vals, cfl_vals,bwhs,output_formats, use_mpis, use_cudas, use_hips, use_omps, use_sycls, use_ebs, use_temps, build_systems
     ):
+        tmp_build_dir = os.path.join(test_dir, "tmp_build_dir")
+        Delete_Folder(tmp_build_dir)
+        Delete_File_Start_End_Pattern(test_dir,"ExaGOOP",".ex")
         
         if(bwh==False and of=="hdf5"):
             continue      
@@ -116,10 +252,10 @@ def Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg):
             p.unlink()
             print("Deleted existing file "+existing_mpm_dat)
 
-        print(f"\n--- Case: dim={dim}, npcx={npcx}, ord={order}, flip={flip}, sus={sus}, CFL={cfl}")
+        print(f"\n--- Case: dim={dim}, npcx={npcx}, ord={order}, flip={flip}, sus={sus}, CFL={cfl} Built with HDF={bwh}, Output format={of}, MPI={use_mpi}, CUDA={use_cuda}, HIP={use_hip}, OMP={use_omp}, SYCL={use_sycl}, EB={use_eb}, TEMP={use_temp}, Build System={build_system}")
 
         # Build auto-tag
-        desc = f"{test_name}_dim{dim}_npcx{npcx}_ord{order}_flip{flip}_sus{sus}_CFL{cfl}_USEHDF{bwh}_OFORM{of}"
+        desc = f"{test_name}_dim{dim}_npcx{npcx}_ord{order}_flip{flip}_sus{sus}_CFL{cfl}_USEHDF{bwh}_OFORM{of}_MPI={use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
         output_tag = make_auto_tag_from_params(desc)
 
         # 1. Load template config
@@ -138,6 +274,17 @@ def Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg):
             config["materialpoint_filename"] = filename_prefix[0]+".dat"
         else:
             config["materialpoint_filename"] = filename_prefix[0]+".h5"
+        
+        config["build_with_hdf"] = bwhs    
+        config["build_system"] = build_system
+        config["use_mpi"] = use_mpi
+        config["use_cuda"] = use_cuda
+        config["use_hip"] = use_hip
+        config["use_omp"] = use_omp
+        config["use_sycl"] = use_sycl
+        config["use_eb"] = use_eb
+        config["use_temp"] = use_temp
+        
         config["output_tag"] = output_tag
         
         # 3. Write updated config.json
@@ -145,30 +292,78 @@ def Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg):
             json.dump(config, f, indent=2)
 
         # change gnumakefile
-        update_makefile_dim(os.path.join(test_dir,"GNUmakefile"),dim)
-        update_makefile_usetemp(os.path.join(test_dir,"GNUmakefile"),"FALSE")
+        if(build_system=="cmake"):
+            # Map CLI args to cmake variable names            
+            overrides = {
+                "EXAGOOP_DIM":          dim,
+                "EXAGOOP_USE_TEMP":     bool_to_cmake(get_config_bool(config,"use_temp")),                
+                "EXAGOOP_ENABLE_MPI":   bool_to_cmake(get_config_bool(config,"use_mpi")),
+                "EXAGOOP_ENABLE_OMP":   bool_to_cmake(get_config_bool(config,"use_mp")),
+                "EXAGOOP_ENABLE_CUDA":  bool_to_cmake(get_config_bool(config,"use_cuda")),
+                "EXAGOOP_ENABLE_HIP":   bool_to_cmake(get_config_bool(config,"use_hip")),
+                "EXAGOOP_ENABLE_EB": bool_to_cmake(get_config_bool(config,"use_eb")),
+                "EXAGOOP_USE_HDF5":     bool_to_cmake(get_config_bool(config,"build_with_hdf")),                
+            }
         
-        # Build executable
-        if(bwh==True):
-            run_cmd(f"cd {test_dir} && make -j USE_HDF5=TRUE AMREX_USE_HDF5=TRUE")
-        else:
-            run_cmd(f"cd {test_dir} && make -j USE_HDF5=FALSE AMREX_USE_HDF5=FALSE")
+            MPM_HOME   = os.environ.get("MPM_HOME")
+            if MPM_HOME is None:
+                raise EnvironmentError("MPM_HOME is not set. Please export MPM_HOME=/path/to/repo")
+            
+            BUILD_CMAKE = Path(MPM_HOME) / "Build_Cmake"
+            CMAKE_SH = BUILD_CMAKE / "cmake.sh"
+            
+            build_dir = Path(test_dir)
+            patched = patch_cmake_sh(CMAKE_SH,overrides)                       
+            patched_sh = build_dir / "cmake_run.sh"
+            patched_sh.write_text(patched)
+            patched_sh.chmod(0o755)
+                    
+            # Run from inside build dir so cmake .. resolves correctly
+            print(f"\n  Running patched cmake.sh from {build_dir} ...\n")
+            #run_cmd(f"cd {test_dir}")
+            exe = build_and_get_executable(build_dir,patched_sh)
+            print(f"\n✅ Build complete: {exe}")
+            
+        elif build_system == "gnumake":
+            overrides = {
+                "DIM":      dim,
+                "USE_TEMP": bool_to_gnumake(get_config_bool(config,"use_temp")),
+                "USE_MPI":  bool_to_gnumake(get_config_bool(config,"use_mpi")),
+                "USE_OMP":  bool_to_gnumake(get_config_bool(config,"use_omp")),
+                "USE_CUDA": bool_to_gnumake(get_config_bool(config,"use_cuda")),
+                "USE_HIP":  bool_to_gnumake(get_config_bool(config,"use_hip")),
+                "USE_EB":   bool_to_gnumake(get_config_bool(config,"use_eb")),
+            }
+        
+            MPM_HOME = os.environ.get("MPM_HOME")
+            if MPM_HOME is None:
+                raise EnvironmentError("MPM_HOME is not set.")
+        
+            BUILD_GNUMAKE    = Path(MPM_HOME) / "Build_Gnumake"
+            GNUMAKEFILE_SRC  = BUILD_GNUMAKE / "GNUmakefile"
+        
+            # Write patched copy into test dir
+            patched    = patch_gnumakefile(GNUMAKEFILE_SRC, overrides)
+            patched_mk = Path(test_dir) / "GNUmakefile"
+            patched_mk.write_text(patched)
+            print(f"  ✏️  Written patched GNUmakefile to {patched_mk}")
+            
+            exe = build_and_get_executable_gnumake(Path(test_dir), bwh)
+            
+        if exe is None:
+            print(f"❌ Build failed for case: {desc}")
+            sys.exit(1)
 
         # Generate inputs
         run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")
-
-        # Select executable
-        if(dim==1):
-            exe = "./ExaGOOP1d.gnu.MPI.ex"
-        elif(dim==2):
-            exe = "./ExaGOOP2d.gnu.MPI.ex"
-        elif(dim==3):
-            exe = "./ExaGOOP3d.gnu.MPI.ex"
-            
-        #exe = "./ExaGOOP3d.gnu.MPI.ex" if dim == 3 else "./ExaGOOP2d.gnu.MPI.ex"
-
+        
         # Run simulation
-        run_cmd(f"cd {test_dir} && mpirun -np 4 {exe} {cfg['input_file']}")
+        if(just_compile_dont_run==False):
+            if(use_mpi):
+                run_cmd(f"cd {test_dir} && mpirun -np 4 ./{exe} {cfg['input_file']}")
+            
+            if(use_mpi==False):
+                run_cmd(f"cd {test_dir} && ./{exe} {cfg['input_file']} mpm.max_grid_size=256")
 
         # Post-processing
         ascii_folder = os.path.join(test_dir, "Solution", "ascii_files",output_tag)
@@ -220,11 +415,29 @@ def Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg):
             "cfl": cfl,
             "rms": rms,
             "built_with_hdf": bwh,
-            "fileformat": of,
+            "fileformat": of,               
+            "build_system": build_system,
+            "use_mpi": use_mpi,
+            "use_cuda": use_cuda,
+            "use_hip": use_hip,
+            "use_omp": use_omp,
+            "use_sycl": use_sycl,
+            "use_eb": use_eb,
+            "use_temp": use_temp,          
             "pass": rms < ERROR_TOL if rms == rms else False
         })
         
 def Run_ParameterSweep_1D_HeatConduction(cfg):
+    #common settings for all test cases
+    build_systems=cfg["parameter_space"]["build_system"]
+    use_mpis=cfg["parameter_space"]["use_mpi"]
+    use_cudas=cfg["parameter_space"]["use_cuda"]
+    use_hips=cfg["parameter_space"]["use_hip"]
+    use_omps=cfg["parameter_space"]["use_omp"]
+    use_sycls=cfg["parameter_space"]["use_sycl"]
+    use_ebs=cfg["parameter_space"]["use_eb"]
+    use_temps=cfg["parameter_space"]["use_temp"]
+    
     # Parameter sweep setup
     dim = cfg["parameter_space"]["dimension"][0]
     npcx_vals = cfg["parameter_space"]["np_per_cell_x"]
@@ -238,9 +451,13 @@ def Run_ParameterSweep_1D_HeatConduction(cfg):
     test_name = "1D_Heat_Conduction"
     test_dir = os.path.join(ROOT, "Tests", test_name)
 
-    for npcx, order, sus, bwh, of in itertools.product(
-        npcx_vals, order_vals, sus_vals, bwhs,output_formats
+    for npcx, order, sus, bwh, of, use_mpi, use_cuda, use_hip, use_omp, use_sycl, use_eb, use_temp, build_system in itertools.product(
+        npcx_vals, order_vals, sus_vals, bwhs,output_formats,  use_mpis, use_cudas, use_hips, use_omps, use_sycls, use_ebs, use_temps, build_systems
     ):
+        tmp_build_dir = os.path.join(test_dir, "tmp_build_dir")
+        Delete_Folder(tmp_build_dir)
+        Delete_File_Start_End_Pattern(test_dir,"ExaGOOP",".ex")
+        
         if(bwh==False and of=="hdf5"):
             continue      
         
@@ -257,10 +474,10 @@ def Run_ParameterSweep_1D_HeatConduction(cfg):
             p.unlink()
             print("Deleted existing file "+existing_mpm_dat)
 
-        print(f"\n--- Case: npcx={npcx}, ord={order}, sus={sus}")
+        print(f"\n--- Case: npcx={npcx}, ord={order}, sus={sus} , MPI={use_mpi}, CUDA={use_cuda}, HIP={use_hip}, OMP={use_omp}, SYCL={use_sycl}, EB={use_eb}, TEMP={use_temp}, Build System={build_system}")
 
         # Build auto-tag
-        desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}"
+        desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI={use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
         output_tag = make_auto_tag_from_params(desc)
 
         # 1. Load template config
@@ -276,6 +493,16 @@ def Run_ParameterSweep_1D_HeatConduction(cfg):
             config["materialpoint_filename"] = filename_prefix[0]+".dat"
         else:
             config["materialpoint_filename"] = filename_prefix[0]+".h5"
+            
+        config["build_with_hdf"] = bwhs    
+        config["build_system"] = build_system
+        config["use_mpi"] = use_mpi
+        config["use_cuda"] = use_cuda
+        config["use_hip"] = use_hip
+        config["use_omp"] = use_omp
+        config["use_sycl"] = use_sycl
+        config["use_eb"] = use_eb
+        config["use_temp"] = use_temp
 
         # Auto-tag       
         config["output_tag"] = output_tag
@@ -284,29 +511,79 @@ def Run_ParameterSweep_1D_HeatConduction(cfg):
         with open(os.path.join(test_dir, "./PreProcess/config.json"), "w") as f:
             json.dump(config, f, indent=2)
 
-        # Change gnumake file
-        update_makefile_dim(os.path.join(test_dir,"GNUmakefile"),dim)
-        update_makefile_usetemp(os.path.join(test_dir,"GNUmakefile"),"TRUE")
+        # change gnumakefile
+        if(build_system=="cmake"):
+            # Map CLI args to cmake variable names            
+            overrides = {
+                "EXAGOOP_DIM":          dim,
+                "EXAGOOP_USE_TEMP":     bool_to_cmake(get_config_bool(config,"use_temp")),                
+                "EXAGOOP_ENABLE_MPI":   bool_to_cmake(get_config_bool(config,"use_mpi")),
+                "EXAGOOP_ENABLE_OMP":   bool_to_cmake(get_config_bool(config,"use_mp")),
+                "EXAGOOP_ENABLE_CUDA":  bool_to_cmake(get_config_bool(config,"use_cuda")),
+                "EXAGOOP_ENABLE_HIP":   bool_to_cmake(get_config_bool(config,"use_hip")),
+                "EXAGOOP_ENABLE_EB": bool_to_cmake(get_config_bool(config,"use_eb")),
+                "EXAGOOP_USE_HDF5":     bool_to_cmake(get_config_bool(config,"build_with_hdf")),                
+            }
         
-        # Build executable
-        if(bwh==True):
-            run_cmd(f"cd {test_dir} && make -j USE_HDF5=TRUE AMREX_USE_HDF5=TRUE")
-        else:
-            run_cmd(f"cd {test_dir} && make -j USE_HDF5=FALSE AMREX_USE_HDF5=FALSE")
+            MPM_HOME   = os.environ.get("MPM_HOME")
+            if MPM_HOME is None:
+                raise EnvironmentError("MPM_HOME is not set. Please export MPM_HOME=/path/to/repo")
+            
+            BUILD_CMAKE = Path(MPM_HOME) / "Build_Cmake"
+            CMAKE_SH = BUILD_CMAKE / "cmake.sh"
+            
+            build_dir = Path(test_dir)
+            patched = patch_cmake_sh(CMAKE_SH,overrides)                       
+            patched_sh = build_dir / "cmake_run.sh"
+            patched_sh.write_text(patched)
+            patched_sh.chmod(0o755)
+                    
+            # Run from inside build dir so cmake .. resolves correctly
+            print(f"\n  Running patched cmake.sh from {build_dir} ...\n")
+            #run_cmd(f"cd {test_dir}")
+            exe = build_and_get_executable(build_dir,patched_sh)
+            print(f"\n✅ Build complete: {exe}")
+            
+        elif build_system == "gnumake":
+            overrides = {
+                "DIM":      dim,
+                "USE_TEMP": bool_to_gnumake(get_config_bool(config,"use_temp")),
+                "USE_MPI":  bool_to_gnumake(get_config_bool(config,"use_mpi")),
+                "USE_OMP":  bool_to_gnumake(get_config_bool(config,"use_omp")),
+                "USE_CUDA": bool_to_gnumake(get_config_bool(config,"use_cuda")),
+                "USE_HIP":  bool_to_gnumake(get_config_bool(config,"use_hip")),
+                "USE_EB":   bool_to_gnumake(get_config_bool(config,"use_eb")),
+            }
+        
+            MPM_HOME = os.environ.get("MPM_HOME")
+            if MPM_HOME is None:
+                raise EnvironmentError("MPM_HOME is not set.")
+        
+            BUILD_GNUMAKE    = Path(MPM_HOME) / "Build_Gnumake"
+            GNUMAKEFILE_SRC  = BUILD_GNUMAKE / "GNUmakefile"
+        
+            # Write patched copy into test dir
+            patched    = patch_gnumakefile(GNUMAKEFILE_SRC, overrides)
+            patched_mk = Path(test_dir) / "GNUmakefile"
+            patched_mk.write_text(patched)
+            print(f"  ✏️  Written patched GNUmakefile to {patched_mk}")
+            
+            exe = build_and_get_executable_gnumake(Path(test_dir), bwh)
+            
+        if exe is None:
+            print(f"❌ Build failed for case: {desc}")
+            sys.exit(1)
 
         # Generate inputs
         run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")
-
-        # Select executable
-        if(dim==1):
-            exe = "./ExaGOOP1d.gnu.MPI.ex"
-        elif(dim==2):
-            exe = "./ExaGOOP2d.gnu.MPI.ex"
-        elif(dim==3):
-            exe = "./ExaGOOP3d.gnu.MPI.ex"
-
+        
         # Run simulation
-        run_cmd(f"cd {test_dir} && mpirun -np 4 {exe} {cfg['input_file']}")
+        if(just_compile_dont_run==False):
+            if(use_mpi):
+                run_cmd(f"cd {test_dir} && mpirun -np 4 ./{exe} {cfg['input_file']}")
+            
+            if(use_mpi==False):
+                run_cmd(f"cd {test_dir} && ./{exe} {cfg['input_file']} mpm.max_grid_size=256")
 
         # Post-processing
         ascii_folder = os.path.join(test_dir, "Solution", "ascii_files",output_tag)
@@ -337,11 +614,29 @@ def Run_ParameterSweep_1D_HeatConduction(cfg):
             "rms": rms,
             "built_with_hdf": bwh,
             "fileformat": of,
+            "build_system": build_system,
+            "use_mpi": use_mpi,
+            "use_cuda": use_cuda,
+            "use_hip": use_hip,
+            "use_omp": use_omp,
+            "use_sycl": use_sycl,
+            "use_eb": use_eb,
+            "use_temp": use_temp,          
             "pass": rms < ERROR_TOL if rms == rms else False
         })
         
-def Run_ParameterSweep_2D_HeatConduction(cfg):
-    # Parameter sweep setup    
+def Run_ParameterSweep_1D_HeatConduction_HeatFlux(cfg):
+    build_systems=cfg["parameter_space"]["build_system"]
+    use_mpis=cfg["parameter_space"]["use_mpi"]
+    use_cudas=cfg["parameter_space"]["use_cuda"]
+    use_hips=cfg["parameter_space"]["use_hip"]
+    use_omps=cfg["parameter_space"]["use_omp"]
+    use_sycls=cfg["parameter_space"]["use_sycl"]
+    use_ebs=cfg["parameter_space"]["use_eb"]
+    use_temps=cfg["parameter_space"]["use_temp"]
+    
+    # Parameter sweep setup
+    dim = cfg["parameter_space"]["dimension"][0]
     npcx_vals = cfg["parameter_space"]["np_per_cell_x"]
     order_vals = cfg["parameter_space"]["order_scheme"]
     sus_vals = cfg["parameter_space"]["stress_update_scheme"]    
@@ -350,12 +645,15 @@ def Run_ParameterSweep_2D_HeatConduction(cfg):
     output_formats = cfg["parameter_space"]["output_format"]
     filename_prefix = cfg["parameter_space"]["filename_prefix"]           
    
-    test_name = "2D_Heat_Conduction"
+    test_name = "1D_Heat_Conduction_HeatFlux"
     test_dir = os.path.join(ROOT, "Tests", test_name)
 
-    for npcx, order, sus, bwh, of in itertools.product(
-        npcx_vals, order_vals, sus_vals, bwhs,output_formats
+    for npcx, order, sus, bwh, of, use_mpi, use_cuda, use_hip, use_omp, use_sycl, use_eb, use_temp, build_system in itertools.product(
+        npcx_vals, order_vals, sus_vals, bwhs,output_formats,  use_mpis, use_cudas, use_hips, use_omps, use_sycls, use_ebs, use_temps, build_systems
     ):
+        tmp_build_dir = os.path.join(test_dir, "tmp_build_dir")
+        Delete_Folder(tmp_build_dir)
+        Delete_File_Start_End_Pattern(test_dir,"ExaGOOP",".ex")
         
         if(bwh==False and of=="hdf5"):
             continue      
@@ -373,10 +671,410 @@ def Run_ParameterSweep_2D_HeatConduction(cfg):
             p.unlink()
             print("Deleted existing file "+existing_mpm_dat)
 
-        print(f"\n--- Case: npcx={npcx}, ord={order}, sus={sus}")
+        print(f"\n--- Case: npcx={npcx}, ord={order}, sus={sus} , MPI={use_mpi}, CUDA={use_cuda}, HIP={use_hip}, OMP={use_omp}, SYCL={use_sycl}, EB={use_eb}, TEMP={use_temp}, Build System={build_system}")
 
         # Build auto-tag
-        desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}"
+        desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI={use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
+        output_tag = make_auto_tag_from_params(desc)
+
+        # 1. Load template config
+        with open(os.path.join(test_dir, "./PreProcess/config.json")) as f:
+            config = json.load(f)
+
+        # 2. Modify config fields
+        config["ppc"] = [npcx, npcx]
+        config["order_scheme"] = order
+        config["stress_update_scheme"] = sus
+        config["output_format"] = of
+        if(of=="ascii"):
+            config["materialpoint_filename"] = filename_prefix[0]+".dat"
+        else:
+            config["materialpoint_filename"] = filename_prefix[0]+".h5"
+            
+        config["build_with_hdf"] = bwhs    
+        config["build_system"] = build_system
+        config["use_mpi"] = use_mpi
+        config["use_cuda"] = use_cuda
+        config["use_hip"] = use_hip
+        config["use_omp"] = use_omp
+        config["use_sycl"] = use_sycl
+        config["use_eb"] = use_eb
+        config["use_temp"] = use_temp
+
+        # Auto-tag       
+        config["output_tag"] = output_tag
+        
+        # 3. Write updated config.json
+        with open(os.path.join(test_dir, "./PreProcess/config.json"), "w") as f:
+            json.dump(config, f, indent=2)
+
+        # change gnumakefile
+        if(build_system=="cmake"):
+            # Map CLI args to cmake variable names            
+            overrides = {
+                "EXAGOOP_DIM":          dim,
+                "EXAGOOP_USE_TEMP":     bool_to_cmake(get_config_bool(config,"use_temp")),                
+                "EXAGOOP_ENABLE_MPI":   bool_to_cmake(get_config_bool(config,"use_mpi")),
+                "EXAGOOP_ENABLE_OMP":   bool_to_cmake(get_config_bool(config,"use_mp")),
+                "EXAGOOP_ENABLE_CUDA":  bool_to_cmake(get_config_bool(config,"use_cuda")),
+                "EXAGOOP_ENABLE_HIP":   bool_to_cmake(get_config_bool(config,"use_hip")),
+                "EXAGOOP_ENABLE_EB": bool_to_cmake(get_config_bool(config,"use_eb")),
+                "EXAGOOP_USE_HDF5":     bool_to_cmake(get_config_bool(config,"build_with_hdf")),                
+            }
+        
+            MPM_HOME   = os.environ.get("MPM_HOME")
+            if MPM_HOME is None:
+                raise EnvironmentError("MPM_HOME is not set. Please export MPM_HOME=/path/to/repo")
+            
+            BUILD_CMAKE = Path(MPM_HOME) / "Build_Cmake"
+            CMAKE_SH = BUILD_CMAKE / "cmake.sh"
+            
+            build_dir = Path(test_dir)
+            patched = patch_cmake_sh(CMAKE_SH,overrides)                       
+            patched_sh = build_dir / "cmake_run.sh"
+            patched_sh.write_text(patched)
+            patched_sh.chmod(0o755)
+                    
+            # Run from inside build dir so cmake .. resolves correctly
+            print(f"\n  Running patched cmake.sh from {build_dir} ...\n")
+            #run_cmd(f"cd {test_dir}")
+            exe = build_and_get_executable(build_dir,patched_sh)
+            print(f"\n✅ Build complete: {exe}")
+            
+        elif build_system == "gnumake":
+            overrides = {
+                "DIM":      dim,
+                "USE_TEMP": bool_to_gnumake(get_config_bool(config,"use_temp")),
+                "USE_MPI":  bool_to_gnumake(get_config_bool(config,"use_mpi")),
+                "USE_OMP":  bool_to_gnumake(get_config_bool(config,"use_omp")),
+                "USE_CUDA": bool_to_gnumake(get_config_bool(config,"use_cuda")),
+                "USE_HIP":  bool_to_gnumake(get_config_bool(config,"use_hip")),
+                "USE_EB":   bool_to_gnumake(get_config_bool(config,"use_eb")),
+            }
+        
+            MPM_HOME = os.environ.get("MPM_HOME")
+            if MPM_HOME is None:
+                raise EnvironmentError("MPM_HOME is not set.")
+        
+            BUILD_GNUMAKE    = Path(MPM_HOME) / "Build_Gnumake"
+            GNUMAKEFILE_SRC  = BUILD_GNUMAKE / "GNUmakefile"
+        
+            # Write patched copy into test dir
+            patched    = patch_gnumakefile(GNUMAKEFILE_SRC, overrides)
+            patched_mk = Path(test_dir) / "GNUmakefile"
+            patched_mk.write_text(patched)
+            print(f"  ✏️  Written patched GNUmakefile to {patched_mk}")
+            
+            exe = build_and_get_executable_gnumake(Path(test_dir), bwh)
+            
+        if exe is None:
+            print(f"❌ Build failed for case: {desc}")
+            sys.exit(1)
+
+        # Generate inputs
+        run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")
+        
+        # Run simulation
+        if(just_compile_dont_run==False):
+            if(use_mpi and use_cuda):
+                run_cmd(f"cd {test_dir} && mpirun -np 1 ./{exe} {cfg['input_file']}")
+                
+            if(use_mpi and use_cuda is not True):
+                run_cmd(f"cd {test_dir} && mpirun -np 4 ./{exe} {cfg['input_file']}")
+            
+            if(use_mpi==False):
+                run_cmd(f"cd {test_dir} && ./{exe} {cfg['input_file']} mpm.max_grid_size=256")
+
+        # Post-processing
+        ascii_folder = os.path.join(test_dir, "Solution", "ascii_files",output_tag)
+        latest_time, _ = get_latest_time(ascii_folder)
+
+        if latest_time is None:
+            print("[WARNING] No output files found.")
+            rms = float("nan")
+        else:
+            PicsFolder = os.path.join(test_dir,f"Solution/ascii_files/{output_tag}/Pics")
+            os.makedirs(PicsFolder, exist_ok=True)           
+            err_script = os.path.join(test_dir,cfg["postproc_scripts"][0])                     
+            err_cmd = f"python3 {err_script} --time {latest_time} --fileloc {ascii_folder} --outputpic {PicsFolder}/Temperature_x.png"
+            error_output = subprocess.check_output(err_cmd, shell=True, text=True)           
+            
+            rms = None
+            for line in error_output.splitlines():
+                if "RMS error" in line:
+                    rms = float(line.split()[-1])
+                    break
+
+        results.append({
+            "test": test_name,
+            "dim": dim,
+            "npcx": npcx,
+            "order": order,            
+            "sus": sus,            
+            "rms": rms,
+            "built_with_hdf": bwh,
+            "fileformat": of,
+            "build_system": build_system,
+            "use_mpi": use_mpi,
+            "use_cuda": use_cuda,
+            "use_hip": use_hip,
+            "use_omp": use_omp,
+            "use_sycl": use_sycl,
+            "use_eb": use_eb,
+            "use_temp": use_temp, 
+            "pass": rms < ERROR_TOL if rms == rms else False
+        })
+        
+def Run_ParameterSweep_1D_HeatConduction_Convective(cfg):
+    build_systems=cfg["parameter_space"]["build_system"]
+    use_mpis=cfg["parameter_space"]["use_mpi"]
+    use_cudas=cfg["parameter_space"]["use_cuda"]
+    use_hips=cfg["parameter_space"]["use_hip"]
+    use_omps=cfg["parameter_space"]["use_omp"]
+    use_sycls=cfg["parameter_space"]["use_sycl"]
+    use_ebs=cfg["parameter_space"]["use_eb"]
+    use_temps=cfg["parameter_space"]["use_temp"]
+    
+    # Parameter sweep setup
+    dim = cfg["parameter_space"]["dimension"][0]
+    npcx_vals = cfg["parameter_space"]["np_per_cell_x"]
+    order_vals = cfg["parameter_space"]["order_scheme"]
+    sus_vals = cfg["parameter_space"]["stress_update_scheme"]    
+    
+    bwhs = cfg["parameter_space"]["build_with_hdf"]    
+    output_formats = cfg["parameter_space"]["output_format"]
+    filename_prefix = cfg["parameter_space"]["filename_prefix"]           
+   
+    test_name = "1D_Heat_Conduction_Convective"
+    test_dir = os.path.join(ROOT, "Tests", test_name)
+
+    for npcx, order, sus, bwh, of, use_mpi, use_cuda, use_hip, use_omp, use_sycl, use_eb, use_temp, build_system in itertools.product(
+        npcx_vals, order_vals, sus_vals, bwhs,output_formats,  use_mpis, use_cudas, use_hips, use_omps, use_sycls, use_ebs, use_temps, build_systems
+    ):
+        tmp_build_dir = os.path.join(test_dir, "tmp_build_dir")
+        Delete_Folder(tmp_build_dir)
+        Delete_File_Start_End_Pattern(test_dir,"ExaGOOP",".ex")
+        
+        if(bwh==False and of=="hdf5"):
+            continue      
+        
+        existing_mpm_h5 = os.path.join(test_dir,filename_prefix[0]+".h5")
+        existing_mpm_dat = os.path.join(test_dir,filename_prefix[0]+".dat")  
+        
+        p = Path(existing_mpm_h5)
+        if p.exists():
+            p.unlink()
+            print("Deleted existing file "+existing_mpm_h5)
+            
+        p = Path(existing_mpm_dat)
+        if p.exists():
+            p.unlink()
+            print("Deleted existing file "+existing_mpm_dat)
+
+        print(f"\n--- Case: npcx={npcx}, ord={order}, sus={sus}  , MPI={use_mpi}, CUDA={use_cuda}, HIP={use_hip}, OMP={use_omp}, SYCL={use_sycl}, EB={use_eb}, TEMP={use_temp}, Build System={build_system}")
+
+        # Build auto-tag
+        desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI={use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
+        output_tag = make_auto_tag_from_params(desc)
+
+        # 1. Load template config
+        with open(os.path.join(test_dir, "./PreProcess/config.json")) as f:
+            config = json.load(f)
+
+        # 2. Modify config fields
+        config["ppc"] = [npcx, npcx]
+        config["order_scheme"] = order
+        config["stress_update_scheme"] = sus
+        config["output_format"] = of
+        if(of=="ascii"):
+            config["materialpoint_filename"] = filename_prefix[0]+".dat"
+        else:
+            config["materialpoint_filename"] = filename_prefix[0]+".h5"
+            
+        config["build_with_hdf"] = bwhs    
+        config["build_system"] = build_system
+        config["use_mpi"] = use_mpi
+        config["use_cuda"] = use_cuda
+        config["use_hip"] = use_hip
+        config["use_omp"] = use_omp
+        config["use_sycl"] = use_sycl
+        config["use_eb"] = use_eb
+        config["use_temp"] = use_temp
+
+        # Auto-tag       
+        config["output_tag"] = output_tag
+        
+        # 3. Write updated config.json
+        with open(os.path.join(test_dir, "./PreProcess/config.json"), "w") as f:
+            json.dump(config, f, indent=2)
+
+        # change gnumakefile
+        if(build_system=="cmake"):
+            # Map CLI args to cmake variable names            
+            overrides = {
+                "EXAGOOP_DIM":          dim,
+                "EXAGOOP_USE_TEMP":     bool_to_cmake(get_config_bool(config,"use_temp")),                
+                "EXAGOOP_ENABLE_MPI":   bool_to_cmake(get_config_bool(config,"use_mpi")),
+                "EXAGOOP_ENABLE_OMP":   bool_to_cmake(get_config_bool(config,"use_mp")),
+                "EXAGOOP_ENABLE_CUDA":  bool_to_cmake(get_config_bool(config,"use_cuda")),
+                "EXAGOOP_ENABLE_HIP":   bool_to_cmake(get_config_bool(config,"use_hip")),
+                "EXAGOOP_ENABLE_EB": bool_to_cmake(get_config_bool(config,"use_eb")),
+                "EXAGOOP_USE_HDF5":     bool_to_cmake(get_config_bool(config,"build_with_hdf")),                
+            }
+        
+            MPM_HOME   = os.environ.get("MPM_HOME")
+            if MPM_HOME is None:
+                raise EnvironmentError("MPM_HOME is not set. Please export MPM_HOME=/path/to/repo")
+            
+            BUILD_CMAKE = Path(MPM_HOME) / "Build_Cmake"
+            CMAKE_SH = BUILD_CMAKE / "cmake.sh"
+            
+            build_dir = Path(test_dir)
+            patched = patch_cmake_sh(CMAKE_SH,overrides)                       
+            patched_sh = build_dir / "cmake_run.sh"
+            patched_sh.write_text(patched)
+            patched_sh.chmod(0o755)
+                    
+            # Run from inside build dir so cmake .. resolves correctly
+            print(f"\n  Running patched cmake.sh from {build_dir} ...\n")
+            #run_cmd(f"cd {test_dir}")
+            exe = build_and_get_executable(build_dir,patched_sh)
+            print(f"\n✅ Build complete: {exe}")
+            
+        elif build_system == "gnumake":
+            overrides = {
+                "DIM":      dim,
+                "USE_TEMP": bool_to_gnumake(get_config_bool(config,"use_temp")),
+                "USE_MPI":  bool_to_gnumake(get_config_bool(config,"use_mpi")),
+                "USE_OMP":  bool_to_gnumake(get_config_bool(config,"use_omp")),
+                "USE_CUDA": bool_to_gnumake(get_config_bool(config,"use_cuda")),
+                "USE_HIP":  bool_to_gnumake(get_config_bool(config,"use_hip")),
+                "USE_EB":   bool_to_gnumake(get_config_bool(config,"use_eb")),
+            }
+        
+            MPM_HOME = os.environ.get("MPM_HOME")
+            if MPM_HOME is None:
+                raise EnvironmentError("MPM_HOME is not set.")
+        
+            BUILD_GNUMAKE    = Path(MPM_HOME) / "Build_Gnumake"
+            GNUMAKEFILE_SRC  = BUILD_GNUMAKE / "GNUmakefile"
+        
+            # Write patched copy into test dir
+            patched    = patch_gnumakefile(GNUMAKEFILE_SRC, overrides)
+            patched_mk = Path(test_dir) / "GNUmakefile"
+            patched_mk.write_text(patched)
+            print(f"  ✏️  Written patched GNUmakefile to {patched_mk}")
+            
+            exe = build_and_get_executable_gnumake(Path(test_dir), bwh)
+            
+        if exe is None:
+            print(f"❌ Build failed for case: {desc}")
+            sys.exit(1)
+
+        # Generate inputs
+        run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")
+        
+        # Run simulation
+        if(just_compile_dont_run==False):
+            if(use_mpi and use_cuda):
+                run_cmd(f"cd {test_dir} && mpirun -np 1 ./{exe} {cfg['input_file']}")
+                
+            if(use_mpi and use_cuda is not True):
+                run_cmd(f"cd {test_dir} && mpirun -np 4 ./{exe} {cfg['input_file']}")
+            
+            if(use_mpi==False):
+                run_cmd(f"cd {test_dir} && ./{exe} {cfg['input_file']} mpm.max_grid_size=256")
+
+        # Post-processing
+        ascii_folder = os.path.join(test_dir, "Solution", "ascii_files",output_tag)
+        latest_time, _ = get_latest_time(ascii_folder)
+
+        if latest_time is None:
+            print("[WARNING] No output files found.")
+            rms = float("nan")
+        else:
+            PicsFolder = os.path.join(test_dir,f"Solution/ascii_files/{output_tag}/Pics")
+            os.makedirs(PicsFolder, exist_ok=True)           
+            err_script = os.path.join(test_dir,cfg["postproc_scripts"][0])                     
+            err_cmd = f"python3 {err_script} --time {latest_time} --fileloc {ascii_folder} --outputpic {PicsFolder}/Temperature_x.png"
+            error_output = subprocess.check_output(err_cmd, shell=True, text=True)           
+            
+            rms = None
+            for line in error_output.splitlines():
+                if "RMS error" in line:
+                    rms = float(line.split()[-1])
+                    break
+
+        results.append({
+            "test": test_name,
+            "dim": dim,
+            "npcx": npcx,
+            "order": order,            
+            "sus": sus,            
+            "rms": rms,
+            "built_with_hdf": bwh,
+            "fileformat": of,
+            "build_system": build_system,
+            "use_mpi": use_mpi,
+            "use_cuda": use_cuda,
+            "use_hip": use_hip,
+            "use_omp": use_omp,
+            "use_sycl": use_sycl,
+            "use_eb": use_eb,
+            "use_temp": use_temp, 
+            "pass": rms < ERROR_TOL if rms == rms else False
+        })
+        
+def Run_ParameterSweep_2D_HeatConduction(cfg):
+    build_systems=cfg["parameter_space"]["build_system"]
+    use_mpis=cfg["parameter_space"]["use_mpi"]
+    use_cudas=cfg["parameter_space"]["use_cuda"]
+    use_hips=cfg["parameter_space"]["use_hip"]
+    use_omps=cfg["parameter_space"]["use_omp"]
+    use_sycls=cfg["parameter_space"]["use_sycl"]
+    use_ebs=cfg["parameter_space"]["use_eb"]
+    use_temps=cfg["parameter_space"]["use_temp"]
+    
+    # Parameter sweep setup    
+    npcx_vals = cfg["parameter_space"]["np_per_cell_x"]
+    order_vals = cfg["parameter_space"]["order_scheme"]
+    sus_vals = cfg["parameter_space"]["stress_update_scheme"]    
+    
+    bwhs = cfg["parameter_space"]["build_with_hdf"]    
+    output_formats = cfg["parameter_space"]["output_format"]
+    filename_prefix = cfg["parameter_space"]["filename_prefix"]           
+   
+    test_name = "2D_Heat_Conduction"
+    test_dir = os.path.join(ROOT, "Tests", test_name)
+
+    for npcx, order, sus, bwh, of, use_mpi, use_cuda, use_hip, use_omp, use_sycl, use_eb, use_temp, build_system in itertools.product(
+        npcx_vals, order_vals, sus_vals, bwhs,output_formats,  use_mpis, use_cudas, use_hips, use_omps, use_sycls, use_ebs, use_temps, build_systems
+    ):
+        dim=2
+        tmp_build_dir = os.path.join(test_dir, "tmp_build_dir")
+        Delete_Folder(tmp_build_dir)
+        Delete_File_Start_End_Pattern(test_dir,"ExaGOOP",".ex")
+        
+        if(bwh==False and of=="hdf5"):
+            continue      
+        
+        existing_mpm_h5 = os.path.join(test_dir,filename_prefix[0]+".h5")
+        existing_mpm_dat = os.path.join(test_dir,filename_prefix[0]+".dat")  
+        
+        p = Path(existing_mpm_h5)
+        if p.exists():
+            p.unlink()
+            print("Deleted existing file "+existing_mpm_h5)
+            
+        p = Path(existing_mpm_dat)
+        if p.exists():
+            p.unlink()
+            print("Deleted existing file "+existing_mpm_dat)
+
+        print(f"\n--- Case: npcx={npcx}, ord={order}, sus={sus} , MPI={use_mpi}, CUDA={use_cuda}, HIP={use_hip}, OMP={use_omp}, SYCL={use_sycl}, EB={use_eb}, TEMP={use_temp}, Build System={build_system}")
+
+        # Build auto-tag
+        desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI={use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
         output_tag = make_auto_tag_from_params(desc)
         
         
@@ -392,7 +1090,16 @@ def Run_ParameterSweep_2D_HeatConduction(cfg):
             config["materialpoint_filename"] = filename_prefix[0]+".dat"
         else:
             config["materialpoint_filename"] = filename_prefix[0]+".h5"
-
+            
+        config["build_with_hdf"] = bwhs    
+        config["build_system"] = build_system
+        config["use_mpi"] = use_mpi
+        config["use_cuda"] = use_cuda
+        config["use_hip"] = use_hip
+        config["use_omp"] = use_omp
+        config["use_sycl"] = use_sycl
+        config["use_eb"] = use_eb
+        config["use_temp"] = use_temp
         # Auto-tag       
         config["output_tag"] = output_tag
 
@@ -400,24 +1107,82 @@ def Run_ParameterSweep_2D_HeatConduction(cfg):
         with open(os.path.join(test_dir, "./PreProcess/config.json"), "w") as f:
             json.dump(config, f, indent=2)
 
-        # Change gnumake file
-        update_makefile_dim(os.path.join(test_dir,"GNUmakefile"),2)
-        update_makefile_usetemp(os.path.join(test_dir,"GNUmakefile"),"TRUE")
+        # change gnumakefile
+        if(build_system=="cmake"):
+            # Map CLI args to cmake variable names            
+            overrides = {
+                "EXAGOOP_DIM":          dim,
+                "EXAGOOP_USE_TEMP":     bool_to_cmake(get_config_bool(config,"use_temp")),                
+                "EXAGOOP_ENABLE_MPI":   bool_to_cmake(get_config_bool(config,"use_mpi")),
+                "EXAGOOP_ENABLE_OMP":   bool_to_cmake(get_config_bool(config,"use_mp")),
+                "EXAGOOP_ENABLE_CUDA":  bool_to_cmake(get_config_bool(config,"use_cuda")),
+                "EXAGOOP_ENABLE_HIP":   bool_to_cmake(get_config_bool(config,"use_hip")),
+                "EXAGOOP_ENABLE_EB": bool_to_cmake(get_config_bool(config,"use_eb")),
+                "EXAGOOP_USE_HDF5":     bool_to_cmake(get_config_bool(config,"build_with_hdf")),                
+            }
         
-        # Build executable
-        if(bwh==True):
-            run_cmd(f"cd {test_dir} && make -j USE_HDF5=TRUE AMREX_USE_HDF5=TRUE")
-        else:
-            run_cmd(f"cd {test_dir} && make -j USE_HDF5=FALSE AMREX_USE_HDF5=FALSE")
+            MPM_HOME   = os.environ.get("MPM_HOME")
+            if MPM_HOME is None:
+                raise EnvironmentError("MPM_HOME is not set. Please export MPM_HOME=/path/to/repo")
+            
+            BUILD_CMAKE = Path(MPM_HOME) / "Build_Cmake"
+            CMAKE_SH = BUILD_CMAKE / "cmake.sh"
+            
+            build_dir = Path(test_dir)
+            patched = patch_cmake_sh(CMAKE_SH,overrides)                       
+            patched_sh = build_dir / "cmake_run.sh"
+            patched_sh.write_text(patched)
+            patched_sh.chmod(0o755)
+                    
+            # Run from inside build dir so cmake .. resolves correctly
+            print(f"\n  Running patched cmake.sh from {build_dir} ...\n")
+            #run_cmd(f"cd {test_dir}")
+            exe = build_and_get_executable(build_dir,patched_sh)
+            print(f"\n✅ Build complete: {exe}")
+            
+        elif build_system == "gnumake":
+            overrides = {
+                "DIM":      dim,
+                "USE_TEMP": bool_to_gnumake(get_config_bool(config,"use_temp")),
+                "USE_MPI":  bool_to_gnumake(get_config_bool(config,"use_mpi")),
+                "USE_OMP":  bool_to_gnumake(get_config_bool(config,"use_omp")),
+                "USE_CUDA": bool_to_gnumake(get_config_bool(config,"use_cuda")),
+                "USE_HIP":  bool_to_gnumake(get_config_bool(config,"use_hip")),
+                "USE_EB":   bool_to_gnumake(get_config_bool(config,"use_eb")),
+            }
+        
+            MPM_HOME = os.environ.get("MPM_HOME")
+            if MPM_HOME is None:
+                raise EnvironmentError("MPM_HOME is not set.")
+        
+            BUILD_GNUMAKE    = Path(MPM_HOME) / "Build_Gnumake"
+            GNUMAKEFILE_SRC  = BUILD_GNUMAKE / "GNUmakefile"
+        
+            # Write patched copy into test dir
+            patched    = patch_gnumakefile(GNUMAKEFILE_SRC, overrides)
+            patched_mk = Path(test_dir) / "GNUmakefile"
+            patched_mk.write_text(patched)
+            print(f"  ✏️  Written patched GNUmakefile to {patched_mk}")
+            
+            exe = build_and_get_executable_gnumake(Path(test_dir), bwh)
+            
+        if exe is None:
+            print(f"❌ Build failed for case: {desc}")
+            sys.exit(1)
 
         # Generate inputs
         run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")
-
-        # Select executable
-        exe = "./ExaGOOP2d.gnu.MPI.ex"
-
+        
         # Run simulation
-        run_cmd(f"cd {test_dir} && mpirun -np 6 {exe} {cfg['input_file']}")
+        if(just_compile_dont_run==False):
+            if(use_mpi and use_cuda):
+                run_cmd(f"cd {test_dir} && mpirun -np 1 ./{exe} {cfg['input_file']}")
+                
+            if(use_mpi and use_cuda is not True):
+                run_cmd(f"cd {test_dir} && mpirun -np 4 ./{exe} {cfg['input_file']}")
+            
+            if(use_mpi==False):
+                run_cmd(f"cd {test_dir} && ./{exe} {cfg['input_file']} mpm.max_grid_size=256")
 
         # Post-processing
         ascii_folder = os.path.join(test_dir, "Solution", "ascii_files",output_tag)
@@ -447,26 +1212,52 @@ def Run_ParameterSweep_2D_HeatConduction(cfg):
             "rms": rms,
             "built_with_hdf": bwh,
             "fileformat": of,
+            "build_system": build_system,
+            "use_mpi": use_mpi,
+            "use_cuda": use_cuda,
+            "use_hip": use_hip,
+            "use_omp": use_omp,
+            "use_sycl": use_sycl,
+            "use_eb": use_eb,
+            "use_temp": use_temp,          
             "pass": rms < ERROR_TOL if rms == rms else False
         })
-        
-def Run_ParameterSweep_Dambreak(cfg):
+def get_config_bool(config, key, default=False):
+    val = config.get(key, default)
+    if isinstance(val, list):
+        val = val[0] if val else default
+    return val
+
+def Run_ParameterSweep_2D_HeatConduction_Cylinder_Dirichlet(cfg):
+    build_systems=cfg["parameter_space"]["build_system"]
+    use_mpis=cfg["parameter_space"]["use_mpi"]
+    use_cudas=cfg["parameter_space"]["use_cuda"]
+    use_hips=cfg["parameter_space"]["use_hip"]
+    use_omps=cfg["parameter_space"]["use_omp"]
+    use_sycls=cfg["parameter_space"]["use_sycl"]
+    use_ebs=cfg["parameter_space"]["use_eb"]
+    use_temps=cfg["parameter_space"]["use_temp"]
+    
+    print("Running")
     # Parameter sweep setup    
-    dims = cfg["parameter_space"]["dimension"]
     npcx_vals = cfg["parameter_space"]["np_per_cell_x"]
     order_vals = cfg["parameter_space"]["order_scheme"]
-    sus_vals = cfg["parameter_space"]["stress_update_scheme"]  
+    sus_vals = cfg["parameter_space"]["stress_update_scheme"]    
     
     bwhs = cfg["parameter_space"]["build_with_hdf"]    
     output_formats = cfg["parameter_space"]["output_format"]
     filename_prefix = cfg["parameter_space"]["filename_prefix"]           
    
-    test_name = "Dam_Break"
-    test_dir = os.path.join(ROOT, "Tests", test_name)  
+    test_name = "2D_Heat_Conduction_Cylinder_Dirichlet"
+    test_dir = os.path.join(ROOT, "Tests", test_name)
 
-    for dim, npcx, order, sus, bwh, of in itertools.product(
-        dims,npcx_vals, order_vals, sus_vals, bwhs,output_formats
+    for npcx, order, sus, bwh, of, use_mpi, use_cuda, use_hip, use_omp, use_sycl, use_eb, use_temp, build_system in itertools.product(
+        npcx_vals, order_vals, sus_vals, bwhs,output_formats,  use_mpis, use_cudas, use_hips, use_omps, use_sycls, use_ebs, use_temps, build_systems
     ):
+        dim=2
+        tmp_build_dir = os.path.join(test_dir, "tmp_build_dir")
+        Delete_Folder(tmp_build_dir)
+        Delete_File_Start_End_Pattern(test_dir,"ExaGOOP",".ex")
         
         if(bwh==False and of=="hdf5"):
             continue      
@@ -484,10 +1275,213 @@ def Run_ParameterSweep_Dambreak(cfg):
             p.unlink()
             print("Deleted existing file "+existing_mpm_dat)
 
-        print(f"\n--- Case:  npcx={npcx}, ord={order}, sus={sus}")
+        print(f"\n--- Case: npcx={npcx}, ord={order}, sus={sus} , MPI={use_mpi}, CUDA={use_cuda}, HIP={use_hip}, OMP={use_omp}, SYCL={use_sycl}, EB={use_eb}, TEMP={use_temp}, Build System={build_system}")
 
         # Build auto-tag
-        desc = f"{test_name}__dim{dim}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}"
+        desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI={use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
+        output_tag = make_auto_tag_from_params(desc)
+        
+        
+        # 1. Load template config
+        with open(os.path.join(test_dir, "./PreProcess/config.json")) as f:
+            config = json.load(f)
+
+        # 2. Modify config fields
+        config["ppc"] = [npcx, npcx]
+        config["order_scheme"] = order
+        config["stress_update_scheme"] = sus
+        if(of=="ascii"):
+            config["materialpoint_filename"] = filename_prefix[0]+".dat"
+        else:
+            config["materialpoint_filename"] = filename_prefix[0]+".h5"
+            
+        config["build_with_hdf"] = bwhs    
+        config["build_system"] = build_system
+        config["use_mpi"] = use_mpi
+        config["use_cuda"] = use_cuda
+        config["use_hip"] = use_hip
+        config["use_omp"] = use_omp
+        config["use_sycl"] = use_sycl
+        config["use_eb"] = use_eb
+        config["use_temp"] = use_temp
+        # Auto-tag       
+        config["output_tag"] = output_tag
+
+        # Auto-tag       
+        config["output_tag"] = output_tag
+
+        # 3. Write updated config.json
+        with open(os.path.join(test_dir, "./PreProcess/config.json"), "w") as f:
+            json.dump(config, f, indent=2)
+
+        # change gnumakefile
+        if(build_system=="cmake"):
+            # Map CLI args to cmake variable names      
+            print("Build with hdf5 = ",config["build_with_hdf"])      
+            overrides = {
+                "EXAGOOP_DIM":          dim,
+                "EXAGOOP_USE_TEMP":     bool_to_cmake(get_config_bool(config,"use_temp")),                
+                "EXAGOOP_ENABLE_MPI":   bool_to_cmake(get_config_bool(config,"use_mpi")),
+                "EXAGOOP_ENABLE_OMP":   bool_to_cmake(get_config_bool(config,"use_mp")),
+                "EXAGOOP_ENABLE_CUDA":  bool_to_cmake(get_config_bool(config,"use_cuda")),
+                "EXAGOOP_ENABLE_HIP":   bool_to_cmake(get_config_bool(config,"use_hip")),
+                "EXAGOOP_ENABLE_EB": bool_to_cmake(get_config_bool(config,"use_eb")),
+                "EXAGOOP_USE_HDF5":     bool_to_cmake(get_config_bool(config,"build_with_hdf")),                
+            }
+            print(overrides)
+        
+            MPM_HOME   = os.environ.get("MPM_HOME")
+            if MPM_HOME is None:
+                raise EnvironmentError("MPM_HOME is not set. Please export MPM_HOME=/path/to/repo")
+            
+            BUILD_CMAKE = Path(MPM_HOME) / "Build_Cmake"
+            CMAKE_SH = BUILD_CMAKE / "cmake.sh"
+            
+            build_dir = Path(test_dir)
+            patched = patch_cmake_sh(CMAKE_SH,overrides)                       
+            patched_sh = build_dir / "cmake_run.sh"
+            patched_sh.write_text(patched)
+            patched_sh.chmod(0o755)
+                    
+            # Run from inside build dir so cmake .. resolves correctly
+            print(f"\n  Running patched cmake.sh from {build_dir} ...\n")
+            #run_cmd(f"cd {test_dir}")
+            exe = build_and_get_executable(build_dir,patched_sh)
+            print(f"\n✅ Build complete: {exe}")
+            
+        elif build_system == "gnumake":
+            overrides = {
+                "DIM":      dim,
+                "USE_TEMP": bool_to_gnumake(get_config_bool(config,"use_temp")),
+                "USE_MPI":  bool_to_gnumake(get_config_bool(config,"use_mpi")),
+                "USE_OMP":  bool_to_gnumake(get_config_bool(config,"use_omp")),
+                "USE_CUDA": bool_to_gnumake(get_config_bool(config,"use_cuda")),
+                "USE_HIP":  bool_to_gnumake(get_config_bool(config,"use_hip")),
+                "USE_EB":   bool_to_gnumake(get_config_bool(config,"use_eb")),
+            }
+        
+            MPM_HOME = os.environ.get("MPM_HOME")
+            if MPM_HOME is None:
+                raise EnvironmentError("MPM_HOME is not set.")
+        
+            BUILD_GNUMAKE    = Path(MPM_HOME) / "Build_Gnumake"
+            GNUMAKEFILE_SRC  = BUILD_GNUMAKE / "GNUmakefile"
+        
+            # Write patched copy into test dir
+            patched    = patch_gnumakefile(GNUMAKEFILE_SRC, overrides)
+            patched_mk = Path(test_dir) / "GNUmakefile"
+            patched_mk.write_text(patched)
+            print(f"  ✏️  Written patched GNUmakefile to {patched_mk}")
+            
+            exe = build_and_get_executable_gnumake(Path(test_dir), bwh)
+            
+        if exe is None:
+            print(f"❌ Build failed for case: {desc}")
+            sys.exit(1)
+
+        # Generate inputs
+        run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")
+        
+        # Run simulation
+        if(just_compile_dont_run==False):
+            if(use_mpi and use_cuda):
+                run_cmd(f"cd {test_dir} && mpirun -np 1 ./{exe} {cfg['input_file']}")
+                
+            if(use_mpi and use_cuda is not True):
+                run_cmd(f"cd {test_dir} && mpirun -np 4 ./{exe} {cfg['input_file']}")
+            
+            if(use_mpi==False):
+                run_cmd(f"cd {test_dir} && ./{exe} {cfg['input_file']} mpm.max_grid_size=256")
+
+        # Post-processing
+        ascii_folder = os.path.join(test_dir, "Solution", "ascii_files",output_tag)
+        latest_time, _ = get_latest_time(ascii_folder)
+
+        if latest_time is None:
+            print("[WARNING] No output files found.")
+            rms = float("nan")
+        else:
+            PicsFolder = os.path.join(test_dir,f"Solution/ascii_files/{output_tag}/Pics")
+            os.makedirs(PicsFolder, exist_ok=True)           
+            err_script = os.path.join(test_dir,cfg["postproc_scripts"][0])                     
+            err_cmd = f"python3 {err_script} --time {latest_time} --folder {ascii_folder} --outputpic {PicsFolder}/Temperature_x.png"
+            result = subprocess.run(err_cmd, shell=True, text=True, stdout=subprocess.PIPE,stderr=subprocess.STDOUT)           
+            
+            rms = None
+            for line in result.stdout.splitlines():
+                if "RMS error" in line:
+                    rms = float(line.split()[-1])
+                    break
+
+        results.append({
+            "test": test_name,            
+            "npcx": npcx,
+            "order": order,            
+            "sus": sus,            
+            "rms": rms,
+            "built_with_hdf": bwh,
+            "fileformat": of,
+            "build_system": build_system,
+            "use_mpi": use_mpi,
+            "use_cuda": use_cuda,
+            "use_hip": use_hip,
+            "use_omp": use_omp,
+            "use_sycl": use_sycl,
+            "use_eb": use_eb,
+            "use_temp": use_temp,          
+            "pass": rms < ERROR_TOL if rms == rms else False
+        })
+        
+def Run_ParameterSweep_Dambreak(cfg):
+    build_systems=cfg["parameter_space"]["build_system"]
+    use_mpis=cfg["parameter_space"]["use_mpi"]
+    use_cudas=cfg["parameter_space"]["use_cuda"]
+    use_hips=cfg["parameter_space"]["use_hip"]
+    use_omps=cfg["parameter_space"]["use_omp"]
+    use_sycls=cfg["parameter_space"]["use_sycl"]
+    use_ebs=cfg["parameter_space"]["use_eb"]
+    use_temps=cfg["parameter_space"]["use_temp"]
+    # Parameter sweep setup    
+    dims = cfg["parameter_space"]["dimension"]
+    npcx_vals = cfg["parameter_space"]["np_per_cell_x"]
+    order_vals = cfg["parameter_space"]["order_scheme"]
+    sus_vals = cfg["parameter_space"]["stress_update_scheme"]  
+    
+    bwhs = cfg["parameter_space"]["build_with_hdf"]    
+    output_formats = cfg["parameter_space"]["output_format"]
+    filename_prefix = cfg["parameter_space"]["filename_prefix"]           
+   
+    test_name = "Dam_Break"
+    test_dir = os.path.join(ROOT, "Tests", test_name)  
+
+    for dim, npcx, order, sus, bwh, of, use_mpi, use_cuda, use_hip, use_omp, use_sycl, use_eb, use_temp, build_system in itertools.product(
+        dims,npcx_vals, order_vals, sus_vals, bwhs,output_formats,  use_mpis, use_cudas, use_hips, use_omps, use_sycls, use_ebs, use_temps, build_systems
+    ):
+        
+        tmp_build_dir = os.path.join(test_dir, "tmp_build_dir")
+        Delete_Folder(tmp_build_dir)
+        Delete_File_Start_End_Pattern(test_dir,"ExaGOOP",".ex")
+        
+        if(bwh==False and of=="hdf5"):
+            continue      
+        
+        existing_mpm_h5 = os.path.join(test_dir,filename_prefix[0]+".h5")
+        existing_mpm_dat = os.path.join(test_dir,filename_prefix[0]+".dat")  
+        
+        p = Path(existing_mpm_h5)
+        if p.exists():
+            p.unlink()
+            print("Deleted existing file "+existing_mpm_h5)
+            
+        p = Path(existing_mpm_dat)
+        if p.exists():
+            p.unlink()
+            print("Deleted existing file "+existing_mpm_dat)
+
+        print(f"\n--- Case:  npcx={npcx}, ord={order}, sus={sus} , MPI={use_mpi}, CUDA={use_cuda}, HIP={use_hip}, OMP={use_omp}, SYCL={use_sycl}, EB={use_eb}, TEMP={use_temp}, Build System={build_system}")
+
+        # Build auto-tag
+        desc = f"{test_name}__dim{dim}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI={use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
         output_tag = make_auto_tag_from_params(desc)
 
         # Update generator script
@@ -505,6 +1499,16 @@ def Run_ParameterSweep_Dambreak(cfg):
         else:
             config["materialpoint_filename"] = filename_prefix[0]+".h5"
             print("Output format is hdf5")
+            
+        config["build_with_hdf"] = bwhs    
+        config["build_system"] = build_system
+        config["use_mpi"] = use_mpi
+        config["use_cuda"] = use_cuda
+        config["use_hip"] = use_hip
+        config["use_omp"] = use_omp
+        config["use_sycl"] = use_sycl
+        config["use_eb"] = use_eb
+        config["use_temp"] = use_temp
 
         # Auto-tag       
         config["output_tag"] = output_tag
@@ -514,26 +1518,81 @@ def Run_ParameterSweep_Dambreak(cfg):
             json.dump(config, f, indent=2)
 
 
-        # Change gnumake file
-        update_makefile_dim(os.path.join(test_dir,"GNUmakefile"),dim)
-        update_makefile_usetemp(os.path.join(test_dir,"GNUmakefile"),"FALSE")
+        if(build_system=="cmake"):
+            # Map CLI args to cmake variable names            
+            overrides = {
+                "EXAGOOP_DIM":          dim,
+                "EXAGOOP_USE_TEMP":     bool_to_cmake(get_config_bool(config,"use_temp")),                
+                "EXAGOOP_ENABLE_MPI":   bool_to_cmake(get_config_bool(config,"use_mpi")),
+                "EXAGOOP_ENABLE_OMP":   bool_to_cmake(get_config_bool(config,"use_mp")),
+                "EXAGOOP_ENABLE_CUDA":  bool_to_cmake(get_config_bool(config,"use_cuda")),
+                "EXAGOOP_ENABLE_HIP":   bool_to_cmake(get_config_bool(config,"use_hip")),
+                "EXAGOOP_ENABLE_EB": bool_to_cmake(get_config_bool(config,"use_eb")),
+                "EXAGOOP_USE_HDF5":     bool_to_cmake(get_config_bool(config,"build_with_hdf")),                
+            }
         
-        # Build executable
-        if(bwh==True):
-            print("Building with HDF5")
-            run_cmd(f"cd {test_dir} && make -j USE_HDF5=TRUE AMREX_USE_HDF5=TRUE")
-        else:
-            print("Building without HDF5")
-            run_cmd(f"cd {test_dir} && make -j USE_HDF5=FALSE AMREX_USE_HDF5=FALSE")
+            MPM_HOME   = os.environ.get("MPM_HOME")
+            if MPM_HOME is None:
+                raise EnvironmentError("MPM_HOME is not set. Please export MPM_HOME=/path/to/repo")
+            
+            BUILD_CMAKE = Path(MPM_HOME) / "Build_Cmake"
+            CMAKE_SH = BUILD_CMAKE / "cmake.sh"
+            
+            build_dir = Path(test_dir)
+            patched = patch_cmake_sh(CMAKE_SH,overrides)                       
+            patched_sh = build_dir / "cmake_run.sh"
+            patched_sh.write_text(patched)
+            patched_sh.chmod(0o755)
+                    
+            # Run from inside build dir so cmake .. resolves correctly
+            print(f"\n  Running patched cmake.sh from {build_dir} ...\n")
+            #run_cmd(f"cd {test_dir}")
+            exe = build_and_get_executable(build_dir,patched_sh)
+            print(f"\n✅ Build complete: {exe}")
+            
+        elif build_system == "gnumake":
+            overrides = {
+                "DIM":      dim,
+                "USE_TEMP": bool_to_gnumake(get_config_bool(config,"use_temp")),
+                "USE_MPI":  bool_to_gnumake(get_config_bool(config,"use_mpi")),
+                "USE_OMP":  bool_to_gnumake(get_config_bool(config,"use_omp")),
+                "USE_CUDA": bool_to_gnumake(get_config_bool(config,"use_cuda")),
+                "USE_HIP":  bool_to_gnumake(get_config_bool(config,"use_hip")),
+                "USE_EB":   bool_to_gnumake(get_config_bool(config,"use_eb")),
+            }
+        
+            MPM_HOME = os.environ.get("MPM_HOME")
+            if MPM_HOME is None:
+                raise EnvironmentError("MPM_HOME is not set.")
+        
+            BUILD_GNUMAKE    = Path(MPM_HOME) / "Build_Gnumake"
+            GNUMAKEFILE_SRC  = BUILD_GNUMAKE / "GNUmakefile"
+        
+            # Write patched copy into test dir
+            patched    = patch_gnumakefile(GNUMAKEFILE_SRC, overrides)
+            patched_mk = Path(test_dir) / "GNUmakefile"
+            patched_mk.write_text(patched)
+            print(f"  ✏️  Written patched GNUmakefile to {patched_mk}")
+            
+            exe = build_and_get_executable_gnumake(Path(test_dir), bwh)
+            
+        if exe is None:
+            print(f"❌ Build failed for case: {desc}")
+            sys.exit(1)
 
         # Generate inputs
         run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")
-
-        # Select executable
-        exe = "./ExaGOOP3d.gnu.MPI.ex" if dim == 3 else "./ExaGOOP2d.gnu.MPI.ex"
-
+        
         # Run simulation
-        run_cmd(f"cd {test_dir} && mpirun -np 6 {exe} {cfg['input_file']}")
+        if(just_compile_dont_run==False):
+            if(use_mpi and use_cuda):
+                run_cmd(f"cd {test_dir} && mpirun -np 1 ./{exe} {cfg['input_file']}")
+                
+            if(use_mpi and use_cuda is not True):
+                run_cmd(f"cd {test_dir} && mpirun -np 4 ./{exe} {cfg['input_file']}")
+            
+            if(use_mpi==False):
+                run_cmd(f"cd {test_dir} && ./{exe} {cfg['input_file']} mpm.max_grid_size=256")
 
         # Post-processing
         ascii_folder = os.path.join(test_dir, "Solution", "ascii_files",output_tag)
@@ -562,11 +1621,27 @@ def Run_ParameterSweep_Dambreak(cfg):
             "sus": sus,
             "built_with_hdf": bwh,
             "fileformat": of,
+            "build_system": build_system,
+            "use_mpi": use_mpi,
+            "use_cuda": use_cuda,
+            "use_hip": use_hip,
+            "use_omp": use_omp,
+            "use_sycl": use_sycl,
+            "use_eb": use_eb,
+            "use_temp": use_temp,       
             "pass": True
         })    
             
 
 def Run_ParameterSweep_EDC(cfg):
+    build_systems=cfg["parameter_space"]["build_system"]
+    use_mpis=cfg["parameter_space"]["use_mpi"]
+    use_cudas=cfg["parameter_space"]["use_cuda"]
+    use_hips=cfg["parameter_space"]["use_hip"]
+    use_omps=cfg["parameter_space"]["use_omp"]
+    use_sycls=cfg["parameter_space"]["use_sycl"]
+    use_ebs=cfg["parameter_space"]["use_eb"]
+    use_temps=cfg["parameter_space"]["use_temp"]
     # Parameter sweep setup    
     dims = cfg["parameter_space"]["dimension"]
     npcx_vals = cfg["parameter_space"]["np_per_cell_x"]
@@ -580,9 +1655,12 @@ def Run_ParameterSweep_EDC(cfg):
     test_name = "Elastic_disk_collision"
     test_dir = os.path.join(ROOT, "Tests", test_name)
 
-    for dim, npcx, order, sus, bwh, of in itertools.product(
-        dims,npcx_vals, order_vals, sus_vals, bwhs,output_formats
+    for dim, npcx, order, sus, bwh, of, use_mpi, use_cuda, use_hip, use_omp, use_sycl, use_eb, use_temp, build_system in itertools.product(
+        dims,npcx_vals, order_vals, sus_vals, bwhs,output_formats,  use_mpis, use_cudas, use_hips, use_omps, use_sycls, use_ebs, use_temps, build_systems
     ):
+        tmp_build_dir = os.path.join(test_dir, "tmp_build_dir")
+        Delete_Folder(tmp_build_dir)
+        Delete_File_Start_End_Pattern(test_dir,"ExaGOOP",".ex")
         
         if(bwh==False and of=="hdf5"):
             continue      
@@ -600,10 +1678,10 @@ def Run_ParameterSweep_EDC(cfg):
             p.unlink()
             print("Deleted existing file "+existing_mpm_dat)
 
-        print(f"\n--- Case:  npcx={npcx}, ord={order}, sus={sus}")
+        print(f"\n--- Case:  npcx={npcx}, ord={order}, sus={sus} , MPI={use_mpi}, CUDA={use_cuda}, HIP={use_hip}, OMP={use_omp}, SYCL={use_sycl}, EB={use_eb}, TEMP={use_temp}, Build System={build_system}")
 
         # Build auto-tag
-        desc = f"{test_name}__dim{dim}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}"
+        desc = f"{test_name}__dim{dim}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI={use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
         output_tag = make_auto_tag_from_params(desc)
 
         # Update generator script
@@ -621,7 +1699,15 @@ def Run_ParameterSweep_EDC(cfg):
         else:
             config["materialpoint_filename"] = filename_prefix[0]+".h5"
             print("Output format is hdf5")
-
+        config["build_with_hdf"] = bwhs    
+        config["build_system"] = build_system
+        config["use_mpi"] = use_mpi
+        config["use_cuda"] = use_cuda
+        config["use_hip"] = use_hip
+        config["use_omp"] = use_omp
+        config["use_sycl"] = use_sycl
+        config["use_eb"] = use_eb
+        config["use_temp"] = use_temp
         # Auto-tag       
         config["output_tag"] = output_tag
 
@@ -630,24 +1716,80 @@ def Run_ParameterSweep_EDC(cfg):
             json.dump(config, f, indent=2)
 
 
-        # Change gnumake file
-        update_makefile_dim(os.path.join(test_dir,"GNUmakefile"),dim)
-        update_makefile_usetemp(os.path.join(test_dir,"GNUmakefile"),"FALSE")
+        if(build_system=="cmake"):
+            # Map CLI args to cmake variable names            
+            overrides = {
+                "EXAGOOP_DIM":          dim,
+                "EXAGOOP_USE_TEMP":     bool_to_cmake(get_config_bool(config,"use_temp")),                
+                "EXAGOOP_ENABLE_MPI":   bool_to_cmake(get_config_bool(config,"use_mpi")),
+                "EXAGOOP_ENABLE_OMP":   bool_to_cmake(get_config_bool(config,"use_mp")),
+                "EXAGOOP_ENABLE_CUDA":  bool_to_cmake(get_config_bool(config,"use_cuda")),
+                "EXAGOOP_ENABLE_HIP":   bool_to_cmake(get_config_bool(config,"use_hip")),
+                "EXAGOOP_ENABLE_EB": bool_to_cmake(get_config_bool(config,"use_eb")),
+                "EXAGOOP_USE_HDF5":     bool_to_cmake(get_config_bool(config,"build_with_hdf")),                
+            }
         
-        # Build executable
-        if(bwh==True):
-            run_cmd(f"cd {test_dir} && make -j USE_HDF5=TRUE AMREX_USE_HDF5=TRUE")
-        else:
-            run_cmd(f"cd {test_dir} && make -j USE_HDF5=FALSE AMREX_USE_HDF5=FALSE")
+            MPM_HOME   = os.environ.get("MPM_HOME")
+            if MPM_HOME is None:
+                raise EnvironmentError("MPM_HOME is not set. Please export MPM_HOME=/path/to/repo")
+            
+            BUILD_CMAKE = Path(MPM_HOME) / "Build_Cmake"
+            CMAKE_SH = BUILD_CMAKE / "cmake.sh"
+            
+            build_dir = Path(test_dir)
+            patched = patch_cmake_sh(CMAKE_SH,overrides)                       
+            patched_sh = build_dir / "cmake_run.sh"
+            patched_sh.write_text(patched)
+            patched_sh.chmod(0o755)
+                    
+            # Run from inside build dir so cmake .. resolves correctly
+            print(f"\n  Running patched cmake.sh from {build_dir} ...\n")
+            #run_cmd(f"cd {test_dir}")
+            exe = build_and_get_executable(build_dir,patched_sh)
+            print(f"\n✅ Build complete: {exe}")
+            
+        elif build_system == "gnumake":
+            overrides = {
+                "DIM":      dim,
+                "USE_TEMP": bool_to_gnumake(get_config_bool(config,"use_temp")),
+                "USE_MPI":  bool_to_gnumake(get_config_bool(config,"use_mpi")),
+                "USE_OMP":  bool_to_gnumake(get_config_bool(config,"use_omp")),
+                "USE_CUDA": bool_to_gnumake(get_config_bool(config,"use_cuda")),
+                "USE_HIP":  bool_to_gnumake(get_config_bool(config,"use_hip")),
+                "USE_EB":   bool_to_gnumake(get_config_bool(config,"use_eb")),
+            }
+        
+            MPM_HOME = os.environ.get("MPM_HOME")
+            if MPM_HOME is None:
+                raise EnvironmentError("MPM_HOME is not set.")
+        
+            BUILD_GNUMAKE    = Path(MPM_HOME) / "Build_Gnumake"
+            GNUMAKEFILE_SRC  = BUILD_GNUMAKE / "GNUmakefile"
+        
+            # Write patched copy into test dir
+            patched    = patch_gnumakefile(GNUMAKEFILE_SRC, overrides)
+            patched_mk = Path(test_dir) / "GNUmakefile"
+            patched_mk.write_text(patched)
+            print(f"  ✏️  Written patched GNUmakefile to {patched_mk}")
+            
+            exe = build_and_get_executable_gnumake(Path(test_dir), bwh)
+            
+        if exe is None:
+            print(f"❌ Build failed for case: {desc}")
+            sys.exit(1)
 
         # Generate inputs
-        run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")
-
-        # Select executable
-        exe = "./ExaGOOP3d.gnu.MPI.ex" if dim == 3 else "./ExaGOOP2d.gnu.MPI.ex"
-
-        # Run simulation
-        run_cmd(f"cd {test_dir} && mpirun -np 6 {exe} {cfg['input_file']}")
+        run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")       
+        
+        if(just_compile_dont_run==False):
+            if(use_mpi and use_cuda):
+                run_cmd(f"cd {test_dir} && mpirun -np 1 ./{exe} {cfg['input_file']}")
+                
+            if(use_mpi and use_cuda is not True):
+                run_cmd(f"cd {test_dir} && mpirun -np 4 ./{exe} {cfg['input_file']}")
+            
+            if(use_mpi==False):
+                run_cmd(f"cd {test_dir} && ./{exe} {cfg['input_file']} mpm.max_grid_size=256")
 
         # Post-processing
         ascii_folder = os.path.join(test_dir, "Solution", "ascii_files",output_tag)
@@ -676,6 +1818,14 @@ def Run_ParameterSweep_EDC(cfg):
             "sus": sus,
             "built_with_hdf": bwh,
             "fileformat": of,
+            "build_system": build_system,
+            "use_mpi": use_mpi,
+            "use_cuda": use_cuda,
+            "use_hip": use_hip,
+            "use_omp": use_omp,
+            "use_sycl": use_sycl,
+            "use_eb": use_eb,
+            "use_temp": use_temp,      
             "pass": True
         })
               
@@ -722,6 +1872,7 @@ def Run_Build_Matrix(cfg, root=None, timeout=300, parallel_jobs=8, output_dir=No
 
     def _hdf5_headers():
         search_dirs = [
+            "/usr/include/hdf5/openmpi",
             "/usr/include",
             "/usr/local/include",
             "/opt/homebrew/include",
@@ -1081,15 +2232,22 @@ TEST_CASES = {
         ],
         "parameter_space": {
             "dimension": [1],
-            "np_per_cell_x": [1],
-            "order_scheme": [2],
-            "alpha_pic_flip": [1.0],
+            "np_per_cell_x": [2],
             "order_scheme": [1],
+            "alpha_pic_flip": [1.0],            
             "stress_update_scheme": ["MUSL"],
             "CFL": [0.1],
-            "build_with_hdf": [True,False],
-            "output_format": ["ascii","hdf5"],
-            "filename_prefix": ["mpm_particles"]            
+            "build_with_hdf": [False],
+            "output_format": ["ascii"],
+            "filename_prefix": ["mpm_particles"],            
+            "build_system": ["cmake"],
+            "use_mpi": [True],
+            "use_cuda": [True],
+            "use_hip": [False],
+            "use_omp": [False],
+            "use_sycl": [False],
+            "use_eb": [False],
+            "use_temp": [False]                     
         }
     },
 
@@ -1104,12 +2262,70 @@ TEST_CASES = {
         ],
         "parameter_space": {
             "dimension": [1],
-            "np_per_cell_x": [1],            
-            "order_scheme": [2],            
+            "np_per_cell_x": [2],            
+            "order_scheme": [1],            
             "stress_update_scheme": ["MUSL"],
-            "build_with_hdf": [True,False],
-            "output_format": ["ascii","hdf5"],
-            "filename_prefix": ["mpm_particles"]        
+            "build_with_hdf": [False],
+            "output_format": ["ascii"],
+            "filename_prefix": ["mpm_particles"],
+            "build_system": ["cmake"],
+            "use_mpi": [True],
+            "use_cuda": [True],
+            "use_hip": [False],
+            "use_omp": [False],
+            "use_sycl": [False],
+            "use_eb": [False],
+            "use_temp": [True]    
+        }
+    },
+    
+    "1D_Heat_Conduction_HeatFlux": {
+        "generator_script": "./PreProcess/Generate_MPs_Inputfile_Generic.py",
+        "input_file": "Inputs_1DHeatConduction_HeatFlux.inp",
+        "postproc_scripts": [
+            "./PostProcess/Plot_Temperature.py"             
+        ],
+        "parameter_space": {
+            "dimension": [2],
+            "np_per_cell_x": [2],            
+            "order_scheme": [1],            
+            "stress_update_scheme": ["MUSL"],
+            "build_with_hdf": [False],
+            "output_format": ["ascii"],
+            "filename_prefix": ["mpm_particles"],
+            "build_system": ["cmake"],
+            "use_mpi": [True],
+            "use_cuda": [True],
+            "use_hip": [False],
+            "use_omp": [False],
+            "use_sycl": [False],
+            "use_eb": [False],
+            "use_temp": [True]      
+        }
+    },
+    
+    "1D_Heat_Conduction_Convective": {
+        "generator_script": "./PreProcess/Generate_MPs_Inputfile_Generic.py",
+        "input_file": "Inputs_1DHeatConduction_Convective.inp",
+        "postproc_scripts": [
+            "./PostProcess/Plot_Temperature.py"             
+        ],
+        "parameter_space": {
+            "dimension": [2],
+            "np_per_cell_x": [2],            
+            "order_scheme": [1],            
+            "stress_update_scheme": ["MUSL"],
+            "build_with_hdf": [False],
+            "output_format": ["ascii"],
+            "filename_prefix": ["mpm_particles"],
+            "build_system": ["cmake"],
+            "use_mpi": [True],
+            "use_cuda": [True],
+            "use_hip": [False],
+            "use_omp": [False],
+            "use_sycl": [False],
+            "use_eb": [False],
+            "use_temp": [True]    
         }
     },
     
@@ -1120,12 +2336,44 @@ TEST_CASES = {
             "./PostProcess/Plot_Temperature.py"            
         ],
         "parameter_space": {            
-            "np_per_cell_x": [1],            
-            "order_scheme": [2],            
+            "np_per_cell_x": [2],            
+            "order_scheme": [1],            
             "stress_update_scheme": ["MUSL"],
-            "build_with_hdf": [True,False],
-            "output_format": ["ascii","hdf5"],
-            "filename_prefix": ["mpm_particles"]        
+            "build_with_hdf": [False],
+            "output_format": ["ascii"],
+            "filename_prefix": ["mpm_particles"],
+            "build_system": ["cmake"],
+            "use_mpi": [True],
+            "use_cuda": [True],
+            "use_hip": [False],
+            "use_omp": [False],
+            "use_sycl": [False],
+            "use_eb": [False],
+            "use_temp": [True]       
+        }
+    },
+    
+    "2D_Heat_Conduction_Cylinder_Dirichlet": {
+        "generator_script": "./PreProcess/Generate_MPs_Inputfile_Generic.py",
+        "input_file": "Inputs_2DHeat_Conduction_Cylinder_Dirichlet.inp",
+        "postproc_scripts": [
+            "./PostProcess/validate.py"            
+        ],
+        "parameter_space": {            
+            "np_per_cell_x": [2],            
+            "order_scheme": [1],            
+            "stress_update_scheme": ["MUSL"],
+            "build_with_hdf": [False],
+            "output_format": ["ascii"],
+            "filename_prefix": ["mpm_particles"],
+            "build_system": ["cmake"],
+            "use_mpi": [True],
+            "use_cuda": [True],
+            "use_hip": [False],
+            "use_omp": [False],
+            "use_sycl": [False],
+            "use_eb": [True],
+            "use_temp": [True]      
         }
     },
     
@@ -1139,11 +2387,19 @@ TEST_CASES = {
             "dimension": [2], 
             "no_of_cell_in_x": [100],      
             "np_per_cell_x": [1],            
-            "order_scheme": [2],            
+            "order_scheme": [1],            
             "stress_update_scheme": ["MUSL"],
-            "build_with_hdf": [True,False],
-            "output_format": ["ascii","hdf5"],
-            "filename_prefix": ["mpm_particles"]            
+            "build_with_hdf": [False],
+            "output_format": ["ascii"],
+            "filename_prefix": ["mpm_particles"],   
+            "build_system": ["cmake"],
+            "use_mpi": [True],
+            "use_cuda": [True],
+            "use_hip": [False],
+            "use_omp": [False],
+            "use_sycl": [False],
+            "use_eb": [False],
+            "use_temp": [False]             
         }
     },
     
@@ -1156,11 +2412,19 @@ TEST_CASES = {
         "parameter_space": {     
             "dimension": [2],        
             "np_per_cell_x": [4],            
-            "order_scheme": [2],            
+            "order_scheme": [1],            
             "stress_update_scheme": ["MUSL"],
-            "build_with_hdf": [True,False],
-            "output_format": ["ascii","hdf5"],
-            "filename_prefix": ["mpm_particles"]       
+            "build_with_hdf": [False],
+            "output_format": ["ascii"],
+            "filename_prefix": ["mpm_particles"],
+            "build_system": ["cmake"],
+            "use_mpi": [True],
+            "use_cuda": [True],
+            "use_hip": [False],
+            "use_omp": [False],
+            "use_sycl": [False],
+            "use_eb": [False],
+            "use_temp": [False]         
         }
     },
 
@@ -1235,13 +2499,43 @@ def print_dynamic_test_table(json_file):
 
         print(row)
 
+def Delete_Folder(folder):
+    if os.path.exists(folder):
+        shutil.rmtree(folder)
+        print(f"Deleted: {folder}")
+    else:
+        print(f"No Solution directory found at: {folder}")
+
+def Delete_File_Exact(folder: Path, filename: str):
+    fpath = Path(folder) / filename
+    if fpath.is_file():
+        fpath.unlink()
+        print(f"  🗑️  Deleted: {fpath}")
+    else:
+        print(f"  ⚠️  File not found: {fpath}")
+   
+def Delete_File_Start_End_Pattern(folder,filenamestart,filenameend):
+    deleted_any = False
+    for fname in os.listdir(folder):
+        fpath = os.path.join(folder, fname)        
+        if (os.path.isfile(fpath)
+            and fname.startswith(filenamestart)
+            and fname.endswith(filenameend)
+            and os.access(fpath, os.X_OK)
+            ):
+            os.remove(fpath)
+            print(f"Deleted executable: {fpath}")
+            deleted_any = True
+    if not deleted_any:
+        print("No ExaGOOP executables found.")
+    
 
 def _run_parameter_sweeps():
     for test_name, cfg in TEST_CASES.items():
 
         print("\n====================================================")
         print(f"Running Test Case: {test_name}")
-        print("====================================================")
+        print("====================================================")       
 
         test_dir = os.path.join(ROOT, "Tests", test_name)
 
@@ -1249,57 +2543,44 @@ def _run_parameter_sweeps():
         sol_dir = os.path.join(test_dir, "Solution")
         diagn_dir = os.path.join(test_dir, "Diagnostics")
         tmp_build_dir = os.path.join(test_dir, "tmp_build_dir")
-
-        if os.path.exists(sol_dir):
-            shutil.rmtree(sol_dir)
-            print(f"Deleted: {sol_dir}")
-        else:
-            print(f"No Solution directory found at: {sol_dir}")
-
-        if os.path.exists(diagn_dir):
-            shutil.rmtree(diagn_dir)
-            print(f"Deleted: {diagn_dir}")
-        else:
-            print(f"No Solution directory found at: {diagn_dir}")
-
-        if os.path.exists(tmp_build_dir):
-            shutil.rmtree(tmp_build_dir)
-            print(f"Deleted: {tmp_build_dir}")
-        else:
-            print(f"No Solution directory found at: {tmp_build_dir}")
-
-        # --- Delete ExaGOOP executables ---
-        deleted_any = False
-
-        for fname in os.listdir(test_dir):
-            fpath = os.path.join(test_dir, fname)
-
-            # Match pattern: ExaGOOP*.ex
-            if (
-                os.path.isfile(fpath)
-                and fname.startswith("ExaGOOP")
-                and fname.endswith(".ex")
-                and os.access(fpath, os.X_OK)
-            ):
-                os.remove(fpath)
-                print(f"Deleted executable: {fpath}")
-                deleted_any = True
-
-        if not deleted_any:
-            print("No ExaGOOP executables found.")
-
-        # Copy GNUmakefile
+        submodules_dir = os.path.join(test_dir, "Submodules")
+        cmakefiles_dir = os.path.join(test_dir, "CMakeFiles")
+        
+        Delete_Folder(sol_dir)
+        Delete_Folder(diagn_dir)
+        Delete_Folder(tmp_build_dir)
+        Delete_Folder(submodules_dir)
+        Delete_Folder(cmakefiles_dir)
+        
+        Delete_File_Start_End_Pattern(test_dir,"ExaGOOP",".ex")
+        Delete_File_Exact(test_dir,"cmake_run.sh")
+        Delete_File_Exact(test_dir,"CMakeFiles")
+        Delete_File_Exact(test_dir,"GNUmakefile")
+        Delete_File_Exact(test_dir,"Makefile")
+        Delete_File_Exact(test_dir,"CMakeCache.txt")
+        Delete_File_Exact(test_dir,"cmake_install.cmake")
+        Delete_File_Exact(test_dir,"exagoop-build-udf")        
+             
         copy_gnumake_to_test(ROOT, test_name)
 
         if test_name == "1D_Axial_Bar_Vibration":
             print('Nothing to do')
-            Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg)
+            #Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg)
         elif test_name == "1D_Heat_Conduction":
             print('Nothing to do')
-            Run_ParameterSweep_1D_HeatConduction(cfg)
+            #Run_ParameterSweep_1D_HeatConduction(cfg)
+        elif test_name == "1D_Heat_Conduction_HeatFlux":
+            print('Nothing to do')
+            #Run_ParameterSweep_1D_HeatConduction_HeatFlux(cfg)
+        elif test_name == "1D_Heat_Conduction_Convective":
+            print('Nothing to do')
+            #Run_ParameterSweep_1D_HeatConduction_Convective(cfg)
         elif test_name == "2D_Heat_Conduction":
             print('Nothing to do')
-            Run_ParameterSweep_2D_HeatConduction(cfg)
+            #Run_ParameterSweep_2D_HeatConduction(cfg)
+        elif test_name == "2D_Heat_Conduction_Cylinder_Dirichlet":
+            print('Nothing to do')
+            Run_ParameterSweep_2D_HeatConduction_Cylinder_Dirichlet(cfg)
         elif test_name == "Dam_Break":
             print('Nothing to do')
             #Run_ParameterSweep_Dambreak(cfg)
