@@ -48,12 +48,14 @@ endif()
        ${SRC_DIR}/nodal_data_ops.H
        ${SRC_DIR}/constitutive_models.H
        ${SRC_DIR}/mpm_eb.cpp
+       ${SRC_DIR}/mpm_eb_udf_build.cpp
        ${SRC_DIR}/mpm_kernels.H
        ${SRC_DIR}/mpm_particle_grid_ops.cpp
        ${SRC_DIR}/mpm_specs.H
        ${SRC_DIR}/interpolants.H
        ${SRC_DIR}/mpm_check_pair.H
        ${SRC_DIR}/mpm_eb.H
+       ${SRC_DIR}/mpm_udf_loader.H
        ${SRC_DIR}/mpm_particle_container.cpp
        ${SRC_DIR}/mpm_particle_outputs.cpp
        ${SRC_DIR}/nodal_data_ops.cpp
@@ -66,7 +68,13 @@ endif()
     foreach(tgt IN LISTS pctargets)
       get_target_property(EXAGOOP_SOURCES ${tgt} SOURCES)
       list(FILTER EXAGOOP_SOURCES INCLUDE REGEX "\\.cpp")
+      # mpm_eb_udf_build.cpp must remain CXX — nvcc cannot compile it because
+      # EB2::makeShop / EB2::Build instantiate templates whose host-code layout
+      # differs between g++ and nvcc (ODR violation on GShopLevel/GFab).
+      list(FILTER EXAGOOP_SOURCES EXCLUDE REGEX "mpm_eb_udf_build\\.cpp")
       set_source_files_properties(${EXAGOOP_SOURCES} PROPERTIES LANGUAGE CUDA)
+      set_source_files_properties(${SRC_DIR}/mpm_eb_udf_build.cpp
+                                  PROPERTIES LANGUAGE CXX)
     endforeach()
     set_target_properties(${exagoop_exe_name} PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
     target_compile_options(${exagoop_exe_name} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xptxas --disable-optimizer-constants>)
