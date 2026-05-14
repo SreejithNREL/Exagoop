@@ -23,19 +23,6 @@ endif()
 
 
 # ===============================================================
-# EB enforcement (AMReX limitation)
-# ===============================================================
-if(EXAGOOP_DIM EQUAL 1 AND EXAGOOP_ENABLE_EB)
-    message(WARNING "EB requested but not available in 1D. Forcing USE_EB=0.")
-    add_compile_definitions(USE_EB=0)
-elseif(EXAGOOP_ENABLE_EB)
-    add_compile_definitions(USE_EB=1)
-else()
-    add_compile_definitions(USE_EB=0)
-endif()
-
-
-# ===============================================================
 # Precision (match GNUmake: SINGLE or DOUBLE)
 # ===============================================================
 set(EXAGOOP_PRECISION "DOUBLE" CACHE STRING "Precision: SINGLE or DOUBLE")

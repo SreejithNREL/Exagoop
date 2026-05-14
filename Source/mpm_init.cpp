@@ -71,6 +71,7 @@ void Name_Nodaldata_Variables(amrex::Vector<std::string> &nodaldata_names)
     nodaldata_names.push_back("TEMPERATURE");
     nodaldata_names.push_back("SOURCE_TEMP_INDEX");
     nodaldata_names.push_back("DELTA_TEMPERATURE");
+    nodaldata_names.push_back("MASS_CONDUCTIVITY");
 #endif
 }
 

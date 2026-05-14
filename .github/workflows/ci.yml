@@ -21,7 +21,6 @@ jobs:
       uses: DoozyX/clang-format-lint-action@v0.20
       with:
         source: './Source'
-        exclude: '.'
         extensions: 'H,h,cpp'
         clangFormatVersion: 20
 
@@ -402,7 +401,6 @@ jobs:
           -DAMDGPU_TARGETS:STRING=gfx90a \
           -DGPU_TARGETS:STRING=gfx90a \
           -DAMReX_GPU_RDC:BOOL=OFF \
-          -DPELE_ENABLE_FCOMPARE_FOR_TESTS:BOOL=OFF \
           -DCMAKE_CXX_COMPILER_LAUNCHER:STRING=ccache \
           ${{github.workspace}}
       - name: Build
@@ -504,8 +502,6 @@ jobs:
           -DCMAKE_C_COMPILER:STRING=clang \
           -DEXAGOOP_ENABLE_MPI:BOOL=OFF \
           -DEXAGOOP_ENABLE_OPENMP:BOOL=OFF \
-          -DEXAGOOP_ENABLE_FCOMPARE_FOR_TESTS:BOOL=OFF \
-          -DEXAGOOP_ENABLE_CLANG_TIDY:BOOL=OFF \
           ${{github.workspace}}
       - name: Build
         run: |
@@ -519,7 +515,8 @@ jobs:
       - name: Filter CodeQL sarif
         uses: advanced-security/filter-sarif@v1
         with:
-          patterns: '**/Submodules/amrex/**'
+          patterns: |
+            -**/Submodules/amrex/**
           input: sarif-results/cpp.sarif
           output: sarif-results/cpp.sarif
       - name: Upload CodeQL sarif
