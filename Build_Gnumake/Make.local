@@ -23,8 +23,6 @@ UNAME := $(shell uname)
 # ----------------------------------------------------------------
 ifeq ($(UNAME), Darwin)
 
-  # Prefer a parallel (MPI-enabled) HDF5 built by the user; fall back
-  # to whatever Homebrew provides (usually serial hdf5 or hdf5-mpi).
   ifneq ($(wildcard $(HOME)/hdf5-parallel/include/hdf5.h),)
     HDF5_HOME = $(HOME)/hdf5-parallel
   else
@@ -33,7 +31,6 @@ ifeq ($(UNAME), Darwin)
 
   USE_HDF5                = TRUE
   AMREX_USE_HDF5          = TRUE
-  # Homebrew serial HDF5 → FALSE; set TRUE only if you built MPI-enabled HDF5
   AMREX_USE_HDF5_PARALLEL = FALSE
 
 endif  # Darwin
@@ -42,6 +39,11 @@ endif  # Darwin
 # Linux / WSL (Ubuntu, Debian, and compatible distributions)
 # ----------------------------------------------------------------
 ifeq ($(UNAME), Linux)
+
+  _MULTIARCH := $(shell dpkg-architecture -qDEB_HOST_MULTIARCH 2>/dev/null)
+  ifeq ($(_MULTIARCH),)
+    _MULTIARCH := $(_MULTIARCH)
+  endif
 
   USE_HDF5                = TRUE
   AMREX_USE_HDF5          = TRUE
@@ -69,23 +71,23 @@ ifeq ($(UNAME), Linux)
   # directory must also be on the path (from libopenmpi-dev).
   ifneq ($(wildcard /usr/include/hdf5/openmpi/hdf5.h),)
     INCLUDE_LOCATIONS          += /usr/include/hdf5/openmpi
-    LIBRARY_LOCATIONS          += /usr/lib/x86_64-linux-gnu/hdf5/openmpi
+    LIBRARY_LOCATIONS          += /usr/lib/$(_MULTIARCH)/hdf5/openmpi
     AMREX_USE_HDF5_PARALLEL     = TRUE
     _MPI_INC := $(shell mpicc --showme:incdirs 2>/dev/null | tr ' ' '\n' | head -1)
     ifeq ($(_MPI_INC),)
       # mpicc not in PATH — use the standard Ubuntu libopenmpi-dev path
-      _MPI_INC := /usr/lib/x86_64-linux-gnu/openmpi/include
+      _MPI_INC := /usr/lib/$(_MULTIARCH)/openmpi/include
     endif
     INCLUDE_LOCATIONS          += $(_MPI_INC)
 
   # Parallel HDF5 (MPICH): apt install libhdf5-mpich-dev
   else ifneq ($(wildcard /usr/include/hdf5/mpich/hdf5.h),)
     INCLUDE_LOCATIONS          += /usr/include/hdf5/mpich
-    LIBRARY_LOCATIONS          += /usr/lib/x86_64-linux-gnu/hdf5/mpich
+    LIBRARY_LOCATIONS          += /usr/lib/$(_MULTIARCH)/hdf5/mpich
     AMREX_USE_HDF5_PARALLEL     = TRUE
     _MPI_INC := $(shell mpicc --showme:incdirs 2>/dev/null | tr ' ' '\n' | head -1)
     ifeq ($(_MPI_INC),)
-      _MPI_INC := /usr/lib/x86_64-linux-gnu/mpich/include
+      _MPI_INC := /usr/lib/$(_MULTIARCH)/mpich/include
     endif
     INCLUDE_LOCATIONS          += $(_MPI_INC)
 
@@ -99,7 +101,7 @@ ifeq ($(UNAME), Linux)
       $(warning *** Install:  sudo apt install libhdf5-openmpi-dev)
     endif
     INCLUDE_LOCATIONS += /usr/include/hdf5/serial
-    LIBRARY_LOCATIONS += /usr/lib/x86_64-linux-gnu/hdf5/serial
+    LIBRARY_LOCATIONS += /usr/lib/$(_MULTIARCH)/hdf5/serial
 
   else
     # --- Strategy C: locate via h5cc wrapper ---
@@ -118,6 +120,17 @@ ifeq ($(UNAME), Linux)
   endif
 
 endif  # Linux
+
+# ----------------------------------------------------------------
+# Windows (native)
+# ----------------------------------------------------------------
+# The GNUmake build system is not supported on native Windows.
+# Use one of:
+#   (a) WSL (Windows Subsystem for Linux) — then the Linux block
+#       above applies unchanged.
+#   (b) CMake — use Build_Cmake/cmake.bat from a Visual Studio
+#       Developer Command Prompt; no changes needed here.
+# ----------------------------------------------------------------
 
 # ----------------------------------------------------------------
 # HPC / Kestrel (Cray PE — modules provide paths automatically)

@@ -103,23 +103,6 @@ class UDFLoader
  *   phi > 0  ->  outside obstacle (regular)
  *   phi = 0  ->  on the surface
  *
- * This class holds ONLY the raw function pointer — it does NOT own the
- * shared-library handle.  The caller must keep a UDFLoader alive for the
- * entire lifetime of this object and of any EB2 index space built from it.
- *
- * This design is intentional: AMReX's EB2::makeShop / EB2::Build internally
- * copy the implicit-function object, so it must be copyable.  UDFLoader is
- * non-copyable (it owns a dlopen handle), so it cannot be a member here.
- *
- * Typical usage:
- *   UDFLoader           loader(so_path);       // owns dlopen handle
- *   UDFImplicitFunction udf_if(loader);        // borrows fn pointer
- *   auto shop = amrex::EB2::makeShop(udf_if);  // copies udf_if — ok
- *   amrex::EB2::Build(shop, ...);
- *   // loader must remain alive until EB2 index space is no longer needed
- *
- * GPU safety: function pointers are CPU-only.
- * Use amrex::LoopOnCpu (never amrex::ParallelFor) when calling this.
  */
 class UDFImplicitFunction
 {
@@ -133,6 +116,8 @@ class UDFImplicitFunction
 
     UDFImplicitFunction(const UDFImplicitFunction &) = default;
     UDFImplicitFunction &operator=(const UDFImplicitFunction &) = default;
+
+    PhiFn phi_fn() const { return m_phi_fn; }
 
     AMREX_FORCE_INLINE amrex::Real operator()(const amrex::RealArray &p) const
     {

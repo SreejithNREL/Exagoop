@@ -1285,55 +1285,75 @@ def read_grid_from_input(filename):
 
 def read_particles_ascii(filename):
     """
-    Read ASCII particle file written by write_particles_ascii_streaming().
+    Robust reader for ASCII particle files written by write_particles_ascii_streaming().
     Returns:
-        dim, data_dict
-    where data_dict maps column names -> NumPy arrays.
+        dim (int)
+        data (dict[str, np.ndarray])
     """
 
     import numpy as np
 
+    def try_float(x):
+        """Return float(x) if possible, else return original string."""
+        try:
+            return float(x)
+        except ValueError:
+            return x
+
     with open(filename, "r") as f:
         # ------------------------------------------------------------
-        # Read header
+        # Header
         # ------------------------------------------------------------
         line = f.readline().strip()
-        assert line.startswith("dim:")
-        dim = int(line.split(":")[1])
+        if not line.startswith("dim:"):
+            raise ValueError("Expected 'dim:' header")
+        dim = int(line.split(":", 1)[1])
 
         line = f.readline().strip()
-        assert line.startswith("number_of_material_points:")
-        npart = int(line.split(":")[1])
+        if not line.startswith("number_of_material_points:"):
+            raise ValueError("Expected 'number_of_material_points:' header")
+        npart = int(line.split(":", 1)[1])
 
         # ------------------------------------------------------------
-        # Read column names
+        # Column names
         # ------------------------------------------------------------
         line = f.readline().strip()
-        assert line.startswith("#")
+        if not line.startswith("#"):
+            raise ValueError("Expected column header starting with '#'")
         cols = line[1:].strip().split()
 
         # Prepare storage
-        data = {c: [] for c in cols}
+        raw = {c: [] for c in cols}
 
         # ------------------------------------------------------------
-        # Read particle rows
+        # Particle rows
         # ------------------------------------------------------------
         for line in f:
             if not line.strip():
                 continue
             vals = line.split()
+            if len(vals) != len(cols):
+                raise ValueError(
+                    f"Row has {len(vals)} values but expected {len(cols)}"
+                )
             for c, v in zip(cols, vals):
-                # float or int?
-                if v.replace(".", "", 1).replace("e", "", 1).replace("-", "", 1).isdigit():
-                    data[c].append(float(v))
-                else:
-                    data[c].append(v)
+                raw[c].append(try_float(v))
 
-    # Convert lists → NumPy arrays
-    for c in data:
-        data[c] = np.asarray(data[c])
+    # ------------------------------------------------------------
+    # Convert lists → NumPy arrays with best possible dtype
+    # ------------------------------------------------------------
+    data = {}
+    for c, lst in raw.items():
+        # Try to convert entire column to float
+        try:
+            arr = np.asarray(lst, dtype=float)
+        except ValueError:
+            # Mixed or non-numeric → keep as object/string
+            arr = np.asarray(lst, dtype=object)
+        data[c] = arr
 
     return dim, data
+
 
 
 # ------------------------------------------------------------
@@ -1351,18 +1371,22 @@ def read_particles_h5(filename):
 def plot_1d(x, grid):
     import matplotlib.pyplot as plt
     import numpy as np
+    
+    
 
     xmin, xmax, nx = grid["xmin"], grid["xmax"], grid["nx"]
     dx = (xmax - xmin) / nx
+    
+    
 
     fig, ax = plt.subplots(figsize=(12, 3))
 
     # Plot material points
-    ax.scatter(x, np.zeros_like(x), s=20, c="blue", alpha=0.7, label="Material Points")
+    ax.scatter(x, np.zeros_like(x), s=20, c="blue", alpha=0.7, label="Material Points")    
 
     # Plot grid cell boundaries
     for i in range(nx + 1):
-        xc = xmin + i * dx
+        xc = xmin + i * dx        
         ax.axvline(x=xc, color="gray", lw=0.5)
 
     # Formatting
@@ -1373,7 +1397,7 @@ def plot_1d(x, grid):
     ax.grid(False)
 
     plt.tight_layout()
-    #plt.show()
+    plt.show()
 
 
 # ------------------------------------------------------------
@@ -1402,7 +1426,8 @@ def plot_2d(x, y, grid):
     ax.set_xlabel("x")
     ax.set_ylabel("y")
     ax.set_aspect("equal")
-    #plt.show()
+    plt.show()
+
 
 
 # ------------------------------------------------------------
@@ -1480,35 +1505,47 @@ def write_inputs_file(
     grid: dict,
     dimensions: int,
     order_scheme: int,
+    alpha_pic_flip: float,
     CFL: float,
-    stress_update_scheme: int,
+    stress_update_scheme: str,
     output_tag: str,
     constitutive_model: dict,
     enable_temperature: bool,
     particle_filename: str,
     out_filename: str = "Inputs_MPM.inp",
+    simulation: dict = None,
+    gravity: list = None,
+    boundary_conditions: dict = None,
+    diagnostics: dict = None,
+    levelset_bodies: list = None,
 ):
+    sim  = simulation        or {}
+    grav = gravity           or [0.0, 0.0, 0.0]
+    bcs  = boundary_conditions or {}
+    diag = diagnostics       or {}
+    ls_bodies = levelset_bodies or []
+
     with open(out_filename, "w") as f:
-        f.write("# Auto-generated MPM input file\n")       
-        
+        f.write("# Auto-generated MPM input file\n")
+
         # ---------------------------------------------------------
         # Geometry
         # ---------------------------------------------------------
-        if(dimensions==1):
+        if dimensions == 1:
             write_block(f, [
                 ("mpm.prob_lo", f"{grid['xmin']} 0.0 0.0    # Lower corner"),
                 ("mpm.prob_hi", f"{grid['xmax']} 0.0 0.0    # Upper corner"),
                 ("mpm.ncells", f"{grid['nx']} 0 0"),
-                ("mpm.max_grid_size", f"16"),
-                ("mpm.is_it_periodic", f"0")
+                ("mpm.max_grid_size", "16"),
+                ("mpm.is_it_periodic", "0"),
             ], comment="Geometry Parameters")
-        elif(dimensions==2):
+        elif dimensions == 2:
             write_block(f, [
                 ("mpm.prob_lo", f"{grid['xmin']} {grid['ymin']} 0.0    # Lower corner"),
                 ("mpm.prob_hi", f"{grid['xmax']} {grid['ymax']} 0.0    # Upper corner"),
                 ("mpm.ncells", f"{grid['nx']} {grid['ny']} 0"),
-                ("mpm.max_grid_size", f"16"),
-                ("mpm.is_it_periodic", f"0 0")
+                ("mpm.max_grid_size", "16"),
+                ("mpm.is_it_periodic", "0 0"),
             ], comment="Geometry Parameters")
         else:
             write_block(f, [
@@ -1516,120 +1553,140 @@ def write_inputs_file(
                 ("mpm.prob_hi", f"{grid['xmax']} {grid['ymax']} {grid['zmax']}    # Upper corner"),
                 ("mpm.ncells", f"{grid['nx']} {grid['ny']} {grid['nz']}"),
                 ("mpm.max_grid_size", f"{grid['nx'] + 1}"),
-                ("mpm.is_it_periodic", f"0 0 1")
+                ("mpm.is_it_periodic", "0 0 1"),
             ], comment="Geometry Parameters")
 
         # AMR
         write_block(f, [
-            ("#restart_checkfile", "\"\"")
+            ("#restart_checkfile", "\"\""),
         ], comment="AMR Parameters")
 
         # Input Material Points
         write_block(f, [
-            ("mpm.use_autogen", "1"),
-            ("mpm.mincoords_autogen", "0.0 0.0 0.0"),
-            ("mpm.maxcoords_autogen", "1.0 1.0 1.0"),
-            ("mpm.vel_autogen", "0.0 0.0 0.0"),
-            ("mpm.constmodel_autogen", "0"),
-            ("mpm.dens_autogen", "1.0"),
-            ("mpm.E_autogen", "1e6"),
-            ("mpm.nu_autogen", "0.3"),
-            ("mpm.bulkmod_autogen", "2e6"),
-            ("mpm.Gama_pres_autogen", "7"),
-            ("mpm.visc_autogen", "0.001"),
-	    ("mpm.T_autogen", "0.0"),
-            ("mpm.cp_autogen", "1.0"),
-            ("mpm.ppc", "1 1 1"),
-            ("mpm.thermcond_autogen", "1.0"),
-            ("mpm.heatsrc_autogen", "0.0"),
+            ("mpm.use_autogen",              "0"),
+            ("mpm.mincoords_autogen",        "0.0 0.0 0.0"),
+            ("mpm.maxcoords_autogen",        "1.0 1.0 1.0"),
+            ("mpm.vel_autogen",              "0.0 0.0 0.0"),
+            ("mpm.constmodel_autogen",       "0"),
+            ("mpm.dens_autogen",             "1.0"),
+            ("mpm.E_autogen",                "1e6"),
+            ("mpm.nu_autogen",               "0.3"),
+            ("mpm.bulkmod_autogen",          "2e6"),
+            ("mpm.Gama_pres_autogen",        "7"),
+            ("mpm.visc_autogen",             "0.001"),
             ("mpm.multi_part_per_cell_autogen", "1"),
-            ("mpm.particle_file", f"\"{particle_filename}\"")
+            ("mpm.particle_file",            f"\"{particle_filename}\""),
         ], comment="Input Material Points")
 
         # Output Parameters
         write_block(f, [
-            ("mpm.prefix_particlefilename", f"\"{output_tag}/plt\""),
-            ("mpm.prefix_gridfilename", f"\"{output_tag}/nplt\""),
-            ("mpm.prefix_densityfilename", f"\"{output_tag}/dens\""),
-            ("mpm.prefix_checkpointfilename", f"\"{output_tag}/chk\""),
-            ("mpm.prefix_asciifilename", f"\"{output_tag}/matpnt\""),
-            ("mpm.diagnostic_output_folder", f"\"./Diagnostics/{output_tag}\""),
+            ("mpm.prefix_particlefilename",    f"\"{output_tag}/plt\""),
+            ("mpm.prefix_gridfilename",        f"\"{output_tag}/nplt\""),
+            ("mpm.prefix_densityfilename",     f"\"{output_tag}/dens\""),
+            ("mpm.prefix_checkpointfilename",  f"\"{output_tag}/chk\""),
+            ("mpm.prefix_asciifilename",       f"\"{output_tag}/matpnt\""),
+            ("mpm.diagnostic_output_folder",   f"\"./Diagnostics/{output_tag}\""),
             ("mpm.num_of_digits_in_filenames", "6"),
-            ("mpm.write_ascii", "1")
+            ("mpm.write_ascii",                "1"),
         ], comment="Output Parameters")
 
         # Simulation Run Parameters
         write_block(f, [
-            ("mpm.final_time", "0.05"),
-            ("mpm.max_steps", "5000000"),
-            ("mpm.screen_output_time", "0.0001"),
-            ("mpm.write_output_time", "0.01"),
-            ("mpm.num_redist", "1")
+            ("mpm.final_time",        str(sim.get("final_time",        1.0))),
+            ("mpm.max_steps",         str(sim.get("max_steps",         5000000))),
+            ("mpm.screen_output_time",str(sim.get("screen_output_time",0.001))),
+            ("mpm.write_output_time", str(sim.get("write_output_time", 0.01))),
+            ("mpm.num_redist",        str(sim.get("num_redist",        1))),
         ], comment="Simulation Run Parameters")
 
         # Timestepping
         write_block(f, [
-            ("mpm.fixed_timestep", "1"),
-            ("mpm.timestep", "1.0e-5"),
-            ("mpm.CFL", f"{CFL}"),
-            ("mpm.dt_min_limit", "1e-12"),
-            ("mpm.dt_max_limit", "1e+00")
+            ("mpm.fixed_timestep", str(sim.get("fixed_timestep", 0))),
+            ("mpm.timestep",       str(sim.get("timestep",       1.0e-5))),
+            ("mpm.CFL",            f"{CFL}"),
+            ("mpm.dt_min_limit",   "1e-12"),
+            ("mpm.dt_max_limit",   "1e+00"),
         ], comment="Timestepping Parameters")
 
-        # Levelset
+        # Levelset solver
         write_block(f, [
-            ("mpm.levset_output", "0"),
-            ("mpm.levset_smoothfactor", "1.0"),
-            ("mpm.levset_gridratio", "1")
+            ("mpm.levset_output",      "0"),
+            ("mpm.levset_smoothfactor","1.0"),
+            ("mpm.levset_gridratio",   "1"),
         ], comment="Levelset Parameters")
 
         # Numerical Schemes
         write_block(f, [
-            ("mpm.order_scheme", f"{order_scheme}"),
-            ("mpm.alpha_pic_flip", "1.0"),
-            ("mpm.stress_update_scheme", f"{stress_update_scheme}"),
-            ("mpm.mass_tolerance", "1e-18")
+            ("mpm.order_scheme",        f"{order_scheme}"),
+            ("mpm.alpha_pic_flip",      f"{alpha_pic_flip}"),
+            ("mpm.stress_update_scheme",f"{stress_update_scheme}"),
+            ("mpm.mass_tolerance",      "1e-18"),
         ], comment="Numerical Schemes")
 
         # Physics
         write_block(f, [
-            ("mpm.gravity", "0.0 0.0 0.0"),
-            ("mpm.applied_strainrate_time", "0.0"),
-            ("mpm.applied_strainrate", "0.0"),
-            ("mpm.calculate_strain_based_on_delta", "0"),
-            ("mpm.external_loads", "0"),
-            ("mpm.force_slab_lo", "0.0 0.0 0.0"),
-            ("mpm.force_slab_hi", "1.0 1.0 1.0"),
-            ("mpm.extforce", "0.0 0.0 0.0")
+            ("mpm.gravity",                        f"{grav[0]} {grav[1]} {grav[2]}"),
+            ("mpm.applied_strainrate_time",        "0.0"),
+            ("mpm.applied_strainrate",             "0.0"),
+            ("mpm.calculate_strain_based_on_delta","0"),
+            ("mpm.external_loads",                 "0"),
+            ("mpm.force_slab_lo",                  "0.0 0.0 0.0"),
+            ("mpm.force_slab_hi",                  "1.0 1.0 1.0"),
+            ("mpm.extforce",                       "0.0 0.0 0.0"),
         ], comment="Physics Parameters")
 
-        # Boundary Conditions
-        write_block(f, [
-            ("mpm.bc_xlo_mom", "noslip"),
-            ("mpm.bc_xhi_mom", "noslip"),
-            ("mpm.bc_ylo_mom", "periodic"),
-            ("mpm.bc_yhi_mom", "periodic"),
-            ("mpm.bc_xlo_temp", "dirichlet"),
-            ("mpm.bc_xlo_temp.T_wall", "1.0"),
-            ("mpm.bc_xhi_temp", "dirichlet"),
-            ("mpm.bc_xhi_temp.T_wall", "1.0"),
-            ("mpm.bc_ylo_temp", "dirichlet"),
-            ("mpm.bc_ylo_temp.T_wall", "1.0"),
-            ("mpm.bc_yhi_temp", "dirichlet"),
-            ("mpm.bc_yhi_temp.T_wall", "1.0"),
-            ("mpm.levelset_bc", "2 0 0"),
-            ("mpm.levelset_wall_mu", "2 0 0"),
-        ], comment="Boundary Conditions")
+        # Boundary Conditions — loop over all faces in canonical order.
+        # Momentum BCs are written first (grouped), then temperature BCs.
+        # Only faces present in config are emitted.
+        bc_entries = []
+        faces = ["xlo", "xhi", "ylo", "yhi", "zlo", "zhi"]
+        for face in faces:
+            fc = bcs.get(face, {})
+            if "mom" in fc:
+                bc_entries.append((f"mpm.bc_{face}_mom", fc["mom"]))
+        for face in faces:
+            fc = bcs.get(face, {})
+            if "temp" in fc:
+                t = fc["temp"]
+                bc_entries.append((f"mpm.bc_{face}_temp", t["type"]))
+                if t["type"] == "dirichlet":
+                    bc_entries.append((f"mpm.bc_{face}_temp.T_wall", str(t["T_wall"])))
+                elif t["type"] == "convective":
+                    bc_entries.append((f"mpm.bc_{face}_temp.h",     str(t["h"])))
+                    bc_entries.append((f"mpm.bc_{face}_temp.T_inf", str(t["T_inf"])))
+                elif t["type"] == "heatflux":
+                    bc_entries.append((f"mpm.bc_{face}_temp.flux",  str(t["flux"])))
+        if bc_entries:
+            write_block(f, bc_entries, comment="Boundary Conditions")
+
+        # Embedded Boundary — Level Sets
+        if ls_bodies:
+            body_names = " ".join(b["name"] for b in ls_bodies)
+            ls_entries = [("eb2.body_names", body_names)]
+            for b in ls_bodies:
+                name = b["name"]
+                ls_entries.append((f"{name}.geom_type", b["geom_type"]))
+                for k, v in b.items():
+                    if k in ("name", "geom_type"):
+                        continue
+                    if isinstance(v, list):
+                        ls_entries.append((f"{name}.{k}", " ".join(str(x) for x in v)))
+                    elif isinstance(v, bool):
+                        ls_entries.append((f"{name}.{k}", "true" if v else "false"))
+                    else:
+                        ls_entries.append((f"{name}.{k}", str(v)))
+            write_block(f, ls_entries, comment="Embedded Boundary — Level Sets")
 
         # Diagnostics
         write_block(f, [
-            ("mpm.print_diagnostics", "0"),
-            ("mpm.do_calculate_tke_tse", "0"),
-            ("mpm.do_calculate_mwa_velcomp", "0"),
-            ("mpm.do_calculate_mwa_velmag", "0"),
-            ("mpm.do_calculate_minmaxpos", "0"),
-            ("mpm.write_diag_output_time", "0.01")
+            ("mpm.print_diagnostics",        str(diag.get("print_diagnostics",        0))),
+            ("mpm.do_calculate_tke_tse",     str(diag.get("do_calculate_tke_tse",     0))),
+            ("mpm.do_calculate_mwa_velcomp", str(diag.get("do_calculate_mwa_velcomp", 0))),
+            ("mpm.do_calculate_mwa_velmag",  str(diag.get("do_calculate_mwa_velmag",  0))),
+            ("mpm.do_calculate_minmaxpos",   str(diag.get("do_calculate_minmaxpos",   0))),
+            ("mpm.write_diag_output_time",   str(diag.get("write_diag_output_time",   0.01))),
         ], comment="Diagnostics Parameters")
+
     print(f"WROTE: {out_filename}")
 
 
@@ -1839,12 +1896,14 @@ def write_particles_hdf5(filename, particles):
 # Main
 # ------------------------------------------------------------
 def main():
-    args = parse_cli()
+    args = parse_cli()    
 
     with open(args.config, "r") as f:
         cfg = json.load(f)
 
     dimensions = cfg["dimensions"]
+    alpha_pic_flip = cfg.get("alpha_pic_flip", 1.0)
+
     grid = cfg["grid"]
     ppc = tuple(cfg["ppc"])
 
@@ -1956,13 +2015,19 @@ def main():
         grid=grid,
         dimensions=dimensions,
         order_scheme=order_scheme,
-        CFL = CFL,
+        alpha_pic_flip=alpha_pic_flip,
+        CFL=CFL,
         stress_update_scheme=stress_update_scheme,
         output_tag=output_tag,
         constitutive_model=bodies[0]["constitutive_model"],
         enable_temperature=bodies[0]["temperature"]["enabled"],
         particle_filename=particle_file,
         out_filename=input_filename,
+        simulation=cfg.get("simulation", {}),
+        gravity=cfg.get("gravity", [0.0, 0.0, 0.0]),
+        boundary_conditions=cfg.get("boundary_conditions", {}),
+        diagnostics=cfg.get("diagnostics", {}),
+        levelset_bodies=cfg.get("levelset_bodies", []),
     )
 
     print("Multi-body preprocessing complete.")
@@ -1995,6 +2060,7 @@ def main():
             x = data["x"]
             y = data.get("y")   # None in 1D
             z = data.get("z")   # None in 1D/2D
+            print(data)
     
             
     

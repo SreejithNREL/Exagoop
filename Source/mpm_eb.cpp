@@ -2,40 +2,15 @@
 /**
  * @file mpm_eb.cpp
  *
- * @brief Initializes the embedded boundary (EB) geometry and nodal level-set
- *        MultiFab (lsphi) for ExaGOOP.
+ * @brief Initializes EB geometry and nodal level-set MultiFabs for ExaGOOP.
  *
- * Supports three geometry input paths, selected by eb2.geom_type:
- *
- *   Path A  "udf_cpp"   — user-provided C/C++ shared library (.so/.dylib)
- *                         exporting:
- *                           extern "C" double levelset_phi(double x,
- *                                                          double y,
- *                                                          double z);
- *
- *   Path B  "stl"       — STL surface mesh file; uses AMReX EB2 STL support.
- *
- *   Path C  anything else — AMReX built-in analytic shapes (sphere, cylinder,
- *                           plane, box, wedge_hopper, etc.) read directly from
- *                           the eb2.* ParmParse namespace.
- *
- * All three paths produce the same outputs:
- *   mpm_ebtools::ebfactory   — EBFArrayBoxFactory at coarse resolution
- *   mpm_ebtools::lsphi       — nodal MultiFab at ls_refinement * coarse res
- *
- * Input keys (eb2 namespace):
- *   eb2.geom_type      = udf_cpp | stl | sphere | cylinder | ... (required)
- *   eb2.ls_refinement  = 1                 (optional, default 1)
- *   eb2.udf_so_file    = /path/to/lib.so   (Path A only)
- *   eb2.stl_file       = /path/to/geo.stl  (Path B only)
- *   (all other eb2.* keys forwarded to AMReX for Path C)
+ * Supports multiple named level set bodies, each with an independent signed-distance
+ * MultiFab and refinement factor. Three options are provided now: a UDF (user-defined
+ * function, STL file and amrex built in geometry. Check documentation for how to
+ * specify these in input files.
  */
 // clang-format on
 
-// Opt in to EB2 geometry-building headers BEFORE including mpm_eb.H.
-// This TU calls EB2::Build and needs the full EB2 IF template machinery.
-// It is compiled as CXX (never by nvcc) so there is no risk of the
-// GShopLevel/GFab template ODR issue described in mpm_eb.H.
 #define EXAGOOP_INCLUDE_EB2_IF
 
 #include <mpm_eb.H>
@@ -51,23 +26,13 @@
 namespace mpm_ebtools
 {
 
+std::vector<LevelSetBody> ls_bodies;
 EBFArrayBoxFactory *ebfactory = nullptr;
-MultiFab *lsphi = nullptr;
-int ls_refinement = 1;
 bool using_levelset_geometry = false;
 
-// ---------------------------------------------------------------
-// Private helpers shared by all three paths
-// ---------------------------------------------------------------
-
-/**
- * @brief Computes required_coarsening_level = floor(log2(ls_ref)).
- *
- * AMReX's EB2::Build requires this to be at least log2(ls_refinement)
- * so it can coarsen the refined index space back to the coarse level.
- */
 static int coarsening_level_for_refinement(int ls_ref)
 {
+	//Returns the amrex refinement level: 1->0, 2->1,4->2
     int level = 0;
     if (ls_ref > 1)
     {
@@ -78,83 +43,87 @@ static int coarsening_level_for_refinement(int ls_ref)
     return level;
 }
 
-/**
- * @brief Returns a refined Geometry with the domain grown by ls_ref.
- */
 static Geometry refined_geom(const Geometry &geom, int ls_ref)
 {
+	//returns a refined (ls_ref) geometry
     Box dom_ls = geom.Domain();
     dom_ls.refine(ls_ref);
     return Geometry(dom_ls);
 }
 
 /**
- * @brief Builds the EBFArrayBoxFactory from the current EB2::IndexSpace top,
- *        and allocates (but does NOT fill) the nodal lsphi MultiFab.
- *
- * Called by Path B and Path C after EB2::Build has been invoked and the
- * desired index space is at EB2::IndexSpace::top().
+ * @brief Rebuilds the global EBFArrayBoxFactory from the current top
+ *        EB2::IndexSpace.  Deletes any previously allocated factory first.
  */
-static void build_factory_and_lsphi(const Geometry &geom,
-                                    const BoxArray &ba,
-                                    const DistributionMapping &dm,
-                                    int nghost,
-                                    int ls_ref)
+static void build_factory(const Geometry &geom,
+                           const BoxArray &ba,
+                           const DistributionMapping &dm,
+                           int nghost)
 {
+    delete ebfactory;
+    ebfactory = nullptr;
+
     const EB2::IndexSpace &ebis = EB2::IndexSpace::top();
     const EB2::Level &eblev = ebis.getLevel(geom);
 
     ebfactory = new EBFArrayBoxFactory(
         eblev, geom, ba, dm, {nghost, nghost, nghost}, EBSupport::full);
+}
 
+/**
+ * @brief Allocates a nodal MultiFab for one body's signed-distance field.
+ *        The returned pointer is owned by the caller (stored in LevelSetBody).
+ */
+static MultiFab *allocate_body_lsphi(const BoxArray &ba,
+                                      const DistributionMapping &dm,
+                                      int nghost,
+                                      int ls_ref)
+{
     BoxArray ls_ba = amrex::convert(ba, IntVect::TheNodeVector());
     ls_ba.refine(ls_ref);
 
-    lsphi = new MultiFab;
-    lsphi->define(ls_ba, dm, /*ncomp=*/1, nghost);
+    MultiFab *mf = new MultiFab;
+    mf->define(ls_ba, dm, /*ncomp=*/1, nghost);
+    return mf;
 }
 
 // ---------------------------------------------------------------
-// Path A — user-defined C/C++ shared library (udf_cpp)
+// Option 1 — UDF level set
 // ---------------------------------------------------------------
 
 /**
- * @brief Builds EB and fills lsphi from a user-provided shared-library UDF.
+ * @brief Builds EB and fills lsphi from a UDF shared library.
  *
- * The UDF must export:
- *   extern "C" double levelset_phi(double x, double y, double z);
- *
- * build_udf_eb() (defined in mpm_eb_udf_build.cpp, CXX-only TU) handles
- * EB2::makeShop / EB2::Build and allocates the factory + lsphi.
- *
- * lsphi is filled here via amrex::LoopOnCpu (CPU only — function pointers
- * cannot be called on the GPU).  FillBoundary is called afterwards to
- * propagate values into MPI ghost cells.
+ * @param pp_prefix  ParmParse prefix for this body's keys (e.g. "sphere_1"
+ *                   or "eb2" for the legacy single-body path).
  */
-static void build_udf_levelset(const Geometry &geom,
-                               const BoxArray &ba,
-                               const DistributionMapping &dm,
-                               int nghost,
-                               int ls_ref)
+static MultiFab *build_udf_levelset(const std::string &name,
+                                     const std::string &pp_prefix,
+                                     const Geometry &geom,
+                                     const BoxArray &ba,
+                                     const DistributionMapping &dm,
+                                     int nghost,
+                                     int ls_ref)
 {
     std::string so_file;
-    amrex::ParmParse pp("eb2");
+    amrex::ParmParse pp(pp_prefix);
     pp.get("udf_so_file", so_file);
 
-    amrex::Print() << "\n[EB] Path A — UDF shared library: " << so_file << "\n";
+    amrex::Print() << "\n\tBody '" << name << "' — UDF: " << so_file << "\n";
 
     UDFLoader loader(so_file);
     UDFImplicitFunction udf_if(loader);
 
-    build_udf_eb(udf_if, geom, ba, dm, nghost, ls_ref, lsphi, ebfactory);
+    MultiFab *lsphi_out = nullptr;
+    build_udf_eb(udf_if, geom, ba, dm, nghost, ls_ref, lsphi_out, ebfactory);
 
     Geometry geom_ls = refined_geom(geom, ls_ref);
     const auto plo = geom_ls.ProbLoArray();
     const auto dx_ls = geom_ls.CellSizeArray();
 
-    for (MFIter mfi(*lsphi); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*lsphi_out); mfi.isValid(); ++mfi)
     {
-        auto arr = lsphi->array(mfi);
+        auto arr = lsphi_out->array(mfi);
         const Box &bx = mfi.fabbox();
 
         amrex::LoopOnCpu(bx,
@@ -171,75 +140,146 @@ static void build_udf_levelset(const Geometry &geom,
                              arr(i, j, k) = udf_if(p);
                          });
     }
-    lsphi->FillBoundary(geom_ls.periodicity());
+    lsphi_out->FillBoundary(geom_ls.periodicity());
+    return lsphi_out;
 }
 
 // ---------------------------------------------------------------
-// Path B — STL surface mesh
+// Option 2 — user-provied stl file
 // ---------------------------------------------------------------
 
 /**
  * @brief Builds EB and fills lsphi from an STL surface mesh.
- *
- * Reads eb2.stl_file from ParmParse and passes it to AMReX's EB2::Build,
- * which handles the STL geometry internally.
- * lsphi is filled via FillSignedDistance (same as Path C).
  */
-static void build_stl_levelset(const Geometry &geom,
-                               const BoxArray &ba,
-                               const DistributionMapping &dm,
-                               int nghost,
-                               int ls_ref)
+static MultiFab *build_stl_levelset(const std::string &name,
+                                     const std::string &pp_prefix,
+                                     const Geometry &geom,
+                                     const BoxArray &ba,
+                                     const DistributionMapping &dm,
+                                     int nghost,
+                                     int ls_ref)
 {
 #ifndef AMREX_USE_EB
     amrex::Abort("build_stl_levelset: AMReX was not compiled with EB support");
+    return nullptr;
 #else
     std::string stl_file;
-    amrex::ParmParse pp("eb2");
+    amrex::ParmParse pp(pp_prefix);
     pp.get("stl_file", stl_file);
 
-    amrex::Print() << "\n[EB] Path B — STL file: " << stl_file << "\n";
+    amrex::Print() << "\n[EB] Body '" << name << "' — STL: " << stl_file << "\n";
 
     Geometry geom_ls = refined_geom(geom, ls_ref);
     int req_coarsen = coarsening_level_for_refinement(ls_ref);
 
-    amrex::EB2::Build(geom_ls, req_coarsen, /*max_coarsening_level=*/10);
+    amrex::EB2::Build(geom_ls, req_coarsen, 10);
 
-    build_factory_and_lsphi(geom, ba, dm, nghost, ls_ref);
+    build_factory(geom, ba, dm, nghost);
+
+    MultiFab *lsphi_out = allocate_body_lsphi(ba, dm, nghost, ls_ref);
 
     const EB2::IndexSpace &ebis = EB2::IndexSpace::top();
     const EB2::Level &lslev = ebis.getLevel(geom_ls);
 
-    amrex::FillSignedDistance(*lsphi, lslev, *ebfactory, ls_ref);
-    lsphi->FillBoundary(geom_ls.periodicity());
+    amrex::FillSignedDistance(*lsphi_out, lslev, *ebfactory, ls_ref);
+    lsphi_out->FillBoundary(geom_ls.periodicity());
+    return lsphi_out;
 #endif
 }
 
 // ---------------------------------------------------------------
-// Path C — AMReX built-in analytic shapes
+// Option 3: AMREX built in geom
 // ---------------------------------------------------------------
 
 /**
- * @brief Builds EB and fills lsphi using AMReX's built-in EB2 shapes.
+ * @brief Builds EB and fills lsphi from AMReX built-in shapes.
  *
- * All eb2.* ParmParse keys (sphere_radius, cylinder_radius, etc.) are
- * read by AMReX::EB2::Build internally.  The special "wedge_hopper" type
- * is assembled from EB2 primitives inside this function.
+ * For named bodies (pp_prefix != "eb2"), common shapes (sphere, plane,
+ * cylinder) are constructed from per-body ParmParse keys so that each body
+ * can have independent parameters.
+ *
+ * "wedge_hopper" and any unrecognised geom_type fall back to
+ * EB2::Build(geom_ls, ...) which reads from the eb2.* namespace; this is
+ * the legacy behaviour and is only correct for single-body simulations.
  */
-static void build_analytic_levelset(const std::string &geom_type,
-                                    const Geometry &geom,
-                                    const BoxArray &ba,
-                                    const DistributionMapping &dm,
-                                    int nghost,
-                                    int ls_ref)
+static MultiFab *build_analytic_levelset(const std::string &name,
+                                          const std::string &pp_prefix,
+                                          const std::string &geom_type,
+                                          const Geometry &geom,
+                                          const BoxArray &ba,
+                                          const DistributionMapping &dm,
+                                          int nghost,
+                                          int ls_ref)
 {
-    amrex::Print() << "[EB] Path C — AMReX built-in geometry: " << geom_type
-                   << "\n";
+    amrex::Print() << "[EB] Body '" << name << "' — analytic geometry: "
+                   << geom_type << "\n";
 
     Geometry geom_ls = refined_geom(geom, ls_ref);
     int req_coarsen = coarsening_level_for_refinement(ls_ref);
 
-    if (geom_type == "wedge_hopper")
+    amrex::ParmParse pp(pp_prefix);
+
+    if (geom_type == "sphere")
+    {
+        amrex::Real radius = 1.0;
+        pp.get("sphere_radius", radius);
+
+        std::vector<amrex::Real> center_v(AMREX_SPACEDIM, 0.5);
+        pp.getarr("sphere_center", center_v);
+        amrex::RealArray center;
+        for (int d = 0; d < AMREX_SPACEDIM; ++d) center[d] = center_v[d];
+
+        bool has_fluid_inside = false;
+        pp.query("sphere_has_fluid_inside", has_fluid_inside);
+
+        EB2::SphereIF sphere(radius, center, has_fluid_inside);
+        auto shop = EB2::makeShop(sphere);
+        EB2::Build(shop, geom_ls, req_coarsen, 10);
+    }
+    else if (geom_type == "plane")
+    {
+        std::vector<amrex::Real> point_v(AMREX_SPACEDIM, 0.0);
+        std::vector<amrex::Real> normal_v(AMREX_SPACEDIM, 0.0);
+        normal_v[1] = 1.0;
+        pp.getarr("plane_point", point_v);
+        pp.getarr("plane_normal", normal_v);
+        amrex::RealArray point, normal;
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        {
+            point[d]  = point_v[d];
+            normal[d] = normal_v[d];
+        }
+
+        bool has_fluid_inside = false;
+        pp.query("plane_has_fluid_inside", has_fluid_inside);
+
+        EB2::PlaneIF plane(point, normal, has_fluid_inside);
+        auto shop = EB2::makeShop(plane);
+        EB2::Build(shop, geom_ls, req_coarsen, 10);
+    }
+    else if (geom_type == "cylinder")
+    {
+        amrex::Real radius = 1.0;
+        amrex::Real height = 1.0;
+        int direction = 2;
+
+        pp.get("cylinder_radius", radius);
+        pp.query("cylinder_height", height);
+        pp.query("cylinder_direction", direction);
+
+        std::vector<amrex::Real> center_v(AMREX_SPACEDIM, 0.5);
+        pp.getarr("cylinder_center", center_v);
+        amrex::RealArray center;
+        for (int d = 0; d < AMREX_SPACEDIM; ++d) center[d] = center_v[d];
+
+        bool has_fluid_inside = false;
+        pp.query("cylinder_has_fluid_inside", has_fluid_inside);
+
+        EB2::CylinderIF cyl(radius, height, direction, center, has_fluid_inside);
+        auto shop = EB2::makeShop(cyl);
+        EB2::Build(shop, geom_ls, req_coarsen, 10);
+    }
+    else if (geom_type == "wedge_hopper")
     {
 #if (AMREX_SPACEDIM == 3)
         const auto plo = geom.ProbLoArray();
@@ -275,14 +315,14 @@ static void build_analytic_levelset(const std::string &geom_type,
         EB2::PlaneIF bin2(bp2, bn2);
 
         Array<Real, 3> center = {0.5f * (plo[0] + phi_arr[0]), vertoffset,
-                                 0.5f * (plo[2] + phi_arr[2])};
+                                  0.5f * (plo[2] + phi_arr[2])};
 
         auto hopper_alone = EB2::translate(
             EB2::makeUnion(funnel1, bin1, funnel2, bin2), center);
 
         amrex::Real len[AMREX_SPACEDIM] = {phi_arr[0] - plo[0],
-                                           phi_arr[1] - plo[1],
-                                           phi_arr[2] - plo[2]};
+                                            phi_arr[1] - plo[1],
+                                            phi_arr[2] - plo[2]};
         RealArray lo_box, hi_box;
         lo_box[0] = plo[0] - len[0];
         lo_box[1] = plo[1] - len[1];
@@ -306,32 +346,26 @@ static void build_analytic_levelset(const std::string &geom_type,
         EB2::Build(geom_ls, req_coarsen, 10);
     }
 
-    build_factory_and_lsphi(geom, ba, dm, nghost, ls_ref);
+    build_factory(geom, ba, dm, nghost);
+
+    MultiFab *lsphi_out = allocate_body_lsphi(ba, dm, nghost, ls_ref);
 
     const EB2::IndexSpace &ebis = EB2::IndexSpace::top();
     const EB2::Level &lslev = ebis.getLevel(geom_ls);
 
-    amrex::FillSignedDistance(*lsphi, lslev, *ebfactory, ls_ref);
-    lsphi->FillBoundary(geom_ls.periodicity());
+    amrex::FillSignedDistance(*lsphi_out, lslev, *ebfactory, ls_ref);
+    lsphi_out->FillBoundary(geom_ls.periodicity());
+    return lsphi_out;
 }
 
-// ---------------------------------------------------------------
-// Public entry point
-// ---------------------------------------------------------------
-
 /**
- * @brief Initializes EB geometry and level-set MultiFab.
+ * @brief Initialises EB geometry and all body level-set MultiFabs.
  *
- * Reads eb2.geom_type and dispatches to:
- *   Path A (udf_cpp)     — user-defined shared-library UDF
- *   Path B (stl)         — STL surface mesh
- *   Path C (everything else) — AMReX built-in analytic shapes
+ * Reads eb2.body_names for multi-body mode, or falls back to eb2.geom_type
+ * for single-body backward compatibility.  On exit, mpm_ebtools::ls_bodies
+ * is populated and mpm_ebtools::ebfactory reflects the last body's geometry.
  *
- * On exit, mpm_ebtools::ebfactory and mpm_ebtools::lsphi are fully
- * initialised and ready for use.
- *
- * Also writes a plotfile "ebplt" with the cell-centred signed distance field
- * for visualisation in VisIt/ParaView.
+ * Writes one "ebplt_<name>" plotfile per body for visualisation.
  *
  * @param[in] geom  Coarse-level geometry.
  * @param[in] ba    BoxArray for the coarse level.
@@ -343,40 +377,157 @@ void init_eb(const Geometry &geom,
 {
     constexpr int nghost = 1;
 
-    std::string geom_type = "all_regular";
     amrex::ParmParse pp("eb2");
-    pp.query("geom_type", geom_type);
-    pp.query("ls_refinement", ls_refinement);
 
-    if (geom_type == "all_regular")
+    std::vector<std::string> body_names;
+    pp.queryarr("body_names", body_names);
+
+    bool legacy_single_body = false;
+
+    if (body_names.empty())
     {
-        amrex::Print() << "\n[EB] geom_type = all_regular — no EB geometry\n";
-        return;
+        std::string geom_type = "all_regular";
+        pp.query("geom_type", geom_type);
+
+        if (geom_type == "all_regular")
+        {
+            amrex::Print() << "\n[EB] geom_type = all_regular — no EB geometry\n";
+            return;
+        }
+
+        body_names.push_back("body_0");
+        legacy_single_body = true;
     }
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        static_cast<int>(body_names.size()) <= EXAGOOP_MAX_LS_BODIES,
+        "Number of EB bodies exceeds EXAGOOP_MAX_LS_BODIES");
 
     using_levelset_geometry = true;
+    ls_bodies.reserve(body_names.size());
 
-    if (geom_type == "udf_cpp")
+    for (const auto &name : body_names)
     {
-        build_udf_levelset(geom, ba, dm, nghost, ls_refinement);
-    }
-    else if (geom_type == "stl")
-    {
-        build_stl_levelset(geom, ba, dm, nghost, ls_refinement);
-    }
-    else
-    {
-        build_analytic_levelset(geom_type, geom, ba, dm, nghost, ls_refinement);
+        const std::string pp_prefix = legacy_single_body ? "eb2" : name;
+        amrex::ParmParse pp_body(pp_prefix);
+
+        std::string geom_type;
+        pp_body.get("geom_type", geom_type);
+
+        int ls_ref = 1;
+        pp_body.query("ls_refinement", ls_ref);
+
+        MultiFab *body_lsphi = nullptr;
+
+        if (geom_type == "udf_cpp")
+        {
+            body_lsphi =
+                build_udf_levelset(name, pp_prefix, geom, ba, dm, nghost, ls_ref);
+        }
+        else if (geom_type == "stl")
+        {
+            body_lsphi =
+                build_stl_levelset(name, pp_prefix, geom, ba, dm, nghost, ls_ref);
+        }
+        else
+        {
+            body_lsphi = build_analytic_levelset(name, pp_prefix, geom_type,
+                                                  geom, ba, dm, nghost, ls_ref);
+        }
+
+        
+        std::string mom_bc = "noslipwall";
+        pp_body.query("levelset_mom", mom_bc);
+
+
+        if (mom_bc == "noslipwall" && !pp_body.contains("levelset_mom")
+            && legacy_single_body)
+        {
+            amrex::ParmParse pp_mpm("mpm");
+            int legacy_int = -1;
+            if (pp_mpm.query("levelset_bc", legacy_int))
+            {
+                amrex::Print()
+                    << "[EB] Warning: mpm.levelset_bc is deprecated. "
+                       "Use eb2.levelset_mom = noslipwall|slipwall|partialslip "
+                       "instead.\n";
+                if (legacy_int == 2)      mom_bc = "slipwall";
+                else if (legacy_int == 3) mom_bc = "partialslip";
+                else                      mom_bc = "noslipwall";
+            }
+        }
+
+        amrex::Real wall_mu = 0.0;
+        pp_body.query("lset_wall_mu", wall_mu);
+
+
+        if (wall_mu == 0.0 && !pp_body.contains("lset_wall_mu")
+            && legacy_single_body)
+        {
+            amrex::ParmParse pp_mpm("mpm");
+            pp_mpm.query("levelset_wall_mu", wall_mu);
+        }
+
+        amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> wall_vel =
+            {AMREX_D_DECL(0.0, 0.0, 0.0)};
+        {
+            std::vector<amrex::Real> wv(AMREX_SPACEDIM, 0.0);
+            if (pp_body.queryarr("lset_wall_vel", wv))
+            {
+                for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                    wall_vel[d] = wv[d];
+            }
+        }
+
+        LevelSetBody body;
+        body.name = name;
+        body.lsphi = body_lsphi;
+        body.ls_refinement = ls_ref;
+        body.mom_bc_type = mom_bc;
+        body.wall_mu = wall_mu;
+        body.wall_vel = wall_vel;
+
+        std::string temp_bc = "adiabatic";
+        pp_body.query("temp_bc_type", temp_bc);
+
+        amrex::Real T_wall = 0.0;
+        pp_body.query("lset_T_wall", T_wall);
+
+        amrex::Real heat_flux = 0.0;
+        pp_body.query("lset_heat_flux", heat_flux);
+
+        amrex::Real h_conv = 0.0;
+        pp_body.query("lset_h_conv", h_conv);
+
+        amrex::Real T_inf_val = 0.0;
+        pp_body.query("lset_T_inf", T_inf_val);
+
+        body.temp_bc_type = temp_bc;
+        body.T_wall       = T_wall;
+        body.heat_flux    = heat_flux;
+        body.h_conv       = h_conv;
+        body.T_inf        = T_inf_val;
+
+        amrex::Print() << "  [EB] Body '" << name
+                       << "': levelset_mom=" << mom_bc
+                       << "  lset_wall_mu=" << wall_mu
+                       << "  temp_bc_type=" << temp_bc << "\n";
+
+        ls_bodies.push_back(std::move(body));
     }
 
+    for (const auto &body : ls_bodies)
     {
-        Geometry geom_ls = refined_geom(geom, ls_refinement);
+        Geometry geom_ls = refined_geom(geom, body.ls_refinement);
         BoxArray plot_ba = ba;
-        plot_ba.refine(ls_refinement);
-        MultiFab plotmf(plot_ba, dm, lsphi->nComp(), 0);
-        amrex::average_node_to_cellcenter(plotmf, 0, *lsphi, 0,
-                                          lsphi->nComp());
-        WriteSingleLevelPlotfile("ebplt", plotmf, {"phi"}, geom_ls, 0.0, 0);
+        plot_ba.refine(body.ls_refinement);
+
+        MultiFab plotmf(plot_ba, dm, body.lsphi->nComp(), 0);
+        amrex::average_node_to_cellcenter(plotmf, 0, *body.lsphi, 0,
+                                          body.lsphi->nComp());
+
+        std::string pltname = "ebplt_" + body.name;
+        WriteSingleLevelPlotfile(pltname, plotmf, {"phi"}, geom_ls, 0.0, 0);
     }
 }
 

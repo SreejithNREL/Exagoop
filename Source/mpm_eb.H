@@ -2,26 +2,19 @@
 #define _MPM_EB_H_
 
 // clang-format off
+#include <string>
+#include <vector>
+
 #include <AMReX.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFab.H>
 
 #if USE_EB
-// EB data-access headers — needed in every TU that touches EB cell flags,
-// face areas, EBFArrayBoxFactory, etc.  Safe to include from CUDA TUs.
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_EB_utils.H>
 
-// EB2 geometry-building headers — only required in the TU(s) that call
-// EB2::Build / EB2::makeShop (mpm_eb.cpp, mpm_eb_udf_build.cpp).
-//
-// CUDA TUs must NOT see these headers: nvcc compiles the heavy GShopLevel /
-// GeometryShop / GFab template machinery into host code that differs subtly
-// from g++'s output, causing segfaults in BaseFab<uint32_t>::define() during
-// geometry construction (ODR violation on the template instantiation).
-//
-// Define EXAGOOP_INCLUDE_EB2_IF before including this header to opt in.
+
 #ifdef EXAGOOP_INCLUDE_EB2_IF
 #include <AMReX_EB2.H>
 #include <AMReX_EB2_IF.H>
@@ -42,9 +35,76 @@
 using namespace amrex;
 
 #if USE_EB
+
+constexpr int EXAGOOP_MAX_LS_BODIES = 8;	//Maximum number of level set bodies
+
+// Each body has its own level set data structure. Using a struct to group all quantities
+struct LevelSetBody
+{
+    std::string name;						//name of body
+    amrex::MultiFab *lsphi = nullptr;		//levelset value
+    int ls_refinement = 1;					//levelset refinement factor
+
+    std::string mom_bc_type = "noslipwall";	//BC for each level set (1bc for each levelset)
+    amrex::Real wall_mu = 0.0;				//friction coeff.
+    amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> wall_vel =		//in case wall velocity is specified
+        {AMREX_D_DECL(0.0, 0.0, 0.0)};
+
+    /**
+     * @brief Maps the string mom_bc_type to the integer BC_* constant
+     *        used by applybc() in mpm_kernels.H.
+     *
+     * Valid strings: "noslipwall", "slipwall", "partialslip".
+     * Returns BC_NOSLIPWALL if the string is unrecognised (with Abort).
+     */
+    int mom_bc_int() const
+    {
+        if (mom_bc_type == "noslipwall")  return BC_NOSLIPWALL;
+        if (mom_bc_type == "slipwall")    return BC_SLIPWALL;
+        if (mom_bc_type == "partialslip") return BC_PARTIALSLIPWALL;
+        amrex::Abort("LevelSetBody '" + name +
+                     "': unknown levelset_mom type '" + mom_bc_type + "'."
+                     " Valid values: noslipwall, slipwall, partialslip.");
+        return BC_NOSLIPWALL;
+    }
+
+    // Temperature BC — set by init_eb() from <name>.temp_bc_type etc.
+    //
+    //   "adiabatic"  (default) — no thermal constraint (natural BC, zero flux)
+    //   "isothermal"           — Dirichlet: T = T_wall
+    //   "heatflux"             — Neumann: T_node = T_nb + heat_flux * dx / k_node
+    //   "convective"           — Robin:   T_node = (T_nb + Bi * T_inf) / (1 + Bi)
+    //                                     Bi = h_conv * dx / k_node
+    std::string temp_bc_type = "adiabatic";
+    amrex::Real T_wall    = 0.0;
+    amrex::Real heat_flux = 0.0;
+    amrex::Real h_conv    = 0.0;
+    amrex::Real T_inf     = 0.0;
+
+    /**
+     * @brief Maps temp_bc_type string to an integer code matching the
+     *        convention used by nodal_bcs_temperature():
+     *          0 = adiabatic (no-op)
+     *          1 = isothermal (Dirichlet)
+     *          3 = heatflux  (Neumann, prescribed flux)
+     *          4 = convective (Robin)
+     */
+    int temp_bc_int() const
+    {
+        if (temp_bc_type == "adiabatic")  return 0;
+        if (temp_bc_type == "isothermal") return 1;
+        if (temp_bc_type == "heatflux")   return 3;
+        if (temp_bc_type == "convective") return 4;
+        amrex::Abort("LevelSetBody '" + name +
+                     "': unknown temp_bc_type '" + temp_bc_type + "'."
+                     " Valid values: adiabatic, isothermal, heatflux, convection.");
+        return 0;
+    }
+};
+
 // ============================================================
 // Forward declarations — full type defined in mpm_udf_loader.H
-// Only needed when USE_EB is on.
+// Only needed when USE_EB is true.
 // ============================================================
 class UDFImplicitFunction;
 namespace amrex
@@ -57,6 +117,8 @@ class EBFArrayBoxFactory;
  *        from a UDF implicit function.
  *
  * Defined in mpm_eb_udf_build.cpp (CXX-only TU — never compiled by nvcc).
+ * The lsphi MultiFab is allocated but NOT filled — the caller fills it via
+ * amrex::LoopOnCpu after this returns.
  */
 void build_udf_eb(UDFImplicitFunction udf_if,
                   const amrex::Geometry &geom,
@@ -69,9 +131,11 @@ void build_udf_eb(UDFImplicitFunction udf_if,
 
 namespace mpm_ebtools
 {
+// Grouping eb related tools. EBFArrayBoxFactory is used in FillSignedDistance (only) but we will retain it for future use
+
+extern std::vector<LevelSetBody> ls_bodies;
+
 extern EBFArrayBoxFactory *ebfactory;
-extern MultiFab *lsphi;
-extern int ls_refinement;
 extern bool using_levelset_geometry;
 
 void init_eb(const Geometry &geom,
@@ -79,18 +143,6 @@ void init_eb(const Geometry &geom,
              const DistributionMapping &dm);
 } // namespace mpm_ebtools
 #endif // USE_EB
-
-// ============================================================
-// Level-set interpolation utilities
-//
-// These functions are called from:
-//   - amrex::ParallelFor  (GPU device kernels)
-//   - amrex::LoopOnCpu    (CPU host code, e.g. UDF path)
-//
-// Both call sites require AMREX_GPU_HOST_DEVICE.
-// Using AMREX_GPU_DEVICE only would compile fine on CPU builds but fail
-// with "calling __device__ from __host__" on CUDA builds.
-// ============================================================
 
 /**
  * @brief Evaluates the level-set field at an arbitrary physical point.

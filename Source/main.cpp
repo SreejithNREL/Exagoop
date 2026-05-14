@@ -24,8 +24,7 @@ int main(int argc, char *argv[])
         PrintWelcomeMessage();
 
         // Initializing and reading input file for the simulation
-        MPMspecs specs;
-        // Rigid_Bodies *Rb=nullptr;
+        MPMspecs specs;        
         specs.read_mpm_specs();
 
         // Declaring solver variables

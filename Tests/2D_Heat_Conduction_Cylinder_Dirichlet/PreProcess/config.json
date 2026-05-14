@@ -3,10 +3,10 @@
   "grid": {
     "xmin": 0.0,
     "xmax": 1.0,
-    "nx": 32,
+    "nx": 128,
     "ymin": 0.0,
     "ymax": 1.0,
-    "ny": 32
+    "ny": 128
   },
   "ppc": [
     2,
@@ -39,26 +39,26 @@
   "alpha_pic_flip": 1.0,
   "order_scheme": 1,
   "stress_update_scheme": "MUSL",
-  "output_tag": "2D_Heat_Conduction_npcx2_ord1_susMUSL_USEHDFFalse_OFORMascii_MPI=True_CUDAFalse_HIPFalse_OMPFalse_SYCLFalse_EBFalse_TEMPTrue_BuildSystemgnumake_f09399",
-  "input_filename": "Inputs_2DHeatConduction.inp",
+  "output_tag": "2D_Heat_Conduction_Cylinder_Dirichlet_npcx2_ord1_susMUSL_USEHDFFalse_OFORMascii_MPI=True_CUDAFalse_HIPFalse_OMPFalse_SYCLFalse_EBTrue_TEMPTrue_BuildSystemcmake_9025d1",
+  "input_filename": "Inputs_2DHeat_Conduction_Cylinder_Dirichlet.inp",
   "output_format": "ascii",
   "materialpoint_filename": "mpm_particles.dat",
   "plot_to_check": false,
   "build_with_hdf": false,
-  "build_system": "gnumake",
+  "build_system": "cmake",
   "use_mpi": true,
   "use_cuda": false,
   "use_hip": false,
   "use_omp": false,
   "use_sycl": false,
-  "use_eb": false,
+  "use_eb": true,
   "use_temp": true,
   "simulation": {
-    "final_time": 0.05,
+    "final_time": 0.1,
     "max_steps": 5000000,
     "screen_output_time": 0.001,
     "write_output_time": 0.01,
-    "num_redist": 1,
+    "num_redist": 10,
     "fixed_timestep": 1,
     "timestep": 1e-05
   },
@@ -69,34 +69,51 @@
   ],
   "boundary_conditions": {
     "xlo": {
-      "mom": "noslip",
+      "mom": "slip",
       "temp": {
         "type": "dirichlet",
-        "T_wall": 1.0
+        "T_wall": 0.0
       }
     },
     "xhi": {
-      "mom": "noslip",
+      "mom": "slip",
       "temp": {
         "type": "dirichlet",
-        "T_wall": 1.0
+        "T_wall": 0.0
       }
     },
     "ylo": {
-      "mom": "periodic",
+      "mom": "slip",
       "temp": {
         "type": "dirichlet",
-        "T_wall": 1.0
+        "T_wall": 0.0
       }
     },
     "yhi": {
-      "mom": "periodic",
+      "mom": "slip",
       "temp": {
         "type": "dirichlet",
-        "T_wall": 1.0
+        "T_wall": 0.0
       }
     }
   },
+  "levelset_bodies": [
+    {
+      "name": "cylinder",
+      "geom_type": "sphere",
+      "sphere_radius": 0.15,
+      "sphere_center": [
+        0.5,
+        0.5,
+        0.0
+      ],
+      "sphere_has_fluid_inside": false,
+      "ls_refinement": 2,
+      "levelset_mom": "slipwall",
+      "temp_bc_type": "isothermal",
+      "lset_T_wall": 1.0
+    }
+  ],
   "diagnostics": {
     "print_diagnostics": 0,
     "do_calculate_tke_tse": 0,

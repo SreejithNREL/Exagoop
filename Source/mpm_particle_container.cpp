@@ -77,9 +77,6 @@ void MPMParticleContainer::apply_constitutive_model(
                             dt * p.rdata(realData::strainrate + d);
                     }
 
-                // Apply external axial strainrate in active spatial dims
-                // Assumes XX, YY, ZZ are defined consistently with
-                // AMREX_SPACEDIM
 #if (AMREX_SPACEDIM >= 1)
                     p.rdata(realData::strain + XX) += dt * applied_strainrate;
 #endif

@@ -206,12 +206,13 @@ void MPMParticleContainer::updateVolume()
  * @param[in] dt              Time step.
  * @param[in] bclo            Boundary condition types at low faces.
  * @param[in] bchi            Boundary condition types at high faces.
- * @param[in] lsetbc          Boundary condition type for level‑set EB.
  * @param[in] wall_mu_lo      Friction coefficients at low faces.
  * @param[in] wall_mu_hi      Friction coefficients at high faces.
  * @param[in] wall_vel_lo     Wall velocities at low faces (flattened array).
  * @param[in] wall_vel_hi     Wall velocities at high faces (flattened array).
- * @param[in] lset_wall_mu    Friction coefficient for level‑set EB.
+ *
+ * Level-set BC type and friction coefficient are read per-body from
+ * mpm_ebtools::ls_bodies (set by init_eb() from the input file).
  *
  * @return None.
  */
@@ -220,12 +221,10 @@ void MPMParticleContainer::moveParticles(
     const amrex::Real &dt,
     int bclo[AMREX_SPACEDIM],
     int bchi[AMREX_SPACEDIM],
-    [[maybe_unused]] int lsetbc,
     amrex::Real wall_mu_lo[AMREX_SPACEDIM],
     amrex::Real wall_mu_hi[AMREX_SPACEDIM],
     amrex::Real wall_vel_lo[AMREX_SPACEDIM * AMREX_SPACEDIM],
     amrex::Real wall_vel_hi[AMREX_SPACEDIM * AMREX_SPACEDIM],
-    [[maybe_unused]] amrex::Real lset_wall_mu,
     amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM> udf_wall_vel_lo_dev,
     amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM> udf_wall_vel_hi_dev)
 {
@@ -239,7 +238,17 @@ void MPMParticleContainer::moveParticles(
 
 #if USE_EB
     bool using_levsets = mpm_ebtools::using_levelset_geometry;
-    int lsref = mpm_ebtools::ls_refinement;
+    const int num_bodies = static_cast<int>(mpm_ebtools::ls_bodies.size());
+
+    amrex::GpuArray<int, EXAGOOP_MAX_LS_BODIES> body_refs;
+    amrex::GpuArray<int, EXAGOOP_MAX_LS_BODIES> body_bcs;
+    amrex::GpuArray<amrex::Real, EXAGOOP_MAX_LS_BODIES> body_mus;
+    for (int b = 0; b < num_bodies; ++b)
+    {
+        body_refs[b] = mpm_ebtools::ls_bodies[b].ls_refinement;
+        body_bcs[b]  = mpm_ebtools::ls_bodies[b].mom_bc_int();
+        body_mus[b]  = mpm_ebtools::ls_bodies[b].wall_mu;
+    }
 #endif
 
     GpuArray<int, AMREX_SPACEDIM> bc_lo_arr, bc_hi_arr;
@@ -277,10 +286,12 @@ void MPMParticleContainer::moveParticles(
         ParticleType *pstruct = aos().dataPtr();
 
 #if USE_EB
-        amrex::Array4<amrex::Real> lsetarr;
+        amrex::GpuArray<amrex::Array4<amrex::Real>, EXAGOOP_MAX_LS_BODIES>
+            body_arrs;
         if (using_levsets)
         {
-            lsetarr = mpm_ebtools::lsphi->array(mfi);
+            for (int b = 0; b < num_bodies; ++b)
+                body_arrs[b] = mpm_ebtools::ls_bodies[b].lsphi->array(mfi);
         }
 #endif
 
@@ -311,7 +322,6 @@ void MPMParticleContainer::moveParticles(
                 }
 
 #if USE_EB
-                // Levelset BC
 
                 if (using_levsets && p.idata(intData::phase) == 0)
                 {
@@ -319,15 +329,26 @@ void MPMParticleContainer::moveParticles(
                     for (int d = 0; d < AMREX_SPACEDIM; ++d)
                         xp[d] = p.pos(d);
 
-                    amrex::Real dist =
-                        get_levelset_value(lsetarr, plo, dx, xp, lsref);
-                    if (dist < TINYVAL)
+                    int hit_body = -1;
+                    amrex::Real min_phi = TINYVAL;
+
+                    for (int b = 0; b < num_bodies; ++b)
+                    {
+                        amrex::Real phi = get_levelset_value(
+                            body_arrs[b], plo, dx, xp, body_refs[b]);
+                        if (phi < min_phi)
+                        {
+                            min_phi = phi;
+                            hit_body = b;
+                        }
+                    }
+
+                    if (hit_body >= 0)
                     {
                         amrex::Real normaldir[AMREX_SPACEDIM];
-                        get_levelset_grad(lsetarr, plo, dx, xp, lsref,
-                                          normaldir);
+                        get_levelset_grad(body_arrs[hit_body], plo, dx, xp,
+                                          body_refs[hit_body], normaldir);
 
-                        // normalize
                         amrex::Real gradmag = 0.0;
                         for (int d = 0; d < AMREX_SPACEDIM; ++d)
                             gradmag += normaldir[d] * normaldir[d];
@@ -336,14 +357,15 @@ void MPMParticleContainer::moveParticles(
                             normaldir[d] /= (gradmag + TINYVAL);
 
                         int modify_pos =
-                            applybc(relvel_in, relvel_out, lset_wall_mu,
-                                    normaldir, lsetbc);
+                            applybc(relvel_in, relvel_out, body_mus[hit_body],
+                                    normaldir, body_bcs[hit_body]);
                         if (modify_pos)
                         {
                             for (int d = 0; d < AMREX_SPACEDIM; ++d)
                             {
-                                p.pos(d) +=
-                                    2.0 * amrex::Math::abs(dist) * normaldir[d];
+                                p.pos(d) += 2.0 *
+                                            amrex::Math::abs(min_phi) *
+                                            normaldir[d];
                             }
                         }
                         for (int d = 0; d < AMREX_SPACEDIM; ++d)
@@ -530,64 +552,6 @@ void MPMParticleContainer::moveParticles(
                 }
             });
     }
-}
-
-/**
- * @brief Returns the maximum Y‑coordinate among all particles.
- *
- * This is typically used to track the top surface of a deforming body
- * (e.g., for spring compression diagnostics).
- *
- * @return amrex::Real  Maximum particle y‑position.
- */
-
-amrex::Real MPMParticleContainer::GetPosSpring()
-{
-
-    amrex::Real ymin = 0.0;
-
-    using PType = typename MPMParticleContainer::SuperParticleType;
-    ymin = amrex::ReduceMax(*this,
-                            [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
-                            {
-                                Real yscale;
-                                yscale = p.pos(YDIR);
-                                return (yscale);
-                            });
-    return (ymin);
-}
-
-/**
- * @brief Returns the minimum Y‑coordinate among all rigid‑body‑0 particles.
- *
- * Performs a GPU‑parallel reduction over all particles with phase = 1 and
- * rigid_body_id = 0 (the piston), returning the lowest Y position. All
- * other particles contribute +∞ to the reduction so they are ignored.
- *
- * @return amrex::Real  Minimum Y‑position of the piston rigid body.
- */
-amrex::Real MPMParticleContainer::GetPosPiston()
-{
-    amrex::Real ymin = std::numeric_limits<amrex::Real>::max();
-
-    using PType = typename MPMParticleContainer::SuperParticleType;
-    ymin = amrex::ReduceMin(*this,
-                            [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
-                            {
-                                Real yscale;
-                                if (p.idata(intData::phase) == 1 and
-                                    p.idata(intData::rigid_body_id) == 0)
-                                {
-                                    yscale = p.pos(YDIR);
-                                }
-                                else
-                                {
-                                    yscale =
-                                        std::numeric_limits<amrex::Real>::max();
-                                }
-                                return (yscale);
-                            });
-    return (ymin);
 }
 
 /**

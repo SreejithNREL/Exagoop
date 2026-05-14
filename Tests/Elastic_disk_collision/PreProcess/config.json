@@ -77,5 +77,42 @@
   "input_filename": "Inputs_ElasticDiskCollision.inp",
   "output_format": "ascii",
   "materialpoint_filename": "mpm_particles.dat",
-  "plot_to_check": false
+  "plot_to_check": false,
+  "alpha_pic_flip": 1.0,
+  "simulation": {
+    "final_time": 3.5,
+    "max_steps": 5000000,
+    "screen_output_time": 0.001,
+    "write_output_time": 0.01,
+    "num_redist": 10,
+    "fixed_timestep": 0,
+    "timestep": 1e-05
+  },
+  "gravity": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "boundary_conditions": {
+    "xlo": {
+      "mom": "periodic"
+    },
+    "xhi": {
+      "mom": "periodic"
+    },
+    "ylo": {
+      "mom": "periodic"
+    },
+    "yhi": {
+      "mom": "periodic"
+    }
+  },
+  "diagnostics": {
+    "print_diagnostics": 1,
+    "do_calculate_tke_tse": 1,
+    "do_calculate_mwa_velcomp": 1,
+    "do_calculate_mwa_velmag": 0,
+    "do_calculate_minmaxpos": 1,
+    "write_diag_output_time": 0.01
+  }
 }

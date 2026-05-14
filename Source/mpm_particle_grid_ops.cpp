@@ -5,45 +5,6 @@
 // clang-format on
 
 /**
- * @brief Checks whether any rigid-body particles are present in the container.
- *
- * Performs a parallel reduction over all particles to determine whether
- * any particle has phase = 1 (rigid). Returns 1 if at least one rigid
- * particle exists, otherwise returns 0.
- *
- * @return int
- *         1 if rigid particles are present,
- *         0 otherwise.
- */
-
-int MPMParticleContainer::checkifrigidnodespresent()
-{
-    int rigidnodespresent = 0;
-
-    using PType = typename MPMParticleContainer::SuperParticleType;
-    rigidnodespresent = static_cast<int>(
-        amrex::ReduceMax(*this,
-                         [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
-                         {
-                             if (p.idata(intData::phase) == 1)
-                             {
-                                 int rigidnodespresenttmp = 1;
-                                 return (rigidnodespresenttmp);
-                             }
-                             else
-                             {
-                                 int rigidnodespresenttmp = 0;
-                                 return (rigidnodespresenttmp);
-                             }
-                         }));
-
-#ifdef BL_USE_MPI
-    ParallelDescriptor::ReduceIntMax(rigidnodespresent);
-#endif
-    return (rigidnodespresent);
-}
-
-/**
  * @brief Computes the total number of rigid-body particles belonging to a given
  * body ID.
  *
@@ -299,7 +260,7 @@ compute_bounds(int ivd, int lod, int hid, int scheme, bool is_periodic)
 
     if (scheme == 1)
     {
-        // Linear: 2-point support
+        
         bmin = 0;
         bmax = 2;
     }
@@ -404,11 +365,11 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
 
     int extloads = external_loads_present;
 
-    // Zero out nodal data
+    
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
 
-        // const Box &nodalbox = mfi.validbox();
+        
         const Box &nodalbox =
             convert(mfi.validbox(), IntVect(AMREX_D_DECL(1, 1, 1)));
         auto nodal_data_arr = nodaldata.array(mfi);
@@ -626,15 +587,6 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
             });
     }
 
-    if (update_vel)
-    {
-        // nodaldata.SumBoundary(MASS_INDEX, 1, geom.periodicity());
-        // nodaldata.SumBoundary(VELX_INDEX, 3, geom.periodicity());
-    }
-    if (update_forces)
-    {
-        // nodaldata.SumBoundary(STRESS_INDEX, 6, geom.periodicity());
-    }
 
     // Normalize velocities and stresses
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
@@ -732,7 +684,7 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
         for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
         {
 
-            // const Box &nodalbox = mfi.validbox();
+            
             const Box &nodalbox =
                 convert(mfi.validbox(), IntVect(AMREX_D_DECL(1, 1, 1)));
             auto nodal_data_arr = nodaldata.array(mfi);
@@ -931,46 +883,6 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
 }
 
 #endif
-
-/**
- * @brief Deposits rigid‑body particle quantities onto the Eulerian grid
- *        (stub — body currently disabled).
- *
- * This function is intended to perform a P2G transfer using only the rigid
- * (phase = 1) particles, segregating their mass and momentum onto the nodal
- * MultiFab independently of the material‑point contribution. The full
- * implementation is currently commented out; the function is a no‑op
- * placeholder for future use.
- *
- * @param[in,out] nodaldata               Nodal MultiFab (unused in stub).
- * @param[in]     gravity                 Gravitational acceleration vector.
- * @param[in]     external_loads_present  Flag enabling external body forces.
- * @param[in]     force_slab_lo           Lower corner of the body‑force slab.
- * @param[in]     force_slab_hi           Upper corner of the body‑force slab.
- * @param[in]     extforce                External force vector.
- * @param[in]     update_massvel          Flag to update nodal mass/velocity.
- * @param[in]     update_forces           Flag to update nodal forces.
- * @param[in]     mass_tolerance          Minimum nodal mass threshold.
- * @param[in]     order_scheme_directional Per‑dimension interpolation order.
- * @param[in]     periodic                Per‑dimension periodicity flags.
- *
- * @return None.
- */
-void MPMParticleContainer::deposit_onto_grid_rigidnodesonly(
-    MultiFab & /*nodaldata*/,
-    Array<Real, AMREX_SPACEDIM> /*gravity*/,
-    int /*external_loads_present*/,
-    Array<Real, AMREX_SPACEDIM> /*force_slab_lo*/,
-    Array<Real, AMREX_SPACEDIM> /*force_slab_hi*/,
-    Array<Real, AMREX_SPACEDIM> /*extforce*/,
-    int /*update_massvel*/,
-    int /*update_forces*/,
-    amrex::Real /*mass_tolerance*/,
-    GpuArray<int, AMREX_SPACEDIM> /*order_scheme_directional*/,
-    GpuArray<int, AMREX_SPACEDIM> /*periodic*/)
-{
-    // To be implemented
-}
 
 /**
  * @brief Interpolates nodal grid quantities back to particles (G2P transfer).

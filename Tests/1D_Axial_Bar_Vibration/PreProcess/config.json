@@ -42,7 +42,7 @@
   "alpha_pic_flip": 1.0,
   "order_scheme": 1,
   "stress_update_scheme": "MUSL",
-  "output_tag": "1D_Axial_Bar_Vibration_dim1_npcx2_ord1_flip1.0_susMUSL_CFL0.1_USEHDFFalse_OFORMascii_MPI=False_CUDATrue_HIPFalse_OMPFalse_SYCLFalse_EBFalse_TEMPFalse_BuildSystemgnumake_ad2ada",
+  "output_tag": "1D_Axial_Bar_Vibration_dim1_npcx2_ord1_flip1.0_susMUSL_CFL0.1_USEHDFFalse_OFORMascii_MPI=True_CUDAFalse_HIPFalse_OMPFalse_SYCLFalse_EBFalse_TEMPFalse_BuildSystemcmake_364309",
   "input_filename": "Inputs_1DAxialBarVibration.inp",
   "build_with_hdf": [
     false
@@ -50,12 +50,42 @@
   "output_format": "ascii",
   "materialpoint_filename": "mpm_particles.dat",
   "plot_to_check": true,
-  "build_system": "gnumake",
-  "use_mpi": false,
-  "use_cuda": true,
+  "build_system": "cmake",
+  "use_mpi": true,
+  "use_cuda": false,
   "use_hip": false,
   "use_omp": false,
   "use_sycl": false,
   "use_eb": false,
-  "use_temp": false
+  "use_temp": false,
+  "simulation": {
+    "final_time": 50.0,
+    "max_steps": 5000000,
+    "screen_output_time": 0.001,
+    "write_output_time": 0.5,
+    "num_redist": 1,
+    "fixed_timestep": 0,
+    "timestep": 1e-05
+  },
+  "gravity": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "boundary_conditions": {
+    "xlo": {
+      "mom": "noslip"
+    },
+    "xhi": {
+      "mom": "noslip"
+    }
+  },
+  "diagnostics": {
+    "print_diagnostics": 1,
+    "do_calculate_tke_tse": 1,
+    "do_calculate_mwa_velcomp": 1,
+    "do_calculate_mwa_velmag": 0,
+    "do_calculate_minmaxpos": 0,
+    "write_diag_output_time": 0.01
+  }
 }

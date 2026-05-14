@@ -42,7 +42,6 @@ endif()
        ${SRC_DIR}/utilities.cpp
        ${SRC_DIR}/mpm_diagnostics.cpp
        ${SRC_DIR}/mpm_init.cpp
-       ${SRC_DIR}/mpm_init.cpp
        ${SRC_DIR}/mpm_particle_container.H
        ${SRC_DIR}/mpm_particle_timestep.cpp
        ${SRC_DIR}/nodal_data_ops.H

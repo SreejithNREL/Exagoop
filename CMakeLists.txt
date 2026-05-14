@@ -11,7 +11,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 #Setting ExaGOOP permanent settings. Do NOT change them
 set(EXAGOOP_DIM "3" CACHE STRING "Number of spatial dimensions")
-set(EXAGOOP_PRECISION DOUBLE)
 set(EXAGOOP_ENABLE_EB ON)
 set(EXAGOOP_ENABLE_PARTICLES ON)
 
@@ -74,7 +73,7 @@ endif()
 
 
 #Enable Temperature Equation
-option(EXAGOOP_USE_TEMP "Enable temperature equation" ON)
+option(EXAGOOP_USE_TEMP "Enable temperature equation" OFF)
 
 if (EXAGOOP_USE_TEMP)
     add_compile_definitions(USE_TEMP=1)
@@ -139,7 +138,7 @@ if (EXAGOOP_ENABLE_MPI)
     set(PARALLEL ".MPI")
 endif()
 
-if (EXAGOOP_ENABLE_OMP)
+if (EXAGOOP_ENABLE_OPENMP)
     set(PARALLEL "${PARALLEL}.OMP")
 endif()
 

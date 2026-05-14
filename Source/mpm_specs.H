@@ -6,7 +6,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_GpuContainers.H>
 #include <constants.H>
-#include <dlfcn.h>
+#include <mpm_udf_loader.H>
 // clang-format on
 
 typedef void (*WallVelUDFFuncPtr)(double, double, double, double, double*);
@@ -72,24 +72,6 @@ struct intData
     };
 };
 
-struct Rigid_Bodies
-{
-    int Rigid_Body_Id;
-    int num_of_mp;
-    amrex::Real total_mass;
-    amrex::Real total_volume;
-    Array<amrex::Real, AMREX_SPACEDIM> gravity;
-    Array<amrex::Real, AMREX_SPACEDIM> force_external;
-    Array<amrex::Real, AMREX_SPACEDIM> force_internal;
-    Array<amrex::Real, AMREX_SPACEDIM> velocity;
-    Array<amrex::Real, AMREX_SPACEDIM> imposed_velocity;
-    amrex::Real Damping_Coefficient;
-    // Body forces
-    int position_update_method; // 0-->Constant Velocity 1-->Particle dynamics
-                                // solver
-    bool enable_weight;
-    bool enable_damping_force;
-};
 
 class MPMspecs
 {
@@ -153,29 +135,7 @@ class MPMspecs
     // Diagnostic parameters
     int print_diagnostics = 0;
     int ifrigidnodespresent = 0;
-    bool is_standard_test = true;
-    int test_number = 0; // 0->is_standard_test=false,1-->axial vibration of
-                         // bar, 2-->Dam break, 3--> Elastic collision of disks,
-                         // 4--> Lateral deflection of beam
     int no_of_rigidbodies_present = 0;
-    amrex::Real total_mass_phase_0 = 0.0;
-    amrex::Real total_vol_phase_0 = 0.0;
-
-    // Rigid body nodes
-    Rigid_Bodies *Rb;
-
-    // Parameters for membrane compaction
-    amrex::Real mem_compaction_area = 1.0;
-    amrex::Real mem_compaction_dampcoeff = 1.0;
-    amrex::Real mem_compaction_L0 = 1.0;
-    int mem_compaction_restoring_force_calc_method = 1;
-
-    // Parameters for spring alone simulation
-    amrex::Real spring_alone_area = 0.1;
-    amrex::Real spring_alone_length = 0.0;
-    amrex::Real spring_alone_E = 0.0;
-    amrex::Real spring_alone_exact_deflection = 0.0;
-    amrex::Real spring_alone_exact_delta = 0.0;
 
     // 1-->tent function, 3--> cubic spline shape function
     int order_scheme = 1;
@@ -196,8 +156,6 @@ class MPMspecs
     Real total_mass = 0.0;
     Real total_rigid_mass = 0.0;
     Real total_vol = 0.0;
-    Real mem_compaction_vnew = 0.0;
-    Real mem_compaction_vold = 0.0;
     int stress_update_scheme = 1;
     int calculate_strain_based_on_delta = 0;
 
@@ -216,8 +174,8 @@ class MPMspecs
     Array<Real, AMREX_SPACEDIM> bc_temp_Tinf_lo{AMREX_D_DECL(0.0, 0.0, 0.0)};
     Array<Real, AMREX_SPACEDIM> bc_temp_Tinf_hi{AMREX_D_DECL(0.0, 0.0, 0.0)};
 
-    void* udf_temp_handle_lo[AMREX_SPACEDIM] = {};
-    void* udf_temp_handle_hi[AMREX_SPACEDIM] = {};
+    std::unique_ptr<UDFLoader> udf_temp_loader_lo[AMREX_SPACEDIM];
+    std::unique_ptr<UDFLoader> udf_temp_loader_hi[AMREX_SPACEDIM];
     TempUDFFuncPtr udf_temp_func_ptr_lo[AMREX_SPACEDIM] = {};
     TempUDFFuncPtr udf_temp_func_ptr_hi[AMREX_SPACEDIM] = {};
     amrex::Gpu::DeviceVector<amrex::Real> udf_temp_nodes_lo[AMREX_SPACEDIM];
@@ -246,36 +204,20 @@ class MPMspecs
     Real autogen_heatsrc = 0.001;
     Real autogen_thermcond = 0.001;
 
-    int levelset_bc = 1; // no slip wall
-    Real levelset_wall_mu = 0.1;
-
     Array<Real, AMREX_SPACEDIM> wall_mu_lo{AMREX_D_DECL(0.1, 0.1, 0.1)};
     Array<Real, AMREX_SPACEDIM> wall_mu_hi{AMREX_D_DECL(0.1, 0.1, 0.1)};
 
     Array<Real, AMREX_SPACEDIM * AMREX_SPACEDIM> wall_vel_lo{0.0};
     Array<Real, AMREX_SPACEDIM * AMREX_SPACEDIM> wall_vel_hi{0.0};
 
-    void* udf_handle_lo[AMREX_SPACEDIM] = {};
-    void* udf_handle_hi[AMREX_SPACEDIM] = {};
+    std::unique_ptr<UDFLoader> udf_loader_lo[AMREX_SPACEDIM];
+    std::unique_ptr<UDFLoader> udf_loader_hi[AMREX_SPACEDIM];
     WallVelUDFFuncPtr udf_func_ptr_lo[AMREX_SPACEDIM] = {};
     WallVelUDFFuncPtr udf_func_ptr_hi[AMREX_SPACEDIM] = {};
     amrex::Gpu::DeviceVector<amrex::Real> udf_wall_vel_nodes_lo[AMREX_SPACEDIM];
     amrex::Gpu::DeviceVector<amrex::Real> udf_wall_vel_nodes_hi[AMREX_SPACEDIM];
 
-    Real levset_mu = 0.1;
-
-    ~MPMspecs()
-    {
-        for (int d = 0; d < AMREX_SPACEDIM; ++d)
-        {
-            if (udf_handle_lo[d]) dlclose(udf_handle_lo[d]);
-            if (udf_handle_hi[d]) dlclose(udf_handle_hi[d]);
-#if USE_TEMP
-            if (udf_temp_handle_lo[d]) dlclose(udf_temp_handle_lo[d]);
-            if (udf_temp_handle_hi[d]) dlclose(udf_temp_handle_hi[d]);
-#endif
-        }
-    }
+    ~MPMspecs() = default;
 
     void read_mpm_specs()
     {
@@ -356,15 +298,6 @@ class MPMspecs
 
         pp.query("num_of_digits_in_filenames", num_of_digits_in_filenames);
         pp.query("write_ascii", write_ascii);
-
-        pp.query("mem_compaction_area", mem_compaction_area);
-        pp.query("mem_compaction_dampcoeff", mem_compaction_dampcoeff);
-        pp.query("mem_compaction_restoring_force_calc_method",
-                 mem_compaction_restoring_force_calc_method);
-
-        pp.query("spring_alone_area", spring_alone_area);
-        pp.query("spring_alone_length", spring_alone_length);
-        pp.query("spring_alone_E", spring_alone_E);
 
         if (!use_autogen)
         {
@@ -510,12 +443,8 @@ class MPMspecs
                 bool has_func = pp_lo.query("udf_func", udf_func_lo);
                 if (has_lib && has_func)
                 {
-                    udf_handle_lo[d] = dlopen(udf_lib_lo.c_str(), RTLD_NOW);
-                    if (!udf_handle_lo[d])
-                        amrex::Abort(std::string("dlopen failed for lo face: ") + dlerror());
-                    udf_func_ptr_lo[d] = (WallVelUDFFuncPtr)dlsym(udf_handle_lo[d], udf_func_lo.c_str());
-                    if (!udf_func_ptr_lo[d])
-                        amrex::Abort(std::string("dlsym failed for lo face: ") + dlerror());
+                    udf_loader_lo[d] = std::make_unique<UDFLoader>(udf_lib_lo);
+                    udf_func_ptr_lo[d] = udf_loader_lo[d]->symbol<WallVelUDFFuncPtr>(udf_func_lo);
                 }
             }
 
@@ -535,12 +464,8 @@ class MPMspecs
                 bool has_func = pp_hi.query("udf_func", udf_func_hi);
                 if (has_lib && has_func)
                 {
-                    udf_handle_hi[d] = dlopen(udf_lib_hi.c_str(), RTLD_NOW);
-                    if (!udf_handle_hi[d])
-                        amrex::Abort(std::string("dlopen failed for hi face: ") + dlerror());
-                    udf_func_ptr_hi[d] = (WallVelUDFFuncPtr)dlsym(udf_handle_hi[d], udf_func_hi.c_str());
-                    if (!udf_func_ptr_hi[d])
-                        amrex::Abort(std::string("dlsym failed for hi face: ") + dlerror());
+                    udf_loader_hi[d] = std::make_unique<UDFLoader>(udf_lib_hi);
+                    udf_func_ptr_hi[d] = udf_loader_hi[d]->symbol<WallVelUDFFuncPtr>(udf_func_hi);
                 }
             }
         }
@@ -584,12 +509,8 @@ class MPMspecs
                 bool has_func = pp_lo_temp.query("udf_func", udf_func_lo);
                 if (has_lib && has_func)
                 {
-                    udf_temp_handle_lo[d] = dlopen(udf_lib_lo.c_str(), RTLD_NOW);
-                    if (!udf_temp_handle_lo[d])
-                        amrex::Abort(std::string("dlopen failed for temp lo face: ") + dlerror());
-                    udf_temp_func_ptr_lo[d] = (TempUDFFuncPtr)dlsym(udf_temp_handle_lo[d], udf_func_lo.c_str());
-                    if (!udf_temp_func_ptr_lo[d])
-                        amrex::Abort(std::string("dlsym failed for temp lo face: ") + dlerror());
+                    udf_temp_loader_lo[d] = std::make_unique<UDFLoader>(udf_lib_lo);
+                    udf_temp_func_ptr_lo[d] = udf_temp_loader_lo[d]->symbol<TempUDFFuncPtr>(udf_func_lo);
                 }
             }
 
@@ -604,62 +525,16 @@ class MPMspecs
                 bool has_func = pp_hi_temp.query("udf_func", udf_func_hi);
                 if (has_lib && has_func)
                 {
-                    udf_temp_handle_hi[d] = dlopen(udf_lib_hi.c_str(), RTLD_NOW);
-                    if (!udf_temp_handle_hi[d])
-                        amrex::Abort(std::string("dlopen failed for temp hi face: ") + dlerror());
-                    udf_temp_func_ptr_hi[d] = (TempUDFFuncPtr)dlsym(udf_temp_handle_hi[d], udf_func_hi.c_str());
-                    if (!udf_temp_func_ptr_hi[d])
-                        amrex::Abort(std::string("dlsym failed for temp hi face: ") + dlerror());
+                    udf_temp_loader_hi[d] = std::make_unique<UDFLoader>(udf_lib_hi);
+                    udf_temp_func_ptr_hi[d] = udf_temp_loader_hi[d]->symbol<TempUDFFuncPtr>(udf_func_hi);
                 }
             }
         }
 #endif
 
-        pp.query("levelset_bc", levelset_bc);
-        pp.query("levelset_wall_mu", levelset_wall_mu);
     }
 
-    std::string Convert_arr_string(Array<Real, AMREX_SPACEDIM> arr)
-    {
-        std::string str;
-        str = "[";
-        for (int i = 0; i < AMREX_SPACEDIM - 1; i++)
-        {
-            str = str + std::to_string(arr[i]) + ",";
-        }
-        str = str + std::to_string(arr[AMREX_SPACEDIM - 1]);
-        return (str);
-    }
-
-    void PrintSimulationParams()
-    {
-        // To be completed, Sreejith
-        std::string vect_str;
-        vect_str = Convert_arr_string(plo);
-        amrex::Print() << "\n\tBackground grid physical extents: " << vect_str;
-    }
-    void ThreeDOF_Solver(amrex::Real dt)
-    {
-        for (int i = 0; i < no_of_rigidbodies_present; i++)
-        {
-            if (Rb[i].position_update_method == 1)
-            {
-                for (int j = 0; j < AMREX_SPACEDIM; j++)
-                {
-                    Rb[i].velocity[j] +=
-                        (Rb[i].force_internal[j] + Rb[i].force_external[j]) /
-                        Rb[i].total_mass * dt;
-                }
-            }
-            else
-            {
-                for (int j = 0; j < AMREX_SPACEDIM; j++)
-                {
-                    Rb[i].velocity[j] = Rb[i].imposed_velocity[j];
-                }
-            }
-        }
-    }
 };
+
 
 #endif

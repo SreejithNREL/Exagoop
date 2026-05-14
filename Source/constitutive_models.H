@@ -84,7 +84,7 @@ linear_elastic_delta(amrex::Real delta_eps[NCOMP_TENSOR],
     // 2D elasticity (plane stress assumption)
     delta_sigma[XX] = const1 * ((1 - v) * delta_eps[XX] + v * delta_eps[YY]);
     delta_sigma[YY] = const1 * ((1 - v) * delta_eps[YY] + v * delta_eps[XX]);
-    delta_sigma[ZZ] = 0.0; // plane stress: out-of-plane stress neglected
+    delta_sigma[ZZ] = 0.0; 
     delta_sigma[XY] = const2 * delta_eps[XY];
     delta_sigma[XZ] = delta_sigma[YZ] = 0.0;
 
@@ -130,7 +130,7 @@ Newtonian_Fluid(amrex::Real epsdot[NCOMP_TENSOR],
 #elif (AMREX_SPACEDIM == 2)
     // 2D Newtonian fluid
     amrex::Real trace_epsdot = epsdot[XX] + epsdot[YY];
-    amrex::Real one_by_two = 0.5; // average for 2D trace
+    amrex::Real one_by_two = 0.5; 
 
     sigma[XX] =
         2.0 * dyn_visc * (epsdot[XX] - one_by_two * trace_epsdot) - pressure;

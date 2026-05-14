@@ -62,8 +62,7 @@ void Write_Particle_Grid_Levset_Output(
     BL_PROFILE_VAR("OUTPUT_TIME", outputs);
     Print() << "\n Writing outputs at step, time:" << steps << ", " << time
             << "\n";
-
-    std::string msg;
+    
     std::string pltfile = amrex::Concatenate(
         specs.prefix_gridfilename, output_it, specs.num_of_digits_in_filenames);
 
@@ -126,8 +125,7 @@ void P2G_Momentum(MPMspecs &specs,
                   int update_vel,
                   int update_forces)
 {
-    if (testing == 1)
-        amrex::Print() << "\n Doing P2G \n";
+    
     mpm_pc.deposit_onto_grid_momentum(
         nodaldata, specs.gravity, specs.external_loads_present,
         specs.force_slab_lo, specs.force_slab_hi, specs.extforce, update_mass,
@@ -159,8 +157,7 @@ void P2G_Temperature(MPMspecs &specs,
                      int update_temp,
                      int update_source)
 {
-    if (testing == 1)
-        amrex::Print() << "\n Doing P2G for temperature\n";
+    
     mpm_pc.deposit_onto_grid_temperature(
         nodaldata, reset_nodaldata_to_zero, update_temp, update_source,
         specs.mass_tolerance, specs.order_scheme_directional, specs.periodic);
@@ -199,8 +196,7 @@ void Apply_Nodal_BCs(amrex::Geometry &geom,
 #if USE_EB
     if (mpm_ebtools::using_levelset_geometry)
     {
-        nodal_levelset_bcs(nodaldata, geom, dt, specs.levelset_bc,
-                           specs.levelset_wall_mu);
+        nodal_levelset_bcs(nodaldata, geom, dt);
     }
 #endif
 
@@ -244,6 +240,11 @@ void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
                               specs.bc_temp_Tinf_hi.data());
         compute_udf_temp_at_nodes(geom, specs, t);
         apply_udf_nodal_bcs_temperature(geom, nodaldata, specs);
+#if USE_EB
+        if (mpm_ebtools::using_levelset_geometry)
+            nodal_levelset_bcs_temperature(nodaldata, geom,
+                                           /*dirichlet_only=*/false);
+#endif
     }
     else
     {
@@ -267,6 +268,11 @@ void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
                               specs.bc_temp_Tinf_hi.data());
         compute_udf_temp_at_nodes(geom, specs, t);
         apply_udf_nodal_bcs_temperature(geom, nodaldata, specs);
+#if USE_EB
+        if (mpm_ebtools::using_levelset_geometry)
+            nodal_levelset_bcs_temperature(nodaldata, geom,
+                                           /*dirichlet_only=*/true);
+#endif
     }
 }
 #endif
@@ -294,8 +300,7 @@ void G2P_Momentum(MPMspecs &specs,
                   int update_strainrate,
                   amrex::Real dt)
 {
-    if (testing == 1)
-        amrex::Print() << "\n Doing G2P \n";
+    
     mpm_pc.interpolate_from_grid(nodaldata, update_vel, update_strainrate,
                                  specs.order_scheme_directional, specs.periodic,
                                  specs.alpha_pic_flip, dt);
@@ -323,9 +328,7 @@ void G2P_Temperature(MPMspecs &specs,
                      int update_temperature,
                      int update_heatflux,
                      [[maybe_unused]] amrex::Real dt)
-{
-    if (testing == 1)
-        amrex::Print() << "\n Doing G2P \n";
+{    
     mpm_pc.interpolate_from_grid_temperature(
         nodaldata, update_temperature, update_heatflux,
         specs.order_scheme_directional, specs.periodic, specs.alpha_pic_flip);
@@ -362,9 +365,8 @@ void Update_MP_Positions(MPMspecs &specs,
                              : nullptr;
     }
     mpm_pc.moveParticles(dt, specs.bclo.data(), specs.bchi.data(),
-                         specs.levelset_bc, specs.wall_mu_lo.data(),
-                         specs.wall_mu_hi.data(), specs.wall_vel_lo.data(),
-                         specs.wall_vel_hi.data(), specs.levelset_wall_mu,
+                         specs.wall_mu_lo.data(), specs.wall_mu_hi.data(),
+                         specs.wall_vel_lo.data(), specs.wall_vel_hi.data(),
                          udf_lo_ptrs, udf_hi_ptrs);
 }
 
@@ -625,10 +627,10 @@ void Do_All_Diagnostics(MPMspecs &specs,
         mpm_pc.Calculate_MWA_VelocityMagnitude(Vmag);
         if (amrex::ParallelDescriptor::IOProcessor())
         {
-            specs.tmp_mwa_velcomp << steps << " " << current_time << " " << Vmag
+            specs.tmp_mwa_velmag << steps << " " << current_time << " " << Vmag
                                   << "\n";
         }
-        specs.tmp_mwa_velcomp.flush();
+        specs.tmp_mwa_velmag.flush();
     }
 
     if (specs.do_calculate_minmaxpos)

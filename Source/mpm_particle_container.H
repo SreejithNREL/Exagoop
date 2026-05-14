@@ -74,29 +74,6 @@ class MPMParticleContainer
                                int &ifrigidnodespresent);
 
     /**
-     * @brief Legacy HDF5 particle reader (deprecated, kept for reference).
-     *
-     * An older implementation of HDF5‑based particle initialisation.
-     * Superseded by InitParticlesFromHDF5(); retained for comparison only.
-     * Requires @c AMREX_USE_HDF5.
-     *
-     * @param[in]  filename                    Path to the HDF5 particle file.
-     * @param[out] total_mass                  Total mass of MPM particles.
-     * @param[out] total_vol                   Total volume of MPM particles.
-     * @param[out] total_rigid_mass            Total mass of rigid body 0.
-     * @param[out] index_rigid_body_read_so_far Number of rigid bodies found.
-     * @param[out] ifrigidnodespresent         1 if any rigid particles exist.
-     *
-     * @return None.
-     */
-    void InitParticlesFromHDF5old(const std::string &filename,
-                                  Real &total_mass,
-                                  Real &total_vol,
-                                  Real &total_rigid_mass,
-                                  int &index_rigid_body_read_so_far,
-                                  int &ifrigidnodespresent);
-
-    /**
      * @brief Autogenerates a uniform lattice of particles inside a bounding
      * box.
      *
@@ -160,24 +137,23 @@ class MPMParticleContainer
      * @param[in] dt            Time step size.
      * @param[in] bclo          Lower boundary condition type per dimension.
      * @param[in] bchi          Upper boundary condition type per dimension.
-     * @param[in] lsetbc        Level‑set BC flag (unused when USE_EB=0).
      * @param[in] wall_mu_lo    Wall friction coefficient, lower boundary.
      * @param[in] wall_mu_hi    Wall friction coefficient, upper boundary.
      * @param[in] wall_vel_lo   Wall velocity, lower boundary (row‑major).
      * @param[in] wall_vel_hi   Wall velocity, upper boundary (row‑major).
-     * @param[in] lset_wall_mu  Level‑set wall friction (unused when USE_EB=0).
+     *
+     * Level-set BC type and friction coefficient are read per-body from
+     * mpm_ebtools::ls_bodies (set by init_eb() from the input file).
      *
      * @return None.
      */
     void moveParticles(const amrex::Real &dt,
                        int bclo[AMREX_SPACEDIM],
                        int bchi[AMREX_SPACEDIM],
-                       int lsetbc,
                        amrex::Real wall_mu_lo[AMREX_SPACEDIM],
                        amrex::Real wall_mu_hi[AMREX_SPACEDIM],
                        amrex::Real wall_vel_lo[AMREX_SPACEDIM * AMREX_SPACEDIM],
                        amrex::Real wall_vel_hi[AMREX_SPACEDIM * AMREX_SPACEDIM],
-                       amrex::Real lset_wall_mu,
                        amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM>
                            udf_wall_vel_lo_dev,
                        amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM>
@@ -194,34 +170,6 @@ class MPMParticleContainer
      */
     void updateVolume();
 
-    /**
-     * @brief Prints particle data to stdout for debugging (currently a no‑op).
-     *
-     * @return None.
-     */
-    void PrintParticleData();
-
-    /**
-     * @brief Computes the exact velocity for a 1D axial‑bar vibration mode.
-     *
-     * Evaluates the analytical solution v(t) = v0 * sin(n π x / L) * cos(ω t)
-     * where ω = (n π / 2L) √(E / ρ).
-     *
-     * @param[in] modenumber  Vibration mode number n.
-     * @param[in] E           Young's modulus.
-     * @param[in] rho         Density.
-     * @param[in] v0          Amplitude of the initial velocity perturbation.
-     * @param[in] L           Length of the bar.
-     * @param[in] time        Current simulation time.
-     *
-     * @return amrex::Real  Exact velocity at the given time.
-     */
-    amrex::Real CalculateExactVelocity(int modenumber,
-                                       amrex::Real E,
-                                       amrex::Real rho,
-                                       amrex::Real v0,
-                                       amrex::Real L,
-                                       amrex::Real time);
 
     /**
      * @brief Writes particle data to an ASCII file with a time‑encoded
@@ -307,16 +255,6 @@ class MPMParticleContainer
                             int &output_it);
 
     /**
-     * @brief Returns 1 if any rigid‑body (phase=1) particles are present.
-     *
-     * Performs a GPU‑parallel reduction checking the phase flag of every
-     * particle; returns 1 if at least one rigid particle is found, 0 otherwise.
-     *
-     * @return int  1 if rigid particles are present, 0 otherwise.
-     */
-    int checkifrigidnodespresent();
-
-    /**
      * @brief Computes the total mass of rigid‑body particles for a given
      *        body ID.
      *
@@ -338,37 +276,6 @@ class MPMParticleContainer
      */
     amrex::Real Calculate_Total_Vol_RigidParticles(int body_id);
 
-    /**
-     * @brief Returns the maximum Y‑coordinate among all particles.
-     *
-     * Typically used to track the top surface of a deforming body for spring
-     * compression diagnostics.
-     *
-     * @return amrex::Real  Maximum particle Y‑position.
-     */
-    amrex::Real GetPosPiston();
-
-    /**
-     * @brief Returns the minimum Y‑coordinate among all rigid‑body‑0 particles.
-     *
-     * Used to track the bottom face of the piston rigid body.
-     *
-     * @return amrex::Real  Minimum Y‑position of rigid body 0.
-     */
-    amrex::Real GetPosSpring();
-
-    /**
-     * @brief Estimates the normal contact force at the top and bottom surfaces.
-     *
-     * @param[in]  gravity     Gravitational acceleration vector.
-     * @param[out] Fy_top      Estimated upward reaction force at the top.
-     * @param[out] Fy_bottom   Estimated downward reaction force at the bottom.
-     *
-     * @return None.
-     */
-    void CalculateSurfaceIntegralTop(Array<Real, AMREX_SPACEDIM> gravity,
-                                     Real &Fy_top,
-                                     Real &Fy_bottom);
 
     /**
      * @brief Performs particle‑to‑grid (P2G) transfer of mass, momentum, and
@@ -455,52 +362,6 @@ class MPMParticleContainer
         GpuArray<int, AMREX_SPACEDIM> periodic);
 
     /**
-     * @brief Deposits rigid‑body particle quantities onto the grid
-     *        (stub — body currently disabled).
-     *
-     * Intended to perform a P2G transfer using only phase=1 particles,
-     * segregating rigid‑body contributions on the nodal MultiFab.
-     * The implementation is currently a no‑op placeholder.
-     *
-     * @param[in,out] nodaldata                Nodal MultiFab (unused in stub).
-     * @param[in]     gravity                  Gravitational acceleration.
-     * @param[in]     external_loads_present   Flag enabling body forces.
-     * @param[in]     force_slab_lo            Lower corner of body‑force
-     * region.
-     * @param[in]     force_slab_hi            Upper corner of body‑force
-     * region.
-     * @param[in]     extforce                 External force vector.
-     * @param[in]     update_massvel           Flag to update mass/velocity.
-     * @param[in]     update_forces            Flag to update nodal forces.
-     * @param[in]     mass_tolerance           Minimum nodal mass threshold.
-     * @param[in]     order_scheme_directional Per‑dimension interpolation
-     * order.
-     * @param[in]     periodic                 Per‑dimension periodicity flags.
-     *
-     * @return None.
-     */
-    void deposit_onto_grid_rigidnodesonly(
-        MultiFab &nodaldata,
-        Array<Real, AMREX_SPACEDIM> gravity,
-        int external_loads_present,
-        Array<Real, AMREX_SPACEDIM> force_slab_lo,
-        Array<Real, AMREX_SPACEDIM> force_slab_hi,
-        Array<Real, AMREX_SPACEDIM> extforce,
-        int update_massvel,
-        int update_forces,
-        amrex::Real mass_tolerance,
-        GpuArray<int, AMREX_SPACEDIM> order_scheme_directional,
-        GpuArray<int, AMREX_SPACEDIM> periodic);
-
-    /**
-     * @brief Checks that all particles remain inside the problem domain and
-     *        aborts if any have escaped.
-     *
-     * @return None.
-     */
-    void checkifallparticlesinsidedomain();
-
-    /**
      * @brief Assigns a uniform velocity to all particles belonging to a rigid
      *        body.
      *
@@ -570,23 +431,6 @@ class MPMParticleContainer
         GpuArray<int, AMREX_SPACEDIM> periodic,
         amrex::Real alpha_pic_flip);
 
-    /**
-     * @brief Advances particle positions using nodal (grid) velocities
-     *        interpolated with a linear basis function.
-     *
-     * @param[in,out] nodaldata   Nodal MultiFab containing velocity field.
-     * @param[in]     dt          Time step size.
-     * @param[in]     bclo        Lower boundary condition types.
-     * @param[in]     bchi        Upper boundary condition types.
-     * @param[in]     order_scheme Interpolation order (1=linear).
-     *
-     * @return None.
-     */
-    void move_particles_from_nodevel(MultiFab &nodaldata,
-                                     const amrex::Real &dt,
-                                     GpuArray<int, AMREX_SPACEDIM> bclo,
-                                     GpuArray<int, AMREX_SPACEDIM> bchi,
-                                     int order_scheme);
 
     /**
      * @brief Computes the total kinetic energy (TKE) and total strain energy
@@ -633,40 +477,6 @@ class MPMParticleContainer
     void Calculate_MWA_VelocityMagnitude(amrex::Real &Vcm);
 
     /**
-     * @brief Computes the effective spring constant from particle strain
-     * energy.
-     *
-     * Uses k = 2U / δ² where U is the total elastic strain energy and
-     * δ = L0 − V_total / Area is the axial compression. Returns the
-     * restoring force F = 2U / δ.
-     *
-     * @param[in] Area  Cross‑sectional area of the specimen.
-     * @param[in] L0    Reference (undeformed) length.
-     *
-     * @return amrex::Real  Restoring force (zero if deflection is negligible).
-     */
-    amrex::Real CalculateEffectiveSpringConstant(amrex::Real Area,
-                                                 amrex::Real L0);
-
-    /**
-     * @brief Computes and writes the centre‑of‑mass velocity of all particles.
-     *
-     * @param[out] Vcm  Centre‑of‑mass speed.
-     *
-     * @return None.
-     */
-    void CalculateVelocity(Real &Vcm);
-
-    /**
-     * @brief Computes and writes the tip velocity for a cantilever beam test.
-     *
-     * @param[out] Vcm  Tip velocity of the cantilever.
-     *
-     * @return None.
-     */
-    void CalculateVelocityCantilever(Real &Vcm);
-
-    /**
      * @brief Computes the total number of rigid‑body particles for a given
      *        body ID.
      *
@@ -705,24 +515,6 @@ class MPMParticleContainer
     void Calculate_Total_Vol_MaterialPoints(Real &total_vol);
 
     /**
-     * @brief Writes the tip deflection of a cantilever beam to a diagnostic
-     *        file.
-     *
-     * @return None.
-     */
-    void WriteDeflectionCantilever();
-
-    /**
-     * @brief Locates the water‑front position (leading edge of the fluid) along
-     *        the X direction.
-     *
-     * @param[out] Xwf  X‑coordinate of the water front.
-     *
-     * @return None.
-     */
-    void FindWaterFront(Real &Xwf);
-
-    /**
      * @brief Applies the constitutive model to all material particles using
      *        total‑strain formulation.
      *
@@ -752,16 +544,6 @@ class MPMParticleContainer
      */
     void apply_constitutive_model_delta(const amrex::Real &dt,
                                         amrex::Real applied_strainrate);
-
-    /**
-     * @brief Interpolates nodal mass back to particles (G2P mass transfer).
-     *
-     * @param[in,out] nodaldata   Nodal MultiFab containing mass field.
-     * @param[in]     order_scheme Interpolation order.
-     *
-     * @return None.
-     */
-    void interpolate_mass_from_grid(MultiFab &nodaldata, int order_scheme);
 
     /**
      * @brief Updates the Eulerian phase‑field / level‑set representation from

@@ -11,8 +11,26 @@ import re
 import time
 import tempfile
 from pathlib import Path
+from typing import Optional
 import sys
-#from builtins import None
+
+_NCPU: int = os.cpu_count() or 4
+
+def _resolve_python() -> str:
+    conda_prefix = os.environ.get("CONDA_PREFIX")
+    if conda_prefix:
+        candidates = [
+            os.path.join(conda_prefix, "bin", "python3"),     # Linux / macOS
+            os.path.join(conda_prefix, "bin", "python"),       # Linux / macOS fallback
+            os.path.join(conda_prefix, "python.exe"),          # Windows (conda root)
+            os.path.join(conda_prefix, "Scripts", "python.exe"),  # Windows (Scripts/)
+        ]
+        for p in candidates:
+            if os.path.isfile(p):
+                return p
+    return sys.executable
+
+_PYTHON: str = _resolve_python()
 
 just_compile_dont_run = False
 
@@ -30,7 +48,7 @@ def update_makefile_dim(MAKEFILE_PATH,dim):
 def bool_to_gnumake(value: bool) -> str:
     return "TRUE" if value else "FALSE"
 
-def build_and_get_executable_gnumake(test_dir: Path, use_hdf: bool) -> str | None:
+def build_and_get_executable_gnumake(test_dir: Path, use_hdf: bool) -> Optional[str]:
     """
     Run gnumake build, capture output,
     and extract executable name from line like:
@@ -39,7 +57,7 @@ def build_and_get_executable_gnumake(test_dir: Path, use_hdf: bool) -> str | Non
     hdf_flags = "USE_HDF5=TRUE AMREX_USE_HDF5=TRUE" if use_hdf else "USE_HDF5=FALSE AMREX_USE_HDF5=FALSE"
 
     result = subprocess.run(
-        f"make -j{os.cpu_count()} {hdf_flags}",
+        f"make -j{_NCPU} {hdf_flags}",
         cwd=test_dir,
         shell=True,
         stdout=subprocess.PIPE,
@@ -118,7 +136,7 @@ def patch_cmake_sh(cmake_sh: Path, overrides: dict) -> str:
 
     return content
 
-def build_and_get_executable(build_dir: Path, patched_sh: Path) -> str | None:
+def build_and_get_executable(build_dir: Path, patched_sh: Path) -> Optional[str]:
     # Step 1 — Configure
     print(f"\n  [CONFIGURE] Running {patched_sh} ...\n")
     config_result = subprocess.run(
@@ -136,7 +154,7 @@ def build_and_get_executable(build_dir: Path, patched_sh: Path) -> str | None:
     # Step 2 — Build
     print(f"\n  [BUILD] cmake --build ...\n")
     build_result = subprocess.run(
-        ["cmake", "--build", ".", "--parallel", str(os.cpu_count())],
+        ["cmake", "--build", ".", "--parallel", str(_NCPU)],
         cwd=build_dir,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
@@ -160,9 +178,9 @@ def build_and_get_executable(build_dir: Path, patched_sh: Path) -> str | None:
 # ============================================================
 # Utility: Run shell commands
 # ============================================================
-def run_cmd(cmd):
+def run_cmd(cmd, cwd=None):
     print(f"[RUN] {cmd}")
-    result = subprocess.run(cmd, shell=True)
+    result = subprocess.run(cmd, shell=True, cwd=cwd)
     if result.returncode != 0:
         raise RuntimeError(f"Command failed: {cmd}")
 
@@ -275,7 +293,7 @@ def Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg):
         else:
             config["materialpoint_filename"] = filename_prefix[0]+".h5"
         
-        config["build_with_hdf"] = bwhs    
+        config["build_with_hdf"] = bwh
         config["build_system"] = build_system
         config["use_mpi"] = use_mpi
         config["use_cuda"] = use_cuda
@@ -298,7 +316,7 @@ def Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg):
                 "EXAGOOP_DIM":          dim,
                 "EXAGOOP_USE_TEMP":     bool_to_cmake(get_config_bool(config,"use_temp")),                
                 "EXAGOOP_ENABLE_MPI":   bool_to_cmake(get_config_bool(config,"use_mpi")),
-                "EXAGOOP_ENABLE_OMP":   bool_to_cmake(get_config_bool(config,"use_mp")),
+                "EXAGOOP_ENABLE_OPENMP": bool_to_cmake(get_config_bool(config,"use_omp")),
                 "EXAGOOP_ENABLE_CUDA":  bool_to_cmake(get_config_bool(config,"use_cuda")),
                 "EXAGOOP_ENABLE_HIP":   bool_to_cmake(get_config_bool(config,"use_hip")),
                 "EXAGOOP_ENABLE_EB": bool_to_cmake(get_config_bool(config,"use_eb")),
@@ -355,15 +373,19 @@ def Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg):
             sys.exit(1)
 
         # Generate inputs
-        run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")
+        run_cmd(
+            f'"{_PYTHON}" ./PreProcess/Generate_MPs_Inputfile_Generic.py'
+            f' --config ./PreProcess/config.json',
+            cwd=test_dir,
+        )
         
         # Run simulation
         if(just_compile_dont_run==False):
             if(use_mpi):
-                run_cmd(f"cd {test_dir} && mpirun -np 4 ./{exe} {cfg['input_file']}")
+                run_cmd(f"mpirun -np 4 ./{exe} {cfg['input_file']}", cwd=test_dir)
             
             if(use_mpi==False):
-                run_cmd(f"cd {test_dir} && ./{exe} {cfg['input_file']} mpm.max_grid_size=256")
+                run_cmd(f"./{exe} {cfg['input_file']} mpm.max_grid_size=256", cwd=test_dir)
 
         # Post-processing
         ascii_folder = os.path.join(test_dir, "Solution", "ascii_files",output_tag)
@@ -374,7 +396,7 @@ def Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg):
             rms = float("nan")
         else:
             err_script = os.path.join(test_dir,cfg["postproc_scripts"][0])                     
-            err_cmd = f"python3 {err_script} --time {latest_time} --folder {ascii_folder} --dim {dim}"
+            err_cmd = f'"{_PYTHON}" {err_script} --time {latest_time} --folder {ascii_folder} --dim {dim}'
             error_output = subprocess.check_output(err_cmd, shell=True, text=True)
             
             
@@ -386,17 +408,17 @@ def Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg):
             
             pp1_script = os.path.join(test_dir,cfg["postproc_scripts"][1])   
             input_file=os.path.join(test_dir,f"./Diagnostics/{output_tag}/Total_Energies.dat")
-            pp1_cmd = f"python3 {pp1_script} {input_file} {PicsFolder}/Energy.png"            
+            pp1_cmd = f'"{_PYTHON}" {pp1_script} {input_file} {PicsFolder}/Energy.png'
             pp1_output = subprocess.check_output(pp1_cmd, shell=True, text=True)
             
             pp2_script = os.path.join(test_dir,cfg["postproc_scripts"][2])   
             input_file=os.path.join(test_dir,f"./Diagnostics/{output_tag}/VelComponents.dat")
-            pp2_cmd = f"python3 {pp2_script} {input_file} {PicsFolder}/Velocity.png"            
+            pp2_cmd = f'"{_PYTHON}" {pp2_script} {input_file} {PicsFolder}/Velocity.png'
             pp2_output = subprocess.check_output(pp2_cmd, shell=True, text=True)
             
             pp3_script = os.path.join(test_dir,cfg["postproc_scripts"][3])   
             input_file=os.path.join(test_dir,f"./Solution/ascii_files/{output_tag}")
-            pp3_cmd = f"python3 {pp3_script} {input_file} {dim} {MoviesFolder}/AxialBar.mp4"            
+            pp3_cmd = f'"{_PYTHON}" {pp3_script} {input_file} {dim} {MoviesFolder}/AxialBar.mp4'
             pp3_output = subprocess.check_output(pp3_cmd, shell=True, text=True)
             
             rms = None
@@ -494,7 +516,7 @@ def Run_ParameterSweep_1D_HeatConduction(cfg):
         else:
             config["materialpoint_filename"] = filename_prefix[0]+".h5"
             
-        config["build_with_hdf"] = bwhs    
+        config["build_with_hdf"] = bwh
         config["build_system"] = build_system
         config["use_mpi"] = use_mpi
         config["use_cuda"] = use_cuda
@@ -518,7 +540,7 @@ def Run_ParameterSweep_1D_HeatConduction(cfg):
                 "EXAGOOP_DIM":          dim,
                 "EXAGOOP_USE_TEMP":     bool_to_cmake(get_config_bool(config,"use_temp")),                
                 "EXAGOOP_ENABLE_MPI":   bool_to_cmake(get_config_bool(config,"use_mpi")),
-                "EXAGOOP_ENABLE_OMP":   bool_to_cmake(get_config_bool(config,"use_mp")),
+                "EXAGOOP_ENABLE_OPENMP": bool_to_cmake(get_config_bool(config,"use_omp")),
                 "EXAGOOP_ENABLE_CUDA":  bool_to_cmake(get_config_bool(config,"use_cuda")),
                 "EXAGOOP_ENABLE_HIP":   bool_to_cmake(get_config_bool(config,"use_hip")),
                 "EXAGOOP_ENABLE_EB": bool_to_cmake(get_config_bool(config,"use_eb")),
@@ -575,15 +597,19 @@ def Run_ParameterSweep_1D_HeatConduction(cfg):
             sys.exit(1)
 
         # Generate inputs
-        run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")
+        run_cmd(
+            f'"{_PYTHON}" ./PreProcess/Generate_MPs_Inputfile_Generic.py'
+            f' --config ./PreProcess/config.json',
+            cwd=test_dir,
+        )
         
         # Run simulation
         if(just_compile_dont_run==False):
             if(use_mpi):
-                run_cmd(f"cd {test_dir} && mpirun -np 4 ./{exe} {cfg['input_file']}")
+                run_cmd(f"mpirun -np 4 ./{exe} {cfg['input_file']}", cwd=test_dir)
             
             if(use_mpi==False):
-                run_cmd(f"cd {test_dir} && ./{exe} {cfg['input_file']} mpm.max_grid_size=256")
+                run_cmd(f"./{exe} {cfg['input_file']} mpm.max_grid_size=256", cwd=test_dir)
 
         # Post-processing
         ascii_folder = os.path.join(test_dir, "Solution", "ascii_files",output_tag)
@@ -596,7 +622,7 @@ def Run_ParameterSweep_1D_HeatConduction(cfg):
             PicsFolder = os.path.join(test_dir,f"Solution/ascii_files/{output_tag}/Pics")
             os.makedirs(PicsFolder, exist_ok=True)           
             err_script = os.path.join(test_dir,cfg["postproc_scripts"][0])                     
-            err_cmd = f"python3 {err_script} --time {latest_time} --fileloc {ascii_folder} --dim {dim} --outputpic {PicsFolder}/Temperature_x.png"
+            err_cmd = f'"{_PYTHON}" {err_script} --time {latest_time} --fileloc {ascii_folder} --dim {dim} --outputpic {PicsFolder}/Temperature_x.png'
             error_output = subprocess.check_output(err_cmd, shell=True, text=True)           
             
             rms = None
@@ -691,7 +717,7 @@ def Run_ParameterSweep_1D_HeatConduction_HeatFlux(cfg):
         else:
             config["materialpoint_filename"] = filename_prefix[0]+".h5"
             
-        config["build_with_hdf"] = bwhs    
+        config["build_with_hdf"] = bwh
         config["build_system"] = build_system
         config["use_mpi"] = use_mpi
         config["use_cuda"] = use_cuda
@@ -715,7 +741,7 @@ def Run_ParameterSweep_1D_HeatConduction_HeatFlux(cfg):
                 "EXAGOOP_DIM":          dim,
                 "EXAGOOP_USE_TEMP":     bool_to_cmake(get_config_bool(config,"use_temp")),                
                 "EXAGOOP_ENABLE_MPI":   bool_to_cmake(get_config_bool(config,"use_mpi")),
-                "EXAGOOP_ENABLE_OMP":   bool_to_cmake(get_config_bool(config,"use_mp")),
+                "EXAGOOP_ENABLE_OPENMP": bool_to_cmake(get_config_bool(config,"use_omp")),
                 "EXAGOOP_ENABLE_CUDA":  bool_to_cmake(get_config_bool(config,"use_cuda")),
                 "EXAGOOP_ENABLE_HIP":   bool_to_cmake(get_config_bool(config,"use_hip")),
                 "EXAGOOP_ENABLE_EB": bool_to_cmake(get_config_bool(config,"use_eb")),
@@ -772,18 +798,22 @@ def Run_ParameterSweep_1D_HeatConduction_HeatFlux(cfg):
             sys.exit(1)
 
         # Generate inputs
-        run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")
+        run_cmd(
+            f'"{_PYTHON}" ./PreProcess/Generate_MPs_Inputfile_Generic.py'
+            f' --config ./PreProcess/config.json',
+            cwd=test_dir,
+        )
         
         # Run simulation
         if(just_compile_dont_run==False):
             if(use_mpi and use_cuda):
-                run_cmd(f"cd {test_dir} && mpirun -np 1 ./{exe} {cfg['input_file']}")
+                run_cmd(f"mpirun -np 1 ./{exe} {cfg['input_file']}", cwd=test_dir)
                 
             if(use_mpi and use_cuda is not True):
-                run_cmd(f"cd {test_dir} && mpirun -np 4 ./{exe} {cfg['input_file']}")
+                run_cmd(f"mpirun -np 4 ./{exe} {cfg['input_file']}", cwd=test_dir)
             
             if(use_mpi==False):
-                run_cmd(f"cd {test_dir} && ./{exe} {cfg['input_file']} mpm.max_grid_size=256")
+                run_cmd(f"./{exe} {cfg['input_file']} mpm.max_grid_size=256", cwd=test_dir)
 
         # Post-processing
         ascii_folder = os.path.join(test_dir, "Solution", "ascii_files",output_tag)
@@ -796,7 +826,7 @@ def Run_ParameterSweep_1D_HeatConduction_HeatFlux(cfg):
             PicsFolder = os.path.join(test_dir,f"Solution/ascii_files/{output_tag}/Pics")
             os.makedirs(PicsFolder, exist_ok=True)           
             err_script = os.path.join(test_dir,cfg["postproc_scripts"][0])                     
-            err_cmd = f"python3 {err_script} --time {latest_time} --fileloc {ascii_folder} --outputpic {PicsFolder}/Temperature_x.png"
+            err_cmd = f'"{_PYTHON}" {err_script} --time {latest_time} --fileloc {ascii_folder} --outputpic {PicsFolder}/Temperature_x.png'
             error_output = subprocess.check_output(err_cmd, shell=True, text=True)           
             
             rms = None
@@ -891,7 +921,7 @@ def Run_ParameterSweep_1D_HeatConduction_Convective(cfg):
         else:
             config["materialpoint_filename"] = filename_prefix[0]+".h5"
             
-        config["build_with_hdf"] = bwhs    
+        config["build_with_hdf"] = bwh
         config["build_system"] = build_system
         config["use_mpi"] = use_mpi
         config["use_cuda"] = use_cuda
@@ -915,7 +945,7 @@ def Run_ParameterSweep_1D_HeatConduction_Convective(cfg):
                 "EXAGOOP_DIM":          dim,
                 "EXAGOOP_USE_TEMP":     bool_to_cmake(get_config_bool(config,"use_temp")),                
                 "EXAGOOP_ENABLE_MPI":   bool_to_cmake(get_config_bool(config,"use_mpi")),
-                "EXAGOOP_ENABLE_OMP":   bool_to_cmake(get_config_bool(config,"use_mp")),
+                "EXAGOOP_ENABLE_OPENMP": bool_to_cmake(get_config_bool(config,"use_omp")),
                 "EXAGOOP_ENABLE_CUDA":  bool_to_cmake(get_config_bool(config,"use_cuda")),
                 "EXAGOOP_ENABLE_HIP":   bool_to_cmake(get_config_bool(config,"use_hip")),
                 "EXAGOOP_ENABLE_EB": bool_to_cmake(get_config_bool(config,"use_eb")),
@@ -972,18 +1002,22 @@ def Run_ParameterSweep_1D_HeatConduction_Convective(cfg):
             sys.exit(1)
 
         # Generate inputs
-        run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")
+        run_cmd(
+            f'"{_PYTHON}" ./PreProcess/Generate_MPs_Inputfile_Generic.py'
+            f' --config ./PreProcess/config.json',
+            cwd=test_dir,
+        )
         
         # Run simulation
         if(just_compile_dont_run==False):
             if(use_mpi and use_cuda):
-                run_cmd(f"cd {test_dir} && mpirun -np 1 ./{exe} {cfg['input_file']}")
+                run_cmd(f"mpirun -np 1 ./{exe} {cfg['input_file']}", cwd=test_dir)
                 
             if(use_mpi and use_cuda is not True):
-                run_cmd(f"cd {test_dir} && mpirun -np 4 ./{exe} {cfg['input_file']}")
+                run_cmd(f"mpirun -np 4 ./{exe} {cfg['input_file']}", cwd=test_dir)
             
             if(use_mpi==False):
-                run_cmd(f"cd {test_dir} && ./{exe} {cfg['input_file']} mpm.max_grid_size=256")
+                run_cmd(f"./{exe} {cfg['input_file']} mpm.max_grid_size=256", cwd=test_dir)
 
         # Post-processing
         ascii_folder = os.path.join(test_dir, "Solution", "ascii_files",output_tag)
@@ -996,7 +1030,7 @@ def Run_ParameterSweep_1D_HeatConduction_Convective(cfg):
             PicsFolder = os.path.join(test_dir,f"Solution/ascii_files/{output_tag}/Pics")
             os.makedirs(PicsFolder, exist_ok=True)           
             err_script = os.path.join(test_dir,cfg["postproc_scripts"][0])                     
-            err_cmd = f"python3 {err_script} --time {latest_time} --fileloc {ascii_folder} --outputpic {PicsFolder}/Temperature_x.png"
+            err_cmd = f'"{_PYTHON}" {err_script} --time {latest_time} --fileloc {ascii_folder} --outputpic {PicsFolder}/Temperature_x.png'
             error_output = subprocess.check_output(err_cmd, shell=True, text=True)           
             
             rms = None
@@ -1091,7 +1125,7 @@ def Run_ParameterSweep_2D_HeatConduction(cfg):
         else:
             config["materialpoint_filename"] = filename_prefix[0]+".h5"
             
-        config["build_with_hdf"] = bwhs    
+        config["build_with_hdf"] = bwh
         config["build_system"] = build_system
         config["use_mpi"] = use_mpi
         config["use_cuda"] = use_cuda
@@ -1114,7 +1148,7 @@ def Run_ParameterSweep_2D_HeatConduction(cfg):
                 "EXAGOOP_DIM":          dim,
                 "EXAGOOP_USE_TEMP":     bool_to_cmake(get_config_bool(config,"use_temp")),                
                 "EXAGOOP_ENABLE_MPI":   bool_to_cmake(get_config_bool(config,"use_mpi")),
-                "EXAGOOP_ENABLE_OMP":   bool_to_cmake(get_config_bool(config,"use_mp")),
+                "EXAGOOP_ENABLE_OPENMP": bool_to_cmake(get_config_bool(config,"use_omp")),
                 "EXAGOOP_ENABLE_CUDA":  bool_to_cmake(get_config_bool(config,"use_cuda")),
                 "EXAGOOP_ENABLE_HIP":   bool_to_cmake(get_config_bool(config,"use_hip")),
                 "EXAGOOP_ENABLE_EB": bool_to_cmake(get_config_bool(config,"use_eb")),
@@ -1171,18 +1205,22 @@ def Run_ParameterSweep_2D_HeatConduction(cfg):
             sys.exit(1)
 
         # Generate inputs
-        run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")
+        run_cmd(
+            f'"{_PYTHON}" ./PreProcess/Generate_MPs_Inputfile_Generic.py'
+            f' --config ./PreProcess/config.json',
+            cwd=test_dir,
+        )
         
         # Run simulation
         if(just_compile_dont_run==False):
             if(use_mpi and use_cuda):
-                run_cmd(f"cd {test_dir} && mpirun -np 1 ./{exe} {cfg['input_file']}")
+                run_cmd(f"mpirun -np 1 ./{exe} {cfg['input_file']}", cwd=test_dir)
                 
             if(use_mpi and use_cuda is not True):
-                run_cmd(f"cd {test_dir} && mpirun -np 4 ./{exe} {cfg['input_file']}")
+                run_cmd(f"mpirun -np 4 ./{exe} {cfg['input_file']}", cwd=test_dir)
             
             if(use_mpi==False):
-                run_cmd(f"cd {test_dir} && ./{exe} {cfg['input_file']} mpm.max_grid_size=256")
+                run_cmd(f"./{exe} {cfg['input_file']} mpm.max_grid_size=256", cwd=test_dir)
 
         # Post-processing
         ascii_folder = os.path.join(test_dir, "Solution", "ascii_files",output_tag)
@@ -1195,7 +1233,7 @@ def Run_ParameterSweep_2D_HeatConduction(cfg):
             PicsFolder = os.path.join(test_dir,f"Solution/ascii_files/{output_tag}/Pics")
             os.makedirs(PicsFolder, exist_ok=True)           
             err_script = os.path.join(test_dir,cfg["postproc_scripts"][0])                     
-            err_cmd = f"python3 {err_script} --time {latest_time} --folder {ascii_folder} --outputpic {PicsFolder}/Temperature_x.png"
+            err_cmd = f'"{_PYTHON}" {err_script} --time {latest_time} --folder {ascii_folder} --outputpic {PicsFolder}/Temperature_x.png'
             error_output = subprocess.check_output(err_cmd, shell=True, text=True)           
             
             rms = None
@@ -1295,7 +1333,7 @@ def Run_ParameterSweep_2D_HeatConduction_Cylinder_Dirichlet(cfg):
         else:
             config["materialpoint_filename"] = filename_prefix[0]+".h5"
             
-        config["build_with_hdf"] = bwhs    
+        config["build_with_hdf"] = bwh
         config["build_system"] = build_system
         config["use_mpi"] = use_mpi
         config["use_cuda"] = use_cuda
@@ -1304,10 +1342,6 @@ def Run_ParameterSweep_2D_HeatConduction_Cylinder_Dirichlet(cfg):
         config["use_sycl"] = use_sycl
         config["use_eb"] = use_eb
         config["use_temp"] = use_temp
-        # Auto-tag       
-        config["output_tag"] = output_tag
-
-        # Auto-tag       
         config["output_tag"] = output_tag
 
         # 3. Write updated config.json
@@ -1322,7 +1356,7 @@ def Run_ParameterSweep_2D_HeatConduction_Cylinder_Dirichlet(cfg):
                 "EXAGOOP_DIM":          dim,
                 "EXAGOOP_USE_TEMP":     bool_to_cmake(get_config_bool(config,"use_temp")),                
                 "EXAGOOP_ENABLE_MPI":   bool_to_cmake(get_config_bool(config,"use_mpi")),
-                "EXAGOOP_ENABLE_OMP":   bool_to_cmake(get_config_bool(config,"use_mp")),
+                "EXAGOOP_ENABLE_OPENMP": bool_to_cmake(get_config_bool(config,"use_omp")),
                 "EXAGOOP_ENABLE_CUDA":  bool_to_cmake(get_config_bool(config,"use_cuda")),
                 "EXAGOOP_ENABLE_HIP":   bool_to_cmake(get_config_bool(config,"use_hip")),
                 "EXAGOOP_ENABLE_EB": bool_to_cmake(get_config_bool(config,"use_eb")),
@@ -1380,18 +1414,22 @@ def Run_ParameterSweep_2D_HeatConduction_Cylinder_Dirichlet(cfg):
             sys.exit(1)
 
         # Generate inputs
-        run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")
+        run_cmd(
+            f'"{_PYTHON}" ./PreProcess/Generate_MPs_Inputfile_Generic.py'
+            f' --config ./PreProcess/config.json',
+            cwd=test_dir,
+        )
         
         # Run simulation
         if(just_compile_dont_run==False):
             if(use_mpi and use_cuda):
-                run_cmd(f"cd {test_dir} && mpirun -np 1 ./{exe} {cfg['input_file']}")
+                run_cmd(f"mpirun -np 1 ./{exe} {cfg['input_file']}", cwd=test_dir)
                 
             if(use_mpi and use_cuda is not True):
-                run_cmd(f"cd {test_dir} && mpirun -np 4 ./{exe} {cfg['input_file']}")
+                run_cmd(f"mpirun -np 4 ./{exe} {cfg['input_file']}", cwd=test_dir)
             
             if(use_mpi==False):
-                run_cmd(f"cd {test_dir} && ./{exe} {cfg['input_file']} mpm.max_grid_size=256")
+                run_cmd(f"./{exe} {cfg['input_file']} mpm.max_grid_size=256", cwd=test_dir)
 
         # Post-processing
         ascii_folder = os.path.join(test_dir, "Solution", "ascii_files",output_tag)
@@ -1404,7 +1442,7 @@ def Run_ParameterSweep_2D_HeatConduction_Cylinder_Dirichlet(cfg):
             PicsFolder = os.path.join(test_dir,f"Solution/ascii_files/{output_tag}/Pics")
             os.makedirs(PicsFolder, exist_ok=True)           
             err_script = os.path.join(test_dir,cfg["postproc_scripts"][0])                     
-            err_cmd = f"python3 {err_script} --time {latest_time} --folder {ascii_folder} --outputpic {PicsFolder}/Temperature_x.png"
+            err_cmd = f'"{_PYTHON}" {err_script} --time {latest_time} --folder {ascii_folder} --outputpic {PicsFolder}/Temperature_x.png'
             result = subprocess.run(err_cmd, shell=True, text=True, stdout=subprocess.PIPE,stderr=subprocess.STDOUT)           
             
             rms = None
@@ -1500,7 +1538,7 @@ def Run_ParameterSweep_Dambreak(cfg):
             config["materialpoint_filename"] = filename_prefix[0]+".h5"
             print("Output format is hdf5")
             
-        config["build_with_hdf"] = bwhs    
+        config["build_with_hdf"] = bwh
         config["build_system"] = build_system
         config["use_mpi"] = use_mpi
         config["use_cuda"] = use_cuda
@@ -1524,7 +1562,7 @@ def Run_ParameterSweep_Dambreak(cfg):
                 "EXAGOOP_DIM":          dim,
                 "EXAGOOP_USE_TEMP":     bool_to_cmake(get_config_bool(config,"use_temp")),                
                 "EXAGOOP_ENABLE_MPI":   bool_to_cmake(get_config_bool(config,"use_mpi")),
-                "EXAGOOP_ENABLE_OMP":   bool_to_cmake(get_config_bool(config,"use_mp")),
+                "EXAGOOP_ENABLE_OPENMP": bool_to_cmake(get_config_bool(config,"use_omp")),
                 "EXAGOOP_ENABLE_CUDA":  bool_to_cmake(get_config_bool(config,"use_cuda")),
                 "EXAGOOP_ENABLE_HIP":   bool_to_cmake(get_config_bool(config,"use_hip")),
                 "EXAGOOP_ENABLE_EB": bool_to_cmake(get_config_bool(config,"use_eb")),
@@ -1581,18 +1619,22 @@ def Run_ParameterSweep_Dambreak(cfg):
             sys.exit(1)
 
         # Generate inputs
-        run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")
+        run_cmd(
+            f'"{_PYTHON}" ./PreProcess/Generate_MPs_Inputfile_Generic.py'
+            f' --config ./PreProcess/config.json',
+            cwd=test_dir,
+        )
         
         # Run simulation
         if(just_compile_dont_run==False):
             if(use_mpi and use_cuda):
-                run_cmd(f"cd {test_dir} && mpirun -np 1 ./{exe} {cfg['input_file']}")
+                run_cmd(f"mpirun -np 1 ./{exe} {cfg['input_file']}", cwd=test_dir)
                 
             if(use_mpi and use_cuda is not True):
-                run_cmd(f"cd {test_dir} && mpirun -np 4 ./{exe} {cfg['input_file']}")
+                run_cmd(f"mpirun -np 4 ./{exe} {cfg['input_file']}", cwd=test_dir)
             
             if(use_mpi==False):
-                run_cmd(f"cd {test_dir} && ./{exe} {cfg['input_file']} mpm.max_grid_size=256")
+                run_cmd(f"./{exe} {cfg['input_file']} mpm.max_grid_size=256", cwd=test_dir)
 
         # Post-processing
         ascii_folder = os.path.join(test_dir, "Solution", "ascii_files",output_tag)
@@ -1609,7 +1651,7 @@ def Run_ParameterSweep_Dambreak(cfg):
             os.makedirs(PicsFolder, exist_ok=True)     
             os.makedirs(MovieFolder, exist_ok=True)           
             err_script = os.path.join(test_dir,cfg["postproc_scripts"][0])                     
-            err_cmd = f"python3 {err_script} --folder {ascii_folder} --outputpic {PicsFolder}/WaterFront.png --expdata {expdata} --outputmovie {MovieFolder}/Water.mp4 --minmaxfile {minmaxfile}"
+            err_cmd = f'"{_PYTHON}" {err_script} --folder {ascii_folder} --outputpic {PicsFolder}/WaterFront.png --expdata {expdata} --outputmovie {MovieFolder}/Water.mp4 --minmaxfile {minmaxfile}'
             error_output = subprocess.check_output(err_cmd, shell=True, text=True) 
             
         #dim, npcx, order, sus, bwh, of
@@ -1699,7 +1741,7 @@ def Run_ParameterSweep_EDC(cfg):
         else:
             config["materialpoint_filename"] = filename_prefix[0]+".h5"
             print("Output format is hdf5")
-        config["build_with_hdf"] = bwhs    
+        config["build_with_hdf"] = bwh
         config["build_system"] = build_system
         config["use_mpi"] = use_mpi
         config["use_cuda"] = use_cuda
@@ -1722,7 +1764,7 @@ def Run_ParameterSweep_EDC(cfg):
                 "EXAGOOP_DIM":          dim,
                 "EXAGOOP_USE_TEMP":     bool_to_cmake(get_config_bool(config,"use_temp")),                
                 "EXAGOOP_ENABLE_MPI":   bool_to_cmake(get_config_bool(config,"use_mpi")),
-                "EXAGOOP_ENABLE_OMP":   bool_to_cmake(get_config_bool(config,"use_mp")),
+                "EXAGOOP_ENABLE_OPENMP": bool_to_cmake(get_config_bool(config,"use_omp")),
                 "EXAGOOP_ENABLE_CUDA":  bool_to_cmake(get_config_bool(config,"use_cuda")),
                 "EXAGOOP_ENABLE_HIP":   bool_to_cmake(get_config_bool(config,"use_hip")),
                 "EXAGOOP_ENABLE_EB": bool_to_cmake(get_config_bool(config,"use_eb")),
@@ -1779,17 +1821,21 @@ def Run_ParameterSweep_EDC(cfg):
             sys.exit(1)
 
         # Generate inputs
-        run_cmd(f"cd {test_dir} && bash Generate_MPs_and_InputFiles.sh")       
+        run_cmd(
+            f'"{_PYTHON}" ./PreProcess/Generate_MPs_Inputfile_Generic.py'
+            f' --config ./PreProcess/config.json',
+            cwd=test_dir,
+        )       
         
         if(just_compile_dont_run==False):
             if(use_mpi and use_cuda):
-                run_cmd(f"cd {test_dir} && mpirun -np 1 ./{exe} {cfg['input_file']}")
+                run_cmd(f"mpirun -np 1 ./{exe} {cfg['input_file']}", cwd=test_dir)
                 
             if(use_mpi and use_cuda is not True):
-                run_cmd(f"cd {test_dir} && mpirun -np 4 ./{exe} {cfg['input_file']}")
+                run_cmd(f"mpirun -np 4 ./{exe} {cfg['input_file']}", cwd=test_dir)
             
             if(use_mpi==False):
-                run_cmd(f"cd {test_dir} && ./{exe} {cfg['input_file']} mpm.max_grid_size=256")
+                run_cmd(f"./{exe} {cfg['input_file']} mpm.max_grid_size=256", cwd=test_dir)
 
         # Post-processing
         ascii_folder = os.path.join(test_dir, "Solution", "ascii_files",output_tag)
@@ -1805,7 +1851,7 @@ def Run_ParameterSweep_EDC(cfg):
             os.makedirs(PicsFolder, exist_ok=True)     
             os.makedirs(MovieFolder, exist_ok=True)           
             err_script = os.path.join(test_dir,cfg["postproc_scripts"][0])                     
-            err_cmd = f"python3 {err_script} --folder {ascii_folder} --outputpic {PicsFolder}/Energy.png --outputmovie {MovieFolder}/Disks.mp4 --energyfile {energyfile}"
+            err_cmd = f'"{_PYTHON}" {err_script} --folder {ascii_folder} --outputpic {PicsFolder}/Energy.png --outputmovie {MovieFolder}/Disks.mp4 --energyfile {energyfile}'
             error_output = subprocess.check_output(err_cmd, shell=True, text=True) 
             print("Done")    
             
@@ -2238,11 +2284,11 @@ TEST_CASES = {
             "stress_update_scheme": ["MUSL"],
             "CFL": [0.1],
             "build_with_hdf": [False],
-            "output_format": ["ascii"],
+            "output_format": ["hdf5"],
             "filename_prefix": ["mpm_particles"],            
             "build_system": ["cmake"],
             "use_mpi": [True],
-            "use_cuda": [True],
+            "use_cuda": [False],
             "use_hip": [False],
             "use_omp": [False],
             "use_sycl": [False],
@@ -2368,7 +2414,7 @@ TEST_CASES = {
             "filename_prefix": ["mpm_particles"],
             "build_system": ["cmake"],
             "use_mpi": [True],
-            "use_cuda": [True],
+            "use_cuda": [False],
             "use_hip": [False],
             "use_omp": [False],
             "use_sycl": [False],
@@ -2565,10 +2611,10 @@ def _run_parameter_sweeps():
 
         if test_name == "1D_Axial_Bar_Vibration":
             print('Nothing to do')
-            #Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg)
+            Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg)
         elif test_name == "1D_Heat_Conduction":
             print('Nothing to do')
-            #Run_ParameterSweep_1D_HeatConduction(cfg)
+            Run_ParameterSweep_1D_HeatConduction(cfg)
         elif test_name == "1D_Heat_Conduction_HeatFlux":
             print('Nothing to do')
             Run_ParameterSweep_1D_HeatConduction_HeatFlux(cfg)
@@ -2577,10 +2623,10 @@ def _run_parameter_sweeps():
             Run_ParameterSweep_1D_HeatConduction_Convective(cfg)
         elif test_name == "2D_Heat_Conduction":
             print('Nothing to do')
-            #Run_ParameterSweep_2D_HeatConduction(cfg)
+            Run_ParameterSweep_2D_HeatConduction(cfg)
         elif test_name == "2D_Heat_Conduction_Cylinder_Dirichlet":
             print('Nothing to do')
-            #Run_ParameterSweep_2D_HeatConduction_Cylinder_Dirichlet(cfg)
+            Run_ParameterSweep_2D_HeatConduction_Cylinder_Dirichlet(cfg)
         elif test_name == "Dam_Break":
             print('Nothing to do')
             #Run_ParameterSweep_Dambreak(cfg)
@@ -2589,7 +2635,8 @@ def _run_parameter_sweeps():
             #Run_ParameterSweep_EDC(cfg)
 
     # Save results
-    with open("sweep_results.json", "w") as f:
+    _sweep_results_path = os.path.join(ROOT, "sweep_results.json")
+    with open(_sweep_results_path, "w") as f:
         json.dump(results, f, indent=2)
 
     print("\nAll test cases complete.")
@@ -2664,6 +2711,6 @@ if __name__ == "__main__":
                       f"(0–{len(bm_results) - 1})")
     else:
         _run_parameter_sweeps()
-        print_dynamic_test_table('sweep_results.json')
+        print_dynamic_test_table(os.path.join(ROOT, "sweep_results.json"))
 
 

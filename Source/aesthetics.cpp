@@ -1,4 +1,4 @@
-#include <AMReX.H> // for amrex::Print and amrex::Real
+#include <AMReX.H> 
 #include <aesthetics.H>
 #include <iomanip>
 #include <iostream>
@@ -44,6 +44,7 @@ using namespace amrex;
  * for debugging and provenance tracking.
  */
 
+ 
 void PrintWelcomeMessage()
 {
     if (!amrex::ParallelDescriptor::IOProcessor())
@@ -245,19 +246,7 @@ void PrintSimParams(MPMParticleContainer *mpm_pc, MPMspecs *specs)
     amrex::Print() << " " << std::setprecision(4) << tmpr;
 
     msg = "\n     Rigid particle details:";
-    PrintMessage(msg, print_length, true);
-
-    for (int i = 0; i < specs->no_of_rigidbodies_present; i++)
-    {
-        msg = "\n        Total number of rigid body particles in body " +
-              std::to_string(i) + ":";
-        PrintMessage(msg, print_length, true);
-        amrex::Print() << " " << specs->Rb[i].num_of_mp << "\n";
-
-        msg = "\n        Total mass of rigid body " + std::to_string(i) + ":";
-        PrintMessage(msg, print_length, true);
-        amrex::Print() << " " << specs->Rb[i].total_mass << "\n";
-    }
+    PrintMessage(msg, print_length, true);   
 
     msg = "\n     ";
     PrintMessage(msg, print_length, true, '*'); //* line
