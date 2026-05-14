@@ -9,8 +9,8 @@
     "ny": 100
   },
   "ppc": [
-    1,
-    1
+    2,
+    2
   ],
   "bodies": [
     {
@@ -37,11 +37,22 @@
   ],
   "CFL": 0.1,
   "alpha_pic_flip": 1.0,
-  "order_scheme": 2,
+  "order_scheme": 1,
   "stress_update_scheme": "MUSL",
-  "output_tag": "1D_Heat_Conduction_npcx1_ord2_susMUSL_USEHDFFalse_OFORMascii_929cdc",
+  "output_tag": "1D_Heat_Conduction_npcx2_ord1_susMUSL_USEHDFFalse_OFORMascii_MPI=True_CUDAFalse_HIPFalse_OMPFalse_SYCLFalse_EBFalse_TEMPTrue_BuildSystemgnumake_262d71",
   "input_filename": "Inputs_1DHeatConduction.inp",
   "output_format": "ascii",
   "materialpoint_filename": "mpm_particles.dat",
-  "plot_to_check": true
+  "plot_to_check": true,
+  "build_with_hdf": [
+    false
+  ],
+  "build_system": "gnumake",
+  "use_mpi": true,
+  "use_cuda": false,
+  "use_hip": false,
+  "use_omp": false,
+  "use_sycl": false,
+  "use_eb": false,
+  "use_temp": true
 }

@@ -274,8 +274,8 @@ class MPMspecs
         bchi_temp.resize(AMREX_SPACEDIM);
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
         {
-            bclo_temp[d] = periodic[d] ? 0 : 1;
-            bchi_temp[d] = periodic[d] ? 0 : 1;
+            bclo_temp[d] = periodic[d] ? 0 : 2;
+            bchi_temp[d] = periodic[d] ? 0 : 2;
         }
 #endif
 

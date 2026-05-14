@@ -225,20 +225,44 @@ void Apply_Nodal_BCs(amrex::Geometry &geom,
 void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
                                  amrex::MultiFab &nodaldata,
                                  MPMspecs &specs,
-                                 [[maybe_unused]] amrex::Real dt)
+                                 [[maybe_unused]] amrex::Real dt,
+                                 bool dirichlet_only)
 {
-    nodal_bcs_temperature(geom, nodaldata,
-                          specs.bclo_temp.data(),
-                          specs.bchi_temp.data(),
-                          specs.bc_temp_T_wall_lo.data(),
-                          specs.bc_temp_T_wall_hi.data(),
-                          specs.bc_temp_flux_lo.data(),
-                          specs.bc_temp_flux_hi.data(),
-                          specs.bc_temp_h_lo.data(),
-                          specs.bc_temp_h_hi.data(),
-                          specs.bc_temp_Tinf_lo.data(),
-                          specs.bc_temp_Tinf_hi.data());
-    store_delta_temperature(nodaldata);
+    if (!dirichlet_only)
+    {
+        nodal_bcs_temperature(geom, nodaldata,
+                              specs.bclo_temp.data(),
+                              specs.bchi_temp.data(),
+                              specs.bc_temp_T_wall_lo.data(),
+                              specs.bc_temp_T_wall_hi.data(),
+                              specs.bc_temp_flux_lo.data(),
+                              specs.bc_temp_flux_hi.data(),
+                              specs.bc_temp_h_lo.data(),
+                              specs.bc_temp_h_hi.data(),
+                              specs.bc_temp_Tinf_lo.data(),
+                              specs.bc_temp_Tinf_hi.data());
+    }
+    else
+    {
+        amrex::Vector<int> bclo_dirichlet(AMREX_SPACEDIM, 0);
+        amrex::Vector<int> bchi_dirichlet(AMREX_SPACEDIM, 0);
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        {
+            bclo_dirichlet[d] = (specs.bclo_temp[d] == 1) ? 1 : 0;
+            bchi_dirichlet[d] = (specs.bchi_temp[d] == 1) ? 1 : 0;
+        }
+        nodal_bcs_temperature(geom, nodaldata,
+                              bclo_dirichlet.data(),
+                              bchi_dirichlet.data(),
+                              specs.bc_temp_T_wall_lo.data(),
+                              specs.bc_temp_T_wall_hi.data(),
+                              specs.bc_temp_flux_lo.data(),
+                              specs.bc_temp_flux_hi.data(),
+                              specs.bc_temp_h_lo.data(),
+                              specs.bc_temp_h_hi.data(),
+                              specs.bc_temp_Tinf_lo.data(),
+                              specs.bc_temp_Tinf_hi.data());
+    }
 }
 #endif
 

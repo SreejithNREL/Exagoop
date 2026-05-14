@@ -803,6 +803,7 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
                                (void)k;
                                IntVect nodeid(AMREX_D_DECL(i, j, k));
 
+                               bool bc_applied = false;
                                for (int d = 0; d < AMREX_SPACEDIM; ++d)
                                {
                                    bool is_lo = (nodeid[d] == domlo[d]);
@@ -813,30 +814,40 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
                                        int bc_type = is_lo ? bclo[d] : bchi[d];
                                        int sign    = is_lo ? 1 : -1;
 
-                                       IntVect nb = nodeid;
-                                       nb[d]     += sign;
-                                       amrex::Real T_int = arr(nb, TEMPERATURE);
-
                                        if (bc_type == 1)
                                        {
                                            amrex::Real Tw = is_lo ? T_wall_lo_g[d] : T_wall_hi_g[d];
                                            arr(nodeid, TEMPERATURE) = Tw;
+                                           bc_applied = true;
                                        }
-                                       else if (bc_type == 2)
+                                       else if (bc_type == 2 || bc_type == 0)
                                        {
-                                           arr(nodeid, TEMPERATURE) = T_int;
+                                           if (!bc_applied)
+                                           {
+                                               IntVect nb = nodeid;
+                                               nb[d]     += sign;
+                                               arr(nodeid, TEMPERATURE) = arr(nb, TEMPERATURE);
+                                               bc_applied = true;
+                                           }
                                        }
                                        else if (bc_type == 3)
                                        {
+                                           IntVect nb = nodeid;
+                                           nb[d]     += sign;
                                            amrex::Real fl = is_lo ? flux_lo_g[d] : flux_hi_g[d];
-                                           arr(nodeid, TEMPERATURE) = T_int + fl * dx_g[d];
+                                           arr(nodeid, TEMPERATURE) = arr(nb, TEMPERATURE) + fl * dx_g[d];
+                                           bc_applied = true;
                                        }
                                        else if (bc_type == 4)
                                        {
+                                           IntVect nb = nodeid;
+                                           nb[d]     += sign;
                                            amrex::Real hc   = is_lo ? h_lo_g[d]    : h_hi_g[d];
                                            amrex::Real Tinf = is_lo ? Tinf_lo_g[d] : Tinf_hi_g[d];
                                            amrex::Real Bi   = hc * dx_g[d];
-                                           arr(nodeid, TEMPERATURE) = (T_int + Bi * Tinf) / (1.0 + Bi);
+                                           arr(nodeid, TEMPERATURE) =
+                                               (arr(nb, TEMPERATURE) + Bi * Tinf) / (1.0 + Bi);
+                                           bc_applied = true;
                                        }
                                    }
                                }
