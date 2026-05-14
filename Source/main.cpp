@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
             P2G_Temperature(specs, mpm_pc, nodaldata, 1, 1, 1);
             backup_current_temperature(nodaldata);
             Nodal_Time_Update_Temperature(nodaldata, dt, specs.mass_tolerance);
-            Apply_Nodal_BCs_Temperature(geom, nodaldata, specs, dt,
+            Apply_Nodal_BCs_Temperature(geom, nodaldata, specs, dt, time,
                                         specs.stress_update_scheme == MUSL);
             store_delta_temperature(nodaldata);
 #endif
@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
 #if USE_TEMP
                 G2P_Temperature(specs, mpm_pc, nodaldata, 1, 0, dt);
                 P2G_Temperature(specs, mpm_pc, nodaldata, 1, 0, 1);
-                Apply_Nodal_BCs_Temperature(geom, nodaldata, specs, dt, false);
+                Apply_Nodal_BCs_Temperature(geom, nodaldata, specs, dt, time, false);
                 G2P_Temperature(specs, mpm_pc, nodaldata, 0, 1, dt);
 #endif
 

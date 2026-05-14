@@ -1156,3 +1156,261 @@ void apply_udf_nodal_bcs(const amrex::Geometry &geom,
             });
     }
 }
+
+#if USE_TEMP
+void compute_udf_temp_at_nodes(const amrex::Geometry &geom,
+                                MPMspecs &specs,
+                                amrex::Real t)
+{
+    const auto dx    = geom.CellSizeArray();
+    const auto plo_g = geom.ProbLoArray();
+    const auto phi_g = geom.ProbHiArray();
+
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        int p0 = (d == 0) ? 1 : 0;
+#if (AMREX_SPACEDIM == 3)
+        int p1 = (d == 2) ? 1 : 2;
+#endif
+
+        if (specs.udf_temp_func_ptr_lo[d] != nullptr)
+        {
+#if (AMREX_SPACEDIM == 1)
+            int n_nodes = 1;
+#elif (AMREX_SPACEDIM == 2)
+            int n_nodes = specs.ncells[p0] + 1;
+#else
+            int n_nodes = (specs.ncells[p0] + 1) * (specs.ncells[p1] + 1);
+#endif
+            amrex::Vector<amrex::Real> hv(n_nodes * 2, 0.0);
+
+#if (AMREX_SPACEDIM == 1)
+            {
+                double out[2] = {0.0, 0.0};
+                specs.udf_temp_func_ptr_lo[d]((double)plo_g[0], 0.0, 0.0,
+                                              (double)t, out);
+                hv[0] = (amrex::Real)out[0];
+                hv[1] = (amrex::Real)out[1];
+            }
+#elif (AMREX_SPACEDIM == 2)
+            for (int j = 0; j <= specs.ncells[p0]; ++j)
+            {
+                double cx = (d == 0) ? (double)plo_g[0]
+                                     : (double)(plo_g[0] + j * dx[0]);
+                double cy = (d == 1) ? (double)plo_g[1]
+                                     : (double)(plo_g[1] + j * dx[1]);
+                double out[2] = {0.0, 0.0};
+                specs.udf_temp_func_ptr_lo[d](cx, cy, 0.0, (double)t, out);
+                hv[j * 2]     = (amrex::Real)out[0];
+                hv[j * 2 + 1] = (amrex::Real)out[1];
+            }
+#else
+            for (int j = 0; j <= specs.ncells[p0]; ++j)
+            {
+                for (int k = 0; k <= specs.ncells[p1]; ++k)
+                {
+                    double coords[3] = {0.0, 0.0, 0.0};
+                    coords[d]  = (double)plo_g[d];
+                    coords[p0] = (double)(plo_g[p0] + j * dx[p0]);
+                    coords[p1] = (double)(plo_g[p1] + k * dx[p1]);
+                    double out[2] = {0.0, 0.0};
+                    specs.udf_temp_func_ptr_lo[d](coords[0], coords[1], coords[2],
+                                                  (double)t, out);
+                    int flat      = (j * (specs.ncells[p1] + 1) + k) * 2;
+                    hv[flat]     = (amrex::Real)out[0];
+                    hv[flat + 1] = (amrex::Real)out[1];
+                }
+            }
+#endif
+            specs.udf_temp_nodes_lo[d].resize(hv.size());
+            amrex::Gpu::copy(amrex::Gpu::hostToDevice, hv.begin(), hv.end(),
+                             specs.udf_temp_nodes_lo[d].begin());
+        }
+
+        if (specs.udf_temp_func_ptr_hi[d] != nullptr)
+        {
+#if (AMREX_SPACEDIM == 1)
+            int n_nodes = 1;
+#elif (AMREX_SPACEDIM == 2)
+            int n_nodes = specs.ncells[p0] + 1;
+#else
+            int n_nodes = (specs.ncells[p0] + 1) * (specs.ncells[p1] + 1);
+#endif
+            amrex::Vector<amrex::Real> hv(n_nodes * 2, 0.0);
+
+#if (AMREX_SPACEDIM == 1)
+            {
+                double out[2] = {0.0, 0.0};
+                specs.udf_temp_func_ptr_hi[d]((double)phi_g[0], 0.0, 0.0,
+                                              (double)t, out);
+                hv[0] = (amrex::Real)out[0];
+                hv[1] = (amrex::Real)out[1];
+            }
+#elif (AMREX_SPACEDIM == 2)
+            for (int j = 0; j <= specs.ncells[p0]; ++j)
+            {
+                double cx = (d == 0) ? (double)phi_g[0]
+                                     : (double)(plo_g[0] + j * dx[0]);
+                double cy = (d == 1) ? (double)phi_g[1]
+                                     : (double)(plo_g[1] + j * dx[1]);
+                double out[2] = {0.0, 0.0};
+                specs.udf_temp_func_ptr_hi[d](cx, cy, 0.0, (double)t, out);
+                hv[j * 2]     = (amrex::Real)out[0];
+                hv[j * 2 + 1] = (amrex::Real)out[1];
+            }
+#else
+            for (int j = 0; j <= specs.ncells[p0]; ++j)
+            {
+                for (int k = 0; k <= specs.ncells[p1]; ++k)
+                {
+                    double coords[3] = {0.0, 0.0, 0.0};
+                    coords[d]  = (double)phi_g[d];
+                    coords[p0] = (double)(plo_g[p0] + j * dx[p0]);
+                    coords[p1] = (double)(plo_g[p1] + k * dx[p1]);
+                    double out[2] = {0.0, 0.0};
+                    specs.udf_temp_func_ptr_hi[d](coords[0], coords[1], coords[2],
+                                                  (double)t, out);
+                    int flat      = (j * (specs.ncells[p1] + 1) + k) * 2;
+                    hv[flat]     = (amrex::Real)out[0];
+                    hv[flat + 1] = (amrex::Real)out[1];
+                }
+            }
+#endif
+            specs.udf_temp_nodes_hi[d].resize(hv.size());
+            amrex::Gpu::copy(amrex::Gpu::hostToDevice, hv.begin(), hv.end(),
+                             specs.udf_temp_nodes_hi[d].begin());
+        }
+    }
+    amrex::Gpu::streamSynchronize();
+}
+
+void apply_udf_nodal_bcs_temperature(const amrex::Geometry &geom,
+                                     amrex::MultiFab &nodaldata,
+                                     MPMspecs &specs)
+{
+    bool any_udf = false;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        if (specs.udf_temp_func_ptr_lo[d] || specs.udf_temp_func_ptr_hi[d])
+        {
+            any_udf = true;
+            break;
+        }
+    }
+    if (!any_udf) return;
+
+    const auto dx       = geom.CellSize();
+    const int *domloarr = geom.Domain().loVect();
+    const int *domhiarr = geom.Domain().hiVect();
+
+    amrex::GpuArray<int, AMREX_SPACEDIM> domlo, domhi;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        domlo[d] = domloarr[d];
+        domhi[d] = domhiarr[d];
+    }
+
+    amrex::GpuArray<int, AMREX_SPACEDIM> bclo_arr, bchi_arr;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        bclo_arr[d] = specs.bclo_temp[d];
+        bchi_arr[d] = specs.bchi_temp[d];
+    }
+
+    amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM> udf_lo_ptrs, udf_hi_ptrs;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        udf_lo_ptrs[d] = specs.udf_temp_func_ptr_lo[d]
+                             ? specs.udf_temp_nodes_lo[d].data()
+                             : nullptr;
+        udf_hi_ptrs[d] = specs.udf_temp_func_ptr_hi[d]
+                             ? specs.udf_temp_nodes_hi[d].data()
+                             : nullptr;
+    }
+
+    amrex::GpuArray<int, AMREX_SPACEDIM> ncells_arr;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        ncells_arr[d] = specs.ncells[d];
+
+    amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> dx_g;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        dx_g[d] = dx[d];
+
+    for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
+    {
+        Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
+        Array4<amrex::Real> arr = nodaldata.array(mfi);
+
+        amrex::ParallelFor(
+            nodalbox,
+            [=] AMREX_GPU_DEVICE(AMREX_D_DECL(int i, int j, int k)) noexcept
+            {
+                IntVect nodeid(AMREX_D_DECL(i, j, k));
+
+                for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
+                {
+                    const amrex::Real *udf_ptr = nullptr;
+                    int bc_type               = -1;
+                    int sign                  = 0;
+
+                    if (nodeid[dir] == domlo[dir] && udf_lo_ptrs[dir] != nullptr)
+                    {
+                        udf_ptr = udf_lo_ptrs[dir];
+                        bc_type = bclo_arr[dir];
+                        sign    = 1;
+                    }
+                    else if (nodeid[dir] == domhi[dir] + 1 && udf_hi_ptrs[dir] != nullptr)
+                    {
+                        udf_ptr = udf_hi_ptrs[dir];
+                        bc_type = bchi_arr[dir];
+                        sign    = -1;
+                    }
+
+                    if (udf_ptr == nullptr) continue;
+
+                    int p0 = (dir == 0) ? 1 : 0;
+#if (AMREX_SPACEDIM == 3)
+                    int p1 = (dir == 2) ? 1 : 2;
+#endif
+
+                    int flat = 0;
+#if (AMREX_SPACEDIM == 1)
+                    flat = 0;
+#elif (AMREX_SPACEDIM == 2)
+                    flat = nodeid[p0] * 2;
+#else
+                    flat = (nodeid[p0] * (ncells_arr[p1] + 1) + nodeid[p1]) * 2;
+#endif
+
+                    amrex::Real val0 = udf_ptr[flat];
+                    amrex::Real val1 = udf_ptr[flat + 1];
+
+                    if (bc_type == 1)
+                    {
+                        arr(nodeid, TEMPERATURE) = val0;
+                    }
+                    else if (bc_type == 3)
+                    {
+                        IntVect nb = nodeid;
+                        nb[dir]   += sign;
+                        amrex::Real mk     = arr(nodeid, MASS_CONDUCTIVITY);
+                        amrex::Real m      = arr(nodeid, MASS_INDEX);
+                        amrex::Real k_node = (m > shunya) ? mk / m : eka;
+                        arr(nodeid, TEMPERATURE) =
+                            arr(nb, TEMPERATURE) + val0 * dx_g[dir] / k_node;
+                    }
+                    else if (bc_type == 4)
+                    {
+                        IntVect nb = nodeid;
+                        nb[dir]   += sign;
+                        amrex::Real hc   = val0;
+                        amrex::Real Tinf = val1;
+                        amrex::Real Bi   = hc * dx_g[dir];
+                        arr(nodeid, TEMPERATURE) =
+                            (arr(nb, TEMPERATURE) + Bi * Tinf) / (eka + Bi);
+                    }
+                }
+            });
+    }
+}
+#endif

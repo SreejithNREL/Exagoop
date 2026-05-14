@@ -46,6 +46,7 @@ void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
                                  amrex::MultiFab &nodaldata,
                                  MPMspecs &specs,
                                  amrex::Real dt,
+                                 amrex::Real t,
                                  bool dirichlet_only = false);
 void G2P_Momentum(MPMspecs &specs,
                   MPMParticleContainer &mpm_pc,

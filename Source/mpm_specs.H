@@ -10,6 +10,7 @@
 // clang-format on
 
 typedef void (*WallVelUDFFuncPtr)(double, double, double, double, double*);
+typedef void (*TempUDFFuncPtr)(double, double, double, double, double*);
 
 using namespace amrex;
 
@@ -214,6 +215,13 @@ class MPMspecs
     Array<Real, AMREX_SPACEDIM> bc_temp_h_hi{AMREX_D_DECL(0.0, 0.0, 0.0)};
     Array<Real, AMREX_SPACEDIM> bc_temp_Tinf_lo{AMREX_D_DECL(0.0, 0.0, 0.0)};
     Array<Real, AMREX_SPACEDIM> bc_temp_Tinf_hi{AMREX_D_DECL(0.0, 0.0, 0.0)};
+
+    void* udf_temp_handle_lo[AMREX_SPACEDIM] = {};
+    void* udf_temp_handle_hi[AMREX_SPACEDIM] = {};
+    TempUDFFuncPtr udf_temp_func_ptr_lo[AMREX_SPACEDIM] = {};
+    TempUDFFuncPtr udf_temp_func_ptr_hi[AMREX_SPACEDIM] = {};
+    amrex::Gpu::DeviceVector<amrex::Real> udf_temp_nodes_lo[AMREX_SPACEDIM];
+    amrex::Gpu::DeviceVector<amrex::Real> udf_temp_nodes_hi[AMREX_SPACEDIM];
 #endif
 
     GpuArray<int, AMREX_SPACEDIM> order_scheme_directional{
@@ -262,6 +270,10 @@ class MPMspecs
         {
             if (udf_handle_lo[d]) dlclose(udf_handle_lo[d]);
             if (udf_handle_hi[d]) dlclose(udf_handle_hi[d]);
+#if USE_TEMP
+            if (udf_temp_handle_lo[d]) dlclose(udf_temp_handle_lo[d]);
+            if (udf_temp_handle_hi[d]) dlclose(udf_temp_handle_hi[d]);
+#endif
         }
     }
 
@@ -566,12 +578,40 @@ class MPMspecs
             pp_lo_temp.query("flux",   bc_temp_flux_lo[d]);
             pp_lo_temp.query("h",      bc_temp_h_lo[d]);
             pp_lo_temp.query("T_inf",  bc_temp_Tinf_lo[d]);
+            {
+                std::string udf_lib_lo, udf_func_lo;
+                bool has_lib  = pp_lo_temp.query("udf_lib",  udf_lib_lo);
+                bool has_func = pp_lo_temp.query("udf_func", udf_func_lo);
+                if (has_lib && has_func)
+                {
+                    udf_temp_handle_lo[d] = dlopen(udf_lib_lo.c_str(), RTLD_NOW);
+                    if (!udf_temp_handle_lo[d])
+                        amrex::Abort(std::string("dlopen failed for temp lo face: ") + dlerror());
+                    udf_temp_func_ptr_lo[d] = (TempUDFFuncPtr)dlsym(udf_temp_handle_lo[d], udf_func_lo.c_str());
+                    if (!udf_temp_func_ptr_lo[d])
+                        amrex::Abort(std::string("dlsym failed for temp lo face: ") + dlerror());
+                }
+            }
 
             ParmParse pp_hi_temp(face_hi_temp_ns[d]);
             pp_hi_temp.query("T_wall", bc_temp_T_wall_hi[d]);
             pp_hi_temp.query("flux",   bc_temp_flux_hi[d]);
             pp_hi_temp.query("h",      bc_temp_h_hi[d]);
             pp_hi_temp.query("T_inf",  bc_temp_Tinf_hi[d]);
+            {
+                std::string udf_lib_hi, udf_func_hi;
+                bool has_lib  = pp_hi_temp.query("udf_lib",  udf_lib_hi);
+                bool has_func = pp_hi_temp.query("udf_func", udf_func_hi);
+                if (has_lib && has_func)
+                {
+                    udf_temp_handle_hi[d] = dlopen(udf_lib_hi.c_str(), RTLD_NOW);
+                    if (!udf_temp_handle_hi[d])
+                        amrex::Abort(std::string("dlopen failed for temp hi face: ") + dlerror());
+                    udf_temp_func_ptr_hi[d] = (TempUDFFuncPtr)dlsym(udf_temp_handle_hi[d], udf_func_hi.c_str());
+                    if (!udf_temp_func_ptr_hi[d])
+                        amrex::Abort(std::string("dlsym failed for temp hi face: ") + dlerror());
+                }
+            }
         }
 #endif
 

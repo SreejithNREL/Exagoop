@@ -226,6 +226,7 @@ void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
                                  amrex::MultiFab &nodaldata,
                                  MPMspecs &specs,
                                  [[maybe_unused]] amrex::Real dt,
+                                 amrex::Real t,
                                  bool dirichlet_only)
 {
     if (!dirichlet_only)
@@ -241,6 +242,8 @@ void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
                               specs.bc_temp_h_hi.data(),
                               specs.bc_temp_Tinf_lo.data(),
                               specs.bc_temp_Tinf_hi.data());
+        compute_udf_temp_at_nodes(geom, specs, t);
+        apply_udf_nodal_bcs_temperature(geom, nodaldata, specs);
     }
     else
     {
@@ -262,6 +265,8 @@ void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
                               specs.bc_temp_h_hi.data(),
                               specs.bc_temp_Tinf_lo.data(),
                               specs.bc_temp_Tinf_hi.data());
+        compute_udf_temp_at_nodes(geom, specs, t);
+        apply_udf_nodal_bcs_temperature(geom, nodaldata, specs);
     }
 }
 #endif

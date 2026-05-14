@@ -87,4 +87,13 @@ void apply_udf_nodal_bcs(const amrex::Geometry &geom,
                          amrex::MultiFab &nodaldata,
                          MPMspecs &specs);
 
+#if USE_TEMP
+void compute_udf_temp_at_nodes(const amrex::Geometry &geom,
+                                MPMspecs &specs,
+                                amrex::Real t);
+void apply_udf_nodal_bcs_temperature(const amrex::Geometry &geom,
+                                     amrex::MultiFab &nodaldata,
+                                     MPMspecs &specs);
+#endif
+
 #endif
