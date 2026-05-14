@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
         PrintWelcomeMessage();
 
         // Initializing and reading input file for the simulation
-        MPMspecs specs;        
+        MPMspecs specs;
         specs.read_mpm_specs();
 
         // Declaring solver variables
@@ -131,7 +131,8 @@ int main(int argc, char *argv[])
 #if USE_TEMP
                 G2P_Temperature(specs, mpm_pc, nodaldata, 1, 0, dt);
                 P2G_Temperature(specs, mpm_pc, nodaldata, 1, 0, 1);
-                Apply_Nodal_BCs_Temperature(geom, nodaldata, specs, dt, time, false);
+                Apply_Nodal_BCs_Temperature(geom, nodaldata, specs, dt, time,
+                                            false);
                 G2P_Temperature(specs, mpm_pc, nodaldata, 0, 1, dt);
 #endif
 

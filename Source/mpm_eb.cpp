@@ -16,8 +16,8 @@
 #include <mpm_eb.H>
 
 #if USE_EB
-#include <mpm_udf_loader.H>
 #include <AMReX_MultiFabUtil.H>
+#include <mpm_udf_loader.H>
 #endif
 
 #include <AMReX_PlotFileUtil.H>
@@ -32,7 +32,7 @@ bool using_levelset_geometry = false;
 
 static int coarsening_level_for_refinement(int ls_ref)
 {
-	//Returns the amrex refinement level: 1->0, 2->1,4->2
+    // Returns the amrex refinement level: 1->0, 2->1,4->2
     int level = 0;
     if (ls_ref > 1)
     {
@@ -45,7 +45,7 @@ static int coarsening_level_for_refinement(int ls_ref)
 
 static Geometry refined_geom(const Geometry &geom, int ls_ref)
 {
-	//returns a refined (ls_ref) geometry
+    // returns a refined (ls_ref) geometry
     Box dom_ls = geom.Domain();
     dom_ls.refine(ls_ref);
     return Geometry(dom_ls);
@@ -56,9 +56,9 @@ static Geometry refined_geom(const Geometry &geom, int ls_ref)
  *        EB2::IndexSpace.  Deletes any previously allocated factory first.
  */
 static void build_factory(const Geometry &geom,
-                           const BoxArray &ba,
-                           const DistributionMapping &dm,
-                           int nghost)
+                          const BoxArray &ba,
+                          const DistributionMapping &dm,
+                          int nghost)
 {
     delete ebfactory;
     ebfactory = nullptr;
@@ -75,9 +75,9 @@ static void build_factory(const Geometry &geom,
  *        The returned pointer is owned by the caller (stored in LevelSetBody).
  */
 static MultiFab *allocate_body_lsphi(const BoxArray &ba,
-                                      const DistributionMapping &dm,
-                                      int nghost,
-                                      int ls_ref)
+                                     const DistributionMapping &dm,
+                                     int nghost,
+                                     int ls_ref)
 {
     BoxArray ls_ba = amrex::convert(ba, IntVect::TheNodeVector());
     ls_ba.refine(ls_ref);
@@ -98,12 +98,12 @@ static MultiFab *allocate_body_lsphi(const BoxArray &ba,
  *                   or "eb2" for the legacy single-body path).
  */
 static MultiFab *build_udf_levelset(const std::string &name,
-                                     const std::string &pp_prefix,
-                                     const Geometry &geom,
-                                     const BoxArray &ba,
-                                     const DistributionMapping &dm,
-                                     int nghost,
-                                     int ls_ref)
+                                    const std::string &pp_prefix,
+                                    const Geometry &geom,
+                                    const BoxArray &ba,
+                                    const DistributionMapping &dm,
+                                    int nghost,
+                                    int ls_ref)
 {
     std::string so_file;
     amrex::ParmParse pp(pp_prefix);
@@ -152,12 +152,12 @@ static MultiFab *build_udf_levelset(const std::string &name,
  * @brief Builds EB and fills lsphi from an STL surface mesh.
  */
 static MultiFab *build_stl_levelset(const std::string &name,
-                                     const std::string &pp_prefix,
-                                     const Geometry &geom,
-                                     const BoxArray &ba,
-                                     const DistributionMapping &dm,
-                                     int nghost,
-                                     int ls_ref)
+                                    const std::string &pp_prefix,
+                                    const Geometry &geom,
+                                    const BoxArray &ba,
+                                    const DistributionMapping &dm,
+                                    int nghost,
+                                    int ls_ref)
 {
 #ifndef AMREX_USE_EB
     amrex::Abort("build_stl_levelset: AMReX was not compiled with EB support");
@@ -167,7 +167,8 @@ static MultiFab *build_stl_levelset(const std::string &name,
     amrex::ParmParse pp(pp_prefix);
     pp.get("stl_file", stl_file);
 
-    amrex::Print() << "\n[EB] Body '" << name << "' — STL: " << stl_file << "\n";
+    amrex::Print() << "\n[EB] Body '" << name << "' — STL: " << stl_file
+                   << "\n";
 
     Geometry geom_ls = refined_geom(geom, ls_ref);
     int req_coarsen = coarsening_level_for_refinement(ls_ref);
@@ -203,16 +204,16 @@ static MultiFab *build_stl_levelset(const std::string &name,
  * the legacy behaviour and is only correct for single-body simulations.
  */
 static MultiFab *build_analytic_levelset(const std::string &name,
-                                          const std::string &pp_prefix,
-                                          const std::string &geom_type,
-                                          const Geometry &geom,
-                                          const BoxArray &ba,
-                                          const DistributionMapping &dm,
-                                          int nghost,
-                                          int ls_ref)
+                                         const std::string &pp_prefix,
+                                         const std::string &geom_type,
+                                         const Geometry &geom,
+                                         const BoxArray &ba,
+                                         const DistributionMapping &dm,
+                                         int nghost,
+                                         int ls_ref)
 {
-    amrex::Print() << "[EB] Body '" << name << "' — analytic geometry: "
-                   << geom_type << "\n";
+    amrex::Print() << "[EB] Body '" << name
+                   << "' — analytic geometry: " << geom_type << "\n";
 
     Geometry geom_ls = refined_geom(geom, ls_ref);
     int req_coarsen = coarsening_level_for_refinement(ls_ref);
@@ -227,7 +228,8 @@ static MultiFab *build_analytic_levelset(const std::string &name,
         std::vector<amrex::Real> center_v(AMREX_SPACEDIM, 0.5);
         pp.getarr("sphere_center", center_v);
         amrex::RealArray center;
-        for (int d = 0; d < AMREX_SPACEDIM; ++d) center[d] = center_v[d];
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+            center[d] = center_v[d];
 
         bool has_fluid_inside = false;
         pp.query("sphere_has_fluid_inside", has_fluid_inside);
@@ -246,7 +248,7 @@ static MultiFab *build_analytic_levelset(const std::string &name,
         amrex::RealArray point, normal;
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
         {
-            point[d]  = point_v[d];
+            point[d] = point_v[d];
             normal[d] = normal_v[d];
         }
 
@@ -270,12 +272,14 @@ static MultiFab *build_analytic_levelset(const std::string &name,
         std::vector<amrex::Real> center_v(AMREX_SPACEDIM, 0.5);
         pp.getarr("cylinder_center", center_v);
         amrex::RealArray center;
-        for (int d = 0; d < AMREX_SPACEDIM; ++d) center[d] = center_v[d];
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+            center[d] = center_v[d];
 
         bool has_fluid_inside = false;
         pp.query("cylinder_has_fluid_inside", has_fluid_inside);
 
-        EB2::CylinderIF cyl(radius, height, direction, center, has_fluid_inside);
+        EB2::CylinderIF cyl(radius, height, direction, center,
+                            has_fluid_inside);
         auto shop = EB2::makeShop(cyl);
         EB2::Build(shop, geom_ls, req_coarsen, 10);
     }
@@ -315,14 +319,13 @@ static MultiFab *build_analytic_levelset(const std::string &name,
         EB2::PlaneIF bin2(bp2, bn2);
 
         Array<Real, 3> center = {0.5f * (plo[0] + phi_arr[0]), vertoffset,
-                                  0.5f * (plo[2] + phi_arr[2])};
+                                 0.5f * (plo[2] + phi_arr[2])};
 
         auto hopper_alone = EB2::translate(
             EB2::makeUnion(funnel1, bin1, funnel2, bin2), center);
 
-        amrex::Real len[AMREX_SPACEDIM] = {phi_arr[0] - plo[0],
-                                            phi_arr[1] - plo[1],
-                                            phi_arr[2] - plo[2]};
+        amrex::Real len[AMREX_SPACEDIM] = {
+            phi_arr[0] - plo[0], phi_arr[1] - plo[1], phi_arr[2] - plo[2]};
         RealArray lo_box, hi_box;
         lo_box[0] = plo[0] - len[0];
         lo_box[1] = plo[1] - len[1];
@@ -391,7 +394,8 @@ void init_eb(const Geometry &geom,
 
         if (geom_type == "all_regular")
         {
-            amrex::Print() << "\n[EB] geom_type = all_regular — no EB geometry\n";
+            amrex::Print()
+                << "\n[EB] geom_type = all_regular — no EB geometry\n";
             return;
         }
 
@@ -421,27 +425,25 @@ void init_eb(const Geometry &geom,
 
         if (geom_type == "udf_cpp")
         {
-            body_lsphi =
-                build_udf_levelset(name, pp_prefix, geom, ba, dm, nghost, ls_ref);
+            body_lsphi = build_udf_levelset(name, pp_prefix, geom, ba, dm,
+                                            nghost, ls_ref);
         }
         else if (geom_type == "stl")
         {
-            body_lsphi =
-                build_stl_levelset(name, pp_prefix, geom, ba, dm, nghost, ls_ref);
+            body_lsphi = build_stl_levelset(name, pp_prefix, geom, ba, dm,
+                                            nghost, ls_ref);
         }
         else
         {
             body_lsphi = build_analytic_levelset(name, pp_prefix, geom_type,
-                                                  geom, ba, dm, nghost, ls_ref);
+                                                 geom, ba, dm, nghost, ls_ref);
         }
 
-        
         std::string mom_bc = "noslipwall";
         pp_body.query("levelset_mom", mom_bc);
 
-
-        if (mom_bc == "noslipwall" && !pp_body.contains("levelset_mom")
-            && legacy_single_body)
+        if (mom_bc == "noslipwall" && !pp_body.contains("levelset_mom") &&
+            legacy_single_body)
         {
             amrex::ParmParse pp_mpm("mpm");
             int legacy_int = -1;
@@ -451,25 +453,27 @@ void init_eb(const Geometry &geom,
                     << "[EB] Warning: mpm.levelset_bc is deprecated. "
                        "Use eb2.levelset_mom = noslipwall|slipwall|partialslip "
                        "instead.\n";
-                if (legacy_int == 2)      mom_bc = "slipwall";
-                else if (legacy_int == 3) mom_bc = "partialslip";
-                else                      mom_bc = "noslipwall";
+                if (legacy_int == 2)
+                    mom_bc = "slipwall";
+                else if (legacy_int == 3)
+                    mom_bc = "partialslip";
+                else
+                    mom_bc = "noslipwall";
             }
         }
 
         amrex::Real wall_mu = 0.0;
         pp_body.query("lset_wall_mu", wall_mu);
 
-
-        if (wall_mu == 0.0 && !pp_body.contains("lset_wall_mu")
-            && legacy_single_body)
+        if (wall_mu == 0.0 && !pp_body.contains("lset_wall_mu") &&
+            legacy_single_body)
         {
             amrex::ParmParse pp_mpm("mpm");
             pp_mpm.query("levelset_wall_mu", wall_mu);
         }
 
-        amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> wall_vel =
-            {AMREX_D_DECL(0.0, 0.0, 0.0)};
+        amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> wall_vel = {
+            AMREX_D_DECL(0.0, 0.0, 0.0)};
         {
             std::vector<amrex::Real> wv(AMREX_SPACEDIM, 0.0);
             if (pp_body.queryarr("lset_wall_vel", wv))
@@ -503,10 +507,10 @@ void init_eb(const Geometry &geom,
         pp_body.query("lset_T_inf", T_inf_val);
 
         body.temp_bc_type = temp_bc;
-        body.T_wall       = T_wall;
-        body.heat_flux    = heat_flux;
-        body.h_conv       = h_conv;
-        body.T_inf        = T_inf_val;
+        body.T_wall = T_wall;
+        body.heat_flux = heat_flux;
+        body.h_conv = h_conv;
+        body.T_inf = T_inf_val;
 
         amrex::Print() << "  [EB] Body '" << name
                        << "': levelset_mom=" << mom_bc

@@ -170,7 +170,6 @@ class MPMParticleContainer
      */
     void updateVolume();
 
-
     /**
      * @brief Writes particle data to an ASCII file with a time‑encoded
      * filename.
@@ -275,7 +274,6 @@ class MPMParticleContainer
      * @return amrex::Real  Total volume of matching rigid particles.
      */
     amrex::Real Calculate_Total_Vol_RigidParticles(int body_id);
-
 
     /**
      * @brief Performs particle‑to‑grid (P2G) transfer of mass, momentum, and
@@ -430,7 +428,6 @@ class MPMParticleContainer
         GpuArray<int, AMREX_SPACEDIM> order_scheme_directional,
         GpuArray<int, AMREX_SPACEDIM> periodic,
         amrex::Real alpha_pic_flip);
-
 
     /**
      * @brief Computes the total kinetic energy (TKE) and total strain energy

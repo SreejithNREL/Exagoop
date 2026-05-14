@@ -260,7 +260,7 @@ compute_bounds(int ivd, int lod, int hid, int scheme, bool is_periodic)
 
     if (scheme == 1)
     {
-        
+
         bmin = 0;
         bmax = 2;
     }
@@ -365,11 +365,9 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
 
     int extloads = external_loads_present;
 
-    
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
 
-        
         const Box &nodalbox =
             convert(mfi.validbox(), IntVect(AMREX_D_DECL(1, 1, 1)));
         auto nodal_data_arr = nodaldata.array(mfi);
@@ -587,7 +585,6 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
             });
     }
 
-
     // Normalize velocities and stresses
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
@@ -684,7 +681,6 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
         for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
         {
 
-            
             const Box &nodalbox =
                 convert(mfi.validbox(), IntVect(AMREX_D_DECL(1, 1, 1)));
             auto nodal_data_arr = nodaldata.array(mfi);
@@ -779,7 +775,8 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
                                         basisvalue;
                                     amrex::Real mass_conductivity_contrib =
                                         p.rdata(realData::mass) *
-                                        p.rdata(realData::thermal_conductivity) *
+                                        p.rdata(
+                                            realData::thermal_conductivity) *
                                         basisvalue;
                                     amrex::Gpu::Atomic::AddNoRet(
                                         &nodal_data_arr(ivlocal, MASS_SPHEAT),

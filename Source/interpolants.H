@@ -30,18 +30,18 @@ struct QuadraticSplineDerCoeff
 AMREX_GPU_DEVICE AMREX_GPU_CONSTANT
 #endif
     constexpr int interval_map_quadbspline[5][6] = {
-        {-1, -1, -1, -1, -1, -1}, 	// type 0 filler
-        {0, 0, 1, 2, 3, 3}, 		// type 1
-        {0, 1, 1, 2, 2, -1}, 		// type 2
-        {0, 0, 1, 1, 2, 2},  		// type 3
-        {0, 0, 1, 1, 2, -1}  		// type 4
+        {-1, -1, -1, -1, -1, -1}, // type 0 filler
+        {0, 0, 1, 2, 3, 3},       // type 1
+        {0, 1, 1, 2, 2, -1},      // type 2
+        {0, 0, 1, 1, 2, 2},       // type 3
+        {0, 0, 1, 1, 2, -1}       // type 4
 };
 static constexpr int interval_map_quadbspline_host[5][6] = {
-    {-1, -1, -1, -1, -1, -1}, 		// type 0 filler
-    {0, 0, 1, 2, 3, 3},  			// type 1
-    {0, 1, 1, 2, 2, -1}, 			// type 2
-    {0, 0, 1, 1, 2, 2},  			// type 3
-    {0, 0, 1, 1, 2, -1}  			// type 4
+    {-1, -1, -1, -1, -1, -1}, // type 0 filler
+    {0, 0, 1, 2, 3, 3},       // type 1
+    {0, 1, 1, 2, 2, -1},      // type 2
+    {0, 0, 1, 1, 2, 2},       // type 3
+    {0, 0, 1, 1, 2, -1}       // type 4
 };
 #ifdef AMREX_USE_GPU
 AMREX_GPU_DEVICE AMREX_GPU_CONSTANT
@@ -58,9 +58,9 @@ AMREX_GPU_DEVICE AMREX_GPU_CONSTANT
         },
 
         // shapefunctiontype = 2 (Near boundary node)
-        {{0.0, 0.0, 0.0, 0.0},              	// [-2,-1]
-         {-onebythree, -1.0, 0.0, twobythree}, 		// [-1,0]
-         {0.5, -1.0, 0.0, twobythree},         		// [0,1]
+        {{0.0, 0.0, 0.0, 0.0},                 // [-2,-1]
+         {-onebythree, -1.0, 0.0, twobythree}, // [-1,0]
+         {0.5, -1.0, 0.0, twobythree},         // [0,1]
          {-onebysix, 1.0, -2.0, fourbythree}},
 
         // shapefunctiontype = 3 (Interior node)

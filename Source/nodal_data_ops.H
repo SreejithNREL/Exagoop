@@ -47,19 +47,18 @@ void nodal_bcs(const amrex::Geometry geom,
                amrex::Real wall_vel_hi[AMREX_SPACEDIM * AMREX_SPACEDIM],
                const amrex::Real &dt);
 
-void nodal_bcs_temperature(
-    const amrex::Geometry geom,
-    amrex::MultiFab &nodaldata,
-    int bcloarr[AMREX_SPACEDIM],
-    int bchiarr[AMREX_SPACEDIM],
-    amrex::Real T_wall_lo[AMREX_SPACEDIM],
-    amrex::Real T_wall_hi[AMREX_SPACEDIM],
-    amrex::Real flux_lo[AMREX_SPACEDIM],
-    amrex::Real flux_hi[AMREX_SPACEDIM],
-    amrex::Real h_lo[AMREX_SPACEDIM],
-    amrex::Real h_hi[AMREX_SPACEDIM],
-    amrex::Real Tinf_lo[AMREX_SPACEDIM],
-    amrex::Real Tinf_hi[AMREX_SPACEDIM]);
+void nodal_bcs_temperature(const amrex::Geometry geom,
+                           amrex::MultiFab &nodaldata,
+                           int bcloarr[AMREX_SPACEDIM],
+                           int bchiarr[AMREX_SPACEDIM],
+                           amrex::Real T_wall_lo[AMREX_SPACEDIM],
+                           amrex::Real T_wall_hi[AMREX_SPACEDIM],
+                           amrex::Real flux_lo[AMREX_SPACEDIM],
+                           amrex::Real flux_hi[AMREX_SPACEDIM],
+                           amrex::Real h_lo[AMREX_SPACEDIM],
+                           amrex::Real h_hi[AMREX_SPACEDIM],
+                           amrex::Real Tinf_lo[AMREX_SPACEDIM],
+                           amrex::Real Tinf_hi[AMREX_SPACEDIM]);
 
 void CalculateInterpolationError(const amrex::Geometry geom,
                                  amrex::MultiFab &nodaldata,
@@ -88,8 +87,8 @@ void apply_udf_nodal_bcs(const amrex::Geometry &geom,
 
 #if USE_TEMP
 void compute_udf_temp_at_nodes(const amrex::Geometry &geom,
-                                MPMspecs &specs,
-                                amrex::Real t);
+                               MPMspecs &specs,
+                               amrex::Real t);
 void apply_udf_nodal_bcs_temperature(const amrex::Geometry &geom,
                                      amrex::MultiFab &nodaldata,
                                      MPMspecs &specs);

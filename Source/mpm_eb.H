@@ -36,18 +36,21 @@ using namespace amrex;
 
 #if USE_EB
 
-constexpr int EXAGOOP_MAX_LS_BODIES = 8;	//Maximum number of level set bodies
+constexpr int EXAGOOP_MAX_LS_BODIES = 8; // Maximum number of level set bodies
 
-// Each body has its own level set data structure. Using a struct to group all quantities
+// Each body has its own level set data structure. Using a struct to group all
+// quantities
 struct LevelSetBody
 {
-    std::string name;						//name of body
-    amrex::MultiFab *lsphi = nullptr;		//levelset value
-    int ls_refinement = 1;					//levelset refinement factor
+    std::string name;                 // name of body
+    amrex::MultiFab *lsphi = nullptr; // levelset value
+    int ls_refinement = 1;            // levelset refinement factor
 
-    std::string mom_bc_type = "noslipwall";	//BC for each level set (1bc for each levelset)
-    amrex::Real wall_mu = 0.0;				//friction coeff.
-    amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> wall_vel =		//in case wall velocity is specified
+    std::string mom_bc_type =
+        "noslipwall";          // BC for each level set (1bc for each levelset)
+    amrex::Real wall_mu = 0.0; // friction coeff.
+    amrex::GpuArray<amrex::Real, AMREX_SPACEDIM>
+        wall_vel = // in case wall velocity is specified
         {AMREX_D_DECL(0.0, 0.0, 0.0)};
 
     /**
@@ -59,11 +62,15 @@ struct LevelSetBody
      */
     int mom_bc_int() const
     {
-        if (mom_bc_type == "noslipwall")  return BC_NOSLIPWALL;
-        if (mom_bc_type == "slipwall")    return BC_SLIPWALL;
-        if (mom_bc_type == "partialslip") return BC_PARTIALSLIPWALL;
+        if (mom_bc_type == "noslipwall")
+            return BC_NOSLIPWALL;
+        if (mom_bc_type == "slipwall")
+            return BC_SLIPWALL;
+        if (mom_bc_type == "partialslip")
+            return BC_PARTIALSLIPWALL;
         amrex::Abort("LevelSetBody '" + name +
-                     "': unknown levelset_mom type '" + mom_bc_type + "'."
+                     "': unknown levelset_mom type '" + mom_bc_type +
+                     "'."
                      " Valid values: noslipwall, slipwall, partialslip.");
         return BC_NOSLIPWALL;
     }
@@ -72,14 +79,15 @@ struct LevelSetBody
     //
     //   "adiabatic"  (default) — no thermal constraint (natural BC, zero flux)
     //   "isothermal"           — Dirichlet: T = T_wall
-    //   "heatflux"             — Neumann: T_node = T_nb + heat_flux * dx / k_node
-    //   "convective"           — Robin:   T_node = (T_nb + Bi * T_inf) / (1 + Bi)
+    //   "heatflux"             — Neumann: T_node = T_nb + heat_flux * dx /
+    //   k_node "convective"           — Robin:   T_node = (T_nb + Bi * T_inf) /
+    //   (1 + Bi)
     //                                     Bi = h_conv * dx / k_node
     std::string temp_bc_type = "adiabatic";
-    amrex::Real T_wall    = 0.0;
+    amrex::Real T_wall = 0.0;
     amrex::Real heat_flux = 0.0;
-    amrex::Real h_conv    = 0.0;
-    amrex::Real T_inf     = 0.0;
+    amrex::Real h_conv = 0.0;
+    amrex::Real T_inf = 0.0;
 
     /**
      * @brief Maps temp_bc_type string to an integer code matching the
@@ -91,13 +99,19 @@ struct LevelSetBody
      */
     int temp_bc_int() const
     {
-        if (temp_bc_type == "adiabatic")  return 0;
-        if (temp_bc_type == "isothermal") return 1;
-        if (temp_bc_type == "heatflux")   return 3;
-        if (temp_bc_type == "convective") return 4;
-        amrex::Abort("LevelSetBody '" + name +
-                     "': unknown temp_bc_type '" + temp_bc_type + "'."
-                     " Valid values: adiabatic, isothermal, heatflux, convection.");
+        if (temp_bc_type == "adiabatic")
+            return 0;
+        if (temp_bc_type == "isothermal")
+            return 1;
+        if (temp_bc_type == "heatflux")
+            return 3;
+        if (temp_bc_type == "convective")
+            return 4;
+        amrex::Abort(
+            "LevelSetBody '" + name + "': unknown temp_bc_type '" +
+            temp_bc_type +
+            "'."
+            " Valid values: adiabatic, isothermal, heatflux, convection.");
         return 0;
     }
 };
@@ -131,7 +145,8 @@ void build_udf_eb(UDFImplicitFunction udf_if,
 
 namespace mpm_ebtools
 {
-// Grouping eb related tools. EBFArrayBoxFactory is used in FillSignedDistance (only) but we will retain it for future use
+// Grouping eb related tools. EBFArrayBoxFactory is used in FillSignedDistance
+// (only) but we will retain it for future use
 
 extern std::vector<LevelSetBody> ls_bodies;
 
@@ -193,9 +208,9 @@ get_levelset_value(amrex::Array4<amrex::Real> phi,
         int jj = (AMREX_SPACEDIM > 1) ? idx[1] + offset[1] : 0;
         int kk = (AMREX_SPACEDIM > 2) ? idx[2] + offset[2] : 0;
 
-        lsval += phi(ii, jj, kk) *
-                 basisval(offset, idx, ptxyz, problo, ls_dx, order_pseudo,
-                          periodic_pseudo, lo, hi);
+        lsval +=
+            phi(ii, jj, kk) * basisval(offset, idx, ptxyz, problo, ls_dx,
+                                       order_pseudo, periodic_pseudo, lo, hi);
     }
     return lsval;
 }
@@ -251,10 +266,9 @@ get_levelset_grad(amrex::Array4<amrex::Real> phi,
         int kk = (AMREX_SPACEDIM > 2) ? idx[2] + offset[2] : 0;
 
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
-            lsgrad[d] +=
-                phi(ii, jj, kk) *
-                basisvalder(d, offset, idx, ptxyz, problo, ls_dx, order_pseudo,
-                            periodic_pseudo, lo, hi);
+            lsgrad[d] += phi(ii, jj, kk) *
+                         basisvalder(d, offset, idx, ptxyz, problo, ls_dx,
+                                     order_pseudo, periodic_pseudo, lo, hi);
     }
 }
 

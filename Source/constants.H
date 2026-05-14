@@ -12,7 +12,7 @@
 #define PI 3.141592654
 #define three 3.0
 #define two 2.0
-#define eka 1.0	//naming it as one creates issues on cuda
+#define eka 1.0 // naming it as one creates issues on cuda
 #define four 4.0
 #define onebysix 0.16666666666667
 #define onebythree 0.333333333333
@@ -20,7 +20,7 @@
 #define twobythree 0.6666666666667
 #define fourth 0.25
 #define eighth 0.125
-#define shunya 0.0 //naming it as zero creates issues on cuda
+#define shunya 0.0 // naming it as zero creates issues on cuda
 #define TINYVAL 1e-20
 #define BIGVAL 1e20
 
@@ -55,12 +55,12 @@
 #define NORMALZ 19
 
 #if USE_TEMP
-#define MASS_SPHEAT 20          // \sigma m_p c_p N_I(x_p)
-#define MASS_SPHEAT_TEMP 21     // \sigma m_p c_p T_p N_I(x_p)
-#define TEMPERATURE 22          // T_I
-#define SOURCE_TEMP_INDEX 23    // Source terms in temperature equation
-#define DELTA_TEMPERATURE 24    // \Delta T_I
-#define MASS_CONDUCTIVITY 25    // \sigma m_p k_p N_I(x_p)
+#define MASS_SPHEAT 20       // \sigma m_p c_p N_I(x_p)
+#define MASS_SPHEAT_TEMP 21  // \sigma m_p c_p T_p N_I(x_p)
+#define TEMPERATURE 22       // T_I
+#define SOURCE_TEMP_INDEX 23 // Source terms in temperature equation
+#define DELTA_TEMPERATURE 24 // \Delta T_I
+#define MASS_CONDUCTIVITY 25 // \sigma m_p k_p N_I(x_p)
 #endif
 
 #if (AMREX_SPACEDIM == 1)

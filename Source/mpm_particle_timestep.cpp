@@ -246,8 +246,8 @@ void MPMParticleContainer::moveParticles(
     for (int b = 0; b < num_bodies; ++b)
     {
         body_refs[b] = mpm_ebtools::ls_bodies[b].ls_refinement;
-        body_bcs[b]  = mpm_ebtools::ls_bodies[b].mom_bc_int();
-        body_mus[b]  = mpm_ebtools::ls_bodies[b].wall_mu;
+        body_bcs[b] = mpm_ebtools::ls_bodies[b].mom_bc_int();
+        body_mus[b] = mpm_ebtools::ls_bodies[b].wall_mu;
     }
 #endif
 
@@ -363,8 +363,7 @@ void MPMParticleContainer::moveParticles(
                         {
                             for (int d = 0; d < AMREX_SPACEDIM; ++d)
                             {
-                                p.pos(d) += 2.0 *
-                                            amrex::Math::abs(min_phi) *
+                                p.pos(d) += 2.0 * amrex::Math::abs(min_phi) *
                                             normaldir[d];
                             }
                         }
@@ -393,8 +392,7 @@ void MPMParticleContainer::moveParticles(
                         {
                             int p0 = (dir == 0) ? 1 : 0;
 #if (AMREX_SPACEDIM == 2)
-                            amrex::Real frac =
-                                (p.pos(p0) - plo[p0]) / dx[p0];
+                            amrex::Real frac = (p.pos(p0) - plo[p0]) / dx[p0];
                             frac = amrex::max(
                                 amrex::Real(0.0),
                                 amrex::min(amrex::Real(ncells_arr[p0]), frac));
@@ -405,15 +403,13 @@ void MPMParticleContainer::moveParticles(
                             for (int c = 0; c < AMREX_SPACEDIM; ++c)
                                 wallvel[c] =
                                     wt0 * udf_lo_ptrs[dir]
-                                              [j0 * AMREX_SPACEDIM + c] +
+                                                     [j0 * AMREX_SPACEDIM + c] +
                                     wt1 * udf_lo_ptrs[dir]
-                                              [j1 * AMREX_SPACEDIM + c];
+                                                     [j1 * AMREX_SPACEDIM + c];
 #elif (AMREX_SPACEDIM == 3)
                             int p1 = (dir == 2) ? 1 : 2;
-                            amrex::Real frac0 =
-                                (p.pos(p0) - plo[p0]) / dx[p0];
-                            amrex::Real frac1 =
-                                (p.pos(p1) - plo[p1]) / dx[p1];
+                            amrex::Real frac0 = (p.pos(p0) - plo[p0]) / dx[p0];
+                            amrex::Real frac1 = (p.pos(p1) - plo[p1]) / dx[p1];
                             frac0 = amrex::max(
                                 amrex::Real(0.0),
                                 amrex::min(amrex::Real(ncells_arr[p0]), frac0));
@@ -432,21 +428,21 @@ void MPMParticleContainer::moveParticles(
                             for (int c = 0; c < AMREX_SPACEDIM; ++c)
                                 wallvel[c] =
                                     wx0 * wy0 *
-                                        udf_lo_ptrs[dir]
-                                            [(j0 * n1 + k0) * AMREX_SPACEDIM +
-                                             c] +
+                                        udf_lo_ptrs[dir][(j0 * n1 + k0) *
+                                                             AMREX_SPACEDIM +
+                                                         c] +
                                     wx0 * wy1 *
-                                        udf_lo_ptrs[dir]
-                                            [(j0 * n1 + k1) * AMREX_SPACEDIM +
-                                             c] +
+                                        udf_lo_ptrs[dir][(j0 * n1 + k1) *
+                                                             AMREX_SPACEDIM +
+                                                         c] +
                                     wx1 * wy0 *
-                                        udf_lo_ptrs[dir]
-                                            [(j1 * n1 + k0) * AMREX_SPACEDIM +
-                                             c] +
+                                        udf_lo_ptrs[dir][(j1 * n1 + k0) *
+                                                             AMREX_SPACEDIM +
+                                                         c] +
                                     wx1 * wy1 *
-                                        udf_lo_ptrs[dir]
-                                            [(j1 * n1 + k1) * AMREX_SPACEDIM +
-                                             c];
+                                        udf_lo_ptrs[dir][(j1 * n1 + k1) *
+                                                             AMREX_SPACEDIM +
+                                                         c];
 #endif
                         }
 
@@ -476,8 +472,7 @@ void MPMParticleContainer::moveParticles(
                         {
                             int p0 = (dir == 0) ? 1 : 0;
 #if (AMREX_SPACEDIM == 2)
-                            amrex::Real frac =
-                                (p.pos(p0) - plo[p0]) / dx[p0];
+                            amrex::Real frac = (p.pos(p0) - plo[p0]) / dx[p0];
                             frac = amrex::max(
                                 amrex::Real(0.0),
                                 amrex::min(amrex::Real(ncells_arr[p0]), frac));
@@ -488,15 +483,13 @@ void MPMParticleContainer::moveParticles(
                             for (int c = 0; c < AMREX_SPACEDIM; ++c)
                                 wallvel[c] =
                                     wt0 * udf_hi_ptrs[dir]
-                                              [j0 * AMREX_SPACEDIM + c] +
+                                                     [j0 * AMREX_SPACEDIM + c] +
                                     wt1 * udf_hi_ptrs[dir]
-                                              [j1 * AMREX_SPACEDIM + c];
+                                                     [j1 * AMREX_SPACEDIM + c];
 #elif (AMREX_SPACEDIM == 3)
                             int p1 = (dir == 2) ? 1 : 2;
-                            amrex::Real frac0 =
-                                (p.pos(p0) - plo[p0]) / dx[p0];
-                            amrex::Real frac1 =
-                                (p.pos(p1) - plo[p1]) / dx[p1];
+                            amrex::Real frac0 = (p.pos(p0) - plo[p0]) / dx[p0];
+                            amrex::Real frac1 = (p.pos(p1) - plo[p1]) / dx[p1];
                             frac0 = amrex::max(
                                 amrex::Real(0.0),
                                 amrex::min(amrex::Real(ncells_arr[p0]), frac0));
@@ -515,21 +508,21 @@ void MPMParticleContainer::moveParticles(
                             for (int c = 0; c < AMREX_SPACEDIM; ++c)
                                 wallvel[c] =
                                     wx0 * wy0 *
-                                        udf_hi_ptrs[dir]
-                                            [(j0 * n1 + k0) * AMREX_SPACEDIM +
-                                             c] +
+                                        udf_hi_ptrs[dir][(j0 * n1 + k0) *
+                                                             AMREX_SPACEDIM +
+                                                         c] +
                                     wx0 * wy1 *
-                                        udf_hi_ptrs[dir]
-                                            [(j0 * n1 + k1) * AMREX_SPACEDIM +
-                                             c] +
+                                        udf_hi_ptrs[dir][(j0 * n1 + k1) *
+                                                             AMREX_SPACEDIM +
+                                                         c] +
                                     wx1 * wy0 *
-                                        udf_hi_ptrs[dir]
-                                            [(j1 * n1 + k0) * AMREX_SPACEDIM +
-                                             c] +
+                                        udf_hi_ptrs[dir][(j1 * n1 + k0) *
+                                                             AMREX_SPACEDIM +
+                                                         c] +
                                     wx1 * wy1 *
-                                        udf_hi_ptrs[dir]
-                                            [(j1 * n1 + k1) * AMREX_SPACEDIM +
-                                             c];
+                                        udf_hi_ptrs[dir][(j1 * n1 + k1) *
+                                                             AMREX_SPACEDIM +
+                                                         c];
 #endif
                         }
 

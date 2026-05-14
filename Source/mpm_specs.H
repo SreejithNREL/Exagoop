@@ -9,8 +9,8 @@
 #include <mpm_udf_loader.H>
 // clang-format on
 
-typedef void (*WallVelUDFFuncPtr)(double, double, double, double, double*);
-typedef void (*TempUDFFuncPtr)(double, double, double, double, double*);
+typedef void (*WallVelUDFFuncPtr)(double, double, double, double, double *);
+typedef void (*TempUDFFuncPtr)(double, double, double, double, double *);
 
 using namespace amrex;
 
@@ -71,7 +71,6 @@ struct intData
         count
     };
 };
-
 
 class MPMspecs
 {
@@ -400,20 +399,30 @@ class MPMspecs
         bchi[2] = BC_SLIPWALL;
 #endif
 
-        auto bc_str_to_int = [](const std::string &s) -> int {
-            if (s == "periodic")    return BC_PERIODIC;
-            if (s == "noslip")      return BC_NOSLIPWALL;
-            if (s == "slip")        return BC_SLIPWALL;
-            if (s == "partialslip") return BC_PARTIALSLIPWALL;
-            if (s == "outflow")     return BC_OUTFLOW;
+        auto bc_str_to_int = [](const std::string &s) -> int
+        {
+            if (s == "periodic")
+                return BC_PERIODIC;
+            if (s == "noslip")
+                return BC_NOSLIPWALL;
+            if (s == "slip")
+                return BC_SLIPWALL;
+            if (s == "partialslip")
+                return BC_PARTIALSLIPWALL;
+            if (s == "outflow")
+                return BC_OUTFLOW;
             amrex::Abort("\nUnknown BC type: " + s);
             return -1;
         };
 
-        const std::string face_lo_keys[3] = {"bc_xlo_mom", "bc_ylo_mom", "bc_zlo_mom"};
-        const std::string face_hi_keys[3] = {"bc_xhi_mom", "bc_yhi_mom", "bc_zhi_mom"};
-        const std::string face_lo_ns[3]   = {"mpm.bc_xlo_mom", "mpm.bc_ylo_mom", "mpm.bc_zlo_mom"};
-        const std::string face_hi_ns[3]   = {"mpm.bc_xhi_mom", "mpm.bc_yhi_mom", "mpm.bc_zhi_mom"};
+        const std::string face_lo_keys[3] = {"bc_xlo_mom", "bc_ylo_mom",
+                                             "bc_zlo_mom"};
+        const std::string face_hi_keys[3] = {"bc_xhi_mom", "bc_yhi_mom",
+                                             "bc_zhi_mom"};
+        const std::string face_lo_ns[3] = {"mpm.bc_xlo_mom", "mpm.bc_ylo_mom",
+                                           "mpm.bc_zlo_mom"};
+        const std::string face_hi_ns[3] = {"mpm.bc_xhi_mom", "mpm.bc_yhi_mom",
+                                           "mpm.bc_zhi_mom"};
 
         for (int d = 0; d < AMREX_SPACEDIM; d++)
         {
@@ -444,7 +453,9 @@ class MPMspecs
                 if (has_lib && has_func)
                 {
                     udf_loader_lo[d] = std::make_unique<UDFLoader>(udf_lib_lo);
-                    udf_func_ptr_lo[d] = udf_loader_lo[d]->symbol<WallVelUDFFuncPtr>(udf_func_lo);
+                    udf_func_ptr_lo[d] =
+                        udf_loader_lo[d]->symbol<WallVelUDFFuncPtr>(
+                            udf_func_lo);
                 }
             }
 
@@ -465,26 +476,38 @@ class MPMspecs
                 if (has_lib && has_func)
                 {
                     udf_loader_hi[d] = std::make_unique<UDFLoader>(udf_lib_hi);
-                    udf_func_ptr_hi[d] = udf_loader_hi[d]->symbol<WallVelUDFFuncPtr>(udf_func_hi);
+                    udf_func_ptr_hi[d] =
+                        udf_loader_hi[d]->symbol<WallVelUDFFuncPtr>(
+                            udf_func_hi);
                 }
             }
         }
 
 #if USE_TEMP
-        auto bc_temp_str_to_int = [](const std::string &s) -> int {
-            if (s == "periodic")   return 0;
-            if (s == "dirichlet")  return 1;
-            if (s == "adiabatic")  return 2;
-            if (s == "heatflux")   return 3;
-            if (s == "convective") return 4;
+        auto bc_temp_str_to_int = [](const std::string &s) -> int
+        {
+            if (s == "periodic")
+                return 0;
+            if (s == "dirichlet")
+                return 1;
+            if (s == "adiabatic")
+                return 2;
+            if (s == "heatflux")
+                return 3;
+            if (s == "convective")
+                return 4;
             amrex::Abort("\nUnknown temperature BC type: " + s);
             return -1;
         };
 
-        const std::string face_lo_temp_keys[3] = {"bc_xlo_temp", "bc_ylo_temp", "bc_zlo_temp"};
-        const std::string face_hi_temp_keys[3] = {"bc_xhi_temp", "bc_yhi_temp", "bc_zhi_temp"};
-        const std::string face_lo_temp_ns[3]   = {"mpm.bc_xlo_temp", "mpm.bc_ylo_temp", "mpm.bc_zlo_temp"};
-        const std::string face_hi_temp_ns[3]   = {"mpm.bc_xhi_temp", "mpm.bc_yhi_temp", "mpm.bc_zhi_temp"};
+        const std::string face_lo_temp_keys[3] = {"bc_xlo_temp", "bc_ylo_temp",
+                                                  "bc_zlo_temp"};
+        const std::string face_hi_temp_keys[3] = {"bc_xhi_temp", "bc_yhi_temp",
+                                                  "bc_zhi_temp"};
+        const std::string face_lo_temp_ns[3] = {
+            "mpm.bc_xlo_temp", "mpm.bc_ylo_temp", "mpm.bc_zlo_temp"};
+        const std::string face_hi_temp_ns[3] = {
+            "mpm.bc_xhi_temp", "mpm.bc_yhi_temp", "mpm.bc_zhi_temp"};
 
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
         {
@@ -500,41 +523,44 @@ class MPMspecs
 
             ParmParse pp_lo_temp(face_lo_temp_ns[d]);
             pp_lo_temp.query("T_wall", bc_temp_T_wall_lo[d]);
-            pp_lo_temp.query("flux",   bc_temp_flux_lo[d]);
-            pp_lo_temp.query("h",      bc_temp_h_lo[d]);
-            pp_lo_temp.query("T_inf",  bc_temp_Tinf_lo[d]);
+            pp_lo_temp.query("flux", bc_temp_flux_lo[d]);
+            pp_lo_temp.query("h", bc_temp_h_lo[d]);
+            pp_lo_temp.query("T_inf", bc_temp_Tinf_lo[d]);
             {
                 std::string udf_lib_lo, udf_func_lo;
-                bool has_lib  = pp_lo_temp.query("udf_lib",  udf_lib_lo);
+                bool has_lib = pp_lo_temp.query("udf_lib", udf_lib_lo);
                 bool has_func = pp_lo_temp.query("udf_func", udf_func_lo);
                 if (has_lib && has_func)
                 {
-                    udf_temp_loader_lo[d] = std::make_unique<UDFLoader>(udf_lib_lo);
-                    udf_temp_func_ptr_lo[d] = udf_temp_loader_lo[d]->symbol<TempUDFFuncPtr>(udf_func_lo);
+                    udf_temp_loader_lo[d] =
+                        std::make_unique<UDFLoader>(udf_lib_lo);
+                    udf_temp_func_ptr_lo[d] =
+                        udf_temp_loader_lo[d]->symbol<TempUDFFuncPtr>(
+                            udf_func_lo);
                 }
             }
 
             ParmParse pp_hi_temp(face_hi_temp_ns[d]);
             pp_hi_temp.query("T_wall", bc_temp_T_wall_hi[d]);
-            pp_hi_temp.query("flux",   bc_temp_flux_hi[d]);
-            pp_hi_temp.query("h",      bc_temp_h_hi[d]);
-            pp_hi_temp.query("T_inf",  bc_temp_Tinf_hi[d]);
+            pp_hi_temp.query("flux", bc_temp_flux_hi[d]);
+            pp_hi_temp.query("h", bc_temp_h_hi[d]);
+            pp_hi_temp.query("T_inf", bc_temp_Tinf_hi[d]);
             {
                 std::string udf_lib_hi, udf_func_hi;
-                bool has_lib  = pp_hi_temp.query("udf_lib",  udf_lib_hi);
+                bool has_lib = pp_hi_temp.query("udf_lib", udf_lib_hi);
                 bool has_func = pp_hi_temp.query("udf_func", udf_func_hi);
                 if (has_lib && has_func)
                 {
-                    udf_temp_loader_hi[d] = std::make_unique<UDFLoader>(udf_lib_hi);
-                    udf_temp_func_ptr_hi[d] = udf_temp_loader_hi[d]->symbol<TempUDFFuncPtr>(udf_func_hi);
+                    udf_temp_loader_hi[d] =
+                        std::make_unique<UDFLoader>(udf_lib_hi);
+                    udf_temp_func_ptr_hi[d] =
+                        udf_temp_loader_hi[d]->symbol<TempUDFFuncPtr>(
+                            udf_func_hi);
                 }
             }
         }
 #endif
-
     }
-
 };
-
 
 #endif

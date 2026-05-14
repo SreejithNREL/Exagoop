@@ -130,7 +130,7 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
                         amrex::Real & /*dt*/)
 {
     const auto plo = geom.ProbLoArray();
-    const auto dx  = geom.CellSizeArray();
+    const auto dx = geom.CellSizeArray();
 
     const int num_bodies = static_cast<int>(mpm_ebtools::ls_bodies.size());
 
@@ -139,12 +139,11 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
         const LevelSetBody &body = mpm_ebtools::ls_bodies[b];
         const int lsref = body.ls_refinement;
 
-        const int bc_int   = body.mom_bc_int();
+        const int bc_int = body.mom_bc_int();
         const amrex::Real wmu = body.wall_mu;
         const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> wvel = body.wall_vel;
 
-        MultiFab lsphi_coarse(nodaldata.boxArray(),
-                              nodaldata.DistributionMap(),
+        MultiFab lsphi_coarse(nodaldata.boxArray(), nodaldata.DistributionMap(),
                               1,  // ncomp
                               1); // nghost — must be >= 1 for interpolation
         amrex::average_down_nodal(*body.lsphi, lsphi_coarse,
@@ -157,7 +156,7 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
                 convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 
             Array4<Real> nodal_data_arr = nodaldata.array(mfi);
-            Array4<Real> lsarr          = lsphi_coarse.array(mfi);
+            Array4<Real> lsarr = lsphi_coarse.array(mfi);
 
             amrex::ParallelFor(
                 nodalbox,
@@ -166,10 +165,8 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
                     IntVect nodeid(AMREX_D_DECL(i, j, k));
 
                     amrex::Real xp[AMREX_SPACEDIM] = {AMREX_D_DECL(
-                        plo[XDIR] + i * dx[XDIR],
-                        plo[YDIR] + j * dx[YDIR],
+                        plo[XDIR] + i * dx[XDIR], plo[YDIR] + j * dx[YDIR],
                         plo[ZDIR] + k * dx[ZDIR])};
-
 
                     amrex::Real lsval =
                         get_levelset_value(lsarr, plo, dx, xp, /*lsref=*/1);
@@ -194,7 +191,6 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
                     for (int d = 0; d < AMREX_SPACEDIM; d++)
                         normaldir[d] /= gradmag;
 
-
                     amrex::Real relvel_in[AMREX_SPACEDIM];
                     amrex::Real relvel_out[AMREX_SPACEDIM];
                     for (int d = 0; d < AMREX_SPACEDIM; d++)
@@ -204,11 +200,9 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
                         relvel_out[d] = relvel_in[d];
                     }
 
-
                     amrex::Real veln = 0.0;
                     for (int d = 0; d < AMREX_SPACEDIM; d++)
                         veln += relvel_in[d] * normaldir[d];
-
 
                     if (veln > 0.0)
                         return;
@@ -241,7 +235,7 @@ void nodal_levelset_bcs_temperature(MultiFab &nodaldata,
                                     bool dirichlet_only)
 {
     const auto plo = geom.ProbLoArray();
-    const auto dx  = geom.CellSizeArray();
+    const auto dx = geom.CellSizeArray();
 
     const int num_bodies = static_cast<int>(mpm_ebtools::ls_bodies.size());
 
@@ -251,21 +245,21 @@ void nodal_levelset_bcs_temperature(MultiFab &nodaldata,
 
         const int bc_int = body.temp_bc_int();
 
-        if (bc_int == 0) continue;
+        if (bc_int == 0)
+            continue;
 
-        if (dirichlet_only && bc_int != 1) continue;
+        if (dirichlet_only && bc_int != 1)
+            continue;
 
         const int lsref = body.ls_refinement;
 
-        const amrex::Real T_wall_v    = body.T_wall;
+        const amrex::Real T_wall_v = body.T_wall;
         const amrex::Real heat_flux_v = body.heat_flux;
-        const amrex::Real h_conv_v    = body.h_conv;
-        const amrex::Real T_inf_v     = body.T_inf;
+        const amrex::Real h_conv_v = body.h_conv;
+        const amrex::Real T_inf_v = body.T_inf;
 
-        MultiFab lsphi_coarse(nodaldata.boxArray(),
-                              nodaldata.DistributionMap(),
-                              1,
-                              1);
+        MultiFab lsphi_coarse(nodaldata.boxArray(), nodaldata.DistributionMap(),
+                              1, 1);
         amrex::average_down_nodal(*body.lsphi, lsphi_coarse,
                                   amrex::IntVect(lsref));
         lsphi_coarse.FillBoundary(geom.periodicity());
@@ -275,7 +269,7 @@ void nodal_levelset_bcs_temperature(MultiFab &nodaldata,
             Box nodalbox =
                 convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 
-            Array4<Real> arr   = nodaldata.array(mfi);
+            Array4<Real> arr = nodaldata.array(mfi);
             Array4<Real> lsarr = lsphi_coarse.array(mfi);
 
             const Box lsbox = lsphi_coarse[mfi].box();
@@ -287,15 +281,13 @@ void nodal_levelset_bcs_temperature(MultiFab &nodaldata,
                     IntVect nodeid(AMREX_D_DECL(i, j, k));
 
                     amrex::Real xp[AMREX_SPACEDIM] = {AMREX_D_DECL(
-                        plo[XDIR] + i * dx[XDIR],
-                        plo[YDIR] + j * dx[YDIR],
+                        plo[XDIR] + i * dx[XDIR], plo[YDIR] + j * dx[YDIR],
                         plo[ZDIR] + k * dx[ZDIR])};
 
                     amrex::Real lsval =
                         get_levelset_value(lsarr, plo, dx, xp, /*lsref=*/1);
 
-                    if (lsval >= 0.0 ||
-                        arr(nodeid, MASS_SPHEAT) <= shunya)
+                    if (lsval >= 0.0 || arr(nodeid, MASS_SPHEAT) <= shunya)
                         return;
 
                     amrex::Real normaldir[AMREX_SPACEDIM] = {
@@ -322,16 +314,18 @@ void nodal_levelset_bcs_temperature(MultiFab &nodaldata,
 
                     int dom_dir = 0;
                     for (int d = 1; d < AMREX_SPACEDIM; d++)
-                        if (std::abs(normaldir[d]) > std::abs(normaldir[dom_dir]))
+                        if (std::abs(normaldir[d]) >
+                            std::abs(normaldir[dom_dir]))
                             dom_dir = d;
 
                     IntVect nb = nodeid;
                     nb[dom_dir] += (normaldir[dom_dir] > 0.0) ? 1 : -1;
 
-                    if (!lsbox.contains(nb)) return;
+                    if (!lsbox.contains(nb))
+                        return;
 
-                    amrex::Real mk     = arr(nodeid, MASS_CONDUCTIVITY);
-                    amrex::Real m      = arr(nodeid, MASS_INDEX);
+                    amrex::Real mk = arr(nodeid, MASS_CONDUCTIVITY);
+                    amrex::Real m = arr(nodeid, MASS_INDEX);
                     amrex::Real k_node = (m > shunya) ? mk / m : eka;
 
                     amrex::Real T_nb = arr(nb, TEMPERATURE);
@@ -820,19 +814,19 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
 
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
     {
-        domlo[d]      = domloarr[d];
-        domhi[d]      = domhiarr[d];
-        bclo[d]       = bcloarr[d];
-        bchi[d]       = bchiarr[d];
+        domlo[d] = domloarr[d];
+        domhi[d] = domhiarr[d];
+        bclo[d] = bcloarr[d];
+        bchi[d] = bchiarr[d];
         T_wall_lo_g[d] = T_wall_lo[d];
         T_wall_hi_g[d] = T_wall_hi[d];
-        flux_lo_g[d]  = flux_lo[d];
-        flux_hi_g[d]  = flux_hi[d];
-        h_lo_g[d]     = h_lo[d];
-        h_hi_g[d]     = h_hi[d];
-        Tinf_lo_g[d]  = Tinf_lo[d];
-        Tinf_hi_g[d]  = Tinf_hi[d];
-        dx_g[d]       = dx[d];
+        flux_lo_g[d] = flux_lo[d];
+        flux_hi_g[d] = flux_hi[d];
+        h_lo_g[d] = h_lo[d];
+        h_hi_g[d] = h_hi[d];
+        Tinf_lo_g[d] = Tinf_lo[d];
+        Tinf_hi_g[d] = Tinf_hi[d];
+        dx_g[d] = dx[d];
     }
 
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
@@ -840,69 +834,72 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
         Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
         Array4<amrex::Real> arr = nodaldata.array(mfi);
 
-        amrex::ParallelFor(nodalbox,
-                           [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
-                           {
-                               (void)j;
-                               (void)k;
-                               IntVect nodeid(AMREX_D_DECL(i, j, k));
+        amrex::ParallelFor(
+            nodalbox,
+            [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+            {
+                (void)j;
+                (void)k;
+                IntVect nodeid(AMREX_D_DECL(i, j, k));
 
-                               bool bc_applied = false;
-                               for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                               {
-                                   bool is_lo = (nodeid[d] == domlo[d]);
-                                   bool is_hi = (nodeid[d] == domhi[d] + 1);
+                bool bc_applied = false;
+                for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                {
+                    bool is_lo = (nodeid[d] == domlo[d]);
+                    bool is_hi = (nodeid[d] == domhi[d] + 1);
 
-                                   if (is_lo || is_hi)
-                                   {
-                                       int bc_type = is_lo ? bclo[d] : bchi[d];
-                                       int sign    = is_lo ? 1 : -1;
+                    if (is_lo || is_hi)
+                    {
+                        int bc_type = is_lo ? bclo[d] : bchi[d];
+                        int sign = is_lo ? 1 : -1;
 
-                                       if (bc_type == 1)
-                                       {
-                                           amrex::Real Tw = is_lo ? T_wall_lo_g[d] : T_wall_hi_g[d];
-                                           arr(nodeid, TEMPERATURE) = Tw;
-                                           bc_applied = true;
-                                       }
-                                       else if (bc_type == 2 || bc_type == 0)
-                                       {
-                                           if (!bc_applied)
-                                           {
-                                               IntVect nb = nodeid;
-                                               nb[d]     += sign;
-                                               arr(nodeid, TEMPERATURE) = arr(nb, TEMPERATURE);
-                                               bc_applied = true;
-                                           }
-                                       }
-                                       else if (bc_type == 3)
-                                       {
-                                           IntVect nb = nodeid;
-                                           nb[d]     += sign;
-                                           amrex::Real q  = is_lo ? flux_lo_g[d] : flux_hi_g[d];
-                                           amrex::Real mk = arr(nodeid, MASS_CONDUCTIVITY);
-                                           amrex::Real m  = arr(nodeid, MASS_INDEX);
-                                           amrex::Real k_node = (m > shunya) ? mk / m : eka;
-                                           arr(nodeid, TEMPERATURE) = arr(nb, TEMPERATURE) + q * dx_g[d] / k_node;
-                                           bc_applied = true;
-                                       }
-                                       else if (bc_type == 4)
-                                       {
-                                           IntVect nb = nodeid;
-                                           nb[d]     += sign;
-                                           amrex::Real hc   = is_lo ? h_lo_g[d]    : h_hi_g[d];
-                                           amrex::Real Tinf = is_lo ? Tinf_lo_g[d] : Tinf_hi_g[d];
-                                           amrex::Real Bi   = hc * dx_g[d];
-                                           arr(nodeid, TEMPERATURE) =
-                                               (arr(nb, TEMPERATURE) + Bi * Tinf) / (1.0 + Bi);
-                                           bc_applied = true;
-                                       }
-                                   }
-                               }
-                           });
+                        if (bc_type == 1)
+                        {
+                            amrex::Real Tw =
+                                is_lo ? T_wall_lo_g[d] : T_wall_hi_g[d];
+                            arr(nodeid, TEMPERATURE) = Tw;
+                            bc_applied = true;
+                        }
+                        else if (bc_type == 2 || bc_type == 0)
+                        {
+                            if (!bc_applied)
+                            {
+                                IntVect nb = nodeid;
+                                nb[d] += sign;
+                                arr(nodeid, TEMPERATURE) = arr(nb, TEMPERATURE);
+                                bc_applied = true;
+                            }
+                        }
+                        else if (bc_type == 3)
+                        {
+                            IntVect nb = nodeid;
+                            nb[d] += sign;
+                            amrex::Real q = is_lo ? flux_lo_g[d] : flux_hi_g[d];
+                            amrex::Real mk = arr(nodeid, MASS_CONDUCTIVITY);
+                            amrex::Real m = arr(nodeid, MASS_INDEX);
+                            amrex::Real k_node = (m > shunya) ? mk / m : eka;
+                            arr(nodeid, TEMPERATURE) =
+                                arr(nb, TEMPERATURE) + q * dx_g[d] / k_node;
+                            bc_applied = true;
+                        }
+                        else if (bc_type == 4)
+                        {
+                            IntVect nb = nodeid;
+                            nb[d] += sign;
+                            amrex::Real hc = is_lo ? h_lo_g[d] : h_hi_g[d];
+                            amrex::Real Tinf =
+                                is_lo ? Tinf_lo_g[d] : Tinf_hi_g[d];
+                            amrex::Real Bi = hc * dx_g[d];
+                            arr(nodeid, TEMPERATURE) =
+                                (arr(nb, TEMPERATURE) + Bi * Tinf) / (1.0 + Bi);
+                            bc_applied = true;
+                        }
+                    }
+                }
+            });
     }
 }
 #endif
-
 
 /**
  * @brief Sets all nodal data components to zero (shunya).
@@ -916,7 +913,7 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
  */
 
 void Reset_Nodaldata_to_Zero(amrex::MultiFab &nodaldata, int ng_cells_nodaldata)
-{    
+{
     nodaldata.setVal(shunya, ng_cells_nodaldata);
 }
 
@@ -924,9 +921,9 @@ void compute_udf_wall_vel_at_nodes(const amrex::Geometry &geom,
                                    MPMspecs &specs,
                                    amrex::Real t)
 {
-    const auto dx     = geom.CellSizeArray();
-    const auto plo_g  = geom.ProbLoArray();
-    const auto phi_g  = geom.ProbHiArray();
+    const auto dx = geom.CellSizeArray();
+    const auto plo_g = geom.ProbLoArray();
+    const auto phi_g = geom.ProbHiArray();
 
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
     {
@@ -949,8 +946,8 @@ void compute_udf_wall_vel_at_nodes(const amrex::Geometry &geom,
 #if (AMREX_SPACEDIM == 1)
             {
                 double vel[3] = {0.0, 0.0, 0.0};
-                specs.udf_func_ptr_lo[d]((double)plo_g[0], 0.0, 0.0,
-                                         (double)t, vel);
+                specs.udf_func_ptr_lo[d]((double)plo_g[0], 0.0, 0.0, (double)t,
+                                         vel);
                 for (int c = 0; c < AMREX_SPACEDIM; ++c)
                     hv[c] = (amrex::Real)vel[c];
             }
@@ -972,13 +969,14 @@ void compute_udf_wall_vel_at_nodes(const amrex::Geometry &geom,
                 for (int k = 0; k <= specs.ncells[p1]; ++k)
                 {
                     double coords[3] = {0.0, 0.0, 0.0};
-                    coords[d]  = (double)plo_g[d];
+                    coords[d] = (double)plo_g[d];
                     coords[p0] = (double)(plo_g[p0] + j * dx[p0]);
                     coords[p1] = (double)(plo_g[p1] + k * dx[p1]);
                     double vel[3] = {0.0, 0.0, 0.0};
                     specs.udf_func_ptr_lo[d](coords[0], coords[1], coords[2],
                                              (double)t, vel);
-                    int flat = (j * (specs.ncells[p1] + 1) + k) * AMREX_SPACEDIM;
+                    int flat =
+                        (j * (specs.ncells[p1] + 1) + k) * AMREX_SPACEDIM;
                     for (int c = 0; c < AMREX_SPACEDIM; ++c)
                         hv[flat + c] = (amrex::Real)vel[c];
                 }
@@ -1003,8 +1001,8 @@ void compute_udf_wall_vel_at_nodes(const amrex::Geometry &geom,
 #if (AMREX_SPACEDIM == 1)
             {
                 double vel[3] = {0.0, 0.0, 0.0};
-                specs.udf_func_ptr_hi[d]((double)phi_g[0], 0.0, 0.0,
-                                         (double)t, vel);
+                specs.udf_func_ptr_hi[d]((double)phi_g[0], 0.0, 0.0, (double)t,
+                                         vel);
                 for (int c = 0; c < AMREX_SPACEDIM; ++c)
                     hv[c] = (amrex::Real)vel[c];
             }
@@ -1026,13 +1024,14 @@ void compute_udf_wall_vel_at_nodes(const amrex::Geometry &geom,
                 for (int k = 0; k <= specs.ncells[p1]; ++k)
                 {
                     double coords[3] = {0.0, 0.0, 0.0};
-                    coords[d]  = (double)phi_g[d];
+                    coords[d] = (double)phi_g[d];
                     coords[p0] = (double)(plo_g[p0] + j * dx[p0]);
                     coords[p1] = (double)(plo_g[p1] + k * dx[p1]);
                     double vel[3] = {0.0, 0.0, 0.0};
                     specs.udf_func_ptr_hi[d](coords[0], coords[1], coords[2],
                                              (double)t, vel);
-                    int flat = (j * (specs.ncells[p1] + 1) + k) * AMREX_SPACEDIM;
+                    int flat =
+                        (j * (specs.ncells[p1] + 1) + k) * AMREX_SPACEDIM;
                     for (int c = 0; c < AMREX_SPACEDIM; ++c)
                         hv[flat + c] = (amrex::Real)vel[c];
                 }
@@ -1059,7 +1058,8 @@ void apply_udf_nodal_bcs(const amrex::Geometry &geom,
             break;
         }
     }
-    if (!any_udf) return;
+    if (!any_udf)
+        return;
 
     const int *domloarr = geom.Domain().loVect();
     const int *domhiarr = geom.Domain().hiVect();
@@ -1108,7 +1108,7 @@ void apply_udf_nodal_bcs(const amrex::Geometry &geom,
                 for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
                 {
                     const amrex::Real *udf_ptr = nullptr;
-                    int bc_type               = -1;
+                    int bc_type = -1;
 
                     if (nodeid[dir] == domlo[dir] &&
                         udf_lo_ptrs[dir] != nullptr)
@@ -1123,7 +1123,8 @@ void apply_udf_nodal_bcs(const amrex::Geometry &geom,
                         bc_type = bchi_arr[dir];
                     }
 
-                    if (udf_ptr == nullptr) continue;
+                    if (udf_ptr == nullptr)
+                        continue;
 
                     int p0 = (dir == 0) ? 1 : 0;
 #if (AMREX_SPACEDIM == 3)
@@ -1160,10 +1161,10 @@ void apply_udf_nodal_bcs(const amrex::Geometry &geom,
 
 #if USE_TEMP
 void compute_udf_temp_at_nodes(const amrex::Geometry &geom,
-                                MPMspecs &specs,
-                                amrex::Real t)
+                               MPMspecs &specs,
+                               amrex::Real t)
 {
-    const auto dx    = geom.CellSizeArray();
+    const auto dx = geom.CellSizeArray();
     const auto plo_g = geom.ProbLoArray();
     const auto phi_g = geom.ProbHiArray();
 
@@ -1202,7 +1203,7 @@ void compute_udf_temp_at_nodes(const amrex::Geometry &geom,
                                      : (double)(plo_g[1] + j * dx[1]);
                 double out[2] = {0.0, 0.0};
                 specs.udf_temp_func_ptr_lo[d](cx, cy, 0.0, (double)t, out);
-                hv[j * 2]     = (amrex::Real)out[0];
+                hv[j * 2] = (amrex::Real)out[0];
                 hv[j * 2 + 1] = (amrex::Real)out[1];
             }
 #else
@@ -1211,14 +1212,14 @@ void compute_udf_temp_at_nodes(const amrex::Geometry &geom,
                 for (int k = 0; k <= specs.ncells[p1]; ++k)
                 {
                     double coords[3] = {0.0, 0.0, 0.0};
-                    coords[d]  = (double)plo_g[d];
+                    coords[d] = (double)plo_g[d];
                     coords[p0] = (double)(plo_g[p0] + j * dx[p0]);
                     coords[p1] = (double)(plo_g[p1] + k * dx[p1]);
                     double out[2] = {0.0, 0.0};
-                    specs.udf_temp_func_ptr_lo[d](coords[0], coords[1], coords[2],
-                                                  (double)t, out);
-                    int flat      = (j * (specs.ncells[p1] + 1) + k) * 2;
-                    hv[flat]     = (amrex::Real)out[0];
+                    specs.udf_temp_func_ptr_lo[d](coords[0], coords[1],
+                                                  coords[2], (double)t, out);
+                    int flat = (j * (specs.ncells[p1] + 1) + k) * 2;
+                    hv[flat] = (amrex::Real)out[0];
                     hv[flat + 1] = (amrex::Real)out[1];
                 }
             }
@@ -1256,7 +1257,7 @@ void compute_udf_temp_at_nodes(const amrex::Geometry &geom,
                                      : (double)(plo_g[1] + j * dx[1]);
                 double out[2] = {0.0, 0.0};
                 specs.udf_temp_func_ptr_hi[d](cx, cy, 0.0, (double)t, out);
-                hv[j * 2]     = (amrex::Real)out[0];
+                hv[j * 2] = (amrex::Real)out[0];
                 hv[j * 2 + 1] = (amrex::Real)out[1];
             }
 #else
@@ -1265,14 +1266,14 @@ void compute_udf_temp_at_nodes(const amrex::Geometry &geom,
                 for (int k = 0; k <= specs.ncells[p1]; ++k)
                 {
                     double coords[3] = {0.0, 0.0, 0.0};
-                    coords[d]  = (double)phi_g[d];
+                    coords[d] = (double)phi_g[d];
                     coords[p0] = (double)(plo_g[p0] + j * dx[p0]);
                     coords[p1] = (double)(plo_g[p1] + k * dx[p1]);
                     double out[2] = {0.0, 0.0};
-                    specs.udf_temp_func_ptr_hi[d](coords[0], coords[1], coords[2],
-                                                  (double)t, out);
-                    int flat      = (j * (specs.ncells[p1] + 1) + k) * 2;
-                    hv[flat]     = (amrex::Real)out[0];
+                    specs.udf_temp_func_ptr_hi[d](coords[0], coords[1],
+                                                  coords[2], (double)t, out);
+                    int flat = (j * (specs.ncells[p1] + 1) + k) * 2;
+                    hv[flat] = (amrex::Real)out[0];
                     hv[flat + 1] = (amrex::Real)out[1];
                 }
             }
@@ -1298,9 +1299,10 @@ void apply_udf_nodal_bcs_temperature(const amrex::Geometry &geom,
             break;
         }
     }
-    if (!any_udf) return;
+    if (!any_udf)
+        return;
 
-    const auto dx       = geom.CellSize();
+    const auto dx = geom.CellSize();
     const int *domloarr = geom.Domain().loVect();
     const int *domhiarr = geom.Domain().hiVect();
 
@@ -1318,7 +1320,8 @@ void apply_udf_nodal_bcs_temperature(const amrex::Geometry &geom,
         bchi_arr[d] = specs.bchi_temp[d];
     }
 
-    amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM> udf_lo_ptrs, udf_hi_ptrs;
+    amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM> udf_lo_ptrs,
+        udf_hi_ptrs;
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
     {
         udf_lo_ptrs[d] = specs.udf_temp_func_ptr_lo[d]
@@ -1351,23 +1354,26 @@ void apply_udf_nodal_bcs_temperature(const amrex::Geometry &geom,
                 for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
                 {
                     const amrex::Real *udf_ptr = nullptr;
-                    int bc_type               = -1;
-                    int sign                  = 0;
+                    int bc_type = -1;
+                    int sign = 0;
 
-                    if (nodeid[dir] == domlo[dir] && udf_lo_ptrs[dir] != nullptr)
+                    if (nodeid[dir] == domlo[dir] &&
+                        udf_lo_ptrs[dir] != nullptr)
                     {
                         udf_ptr = udf_lo_ptrs[dir];
                         bc_type = bclo_arr[dir];
-                        sign    = 1;
+                        sign = 1;
                     }
-                    else if (nodeid[dir] == domhi[dir] + 1 && udf_hi_ptrs[dir] != nullptr)
+                    else if (nodeid[dir] == domhi[dir] + 1 &&
+                             udf_hi_ptrs[dir] != nullptr)
                     {
                         udf_ptr = udf_hi_ptrs[dir];
                         bc_type = bchi_arr[dir];
-                        sign    = -1;
+                        sign = -1;
                     }
 
-                    if (udf_ptr == nullptr) continue;
+                    if (udf_ptr == nullptr)
+                        continue;
 
                     int p0 = (dir == 0) ? 1 : 0;
 #if (AMREX_SPACEDIM == 3)
@@ -1393,9 +1399,9 @@ void apply_udf_nodal_bcs_temperature(const amrex::Geometry &geom,
                     else if (bc_type == 3)
                     {
                         IntVect nb = nodeid;
-                        nb[dir]   += sign;
-                        amrex::Real mk     = arr(nodeid, MASS_CONDUCTIVITY);
-                        amrex::Real m      = arr(nodeid, MASS_INDEX);
+                        nb[dir] += sign;
+                        amrex::Real mk = arr(nodeid, MASS_CONDUCTIVITY);
+                        amrex::Real m = arr(nodeid, MASS_INDEX);
                         amrex::Real k_node = (m > shunya) ? mk / m : eka;
                         arr(nodeid, TEMPERATURE) =
                             arr(nb, TEMPERATURE) + val0 * dx_g[dir] / k_node;
@@ -1403,10 +1409,10 @@ void apply_udf_nodal_bcs_temperature(const amrex::Geometry &geom,
                     else if (bc_type == 4)
                     {
                         IntVect nb = nodeid;
-                        nb[dir]   += sign;
-                        amrex::Real hc   = val0;
+                        nb[dir] += sign;
+                        amrex::Real hc = val0;
                         amrex::Real Tinf = val1;
-                        amrex::Real Bi   = hc * dx_g[dir];
+                        amrex::Real Bi = hc * dx_g[dir];
                         arr(nodeid, TEMPERATURE) =
                             (arr(nb, TEMPERATURE) + Bi * Tinf) / (eka + Bi);
                     }

@@ -214,4 +214,3 @@ void MPMParticleContainer::Calculate_MinMaxPos(
     amrex::ParallelDescriptor::ReduceRealMin(minpos.data(), AMREX_SPACEDIM);
 #endif
 }
-

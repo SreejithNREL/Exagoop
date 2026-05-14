@@ -185,7 +185,7 @@ void Initialise_Domain(MPMspecs &specs,
         {
             const int ncd = specs.ncells[d];
             const int periodic_d = specs.periodic[d];
-            
+
             specs.order_scheme_directional[d] =
                 ((periodic_d == 0) ? ((ncd < 5) ? 1 : 2) : ((ncd < 3) ? 1 : 2));
         }
@@ -204,7 +204,6 @@ void Initialise_Domain(MPMspecs &specs,
                               "directions\n";
         }
 
-        
         for (int box_index = 0; box_index < ba.size(); ++box_index)
         {
             const auto sz = ba[box_index].size();
@@ -224,12 +223,11 @@ void Initialise_Domain(MPMspecs &specs,
     {
         ng_cells_nodaldata = 3;
 
-        
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
         {
             const int ncd = specs.ncells[d];
             const int periodic_d = specs.periodic[d];
-            
+
             specs.order_scheme_directional[d] =
                 ((periodic_d == 0) ? ((ncd < 5) ? 1 : 3) : ((ncd < 3) ? 1 : 3));
         }
@@ -279,11 +277,9 @@ void Initialise_Domain(MPMspecs &specs,
 #endif
     const BoxArray nodeba = amrex::convert(ba, nodal_iv);
 
-    
     nodaldata.define(nodeba, dm, NUM_STATES, ng_cells_nodaldata);
     nodaldata.setVal(0.0, ng_cells_nodaldata);
 
-    
     Box dom_levset = geom.Domain();
     dom_levset.refine(specs.levset_gridratio);
 
@@ -430,17 +426,12 @@ void Initialise_Internal_Forces(MPMspecs &specs,
         backup_current_temperature(nodaldata);
 
         const Geometry &geom = mpm_pc.Geom(0);
-        nodal_bcs_temperature(geom, nodaldata,
-                              specs.bclo_temp.data(),
-                              specs.bchi_temp.data(),
-                              specs.bc_temp_T_wall_lo.data(),
-                              specs.bc_temp_T_wall_hi.data(),
-                              specs.bc_temp_flux_lo.data(),
-                              specs.bc_temp_flux_hi.data(),
-                              specs.bc_temp_h_lo.data(),
-                              specs.bc_temp_h_hi.data(),
-                              specs.bc_temp_Tinf_lo.data(),
-                              specs.bc_temp_Tinf_hi.data());
+        nodal_bcs_temperature(
+            geom, nodaldata, specs.bclo_temp.data(), specs.bchi_temp.data(),
+            specs.bc_temp_T_wall_lo.data(), specs.bc_temp_T_wall_hi.data(),
+            specs.bc_temp_flux_lo.data(), specs.bc_temp_flux_hi.data(),
+            specs.bc_temp_h_lo.data(), specs.bc_temp_h_hi.data(),
+            specs.bc_temp_Tinf_lo.data(), specs.bc_temp_Tinf_hi.data());
         store_delta_temperature(nodaldata);
 
         // Interpolate temperature grid -> particles
@@ -1276,14 +1267,13 @@ void MPMParticleContainer::InitParticles(
         {
             if (do_multi_part_per_cell == 0)
             {
-				                
+
                 amrex::Real coords[AMREX_SPACEDIM];
                 for (int d = 0; d < AMREX_SPACEDIM; ++d)
                 {
                     coords[d] = ploA[d] + (iv[d] + HALF_CONST) * dxA[d];
                 }
 
-                
                 bool inside = true;
                 for (int d = 0; d < AMREX_SPACEDIM && inside; ++d)
                 {
@@ -1330,7 +1320,6 @@ void MPMParticleContainer::InitParticles(
                             if (AMREX_SPACEDIM == 3)
                                 coords[2] = base[2] + offz[iz] * dxA[2];
 
-                            
                             bool inside = true;
                             for (int d = 0; d < AMREX_SPACEDIM && inside; ++d)
                                 inside = (coords[d] >= mincoords[d] &&
@@ -1557,8 +1546,7 @@ void MPMParticleContainer::removeParticlesInsideEB()
                                for (int b = 0; b < num_bodies; ++b)
                                {
                                    amrex::Real lsval = get_levelset_value(
-                                       body_arrs[b], plo, dx, xp,
-                                       body_refs[b]);
+                                       body_arrs[b], plo, dx, xp, body_refs[b]);
                                    if (lsval < TINYVAL)
                                    {
                                        p.id() = -1;

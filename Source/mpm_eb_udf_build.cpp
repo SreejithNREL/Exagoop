@@ -127,8 +127,7 @@ void build_udf_eb(UDFImplicitFunction udf_if,
     ebfactory_out = new amrex::EBFArrayBoxFactory(
         eblev, geom, ba, dm, {nghost, nghost, nghost}, amrex::EBSupport::full);
 
-    amrex::BoxArray ls_ba =
-        amrex::convert(ba, amrex::IntVect::TheNodeVector());
+    amrex::BoxArray ls_ba = amrex::convert(ba, amrex::IntVect::TheNodeVector());
     ls_ba.refine(ls_refinement);
 
     lsphi_out = new amrex::MultiFab;

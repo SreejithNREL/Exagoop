@@ -62,7 +62,7 @@ void Write_Particle_Grid_Levset_Output(
     BL_PROFILE_VAR("OUTPUT_TIME", outputs);
     Print() << "\n Writing outputs at step, time:" << steps << ", " << time
             << "\n";
-    
+
     std::string pltfile = amrex::Concatenate(
         specs.prefix_gridfilename, output_it, specs.num_of_digits_in_filenames);
 
@@ -125,7 +125,7 @@ void P2G_Momentum(MPMspecs &specs,
                   int update_vel,
                   int update_forces)
 {
-    
+
     mpm_pc.deposit_onto_grid_momentum(
         nodaldata, specs.gravity, specs.external_loads_present,
         specs.force_slab_lo, specs.force_slab_hi, specs.extforce, update_mass,
@@ -157,7 +157,7 @@ void P2G_Temperature(MPMspecs &specs,
                      int update_temp,
                      int update_source)
 {
-    
+
     mpm_pc.deposit_onto_grid_temperature(
         nodaldata, reset_nodaldata_to_zero, update_temp, update_source,
         specs.mass_tolerance, specs.order_scheme_directional, specs.periodic);
@@ -227,17 +227,12 @@ void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
 {
     if (!dirichlet_only)
     {
-        nodal_bcs_temperature(geom, nodaldata,
-                              specs.bclo_temp.data(),
-                              specs.bchi_temp.data(),
-                              specs.bc_temp_T_wall_lo.data(),
-                              specs.bc_temp_T_wall_hi.data(),
-                              specs.bc_temp_flux_lo.data(),
-                              specs.bc_temp_flux_hi.data(),
-                              specs.bc_temp_h_lo.data(),
-                              specs.bc_temp_h_hi.data(),
-                              specs.bc_temp_Tinf_lo.data(),
-                              specs.bc_temp_Tinf_hi.data());
+        nodal_bcs_temperature(
+            geom, nodaldata, specs.bclo_temp.data(), specs.bchi_temp.data(),
+            specs.bc_temp_T_wall_lo.data(), specs.bc_temp_T_wall_hi.data(),
+            specs.bc_temp_flux_lo.data(), specs.bc_temp_flux_hi.data(),
+            specs.bc_temp_h_lo.data(), specs.bc_temp_h_hi.data(),
+            specs.bc_temp_Tinf_lo.data(), specs.bc_temp_Tinf_hi.data());
         compute_udf_temp_at_nodes(geom, specs, t);
         apply_udf_nodal_bcs_temperature(geom, nodaldata, specs);
 #if USE_EB
@@ -255,17 +250,12 @@ void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
             bclo_dirichlet[d] = (specs.bclo_temp[d] == 1) ? 1 : 0;
             bchi_dirichlet[d] = (specs.bchi_temp[d] == 1) ? 1 : 0;
         }
-        nodal_bcs_temperature(geom, nodaldata,
-                              bclo_dirichlet.data(),
-                              bchi_dirichlet.data(),
-                              specs.bc_temp_T_wall_lo.data(),
-                              specs.bc_temp_T_wall_hi.data(),
-                              specs.bc_temp_flux_lo.data(),
-                              specs.bc_temp_flux_hi.data(),
-                              specs.bc_temp_h_lo.data(),
-                              specs.bc_temp_h_hi.data(),
-                              specs.bc_temp_Tinf_lo.data(),
-                              specs.bc_temp_Tinf_hi.data());
+        nodal_bcs_temperature(
+            geom, nodaldata, bclo_dirichlet.data(), bchi_dirichlet.data(),
+            specs.bc_temp_T_wall_lo.data(), specs.bc_temp_T_wall_hi.data(),
+            specs.bc_temp_flux_lo.data(), specs.bc_temp_flux_hi.data(),
+            specs.bc_temp_h_lo.data(), specs.bc_temp_h_hi.data(),
+            specs.bc_temp_Tinf_lo.data(), specs.bc_temp_Tinf_hi.data());
         compute_udf_temp_at_nodes(geom, specs, t);
         apply_udf_nodal_bcs_temperature(geom, nodaldata, specs);
 #if USE_EB
@@ -300,7 +290,7 @@ void G2P_Momentum(MPMspecs &specs,
                   int update_strainrate,
                   amrex::Real dt)
 {
-    
+
     mpm_pc.interpolate_from_grid(nodaldata, update_vel, update_strainrate,
                                  specs.order_scheme_directional, specs.periodic,
                                  specs.alpha_pic_flip, dt);
@@ -328,7 +318,7 @@ void G2P_Temperature(MPMspecs &specs,
                      int update_temperature,
                      int update_heatflux,
                      [[maybe_unused]] amrex::Real dt)
-{    
+{
     mpm_pc.interpolate_from_grid_temperature(
         nodaldata, update_temperature, update_heatflux,
         specs.order_scheme_directional, specs.periodic, specs.alpha_pic_flip);
@@ -628,7 +618,7 @@ void Do_All_Diagnostics(MPMspecs &specs,
         if (amrex::ParallelDescriptor::IOProcessor())
         {
             specs.tmp_mwa_velmag << steps << " " << current_time << " " << Vmag
-                                  << "\n";
+                                 << "\n";
         }
         specs.tmp_mwa_velmag.flush();
     }

@@ -229,7 +229,6 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
     Vector<std::string> real_data_names;
     Vector<std::string> int_data_names;
 
-    
     real_data_names.push_back("radius");
 
     real_data_names.push_back("xvel");
@@ -309,7 +308,7 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
     writeflags_real[realData::pressure] = 1;
     writeflags_real[realData::vol_init] = 1;
 
-    // Optional material properties 
+    // Optional material properties
     writeflags_real[realData::E] = 0;
     writeflags_real[realData::nu] = 0;
     writeflags_real[realData::Bulk_modulus] = 0;

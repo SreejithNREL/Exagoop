@@ -66,7 +66,8 @@ class UDFLoader
      * @brief Look up a symbol by name and cast to FuncPtr.
      *
      * Example:
-     *   auto f = loader.symbol<double(*)(double,double,double)>("levelset_phi");
+     *   auto f =
+     * loader.symbol<double(*)(double,double,double)>("levelset_phi");
      */
     template <typename FuncPtr> FuncPtr symbol(const std::string &name) const
     {

@@ -1,4 +1,4 @@
-#include <AMReX.H> 
+#include <AMReX.H>
 #include <aesthetics.H>
 #include <iomanip>
 #include <iostream>
@@ -8,10 +8,12 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <ctime>
 
+#define CCCL_IGNORE_MSVC_TRADITIONAL_PREPROCESSOR_WARNING // Suppress warning
+                                                          // while detecting
+                                                          // msvc compilers when
+                                                          // running on CUDA
 
-#define CCCL_IGNORE_MSVC_TRADITIONAL_PREPROCESSOR_WARNING //Suppress warning while detecting msvc compilers when running on CUDA
-
-//get host name
+// get host name
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -44,7 +46,6 @@ using namespace amrex;
  * for debugging and provenance tracking.
  */
 
- 
 void PrintWelcomeMessage()
 {
     if (!amrex::ParallelDescriptor::IOProcessor())
@@ -246,7 +247,7 @@ void PrintSimParams(MPMParticleContainer *mpm_pc, MPMspecs *specs)
     amrex::Print() << " " << std::setprecision(4) << tmpr;
 
     msg = "\n     Rigid particle details:";
-    PrintMessage(msg, print_length, true);   
+    PrintMessage(msg, print_length, true);
 
     msg = "\n     ";
     PrintMessage(msg, print_length, true, '*'); //* line
