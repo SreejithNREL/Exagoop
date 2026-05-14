@@ -834,8 +834,11 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
                                        {
                                            IntVect nb = nodeid;
                                            nb[d]     += sign;
-                                           amrex::Real fl = is_lo ? flux_lo_g[d] : flux_hi_g[d];
-                                           arr(nodeid, TEMPERATURE) = arr(nb, TEMPERATURE) + fl * dx_g[d];
+                                           amrex::Real q  = is_lo ? flux_lo_g[d] : flux_hi_g[d];
+                                           amrex::Real mk = arr(nodeid, MASS_CONDUCTIVITY);
+                                           amrex::Real m  = arr(nodeid, MASS_INDEX);
+                                           amrex::Real k_node = (m > shunya) ? mk / m : eka;
+                                           arr(nodeid, TEMPERATURE) = arr(nb, TEMPERATURE) + q * dx_g[d] / k_node;
                                            bc_applied = true;
                                        }
                                        else if (bc_type == 4)

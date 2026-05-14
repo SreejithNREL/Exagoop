@@ -744,6 +744,8 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
                     nodal_data_arr(nodeindex, MASS_SPHEAT) = shunya;
                     nodal_data_arr(nodeindex, MASS_SPHEAT_TEMP) = shunya;
                     nodal_data_arr(nodeindex, SOURCE_TEMP_INDEX) = shunya;
+                    if (update_mass_temp)
+                        nodal_data_arr(nodeindex, MASS_CONDUCTIVITY) = shunya;
                 });
         }
     }
@@ -823,6 +825,10 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
                                         p.rdata(realData::specific_heat) *
                                         p.rdata(realData::temperature) *
                                         basisvalue;
+                                    amrex::Real mass_conductivity_contrib =
+                                        p.rdata(realData::mass) *
+                                        p.rdata(realData::thermal_conductivity) *
+                                        basisvalue;
                                     amrex::Gpu::Atomic::AddNoRet(
                                         &nodal_data_arr(ivlocal, MASS_SPHEAT),
                                         mass_spheat_contrib);
@@ -830,6 +836,10 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
                                         &nodal_data_arr(ivlocal,
                                                         MASS_SPHEAT_TEMP),
                                         mass_spheat_temp_contrib);
+                                    amrex::Gpu::Atomic::AddNoRet(
+                                        &nodal_data_arr(ivlocal,
+                                                        MASS_CONDUCTIVITY),
+                                        mass_conductivity_contrib);
                                 }
 
                                 if (update_source)
@@ -883,6 +893,7 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
     if (update_mass_temp)
     {
         nodaldata.SumBoundary(MASS_SPHEAT, 2, geom.periodicity());
+        nodaldata.SumBoundary(MASS_CONDUCTIVITY, 1, geom.periodicity());
     }
     if (update_source)
     {

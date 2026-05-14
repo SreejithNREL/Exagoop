@@ -28,7 +28,7 @@
 #define NCOMP_FULLTENSOR 9
 
 #if USE_TEMP
-#define NUM_STATES 25
+#define NUM_STATES 26
 #else
 #define NUM_STATES 20
 #endif
@@ -57,11 +57,12 @@
 #define NORMALZ 19
 
 #if USE_TEMP
-#define MASS_SPHEAT 20       // \sigma m_p c_p N_I(x_p)
-#define MASS_SPHEAT_TEMP 21  // \sigma m_p c_p N_I(x_p)
-#define TEMPERATURE 22       // T_I
-#define SOURCE_TEMP_INDEX 23 // Source terms in temperature equation
-#define DELTA_TEMPERATURE 24 // T_I
+#define MASS_SPHEAT 20          // \sigma m_p c_p N_I(x_p)
+#define MASS_SPHEAT_TEMP 21     // \sigma m_p c_p T_p N_I(x_p)
+#define TEMPERATURE 22          // T_I
+#define SOURCE_TEMP_INDEX 23    // Source terms in temperature equation
+#define DELTA_TEMPERATURE 24    // \Delta T_I
+#define MASS_CONDUCTIVITY 25    // \sigma m_p k_p N_I(x_p)
 #endif
 
 #if (AMREX_SPACEDIM == 1)
