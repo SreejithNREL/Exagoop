@@ -67,13 +67,14 @@ endif()
     foreach(tgt IN LISTS pctargets)
       get_target_property(EXAGOOP_SOURCES ${tgt} SOURCES)
       list(FILTER EXAGOOP_SOURCES INCLUDE REGEX "\\.cpp")
-      # mpm_eb_udf_build.cpp must remain CXX — nvcc cannot compile it because
-      # EB2::makeShop / EB2::Build instantiate templates whose host-code layout
-      # differs between g++ and nvcc (ODR violation on GShopLevel/GFab).
-      list(FILTER EXAGOOP_SOURCES EXCLUDE REGEX "mpm_eb_udf_build\\.cpp")
+      # All .cpp files (including mpm_eb_udf_build.cpp) are compiled as CUDA.
+      # When AMREX_USE_CUDA is defined, AMReX headers are pervasively CUDA-aware
+      # (cudaStream_t, blockDim, __clz, etc.) and cannot be parsed by bare g++.
+      # nvcc uses g++ as its host compiler internally, so the host-side ABI for
+      # all TUs is identical — there is no ODR risk. The previous approach of
+      # keeping mpm_eb_udf_build.cpp as LANGUAGE CXX was the source of the
+      # __host__/__device__/cudaStream_t errors seen during compilation.
       set_source_files_properties(${EXAGOOP_SOURCES} PROPERTIES LANGUAGE CUDA)
-      set_source_files_properties(${SRC_DIR}/mpm_eb_udf_build.cpp
-                                  PROPERTIES LANGUAGE CXX)
     endforeach()
     set_target_properties(${exagoop_exe_name} PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
     target_compile_options(${exagoop_exe_name} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xptxas --disable-optimizer-constants>)

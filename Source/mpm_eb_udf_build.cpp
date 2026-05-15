@@ -2,23 +2,27 @@
 /**
  * @file mpm_eb_udf_build.cpp
  *
- * @brief CXX-only translation unit for building EB2 geometry from a UDF.
+ * @brief Translation unit for building EB2 geometry from a UDF.
  *
- * This file MUST be compiled as CXX (never by nvcc/CUDA).
- * Reason: EB2::Build instantiates templates (GShopLevel, GFab) whose
- * host-code layout differs between g++ and nvcc due to subtle ODR
- * violations in the BaseFab<uint32_t> template instantiation.  Isolating
- * EB2::makeShop / EB2::Build here and forcing LANGUAGE CXX in CMake avoids
- * that issue entirely.
+ * This file is compiled as CUDA (via nvcc) in CUDA-enabled builds, and as
+ * plain CXX in CPU-only builds.  The content is host-only code that calls
+ * EB2::makeShop / EB2::Build; no device kernels are defined here.
+ *
+ * Why CUDA compilation is required when CUDA is enabled:
+ *   When AMREX_USE_CUDA is defined, AMReX headers become pervasively
+ *   CUDA-aware throughout (cudaStream_t, blockDim, __clz, gpuStream_t, …).
+ *   These constructs cannot be parsed by bare g++, so every TU that includes
+ *   AMReX headers must go through nvcc when CUDA is enabled.  nvcc uses g++
+ *   as its internal host compiler, so all TUs share the same host ABI — there
+ *   is no ODR risk from the EB2 template instantiations.
  *
  * In CMake (BuildExaGOOPExe.cmake):
- *   set_source_files_properties(
- *       ${SRC_DIR}/mpm_eb_udf_build.cpp
- *       PROPERTIES LANGUAGE CXX)
+ *   All .cpp files are set to LANGUAGE CUDA when EXAGOOP_ENABLE_CUDA is ON.
  *
  * In GNUmake (Make.package):
  *   CEXE_sources += mpm_eb_udf_build.cpp
- * (GNUmake never calls nvcc on .cpp files, so no extra annotation needed.)
+ * (GNUmake routes .cpp files through the host compiler, which is correct for
+ *  non-CUDA GNUmake builds.  CUDA GNUmake builds use nvcc for all sources.)
  *
  * CUDA qualifier suppression:
  * In a CUDA build, AMReX_Config.H defines AMREX_USE_CUDA=1 for ALL

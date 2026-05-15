@@ -378,7 +378,14 @@ void init_eb(const Geometry &geom,
              const BoxArray &ba,
              const DistributionMapping &dm)
 {
-    constexpr int nghost = 1;
+    // Ghost-cell depth for the level-set MultiFab.
+    // Must be large enough that a particle which crosses a box boundary during
+    // the in-kernel position update (before Redistribute) can still find valid
+    // LS data in the Array4 for its original box.  1 coarse cell was too small:
+    // particles with moderate velocity triggered out-of-bounds access in
+    // get_levelset_value / get_levelset_grad.  4 coarse cells covers typical
+    // CFL-limited motion with a comfortable margin.
+    constexpr int nghost = 4;
 
     amrex::ParmParse pp("eb2");
 

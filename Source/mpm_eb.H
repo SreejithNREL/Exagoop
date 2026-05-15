@@ -204,9 +204,18 @@ get_levelset_value(amrex::Array4<amrex::Real> phi,
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
             offset[d] = (corner >> d) & 1;
 
-        int ii = idx[0] + offset[0];
-        int jj = (AMREX_SPACEDIM > 1) ? idx[1] + offset[1] : 0;
-        int kk = (AMREX_SPACEDIM > 2) ? idx[2] + offset[2] : 0;
+        // Clamp to the Array4's valid extent (including ghost cells).
+        // A particle that moved outside its assigned box after the position
+        // update in the same kernel can otherwise produce an out-of-bounds
+        // access here.  The level-set is smooth, so nearest-ghost-cell
+        // extrapolation introduces negligible error.
+        int ii = amrex::Clamp(idx[0] + offset[0], phi.begin.x, phi.end.x - 1);
+        int jj = (AMREX_SPACEDIM > 1)
+                     ? amrex::Clamp(idx[1] + offset[1], phi.begin.y, phi.end.y - 1)
+                     : 0;
+        int kk = (AMREX_SPACEDIM > 2)
+                     ? amrex::Clamp(idx[2] + offset[2], phi.begin.z, phi.end.z - 1)
+                     : 0;
 
         lsval +=
             phi(ii, jj, kk) * basisval(offset, idx, ptxyz, problo, ls_dx,
@@ -261,9 +270,14 @@ get_levelset_grad(amrex::Array4<amrex::Real> phi,
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
             offset[d] = (corner >> d) & 1;
 
-        int ii = idx[0] + offset[0];
-        int jj = (AMREX_SPACEDIM > 1) ? idx[1] + offset[1] : 0;
-        int kk = (AMREX_SPACEDIM > 2) ? idx[2] + offset[2] : 0;
+        // Same out-of-bounds guard as in get_levelset_value — see comment there.
+        int ii = amrex::Clamp(idx[0] + offset[0], phi.begin.x, phi.end.x - 1);
+        int jj = (AMREX_SPACEDIM > 1)
+                     ? amrex::Clamp(idx[1] + offset[1], phi.begin.y, phi.end.y - 1)
+                     : 0;
+        int kk = (AMREX_SPACEDIM > 2)
+                     ? amrex::Clamp(idx[2] + offset[2], phi.begin.z, phi.end.z - 1)
+                     : 0;
 
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
             lsgrad[d] += phi(ii, jj, kk) *
