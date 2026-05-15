@@ -19,8 +19,26 @@
  * In GNUmake (Make.package):
  *   CEXE_sources += mpm_eb_udf_build.cpp
  * (GNUmake never calls nvcc on .cpp files, so no extra annotation needed.)
+ *
+ * CUDA qualifier suppression:
+ * In a CUDA build, AMReX_Config.H defines AMREX_USE_CUDA=1 for ALL
+ * translation units, including those compiled by g++.  This causes
+ * AMReX_GpuQualifiers.H and AMReX_Extension.H to expand macros such as
+ * AMREX_GPU_HOST_DEVICE to __host__ __device__, which g++ does not
+ * recognise.  The block below intercepts AMReX_Config.H before any other
+ * AMReX header and neutralises the CUDA qualifiers for this file only.
  */
 // clang-format on
+
+#include <AMReX_Config.H>
+#if defined(AMREX_USE_CUDA) && !defined(__CUDACC__)
+#  define __host__
+#  define __device__
+#  define __global__
+#  define __shared__
+#  define __constant__
+#  define __forceinline__ inline
+#endif
 
 #define EXAGOOP_INCLUDE_EB2_IF
 

@@ -206,54 +206,6 @@ void PrintMessage(std::string msg, int print_len, bool begin, char c)
 }
 
 /**
- * @brief Prints key simulation parameters for the current MPM setup.
- *
- * This function prints:
- *  - Total number of material points
- *  - Total mass of material points
- *  - Total volume of material points
- *  - Rigid-body particle counts and masses for each rigid body
- *
- * It queries the MPMParticleContainer and MPMspecs structures to extract
- * physically meaningful summary information for the user.
- */
-
-void PrintSimParams(MPMParticleContainer *mpm_pc, MPMspecs *specs)
-{
-
-    std::string msg = "";
-    int tmpi;
-    amrex::Real tmpr;
-
-    msg = "\n     ";
-    PrintMessage(msg, print_length, true, '*'); //* line
-
-    msg = "\n     Total number of material points:";
-    PrintMessage(msg, print_length, true);
-
-    mpm_pc->Calculate_Total_Number_of_MaterialParticles(tmpi);
-    amrex::Print() << " " << tmpi;
-
-    msg = "\n     Total mass of material points:";
-    PrintMessage(msg, print_length, true);
-
-    mpm_pc->Calculate_Total_Mass_MaterialPoints(tmpr);
-    amrex::Print() << " " << std::setprecision(4) << tmpr;
-
-    msg = "\n     Total volume of material points:";
-    PrintMessage(msg, print_length, true);
-
-    mpm_pc->Calculate_Total_Vol_MaterialPoints(tmpr);
-    amrex::Print() << " " << std::setprecision(4) << tmpr;
-
-    msg = "\n     Rigid particle details:";
-    PrintMessage(msg, print_length, true);
-
-    msg = "\n     ";
-    PrintMessage(msg, print_length, true, '*'); //* line
-}
-
-/**
  * @brief The total number of material points in a nice format
  * @param npart        Total number of material points
  * If less than 1 million, prints the number as it is. Otherwise, prints in

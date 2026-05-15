@@ -997,9 +997,6 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
         Gpu::HostVector<ParticleType> host_particles;
         host_particles.reserve(CHUNK_SIZE);
 
-        int rigid_bodies_seen[32];
-        for (int i = 0; i < 32; ++i)
-            rigid_bodies_seen[i] = -99999;
         int rigid_count = 0;
 
         for (int i = 0; i < np; ++i)
@@ -1510,7 +1507,25 @@ void MPMParticleContainer::removeParticlesInsideEB()
 
     amrex::GpuArray<int, EXAGOOP_MAX_LS_BODIES> body_refs;
     for (int b = 0; b < num_bodies; ++b)
-        body_refs[b] = mpm_ebtools::ls_bodies[b].ls_refinement;
+        body_refs[b] = 1;
+
+    amrex::Vector<amrex::MultiFab> lsphi_coarse(num_bodies);
+    for (int b = 0; b < num_bodies; ++b)
+    {
+        int lsref = mpm_ebtools::ls_bodies[b].ls_refinement;
+        amrex::BoxArray coarse_ba =
+            mpm_ebtools::ls_bodies[b].lsphi->boxArray();
+        coarse_ba.coarsen(lsref);
+        lsphi_coarse[b].define(
+            coarse_ba,
+            mpm_ebtools::ls_bodies[b].lsphi->DistributionMap(),
+            1, 1);
+        amrex::average_down_nodal(
+            *mpm_ebtools::ls_bodies[b].lsphi,
+            lsphi_coarse[b],
+            amrex::IntVect(lsref));
+        lsphi_coarse[b].FillBoundary(geom.periodicity());
+    }
 #endif
 
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
@@ -1529,7 +1544,7 @@ void MPMParticleContainer::removeParticlesInsideEB()
         amrex::GpuArray<amrex::Array4<amrex::Real>, EXAGOOP_MAX_LS_BODIES>
             body_arrs;
         for (int b = 0; b < num_bodies; ++b)
-            body_arrs[b] = mpm_ebtools::ls_bodies[b].lsphi->array(mfi);
+            body_arrs[b] = lsphi_coarse[b].array(mfi);
 #endif
 
         amrex::ParallelFor(np,

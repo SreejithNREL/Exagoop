@@ -921,13 +921,17 @@ void compute_udf_wall_vel_at_nodes(const amrex::Geometry &geom,
                                    MPMspecs &specs,
                                    amrex::Real t)
 {
+#if (AMREX_SPACEDIM >= 2)
     const auto dx = geom.CellSizeArray();
+#endif
     const auto plo_g = geom.ProbLoArray();
     const auto phi_g = geom.ProbHiArray();
 
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
     {
+#if (AMREX_SPACEDIM >= 2)
         int p0 = (d == 0) ? 1 : 0;
+#endif
 #if (AMREX_SPACEDIM == 3)
         int p1 = (d == 2) ? 1 : 2;
 #endif
@@ -1126,7 +1130,9 @@ void apply_udf_nodal_bcs(const amrex::Geometry &geom,
                     if (udf_ptr == nullptr)
                         continue;
 
+#if (AMREX_SPACEDIM >= 2)
                     int p0 = (dir == 0) ? 1 : 0;
+#endif
 #if (AMREX_SPACEDIM == 3)
                     int p1 = (dir == 2) ? 1 : 2;
 #endif
@@ -1164,13 +1170,17 @@ void compute_udf_temp_at_nodes(const amrex::Geometry &geom,
                                MPMspecs &specs,
                                amrex::Real t)
 {
+#if (AMREX_SPACEDIM >= 2)
     const auto dx = geom.CellSizeArray();
+#endif
     const auto plo_g = geom.ProbLoArray();
     const auto phi_g = geom.ProbHiArray();
 
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
     {
+#if (AMREX_SPACEDIM >= 2)
         int p0 = (d == 0) ? 1 : 0;
+#endif
 #if (AMREX_SPACEDIM == 3)
         int p1 = (d == 2) ? 1 : 2;
 #endif
@@ -1375,7 +1385,9 @@ void apply_udf_nodal_bcs_temperature(const amrex::Geometry &geom,
                     if (udf_ptr == nullptr)
                         continue;
 
+#if (AMREX_SPACEDIM >= 2)
                     int p0 = (dir == 0) ? 1 : 0;
+#endif
 #if (AMREX_SPACEDIM == 3)
                     int p1 = (dir == 2) ? 1 : 2;
 #endif
