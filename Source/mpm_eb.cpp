@@ -376,16 +376,10 @@ static MultiFab *build_analytic_levelset(const std::string &name,
  */
 void init_eb(const Geometry &geom,
              const BoxArray &ba,
-             const DistributionMapping &dm)
+             const DistributionMapping &dm,
+			 MPMspecs &specs)
 {
-    // Ghost-cell depth for the level-set MultiFab.
-    // Must be large enough that a particle which crosses a box boundary during
-    // the in-kernel position update (before Redistribute) can still find valid
-    // LS data in the Array4 for its original box.  1 coarse cell was too small:
-    // particles with moderate velocity triggered out-of-bounds access in
-    // get_levelset_value / get_levelset_grad.  4 coarse cells covers typical
-    // CFL-limited motion with a comfortable margin.
-    constexpr int nghost = 4;
+    constexpr int nghost = 1;
 
     amrex::ParmParse pp("eb2");
 
@@ -537,8 +531,9 @@ void init_eb(const Geometry &geom,
         amrex::average_node_to_cellcenter(plotmf, 0, *body.lsphi, 0,
                                           body.lsphi->nComp());
 
+
         std::string pltname = "ebplt_" + body.name;
-        WriteSingleLevelPlotfile(pltname, plotmf, {"phi"}, geom_ls, 0.0, 0);
+        WriteSingleLevelPlotfile(specs.blevset_output_folder + pltname, plotmf, {"phi"}, geom_ls, 0.0, 0);
     }
 }
 

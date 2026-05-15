@@ -2,20 +2,12 @@
 /**
  * @file mpm_eb_udf_build.cpp
  *
- * @brief Translation unit for building EB2 geometry from a UDF.
+ * @brief CPP file for building EB2 geometry from a UDF.
  *
  * This file is compiled as CUDA (via nvcc) in CUDA-enabled builds, and as
  * plain CXX in CPU-only builds.  The content is host-only code that calls
  * EB2::makeShop / EB2::Build; no device kernels are defined here.
- *
- * Why CUDA compilation is required when CUDA is enabled:
- *   When AMREX_USE_CUDA is defined, AMReX headers become pervasively
- *   CUDA-aware throughout (cudaStream_t, blockDim, __clz, gpuStream_t, …).
- *   These constructs cannot be parsed by bare g++, so every TU that includes
- *   AMReX headers must go through nvcc when CUDA is enabled.  nvcc uses g++
- *   as its internal host compiler, so all TUs share the same host ABI — there
- *   is no ODR risk from the EB2 template instantiations.
- *
+ **
  * In CMake (BuildExaGOOPExe.cmake):
  *   All .cpp files are set to LANGUAGE CUDA when EXAGOOP_ENABLE_CUDA is ON.
  *
@@ -23,14 +15,6 @@
  *   CEXE_sources += mpm_eb_udf_build.cpp
  * (GNUmake routes .cpp files through the host compiler, which is correct for
  *  non-CUDA GNUmake builds.  CUDA GNUmake builds use nvcc for all sources.)
- *
- * CUDA qualifier suppression:
- * In a CUDA build, AMReX_Config.H defines AMREX_USE_CUDA=1 for ALL
- * translation units, including those compiled by g++.  This causes
- * AMReX_GpuQualifiers.H and AMReX_Extension.H to expand macros such as
- * AMREX_GPU_HOST_DEVICE to __host__ __device__, which g++ does not
- * recognise.  The block below intercepts AMReX_Config.H before any other
- * AMReX header and neutralises the CUDA qualifiers for this file only.
  */
 // clang-format on
 
@@ -54,21 +38,6 @@
 
 // ============================================================
 // MultiUDF — union implicit function over multiple UDF bodies.
-//
-// Holds up to EXAGOOP_MAX_LS_BODIES raw function pointers.
-// Returns min(phi_0, phi_1, ..., phi_{n-1}), which is the union
-// signed-distance field (phi < 0 inside ANY body).
-//
-// This is used to build a single EBFArrayBoxFactory that represents
-// the union of all UDF bodies, ensuring correct EB cell flags when
-// multiple UDF bodies are present.
-//
-// Usage:
-//   MultiUDF multi_udf;
-//   for (auto &loader : loaders)
-//       multi_udf.add(UDFImplicitFunction(loader));
-//   auto shop = EB2::makeShop(multi_udf);
-//   EB2::Build(shop, geom_ls, ...);
 // ============================================================
 struct MultiUDF
 {

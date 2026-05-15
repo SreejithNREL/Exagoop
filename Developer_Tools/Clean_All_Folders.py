@@ -67,11 +67,23 @@ DIRS_TO_REMOVE = [
 def clean_test_case(case_dir: str) -> None:
     """Remove build artifacts from a single test-case directory."""
     # Named executables
-    for name in EXECUTABLE_NAMES:
-        _remove_file(os.path.join(case_dir, name))
+    for path in glob.glob(os.path.join(case_dir, "ExaGOOP?d.*.ex")):
+        _remove_file(path)
 
     # Backtrace.* (glob)
     for fpath in sorted(glob.glob(os.path.join(case_dir, "Backtrace.*"))):
+        _remove_file(fpath)
+        
+    # mpm_particles.* (glob)
+    for fpath in sorted(glob.glob(os.path.join(case_dir, "mpm_particles.*"))):
+        _remove_file(fpath)
+        
+    # GNUmakefile (glob)
+    for fpath in sorted(glob.glob(os.path.join(case_dir, "GNUmakefile"))):
+        _remove_file(fpath)
+        
+    # *.inp (glob)
+    for fpath in sorted(glob.glob(os.path.join(case_dir, "*.inp"))):
         _remove_file(fpath)
 
     # Directories (recursive delete)

@@ -45,8 +45,8 @@ ifeq ($(UNAME), Linux)
     _MULTIARCH := $(_MULTIARCH)
   endif
 
-  USE_HDF5                = TRUE
-  AMREX_USE_HDF5          = TRUE
+  USE_HDF5                = FALSE
+  AMREX_USE_HDF5          = FALSE
   AMREX_USE_HDF5_PARALLEL = FALSE   # flip to TRUE for a parallel HDF5 install
 
   # --- Strategy A: HDF5 built from source with a standard prefix ---

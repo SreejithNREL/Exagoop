@@ -111,6 +111,7 @@ class MPMspecs
     std::string checkpoint_output_folder = "./Solution/checkpoint_files/";
     std::string ascii_output_folder = "./Solution/ascii_files/";
     std::string levset_output_folder = "./Solution/levset_files/";
+    std::string blevset_output_folder = "./Solution/blevset_files/";		//body levelset
     std::string diagnostic_output_folder = "./Diagnostics/";
 
     // Diagnostic output filenames

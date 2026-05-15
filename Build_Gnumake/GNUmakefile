@@ -10,7 +10,7 @@ NVCC_HOST_COMP ?= gnu
 # AMReX configuration
 # ===============================================================
 DIM        = 2
-COMP       = gnu
+COMP       = gnu 
 USE_EB     = TRUE
 
 # ===============================================================
@@ -29,7 +29,7 @@ BL_NO_FORT     = TRUE
 # ===============================================================
 USE_MPI   = TRUE
 USE_OMP   = FALSE
-USE_CUDA  = TRUE
+USE_CUDA  = FALSE
 USE_HIP   = FALSE
 USE_SYCL  = FALSE
 

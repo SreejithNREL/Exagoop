@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
                           ng_cells_nodaldata, nodaldata, levset_data,
                           nodaldata_names);
 #if USE_EB
-        mpm_ebtools::init_eb(geom, ba, dm);
+        mpm_ebtools::init_eb(geom, ba, dm, specs);
 #endif
 
         MPMParticleContainer mpm_pc(geom, dm, ba, ng_cells);
@@ -140,8 +140,6 @@ int main(int argc, char *argv[])
             }
 
             Redistribute_Fill_Update(specs, mpm_pc, steps);
-
-            // mpm_pc.updateNeighbors();
 
             Update_MP_Volume(mpm_pc);
 
