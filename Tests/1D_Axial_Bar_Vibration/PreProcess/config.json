@@ -42,13 +42,11 @@
   "alpha_pic_flip": 1.0,
   "order_scheme": 1,
   "stress_update_scheme": "MUSL",
-  "output_tag": "1D_Axial_Bar_Vibration_dim1_npcx2_ord1_flip1.0_susMUSL_CFL0.1_USEHDFFalse_OFORMascii_MPI=True_CUDAFalse_HIPFalse_OMPFalse_SYCLFalse_EBFalse_TEMPFalse_BuildSystemcmake_364309",
+  "output_tag": "1D_Axial_Bar_Vibration_dim1_npcx2_ord1_flip1.0_susMUSL_CFL0.1_USEHDFTrue_OFORMhdf5_MPI=True_CUDAFalse_HIPFalse_OMPFalse_SYCLFalse_EBFalse_TEMPFalse_BuildSystemcmake_44edc4",
   "input_filename": "Inputs_1DAxialBarVibration.inp",
-  "build_with_hdf": [
-    false
-  ],
-  "output_format": "ascii",
-  "materialpoint_filename": "mpm_particles.dat",
+  "build_with_hdf": true,
+  "output_format": "hdf5",
+  "materialpoint_filename": "mpm_particles.h5",
   "plot_to_check": true,
   "build_system": "cmake",
   "use_mpi": true,

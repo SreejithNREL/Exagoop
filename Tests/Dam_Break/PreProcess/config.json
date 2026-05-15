@@ -43,9 +43,9 @@
     }
   ],
   "CFL": 0.1,
-  "order_scheme": 2,
+  "order_scheme": 1,
   "stress_update_scheme": "MUSL",
-  "output_tag": "Dam_Break__dim2_npcx1_ord2_susMUSL_USEHDFFalse_OFORMascii_ef393a",
+  "output_tag": "Dam_Break__dim2_npcx1_ord1_susMUSL_USEHDFFalse_OFORMascii_MPI=True_CUDAFalse_HIPFalse_OMPFalse_SYCLFalse_EBFalse_TEMPFalse_BuildSystemcmake_a45286",
   "input_filename": "Inputs_DamBreak.inp",
   "output_format": "ascii",
   "materialpoint_filename": "mpm_particles.dat",
@@ -56,7 +56,7 @@
     "max_steps": 5000000,
     "screen_output_time": 0.001,
     "write_output_time": 0.01,
-    "num_redist": 10,
+    "num_redist": 1,
     "fixed_timestep": 0,
     "timestep": 1e-05
   },
@@ -86,5 +86,14 @@
     "do_calculate_mwa_velmag": 0,
     "do_calculate_minmaxpos": 1,
     "write_diag_output_time": 0.01
-  }
+  },
+  "build_with_hdf": false,
+  "build_system": "cmake",
+  "use_mpi": true,
+  "use_cuda": false,
+  "use_hip": false,
+  "use_omp": false,
+  "use_sycl": false,
+  "use_eb": false,
+  "use_temp": false
 }
