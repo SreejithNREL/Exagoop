@@ -48,6 +48,7 @@ def clean_build_matrices(root: str) -> None:
     for pat in patterns:
         for fpath in sorted(glob.glob(os.path.join(root, pat))):
             _remove_file(fpath)
+            
 
 
 # ── per-test-case cleanup ──────────────────────────────────────────
@@ -61,6 +62,9 @@ DIRS_TO_REMOVE = [
     "Solution",
     "tmp_build_dir",
     "Diagnostics",
+    "CMakeFiles",
+    "Submodules",
+    
 ]
 
 
@@ -84,6 +88,12 @@ def clean_test_case(case_dir: str) -> None:
         
     # *.inp (glob)
     for fpath in sorted(glob.glob(os.path.join(case_dir, "*.inp"))):
+        _remove_file(fpath)
+        
+    for fpath in sorted(glob.glob(os.path.join(case_dir, "CMakeCache.txt"))):
+        _remove_file(fpath)
+        
+    for fpath in sorted(glob.glob(os.path.join(case_dir, "cmake_install.cmake"))):
         _remove_file(fpath)
 
     # Directories (recursive delete)

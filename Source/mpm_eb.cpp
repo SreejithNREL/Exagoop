@@ -379,7 +379,7 @@ void init_eb(const Geometry &geom,
              const DistributionMapping &dm,
 			 MPMspecs &specs)
 {
-    constexpr int nghost = 1;
+    constexpr int nghost = 4;
 
     amrex::ParmParse pp("eb2");
 
