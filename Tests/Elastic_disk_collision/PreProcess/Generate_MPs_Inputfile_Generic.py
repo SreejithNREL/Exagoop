@@ -241,7 +241,7 @@ def generate_particles_and_return(
 
     rad = (3.0 / 4.0 * vol_particle / np.pi) ** (1.0 / 3.0)
     phase = 0
-    dens = 1.0
+    dens = 997.0
 
     cm_type = constitutive_model["type"]
 
@@ -480,7 +480,7 @@ def generate_particle_chunks(
         vol_particle = vol_cell / np.prod(ppc)
 
     rad = (3.0 / 4.0 * vol_particle / np.pi) ** (1.0 / 3.0)
-    dens = 1.0
+    dens = 997.0
     phase = 0
 
     # ------------------------------------------------------------
@@ -854,7 +854,7 @@ def generate_particles_vectorized(
         vol_particle = vol_cell / np.prod(ppc)
 
     rad = (3.0 / 4.0 * vol_particle / np.pi) ** (1.0 / 3.0)
-    dens = 1.0
+    dens = 997.0
     phase = 0
 
     # ------------------------------------------------------------
