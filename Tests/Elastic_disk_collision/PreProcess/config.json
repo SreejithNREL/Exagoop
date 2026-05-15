@@ -71,9 +71,9 @@
     }
   ],
   "CFL": 0.1,
-  "order_scheme": 1,
+  "order_scheme": 3,
   "stress_update_scheme": "MUSL",
-  "output_tag": "Elastic_disk_collision__dim2_npcx4_ord1_susMUSL_USEHDFFalse_OFORMascii_MPI=True_CUDAFalse_HIPFalse_OMPFalse_SYCLFalse_EBFalse_TEMPFalse_BuildSystemcmake_2929be",
+  "output_tag": "Elastic_disk_collision__dim2_npcx4_ord3_susMUSL_USEHDFFalse_OFORMascii_MPI=True_CUDAFalse_HIPFalse_OMPFalse_SYCLFalse_EBFalse_TEMPFalse_BuildSystemgnumake_6973b2",
   "input_filename": "Inputs_ElasticDiskCollision.inp",
   "output_format": "ascii",
   "materialpoint_filename": "mpm_particles.dat",
@@ -82,8 +82,8 @@
   "simulation": {
     "final_time": 3.5,
     "max_steps": 5000000,
-    "screen_output_time": 0.001,
-    "write_output_time": 0.01,
+    "screen_output_time": 0.01,
+    "write_output_time": 0.1,
     "num_redist": 10,
     "fixed_timestep": 0,
     "timestep": 1e-05
@@ -116,7 +116,7 @@
     "write_diag_output_time": 0.01
   },
   "build_with_hdf": false,
-  "build_system": "cmake",
+  "build_system": "gnumake",
   "use_mpi": true,
   "use_cuda": false,
   "use_hip": false,

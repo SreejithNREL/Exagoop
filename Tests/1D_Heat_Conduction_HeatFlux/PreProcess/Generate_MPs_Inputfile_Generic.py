@@ -1397,7 +1397,7 @@ def plot_1d(x, grid):
     ax.grid(False)
 
     plt.tight_layout()
-    plt.show()
+    #plt.show()
 
 
 # ------------------------------------------------------------
@@ -2059,8 +2059,7 @@ def main():
             dim, data = read_particles_ascii(matpt_filename)
             x = data["x"]
             y = data.get("y")   # None in 1D
-            z = data.get("z")   # None in 1D/2D
-            print(data)
+            z = data.get("z")   # None in 1D/2D            
     
             
     

@@ -1397,7 +1397,7 @@ def plot_1d(x, grid):
     ax.grid(False)
 
     plt.tight_layout()
-    plt.show()
+    #plt.show()
 
 
 # ------------------------------------------------------------
@@ -1426,7 +1426,7 @@ def plot_2d(x, y, grid):
     ax.set_xlabel("x")
     ax.set_ylabel("y")
     ax.set_aspect("equal")
-    plt.show()
+    #plt.show()
 
 
 
@@ -1467,7 +1467,7 @@ def plot_3d_slice(x, y, z, grid, slice_axis="z", slice_value=None):
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_aspect("equal")
-    plt.show()
+    #plt.show()
 
 # ------------------------------------------------------------
 # Helpers: load particles, write inputs, auto-tag
@@ -2059,8 +2059,7 @@ def main():
             dim, data = read_particles_ascii(matpt_filename)
             x = data["x"]
             y = data.get("y")   # None in 1D
-            z = data.get("z")   # None in 1D/2D
-            print(data)
+            z = data.get("z")   # None in 1D/2D            
     
             
     

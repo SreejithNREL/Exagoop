@@ -1426,7 +1426,7 @@ def plot_2d(x, y, grid):
     ax.set_xlabel("x")
     ax.set_ylabel("y")
     ax.set_aspect("equal")
-    plt.show()
+    #plt.show()
 
 
 
