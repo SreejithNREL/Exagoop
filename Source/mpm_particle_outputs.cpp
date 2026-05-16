@@ -91,6 +91,7 @@ void MPMParticleContainer::update_phase_field(MultiFab &phasedata,
             [=] AMREX_GPU_DEVICE(int ip) noexcept
             {
                 ParticleType &p = pstruct[ip];
+                if (p.id() < 0) return;  // skip invalidated particles
 
                 // Particle cell index at refined resolution
                 IntVect iv = getParticleCell(p, plo, dxi, domain);

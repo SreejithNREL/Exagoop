@@ -418,6 +418,7 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
             [=] AMREX_GPU_DEVICE(int ip) noexcept
             {
                 ParticleType &p = pstruct[ip];
+                if (p.id() < 0) return; 
                 if (p.idata(intData::phase) != 0)
                     return;
 
@@ -713,6 +714,7 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
             [=] AMREX_GPU_DEVICE(int ip) noexcept
             {
                 ParticleType &p = pstruct[ip];
+                if (p.id() < 0) return;  // skip invalidated particles (NaN-init guard)
                 if (p.idata(intData::phase) != 0)
                     return;
 
@@ -965,6 +967,7 @@ void MPMParticleContainer::interpolate_from_grid(
             [=] AMREX_GPU_DEVICE(int i) noexcept
             {
                 ParticleType &p = pstruct[i];
+                if (p.id() < 0) return;  // skip invalidated particles (NaN-init guard)
                 if (p.idata(intData::phase) != 0)
                     return;
 
@@ -1165,6 +1168,7 @@ void MPMParticleContainer::interpolate_from_grid_temperature(
             [=] AMREX_GPU_DEVICE(int i) noexcept
             {
                 ParticleType &p = pstruct[i];
+                if (p.id() < 0) return;  // skip invalidated particles (NaN-init guard)
                 if (p.idata(intData::phase) != 0)
                     return;
 

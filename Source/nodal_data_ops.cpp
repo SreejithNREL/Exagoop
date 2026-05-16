@@ -4,6 +4,7 @@
 #include <mpm_eb.H>
 #include <mpm_kernels.H>
 #include <AMReX_iMultiFab.H>
+#include <cmath>
 // clang-format on
 
 using namespace amrex;
@@ -145,7 +146,8 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
 
         MultiFab lsphi_coarse(nodaldata.boxArray(), nodaldata.DistributionMap(),
                               1,  // ncomp
-                              1); // nghost — must be >= 1 for interpolation
+                              1); // nghost — must be >= 1 for interpolation        
+        lsphi_coarse.setVal(1.0);
         amrex::average_down_nodal(*body.lsphi, lsphi_coarse,
                                   amrex::IntVect(lsref));
         lsphi_coarse.FillBoundary(geom.periodicity());
@@ -185,7 +187,7 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
                         gradmag += normaldir[d] * normaldir[d];
                     gradmag = std::sqrt(gradmag);
 
-                    if (gradmag < 1.0e-10)
+                    if (!(gradmag >= 1.0e-10))
                         return;
 
                     for (int d = 0; d < AMREX_SPACEDIM; d++)

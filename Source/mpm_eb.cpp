@@ -173,6 +173,12 @@ static MultiFab *build_stl_levelset(const std::string &name,
     Geometry geom_ls = refined_geom(geom, ls_ref);
     int req_coarsen = coarsening_level_for_refinement(ls_ref);
 
+    {
+        amrex::ParmParse ppeb("eb2");
+        ppeb.add("geom_type", std::string("stl"));
+        ppeb.add("stl_file",  stl_file);
+    }
+
     amrex::EB2::Build(geom_ls, req_coarsen, 10);
 
     build_factory(geom, ba, dm, nghost);
@@ -281,6 +287,26 @@ static MultiFab *build_analytic_levelset(const std::string &name,
         EB2::CylinderIF cyl(radius, height, direction, center,
                             has_fluid_inside);
         auto shop = EB2::makeShop(cyl);
+        EB2::Build(shop, geom_ls, req_coarsen, 10);
+    }
+    else if (geom_type == "box")
+    {
+        std::vector<amrex::Real> lo_v(AMREX_SPACEDIM, 0.0);
+        std::vector<amrex::Real> hi_v(AMREX_SPACEDIM, 1.0);
+        pp.getarr("box_lo", lo_v);
+        pp.getarr("box_hi", hi_v);
+        amrex::RealArray lo_box, hi_box;
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        {
+            lo_box[d] = lo_v[d];
+            hi_box[d] = hi_v[d];
+        }
+
+        bool has_fluid_inside = false;
+        pp.query("box_has_fluid_inside", has_fluid_inside);
+
+        EB2::BoxIF box_if(lo_box, hi_box, has_fluid_inside);
+        auto shop = EB2::makeShop(box_if);
         EB2::Build(shop, geom_ls, req_coarsen, 10);
     }
     else if (geom_type == "wedge_hopper")

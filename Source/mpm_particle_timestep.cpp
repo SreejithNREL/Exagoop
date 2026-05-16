@@ -232,7 +232,7 @@ void MPMParticleContainer::moveParticles(
 
     const int lev = 0;
     const auto plo = Geom(lev).ProbLoArray();
-    const auto phi = Geom(lev).ProbHiArray();
+    const auto p_hi = Geom(lev).ProbHiArray();
 #if (AMREX_SPACEDIM >= 2)
     const auto dx = Geom(lev).CellSizeArray();
 #endif
@@ -487,7 +487,7 @@ void MPMParticleContainer::moveParticles(
                             p.rdata(realData::xvel + c) =
                                 relvel_out[c] + wallvel[c];
                     }
-                    else if (p.pos(dir) > phi[dir])
+                    else if (p.pos(dir) > p_hi[dir])
                     {
                         for (int d = 0; d < AMREX_SPACEDIM; ++d)
                             wallvel[d] =
@@ -563,7 +563,7 @@ void MPMParticleContainer::moveParticles(
                                     normaldir, bc_hi_arr[dir]);
                         if (modify_pos)
                         {
-                            p.pos(dir) = 2.0 * phi[dir] - p.pos(dir);
+                            p.pos(dir) = 2.0 * p_hi[dir] - p.pos(dir);
                         }
                         for (int c = 0; c < AMREX_SPACEDIM; ++c)
                             p.rdata(realData::xvel + c) =
