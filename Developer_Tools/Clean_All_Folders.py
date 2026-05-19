@@ -96,6 +96,9 @@ def clean_test_case(case_dir: str) -> None:
     for fpath in sorted(glob.glob(os.path.join(case_dir, "cmake_install.cmake"))):
         _remove_file(fpath)
 
+    for fpath in sorted(glob.glob(os.path.join(case_dir, "Makefile"))):
+        _remove_file(fpath)
+
     # Directories (recursive delete)
     for dirname in DIRS_TO_REMOVE:
         _remove_tree(os.path.join(case_dir, dirname))
