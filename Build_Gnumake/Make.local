@@ -31,7 +31,7 @@ ifeq ($(UNAME), Darwin)
 
   USE_HDF5                = TRUE
   AMREX_USE_HDF5          = TRUE
-  AMREX_USE_HDF5_PARALLEL = FALSE
+  AMREX_USE_HDF5_PARALLEL = TRUE
 
 endif  # Darwin
 

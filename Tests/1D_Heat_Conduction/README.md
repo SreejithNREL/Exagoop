@@ -42,7 +42,7 @@ The series converges rapidly for $t > 0.01$; $N = 100$ terms are sufficient at $
 
 The mechanical degrees of freedom are suppressed (zero velocity, stiff elastic modulus) so the simulation is effectively a pure heat conduction problem. The validation snapshot is taken at $t = 0.05$ s.
 
-## Key Input Parameters
+## Key Input Parameters (set in ./Preprocess/config.json)
 
 - **`temperature.thermcond`** — thermal conductivity $k$. Increasing this accelerates diffusion (shortens the time to steady state).
 - **`temperature.spheat`** — specific heat $c_p$. Increasing this slows thermal equilibration.
@@ -68,8 +68,12 @@ bash Generate_MPs_and_InputFiles.sh
 ### Step 2 – Build and run ExaGOOP
 
 ```bash
-mkdir -p build && cd build
-bash ../cmake_run.sh
+cd $MPM_HOME/Build_Gnumake/
+#make necessary changes in GNUmakefile
+make -j
+cd ../Tests/1D_Heat_Conduction
+cp ../../Build_Gnumake/ExaGOOP1d.*.ex .
+./ExaGOOP1d.*.ex Inputs_1DHeatConduction.inp
 mpirun -n 4 ./ExaGOOP1d.*.ex ../Inputs_1DHeatConduction.inp
 ```
 
@@ -77,8 +81,9 @@ mpirun -n 4 ./ExaGOOP1d.*.ex ../Inputs_1DHeatConduction.inp
 
 ```bash
 python3 PostProcess/Plot_Temperature.py \
-    --folder Solution/ascii_files/<output_tag> \
-    --time 0.05
+    --fileloc Solution/ascii_files/<output_tag> \
+    --time 2.0
+    --outputpic <output_pic.png>
 ```
 
 Plots the simulated temperature profile alongside the exact Fourier-series solution at the specified time.

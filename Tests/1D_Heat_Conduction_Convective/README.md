@@ -6,7 +6,7 @@ A one-dimensional slab ($x \in [0, 1]$) is initially at uniform temperature $T =
 
 $$-k \frac{\partial T}{\partial x}\bigg|_{x=1} = h\,(T(1,t) - T_\infty)$$
 
-with convective coefficient $h = 2$ and conductivity $k = 1$. This test verifies the implementation of the Robin (mixed/convective) thermal boundary condition, exercised via the UDF `UDF/udf_temp_convective.cpp`.
+with convective coefficient $h = 2$ and conductivity $k = 1$. This test verifies the implementation of the Robin (mixed/convective) thermal boundary condition. This test also demonstrates how to specify boundary condition (spatially varying) using a user define function (UDF) `UDF/udf_temp_convective.cpp`.
 
 ## Exact Solution
 
@@ -50,7 +50,7 @@ with coefficients $C_n$ determined from the initial condition $w(x,0) = -T_{ss}(
 
 The domain is nominally 2D but the thin $y$-direction (4 cells, height 0.1) together with the `noslip` BC in $y$ means the solution is effectively 1D in $x$. The convective BC at $x = 1$ is implemented in `UDF/udf_temp_convective.cpp`.
 
-## Key Input Parameters
+## Key Input Parameters (specified in config.json)
 
 - **`boundary_conditions.xhi.temp.h`** — convective heat transfer coefficient $h$. Larger $h$ drives the right boundary temperature closer to $T_\infty$ faster.
 - **`boundary_conditions.xhi.temp.T_inf`** — ambient temperature $T_\infty$.
@@ -78,18 +78,39 @@ bash Generate_MPs_and_InputFiles.sh
 The UDF must be compiled before running. Then:
 
 ```bash
-mkdir -p build && cd build
-bash ../cmake_run.sh
-mpirun -n 4 ./ExaGOOP2d.*.ex ../Inputs_1DHeatConduction_Convective.inp
+cd $MPM_HOME/Build_Gnumake/
+#make necessary changes in GNUmakefile
+make -j
+cd ../Tests/1D_Heat_Conduction_Convective
+cp ../../Build_Gnumake/ExaGOOP1d.*.ex .
+./ExaGOOP1d.*.ex Inputs_1DHeatConduction_Convective.inp
+mpirun -n 4 ./ExaGOOP1d.*.ex ../Inputs_1DHeatConduction_Convective.inp
+```
+
+If a UDF for convection boundary condition is to be used,
+
+```bash
+cd UDF
+make
+#check for *.dylab file (on MacOS)
+```
+and replace direct specification with
+
+```bash
+#mpm.bc_xhi_temp.h        = 2.0
+#mpm.bc_xhi_temp.T_inf    = 0.0
+mpm.bc_xhi_temp.udf_lib              = ./UDF/libudf_temp_convective.dylib
+mpm.bc_xhi_temp.udf_func             = udf_temp_convective
 ```
 
 ### Step 3 – Plot temperature profile
 
 ```bash
 python3 PostProcess/Plot_Temperature.py \
-    --folder Solution/ascii_files/<output_tag> \
+    --fileloc Solution/ascii_files/<output_tag> \
     --time 0.5
 ```
+This writes the output picture file Temperature_Convective.png
 
 ### Step 4 – CI validation
 
@@ -97,4 +118,4 @@ python3 PostProcess/Plot_Temperature.py \
 python3 PostProcess/validate.py
 ```
 
-Reads `matpnt_t0.500000`, computes the eigenvalue expansion exact solution for the Robin BC problem, and prints `PASS` if RMS error < $10^{-2}$.
+Reads `matpnt_t0.500000`, computes the eigenvalue expansion exact solution for the Robin BC problem, and prints `PASS` if RMS error < $0.01$.

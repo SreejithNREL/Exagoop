@@ -1241,6 +1241,7 @@ void compute_udf_temp_at_nodes(const amrex::Geometry &geom,
                              specs.udf_temp_nodes_lo[d].begin());
         }
 
+
         if (specs.udf_temp_func_ptr_hi[d] != nullptr)
         {
 #if (AMREX_SPACEDIM == 1)
