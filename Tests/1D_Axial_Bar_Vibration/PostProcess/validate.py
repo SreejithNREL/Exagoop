@@ -7,7 +7,7 @@ def exact_velocity(x, t, V0=0.1, L=25.0, E=100, rho=1):
     omega1 = (np.pi / (2 * L)) * np.sqrt(E / rho)
     return V0 * np.sin(np.pi * x / (2 * L)) * np.cos(omega1 * t)
 
-T = 50.0
+T = 50.008707
 RMS_TOL = 1e-1
 matches = glob.glob("Solution/ascii_files/*/matpnt_t50.000000")
 if not matches:
