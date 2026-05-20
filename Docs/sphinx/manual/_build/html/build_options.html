@@ -61,6 +61,10 @@
 <li class="toctree-l1"><a class="reference internal" href="tutorial_dambreak.html#running-exagoop-and-viewing-output-files">Running ExaGOOP and viewing output files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial_heat_cylinder.html">Tutorial: 2-D Steady Heat Conduction around a Cylinder (Dirichlet)</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="input_reference.html">Input File Reference</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Physics Modules:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="physics_modules.html">Physics Modules</a></li>
@@ -317,7 +321,7 @@ A typical <code class="docutils literal notranslate"><span class="pre">Make.loca
 <span class="nv">LDFLAGS</span><span class="w">  </span><span class="o">+=</span><span class="w"> </span>-L<span class="k">$(</span>HDF5_LIB<span class="k">)</span><span class="w"> </span>-lhdf5<span class="w"> </span>-lhdf5_hl
 </pre></div>
 </div>
-<p>On systems using Cray modules (e.g. Kestrel/NREL), the module
+<p>On systems using Cray modules (e.g. Kestrel at the National Laboratory of the Rockies), the module
 environment automatically provides the correct paths, so only the
 <code class="docutils literal notranslate"><span class="pre">USE_HDF5</span></code>/<code class="docutils literal notranslate"><span class="pre">AMREX_USE_HDF5</span></code> flags are needed.</p>
 <p>The default in a clean repository is <code class="docutils literal notranslate"><span class="pre">FALSE</span></code> (HDF5 disabled).</p>

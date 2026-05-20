@@ -208,7 +208,7 @@ A typical ``Make.local`` block looks like:
    CXXFLAGS += -I$(HDF5_INC)
    LDFLAGS  += -L$(HDF5_LIB) -lhdf5 -lhdf5_hl
 
-On systems using Cray modules (e.g. Kestrel/NREL), the module
+On systems using Cray modules (e.g. Kestrel at the National Laboratory of the Rockies), the module
 environment automatically provides the correct paths, so only the
 ``USE_HDF5``/``AMREX_USE_HDF5`` flags are needed.
 

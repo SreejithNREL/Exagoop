@@ -4,7 +4,7 @@ Welcome to ExaGOOP's documentation!
 
 ExaGOOP is a high-performance Material Point Method (MPM) solver for continuum mechanics
 problems involving gaseous, liquid, and solid phases. It is developed at the National
-Renewable Energy Laboratory (NREL), built on the
+Laboratory of the Rockies, built on the
 `AMReX <https://amrex-codes.github.io/amrex/>`_ framework, and runs on CPUs, GPUs, and
 heterogeneous architectures at scale.
 

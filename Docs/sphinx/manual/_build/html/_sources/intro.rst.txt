@@ -5,7 +5,7 @@ About ExaGOOP
 -------------
 
 ExaGOOP is a Material Point Method (MPM) based solver developed by the Scalable Algorithms,
-Modeling and Simulation (SAMS) team at the National Renewable Energy Laboratory (NREL),
+Modeling and Simulation (SAMS) team at the National Laboratory of the Rockies,
 Colorado. The solver can be used to simulate physical problems involving gaseous, liquid, and
 solid phases, including scenarios with large deformations, history-dependent material
 behaviour, and multi-phase interactions. ExaGOOP is built on the
