@@ -63,7 +63,7 @@ The project is designed to promote community adoption and facilitate near-term i
 
 # AI usage disclosure
 
-No generative AI tools were used in the development of this software, the writing of this manuscript, or the preparation of supporting materials.
+Generative AI tools were used to assist in creating user‑facing documentation and drafting function‑level Doxygen‑style comments within the codebase. All AI‑generated content was reviewed, edited, and validated by the authors. No generative AI tools were used in the development of the software itself.
 
 # Acknowledgements
 
