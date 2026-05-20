@@ -81,26 +81,25 @@ Use `PreProcess/plot_particles.py` to verify that particles are present only in 
 This test requires an EB-enabled build. Use the gnumake build system:
 
 ```bash
-cd /path/to/ExaGOOP_Dev
-make -f GNUmakefile USE_EB=TRUE USE_TEMP=TRUE USE_MPI=TRUE DIM=2
-cp ExaGOOP2d.*.ex Tests/2D_Heat_Conduction_Cylinder_Dirichlet/
-cd Tests/2D_Heat_Conduction_Cylinder_Dirichlet
-mpirun -n 4 ./ExaGOOP2d.*.ex Inputs_2DHeat_Conduction_Cylinder_Dirichlet.inp
+cd $MPM_HOME/Build_Gnumake/
+#make necessary changes in GNUmakefile
+make -j
+cd ../Tests/2D_Heat_Conduction_Cylinder_Dirichlet
+cp ../../Build_Gnumake/ExaGOOP1d.*.ex .
+./ExaGOOP1d.*.ex Inputs_2DHeat_Conduction_Cylinder_Dirichlet.inp
+mpirun -n 4 ./ExaGOOP1d.*.ex ../Inputs_2DHeat_Conduction_Cylinder_Dirichlet.inp
 ```
 
 ### Step 3 – Validate and plot
 
 ```bash
-python3 PostProcess/validate.py \
-    --time 0.1 \
-    --folder Solution/ascii_files \
-    --outputpic Solution/ascii_files/Pics
+python3 PostProcess/validate.py --time 0.1
 ```
 
 This script:
 1. Solves Laplace's equation on a 400 × 400 FD grid.
 2. Interpolates the FD solution onto the MPM particle positions in the annular region $r \in [0.15, 0.5]$ from the cylinder centre.
 3. Produces a three-panel figure: numerical temperature, FD reference, and pointwise error.
-4. Reports the RMS error and prints `PASS` if below $10^{-1}$.
+4. Reports the RMS error and prints `PASS` if below $0.1$.
 
 The output figure is saved to `--outputpic/temperature_contours_t<time>.png`.

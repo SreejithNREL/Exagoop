@@ -71,20 +71,24 @@ bash Generate_MPs_and_InputFiles.sh
 Compile the UDFs first, then:
 
 ```bash
-mkdir -p build && cd build
-bash ../cmake_run.sh
-mpirun -n 4 ./ExaGOOP2d.*.ex ../Inputs_1DHeatConduction_HeatFlux.inp
+cd $MPM_HOME/Build_Gnumake/
+#make necessary changes in GNUmakefile
+make -j
+cd ../Tests/1D_Heat_Conduction_HeatFlux
+cp ../../Build_Gnumake/ExaGOOP1d.*.ex .
+./ExaGOOP1d.*.ex Inputs_1DHeatConduction_HeatFlux.inp
+mpirun -n 4 ./ExaGOOP1d.*.ex ../Inputs_1DHeatConduction_HeatFlux.inp
 ```
 
 ### Step 3 – Plot temperature profile
 
 ```bash
 python3 PostProcess/Plot_Temperature.py \
-    --folder Solution/ascii_files/<output_tag> \
-    --time 0.5
+    --fileloc Solution/ascii_files/<output_tag> \
+    --time 2.0
 ```
 
-Plots the simulated temperature profile against the exact Carslaw–Jaeger solution at $t = 0.5$ s.
+Plots the simulated temperature profile against the exact Carslaw–Jaeger solution at $t = 2.0$ s.
 
 ### Step 4 – CI validation
 

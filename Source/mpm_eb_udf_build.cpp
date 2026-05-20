@@ -20,12 +20,12 @@
 
 #include <AMReX_Config.H>
 #if defined(AMREX_USE_CUDA) && !defined(__CUDACC__)
-#  define __host__
-#  define __device__
-#  define __global__
-#  define __shared__
-#  define __constant__
-#  define __forceinline__ inline
+#define __host__
+#define __device__
+#define __global__
+#define __shared__
+#define __constant__
+#define __forceinline__ inline
 #endif
 
 #define EXAGOOP_INCLUDE_EB2_IF

@@ -262,13 +262,10 @@ void MPMParticleContainer::moveParticles(
                 mpm_ebtools::ls_bodies[b].lsphi->boxArray();
             coarse_ba.coarsen(lsref);
             lsphi_coarse[b].define(
-                coarse_ba,
-                mpm_ebtools::ls_bodies[b].lsphi->DistributionMap(),
+                coarse_ba, mpm_ebtools::ls_bodies[b].lsphi->DistributionMap(),
                 1, 1);
-            amrex::average_down_nodal(
-                *mpm_ebtools::ls_bodies[b].lsphi,
-                lsphi_coarse[b],
-                amrex::IntVect(lsref));
+            amrex::average_down_nodal(*mpm_ebtools::ls_bodies[b].lsphi,
+                                      lsphi_coarse[b], amrex::IntVect(lsref));
             lsphi_coarse[b].FillBoundary(Geom(lev).periodicity());
         }
     }

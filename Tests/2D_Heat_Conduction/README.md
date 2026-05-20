@@ -12,7 +12,7 @@ $$\frac{\partial T}{\partial t} = \alpha \left(\frac{\partial^2 T}{\partial x^2}
 
 With $T = T_1 = 1$ on all four boundaries and $T(x,y,0) = T_0 = 0$, the exact solution is:
 
-$$T(x,y,t) = T_1 + \frac{16(T_0 - T_1)}{\pi^2} \sum_{\substack{i=1,3,5,\ldots \\ j=1,3,5,\ldots}} \frac{1}{ij} e^{-\pi^2(i^2/L^2 + j^2/H^2)\,t} \sin\!\left(\frac{i\pi x}{L}\right)\sin\!\left(\frac{j\pi y}{H}\right)$$
+$$T(x,y,t) = T_1 + \frac{16(T_0 - T_1)}{\pi^2} \sum_{\substack{i=1,3,5,\ldots \\ j=1,3,5,\ldots}} \frac{1}{ij} e^{-\pi^2(i^2/L^2 + j^2/H^2)\,t} \sin\left(\frac{i\pi x}{L}\right)\sin\left(\frac{j\pi y}{H}\right)$$
 
 with $L = H = 1$. The double series involves only odd indices; 25 terms in each direction are sufficient at $t = 0.05$.
 
@@ -68,9 +68,13 @@ Also available: `PreProcess/plot_particles.py` for a quick visualisation of the 
 ### Step 2 – Build and run ExaGOOP
 
 ```bash
-mkdir -p build && cd build
-bash ../cmake_run.sh
-mpirun -n 4 ./ExaGOOP2d.*.ex ../Inputs_2DHeatConduction.inp
+cd $MPM_HOME/Build_Gnumake/
+#make necessary changes in GNUmakefile
+make -j
+cd ../Tests/2D_Heat_Conduction
+cp ../../Build_Gnumake/ExaGOOP1d.*.ex .
+./ExaGOOP1d.*.ex Inputs_2DHeatConduction.inp
+mpirun -n 4 ./ExaGOOP1d.*.ex ../Inputs_2DHeatConduction.inp
 ```
 
 ### Step 3 – Plot temperature field
@@ -78,7 +82,7 @@ mpirun -n 4 ./ExaGOOP2d.*.ex ../Inputs_2DHeatConduction.inp
 ```bash
 python3 PostProcess/Plot_Temperature.py \
     --folder Solution/ascii_files/<output_tag> \
-    --time 0.05
+    --time 0.05 --outputpic <output_pic.png>
 ```
 
 Produces a 2D colour map of the temperature field at the specified time, with an overlay of the exact solution.

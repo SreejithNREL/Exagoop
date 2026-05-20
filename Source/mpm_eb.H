@@ -156,7 +156,7 @@ extern bool using_levelset_geometry;
 void init_eb(const Geometry &geom,
              const BoxArray &ba,
              const DistributionMapping &dm,
-			 MPMspecs &specs);
+             MPMspecs &specs);
 } // namespace mpm_ebtools
 #endif // USE_EB
 
@@ -205,12 +205,15 @@ get_levelset_value(amrex::Array4<amrex::Real> phi,
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
             offset[d] = (corner >> d) & 1;
 
-        int ii = amrex::Clamp(idx[0] + offset[0], amrex::lbound(phi).x, amrex::ubound(phi).x);
+        int ii = amrex::Clamp(idx[0] + offset[0], amrex::lbound(phi).x,
+                              amrex::ubound(phi).x);
         int jj = (AMREX_SPACEDIM > 1)
-                     ? amrex::Clamp(idx[1] + offset[1], amrex::lbound(phi).y, amrex::ubound(phi).y)
+                     ? amrex::Clamp(idx[1] + offset[1], amrex::lbound(phi).y,
+                                    amrex::ubound(phi).y)
                      : 0;
         int kk = (AMREX_SPACEDIM > 2)
-                     ? amrex::Clamp(idx[2] + offset[2], amrex::lbound(phi).z, amrex::ubound(phi).z)
+                     ? amrex::Clamp(idx[2] + offset[2], amrex::lbound(phi).z,
+                                    amrex::ubound(phi).z)
                      : 0;
 
         lsval +=
@@ -266,12 +269,15 @@ get_levelset_grad(amrex::Array4<amrex::Real> phi,
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
             offset[d] = (corner >> d) & 1;
 
-        int ii = amrex::Clamp(idx[0] + offset[0], amrex::lbound(phi).x, amrex::ubound(phi).x);
+        int ii = amrex::Clamp(idx[0] + offset[0], amrex::lbound(phi).x,
+                              amrex::ubound(phi).x);
         int jj = (AMREX_SPACEDIM > 1)
-                     ? amrex::Clamp(idx[1] + offset[1], amrex::lbound(phi).y, amrex::ubound(phi).y)
+                     ? amrex::Clamp(idx[1] + offset[1], amrex::lbound(phi).y,
+                                    amrex::ubound(phi).y)
                      : 0;
         int kk = (AMREX_SPACEDIM > 2)
-                     ? amrex::Clamp(idx[2] + offset[2], amrex::lbound(phi).z, amrex::ubound(phi).z)
+                     ? amrex::Clamp(idx[2] + offset[2], amrex::lbound(phi).z,
+                                    amrex::ubound(phi).z)
                      : 0;
 
         for (int d = 0; d < AMREX_SPACEDIM; ++d)

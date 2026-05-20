@@ -1513,17 +1513,13 @@ void MPMParticleContainer::removeParticlesInsideEB()
     for (int b = 0; b < num_bodies; ++b)
     {
         int lsref = mpm_ebtools::ls_bodies[b].ls_refinement;
-        amrex::BoxArray coarse_ba =
-            mpm_ebtools::ls_bodies[b].lsphi->boxArray();
+        amrex::BoxArray coarse_ba = mpm_ebtools::ls_bodies[b].lsphi->boxArray();
         coarse_ba.coarsen(lsref);
         lsphi_coarse[b].define(
-            coarse_ba,
-            mpm_ebtools::ls_bodies[b].lsphi->DistributionMap(),
-            1, 1);
-        amrex::average_down_nodal(
-            *mpm_ebtools::ls_bodies[b].lsphi,
-            lsphi_coarse[b],
-            amrex::IntVect(lsref));
+            coarse_ba, mpm_ebtools::ls_bodies[b].lsphi->DistributionMap(), 1,
+            1);
+        amrex::average_down_nodal(*mpm_ebtools::ls_bodies[b].lsphi,
+                                  lsphi_coarse[b], amrex::IntVect(lsref));
         lsphi_coarse[b].FillBoundary(geom.periodicity());
     }
 #endif

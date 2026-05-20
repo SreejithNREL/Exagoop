@@ -67,9 +67,13 @@ bash Generate_MPs_and_InputFiles.sh
 ### Step 2 – Build and run ExaGOOP
 
 ```bash
-mkdir -p build && cd build
-bash ../cmake_run.sh
-mpirun -n 4 ./ExaGOOP2d.*.ex ../Inputs_ElasticDiskCollision.inp
+cd $MPM_HOME/Build_Gnumake/
+#make necessary changes in GNUmakefile
+make -j
+cd ../Tests/Elastic_disk_collision
+cp ../../Build_Gnumake/ExaGOOP1d.*.ex .
+./ExaGOOP1d.*.ex Inputs_ElasticDiskCollision.inp
+mpirun -n 4 ./ExaGOOP1d.*.ex ../Inputs_ElasticDiskCollision.inp
 ```
 
 ### Step 3 – Energy conservation plot
@@ -77,7 +81,7 @@ mpirun -n 4 ./ExaGOOP2d.*.ex ../Inputs_ElasticDiskCollision.inp
 ```bash
 python3 PostProcess/plot_energy.py \
     --folder       Solution/ascii_files/<output_tag> \
-    --energyfile   Solution/diag_<output_tag>.dat \
+    --energyfile   Diagnostics/<output_tag>/Total_Energies.dat \
     --outputpic    energy.png \
     --outputmovie  collision.mp4
 ```

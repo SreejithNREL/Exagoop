@@ -176,7 +176,7 @@ static MultiFab *build_stl_levelset(const std::string &name,
     {
         amrex::ParmParse ppeb("eb2");
         ppeb.add("geom_type", std::string("stl"));
-        ppeb.add("stl_file",  stl_file);
+        ppeb.add("stl_file", stl_file);
     }
 
     amrex::EB2::Build(geom_ls, req_coarsen, 10);
@@ -403,7 +403,7 @@ static MultiFab *build_analytic_levelset(const std::string &name,
 void init_eb(const Geometry &geom,
              const BoxArray &ba,
              const DistributionMapping &dm,
-			 MPMspecs &specs)
+             MPMspecs &specs)
 {
     constexpr int nghost = 4;
 
@@ -557,9 +557,9 @@ void init_eb(const Geometry &geom,
         amrex::average_node_to_cellcenter(plotmf, 0, *body.lsphi, 0,
                                           body.lsphi->nComp());
 
-
         std::string pltname = "ebplt_" + body.name;
-        WriteSingleLevelPlotfile(specs.blevset_output_folder + pltname, plotmf, {"phi"}, geom_ls, 0.0, 0);
+        WriteSingleLevelPlotfile(specs.blevset_output_folder + pltname, plotmf,
+                                 {"phi"}, geom_ls, 0.0, 0);
     }
 }
 

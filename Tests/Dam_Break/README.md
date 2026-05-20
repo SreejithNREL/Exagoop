@@ -71,9 +71,13 @@ Verify that the generated `mpm_particles.h5` (or `.dat`) has density = 997.5 kg/
 ### Step 2 – Build and run ExaGOOP
 
 ```bash
-mkdir -p build && cd build
-bash ../cmake_run.sh
-mpirun -n 4 ./ExaGOOP2d.*.ex ../Inputs_DamBreak.inp
+cd $MPM_HOME/Build_Gnumake/
+#make necessary changes in GNUmakefile
+make -j
+cd ../Tests/Dam_Break
+cp ../../Build_Gnumake/ExaGOOP1d.*.ex .
+./ExaGOOP1d.*.ex Inputs_DamBreak.inp
+mpirun -n 4 ./ExaGOOP1d.*.ex ../Inputs_DamBreak.inp
 ```
 
 The simulation runs for 2.5 s of physical time and produces output snapshots and a diagnostics file.
@@ -83,7 +87,7 @@ The simulation runs for 2.5 s of physical time and produces output snapshots and
 ```bash
 python3 PostProcess/plot_waterfront.py \
     --folder    Solution/ascii_files/<output_tag> \
-    --minmaxfile Solution/diag_<output_tag>.dat \
+    --minmaxfile Diagnostics	/diag_<output_tag>/MinMaxPosition.dat \
     --expdata   /path/to/martin_moyce_1952.dat \
     --outputpic waterfront.png \
     --outputmovie dambreak.mp4

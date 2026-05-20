@@ -146,7 +146,7 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
 
         MultiFab lsphi_coarse(nodaldata.boxArray(), nodaldata.DistributionMap(),
                               1,  // ncomp
-                              1); // nghost — must be >= 1 for interpolation        
+                              1); // nghost — must be >= 1 for interpolation
         lsphi_coarse.setVal(1.0);
         amrex::average_down_nodal(*body.lsphi, lsphi_coarse,
                                   amrex::IntVect(lsref));
@@ -1240,7 +1240,6 @@ void compute_udf_temp_at_nodes(const amrex::Geometry &geom,
             amrex::Gpu::copy(amrex::Gpu::hostToDevice, hv.begin(), hv.end(),
                              specs.udf_temp_nodes_lo[d].begin());
         }
-
 
         if (specs.udf_temp_func_ptr_hi[d] != nullptr)
         {
