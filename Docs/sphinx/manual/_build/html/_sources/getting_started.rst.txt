@@ -19,7 +19,8 @@ users should use the Windows Subsystem for Linux (WSL).
 - GCC 8 or newer
 - Clang 3.6 or newer
 
-Microsoft Visual C++ (MSVC) is not supported.
+Microsoft Visual C++ (MSVC) is not offcially supported. However, the developers are not aware of any potential issues preventing Windows 11
+builds on non-GPU architectures.
 
 **Build system.** Either of:
 
@@ -46,7 +47,7 @@ Clone the repository with its AMReX submodule in a single step:
 
 .. code-block:: bash
 
-   git clone --recurse-submodules https://github.com/NREL/Exagoop.git
+   git clone --recurse-submodules https://github.com/NatLabRockies/Exagoop.git
 
 This creates an ``Exagoop/`` directory. The AMReX sources reside under
 ``Exagoop/Submodules/amrex``.
@@ -64,7 +65,7 @@ persistent:
 Building with CMake
 -------------------
 
-CMake is the recommended build path. The ``Build_Cmake/cmake.sh`` script
+The ``Build_Cmake/cmake.sh`` script
 contains a template ``cmake`` invocation; edit it to match your environment
 before running it.
 
@@ -108,12 +109,11 @@ Key options in ``cmake.sh``:
      - ``OFF``
      - Enable HDF5 output
 
-.. note::
-   ``EXAGOOP_DIM`` is fixed at ``3`` in the CMake build. Two-dimensional
-   runs should use the GNUmake build with ``DIM=2``.
+``EXAGOOP_DIM`` is fixed at ``2`` in the CMake build. Users should set these variables corresponding to the dimensionality 
+   of the problem they intend to solve.
 
-On a successful build the executable ``ExaGOOP.exe`` is placed in
-``$MPM_HOME/Build_Cmake``.
+On a successful build the executable ``ExaGOOP<dim>d.*.exe`` is placed in
+``$MPM_HOME/Build_Cmake``. The executable name is determined by the dimensionality used as well other build variables. 
 
 
 Building with GNUmake
@@ -181,7 +181,9 @@ has no physics-module dependencies and produces a known analytical solution:
 
    cd $MPM_HOME/Tests/1D_Axial_Bar_Vibration
    sh Generate_MPs_and_InputFiles.sh
-   # Then follow the cmake_run.sh script for your build
+   # This creates an initial material point file (mpm_particles.dat or mpm_particles.h5) and an input file- Inputs_1DAxialBarVibration.inp
+   # Now copy the ExaGOOP executable from the build folder and run the solver
+   ./ExaGOOP1d.*.ex Inputs_1DAxialBarVibration.ex
 
 If the run completes without errors, the build is working correctly.  For a
 richer check, the tutorials section walks through two multi-physics test cases

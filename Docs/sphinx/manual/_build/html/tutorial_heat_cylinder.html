@@ -8,7 +8,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Tutorial: 2-D Steady Heat Conduction around a Cylinder (Dirichlet) &mdash; ExaGOOP 22.12 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="_static/theme.css?v=df66b05f" />
       <link rel="stylesheet" type="text/css" href="_static/css/custom.css" />
 
@@ -16,13 +16,13 @@
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="_static/documentation_options.js?v=d09052ea"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Temperature Module (USE_TEMP)" href="temperature_module.html" />
+    <link rel="next" title="Input File Reference" href="input_reference.html" />
     <link rel="prev" title="Setting up the simulation folder" href="tutorial_dambreak.html" /> 
 </head>
 
@@ -50,6 +50,10 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="intro.html">Introduction</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">Getting Started:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="tutorial_dambreak.html">Setting up the simulation folder</a></li>
@@ -70,8 +74,13 @@
 </ul>
 </li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="input_reference.html">Input File Reference</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Physics Modules:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="physics_modules.html">Physics Modules</a></li>
 <li class="toctree-l1"><a class="reference internal" href="temperature_module.html">Temperature Module (<code class="docutils literal notranslate"><span class="pre">USE_TEMP</span></code>)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="levelsets.html">Embedded Boundaries via Level Sets (<code class="docutils literal notranslate"><span class="pre">USE_EB</span></code>)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="udf_moving_wall.html">UDF Moving Wall Boundary Conditions</a></li>
@@ -133,7 +142,7 @@ Laplace-equation problem with an analytic solution.</p>
 <p>A unit square domain <span class="math notranslate nohighlight">\([0,1]^2\)</span> contains a circular cylinder of radius
 <span class="math notranslate nohighlight">\(r = 0.15\)</span> centred at <span class="math notranslate nohighlight">\((0.5,\,0.5)\)</span>.  The four domain walls are
 held at <span class="math notranslate nohighlight">\(T = 0\)</span>, and the cylinder surface is isothermal at <span class="math notranslate nohighlight">\(T = 1\)</span>.
-There are no volumetric heat sources, and the fluid velocity is zero throughout.</p>
+There are no volumetric heat sources, and the initial elastic solid velocity is zero throughout.</p>
 <p>The governing equation is the steady-state heat equation (Laplace equation):</p>
 <div class="math notranslate nohighlight">
 \[\nabla^2 T = 0\]</div>
@@ -274,8 +283,8 @@ particles-per-cell count, and the thermal properties:</p>
 </pre></div>
 </div>
 <p>To (re)generate the particle and input files, run from the test directory:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>Tests/2D_Heat_Conduction_Cylinder_Dirichlet/PreProcess
-python<span class="w"> </span>Generate_MPs_Inputfile_Generic.py
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>Tests/2D_Heat_Conduction_Cylinder_Dirichlet/
+bash<span class="w"> </span>Generate_MPs_Inputfile_Generic.sh
 </pre></div>
 </div>
 <p>This writes <code class="docutils literal notranslate"><span class="pre">mpm_particles.dat</span></code> (particle positions and thermal properties)
@@ -285,11 +294,12 @@ and <code class="docutils literal notranslate"><span class="pre">Inputs_2DHeat_C
 <h2>Building<a class="headerlink" href="#building" title="Link to this heading"></a></h2>
 <p>Navigate to the test directory and build with the required flags:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>Tests/2D_Heat_Conduction_Cylinder_Dirichlet
+<span class="c1"># create a temporary copy of the GNUmakefile here</span>
 make<span class="w"> </span><span class="nv">USE_EB</span><span class="o">=</span>TRUE<span class="w"> </span><span class="nv">USE_TEMP</span><span class="o">=</span>TRUE<span class="w"> </span><span class="nv">DIM</span><span class="o">=</span><span class="m">2</span><span class="w"> </span>-j4
 </pre></div>
 </div>
 <p>The resulting executable is named
-<code class="docutils literal notranslate"><span class="pre">ExaGOOP2d.gnu.MPI.EXE</span></code> (suffix depends on the build environment).</p>
+<code class="docutils literal notranslate"><span class="pre">ExaGOOP2d.&lt;suffix&gt;.ex</span></code> (suffix depends on the build environment).</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p><code class="docutils literal notranslate"><span class="pre">USE_EB=TRUE</span></code> pulls in the AMReX EB2 library.  On some systems this
@@ -300,26 +310,26 @@ parallelises the build across compilation units.</p>
 <section id="running">
 <h2>Running<a class="headerlink" href="#running" title="Link to this heading"></a></h2>
 <p>From the test directory:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./ExaGOOP2d.gnu.MPI.EXE<span class="w"> </span>Inputs_2DHeat_Conduction_Cylinder_Dirichlet.inp
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./ExaGOOP2d.&lt;suffix&gt;.ex<span class="w"> </span>Inputs_2DHeat_Conduction_Cylinder_Dirichlet.inp
 </pre></div>
 </div>
 <p>For a parallel run on four MPI ranks:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mpirun<span class="w"> </span>-n<span class="w"> </span><span class="m">4</span><span class="w"> </span>./ExaGOOP2d.gnu.MPI.EXE<span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mpirun<span class="w"> </span>-n<span class="w"> </span><span class="m">4</span><span class="w"> </span>./ExaGOOP2d.&lt;suffix&gt;.ex<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>Inputs_2DHeat_Conduction_Cylinder_Dirichlet.inp
 </pre></div>
 </div>
 <p>ASCII particle snapshots are written at intervals of
 <code class="docutils literal notranslate"><span class="pre">mpm.write_output_time</span> <span class="pre">=</span> <span class="pre">0.01</span></code> to the subdirectory
-<code class="docutils literal notranslate"><span class="pre">2D_Heat_Conduction_Cylinder_Dirichlet/matpnt*</span></code>.  A checkpoint is written
-to <code class="docutils literal notranslate"><span class="pre">2D_Heat_Conduction_Cylinder_Dirichlet/chk*</span></code> at the same frequency.</p>
+<code class="docutils literal notranslate"><span class="pre">2D_Heat_Conduction_Cylinder_Dirichlet/&lt;solution</span> <span class="pre">folder</span> <span class="pre">name</span> <span class="pre">set</span> <span class="pre">in</span> <span class="pre">input</span> <span class="pre">file&gt;/matpnt*</span></code>.  A checkpoint is written
+to <code class="docutils literal notranslate"><span class="pre">2D_Heat_Conduction_Cylinder_Dirichlet/solution</span> <span class="pre">folder</span> <span class="pre">name</span> <span class="pre">set</span> <span class="pre">in</span> <span class="pre">input</span> <span class="pre">file/chk*</span></code> at the same frequency.</p>
 </section>
 <section id="post-processing-and-validation">
 <h2>Post-processing and validation<a class="headerlink" href="#post-processing-and-validation" title="Link to this heading"></a></h2>
 <p>The validation script reads the final particle snapshot, bins particles by
 radial distance from the cylinder axis, and compares the angularly-averaged
 temperature profile against the analytical steady-state:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>Tests/2D_Heat_Conduction_Cylinder_Dirichlet/PostProcess
-python<span class="w"> </span>validate.py
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>Tests/2D_Heat_Conduction_Cylinder_Dirichlet/
+python3<span class="w"> </span>PostProcess/validate.py<span class="w"> </span>--time<span class="w"> </span><span class="m">0</span>.1
 </pre></div>
 </div>
 <p>A passing run prints the RMS error and <code class="docutils literal notranslate"><span class="pre">PASS</span></code>.  The acceptance criterion
@@ -376,7 +386,7 @@ numerical discretisation error.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="tutorial_dambreak.html" class="btn btn-neutral float-left" title="Setting up the simulation folder" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="temperature_module.html" class="btn btn-neutral float-right" title="Temperature Module (USE_TEMP)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="input_reference.html" class="btn btn-neutral float-right" title="Input File Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

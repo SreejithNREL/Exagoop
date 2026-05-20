@@ -8,7 +8,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Axial vibration of an elastic bar &mdash; ExaGOOP 22.12 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="_static/theme.css?v=df66b05f" />
       <link rel="stylesheet" type="text/css" href="_static/css/custom.css" />
 
@@ -16,7 +16,7 @@
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="_static/documentation_options.js?v=d09052ea"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
@@ -50,6 +50,10 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="intro.html">Introduction</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">Getting Started:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="tutorial_dambreak.html">Setting up the simulation folder</a></li>
@@ -58,8 +62,13 @@
 <li class="toctree-l1"><a class="reference internal" href="tutorial_dambreak.html#running-exagoop-and-viewing-output-files">Running ExaGOOP and viewing output files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial_heat_cylinder.html">Tutorial: 2-D Steady Heat Conduction around a Cylinder (Dirichlet)</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="input_reference.html">Input File Reference</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Physics Modules:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="physics_modules.html">Physics Modules</a></li>
 <li class="toctree-l1"><a class="reference internal" href="temperature_module.html">Temperature Module (<code class="docutils literal notranslate"><span class="pre">USE_TEMP</span></code>)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="levelsets.html">Embedded Boundaries via Level Sets (<code class="docutils literal notranslate"><span class="pre">USE_EB</span></code>)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="udf_moving_wall.html">UDF Moving Wall Boundary Conditions</a></li>
@@ -320,7 +329,7 @@ material points. This inaccuracy can be reduced by refining the background grid 
 <section id="dam-break-simulation">
 <h1>Dam break simulation<a class="headerlink" href="#dam-break-simulation" title="Link to this heading"></a></h1>
 <p>ExaGOOP’s capability in simulating fluids is demonstrated using the 2-D dam break test case. The test case consists of an initial column of
-water of height <span class="math notranslate nohighlight">\(H_0\)</span> and width <span class="math notranslate nohighlight">\(L_0\)</span> located inside a square domain, as shown in <a class="reference internal" href="#f-dambreak-compdom"><span class="std std-numref">Fig. 11</span></a> (a). When <span class="math notranslate nohighlight">\(t=0\)</span>, the water column is released, allowing it to flow downward due to gravity. Over time, the water gradually fills the entire domain. Experimental measurements of the water front are available <span class="bibtex-citation" id="id1">[<a class="reference internal" href="references.html#id2" title="J. C. Martin, W. J. Moyce, J. C. Martin, W. J. Moyce, William George Penney, A. T. Price, and C. K. Thornhill. Part iv. an experimental study of the collapse of liquid columns on a rigid horizontal plane. Philosophical Transactions of the Royal Society of London. Series A, Mathematical and Physical Sciences, 244(882):312-324, 1952. doi:10.1098/rsta.1952.0006.">3</a>]</span> for comparison with MPM results.</p>
+water of height <span class="math notranslate nohighlight">\(H_0\)</span> and width <span class="math notranslate nohighlight">\(L_0\)</span> located inside a square domain, as shown in <a class="reference internal" href="#f-dambreak-compdom"><span class="std std-numref">Fig. 11</span></a> (a). When <span class="math notranslate nohighlight">\(t=0\)</span>, the water column is released, allowing it to flow downward due to gravity. Over time, the water gradually fills the entire domain. Experimental measurements of the water front are available <span id="id1">[<a class="reference internal" href="references.html#id2" title="J. C. Martin, W. J. Moyce, J. C. Martin, W. J. Moyce, William George Penney, A. T. Price, and C. K. Thornhill. Part iv. an experimental study of the collapse of liquid columns on a rigid horizontal plane. Philosophical Transactions of the Royal Society of London. Series A, Mathematical and Physical Sciences, 244(882):312-324, 1952. doi:10.1098/rsta.1952.0006.">3</a>]</span> for comparison with MPM results.</p>
 <p>For the MPM simulations, the domain is structured as shown in <a class="reference internal" href="#f-dambreak-compdom"><span class="std std-numref">Fig. 11</span></a> (b). A square domain with a side length of 0.4m is selected to create the background grid, which is discretized into 100 cells in each direction. The height of the water column is set at 0.2 m, and the width is 0.1 m. Unlike previous test cases discussed, water is treated as a fluid, necessitating the specification of an appropriate equation of state. In this study, water is modelled using a barotopic equation of state that relates pressure to the density of water as,</p>
 <div class="math notranslate nohighlight">
 \[\begin{aligned}
@@ -345,7 +354,7 @@ Simulation is performed using <span class="math notranslate nohighlight">\(CFL=0
 </figcaption>
 </figure>
 <p><a class="reference internal" href="#f-dambreak-mpm-exp"><span class="std std-numref">Fig. 13</span></a> presents a comparison of the water front calculated using ExaGOOP and the experimentally obtained water front values
-<span class="bibtex-citation" id="id2">[<a class="reference internal" href="references.html#id2" title="J. C. Martin, W. J. Moyce, J. C. Martin, W. J. Moyce, William George Penney, A. T. Price, and C. K. Thornhill. Part iv. an experimental study of the collapse of liquid columns on a rigid horizontal plane. Philosophical Transactions of the Royal Society of London. Series A, Mathematical and Physical Sciences, 244(882):312-324, 1952. doi:10.1098/rsta.1952.0006.">3</a>]</span> at various times. The solid line indicates the ExaGOOP solution and the red circles denote the experimental data from <span class="bibtex-citation" id="id3">[<a class="reference internal" href="references.html#id2" title="J. C. Martin, W. J. Moyce, J. C. Martin, W. J. Moyce, William George Penney, A. T. Price, and C. K. Thornhill. Part iv. an experimental study of the collapse of liquid columns on a rigid horizontal plane. Philosophical Transactions of the Royal Society of London. Series A, Mathematical and Physical Sciences, 244(882):312-324, 1952. doi:10.1098/rsta.1952.0006.">3</a>]</span>. A strong correlation is observed between the numerical and experimental values, thereby validating the solver.</p>
+<span id="id2">[<a class="reference internal" href="references.html#id2" title="J. C. Martin, W. J. Moyce, J. C. Martin, W. J. Moyce, William George Penney, A. T. Price, and C. K. Thornhill. Part iv. an experimental study of the collapse of liquid columns on a rigid horizontal plane. Philosophical Transactions of the Royal Society of London. Series A, Mathematical and Physical Sciences, 244(882):312-324, 1952. doi:10.1098/rsta.1952.0006.">3</a>]</span> at various times. The solid line indicates the ExaGOOP solution and the red circles denote the experimental data from <span id="id3">[<a class="reference internal" href="references.html#id2" title="J. C. Martin, W. J. Moyce, J. C. Martin, W. J. Moyce, William George Penney, A. T. Price, and C. K. Thornhill. Part iv. an experimental study of the collapse of liquid columns on a rigid horizontal plane. Philosophical Transactions of the Royal Society of London. Series A, Mathematical and Physical Sciences, 244(882):312-324, 1952. doi:10.1098/rsta.1952.0006.">3</a>]</span>. A strong correlation is observed between the numerical and experimental values, thereby validating the solver.</p>
 <div class="figure-grid" style="display: flex; flex-wrap: wrap; gap: 1em; justify-content: center;">
   <div style="flex: 0 0 23%;">
     <img src="./_images/DB1.png" alt="DB1" style="width: 100%;">
@@ -379,7 +388,7 @@ Simulation is performed using <span class="math notranslate nohighlight">\(CFL=0
 <a class="reference internal image-reference" href="_images/none.png"><img alt="Simulation Snapshots Overview" src="_images/none.png" style="width: 0px; height: 0px;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 13 </span><span class="caption-text">Comparison of the water front location with time. Solid line shows ExaGOOP solution and red circles indicate experimental data from <span class="bibtex-citation" id="id4">[<a class="reference internal" href="references.html#id2" title="J. C. Martin, W. J. Moyce, J. C. Martin, W. J. Moyce, William George Penney, A. T. Price, and C. K. Thornhill. Part iv. an experimental study of the collapse of liquid columns on a rigid horizontal plane. Philosophical Transactions of the Royal Society of London. Series A, Mathematical and Physical Sciences, 244(882):312-324, 1952. doi:10.1098/rsta.1952.0006.">3</a>]</span></span><a class="headerlink" href="#f-dambreak-mpm-exp" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 13 </span><span class="caption-text">Comparison of the water front location with time. Solid line shows ExaGOOP solution and red circles indicate experimental data from <span id="id4">[<a class="reference internal" href="references.html#id2" title="J. C. Martin, W. J. Moyce, J. C. Martin, W. J. Moyce, William George Penney, A. T. Price, and C. K. Thornhill. Part iv. an experimental study of the collapse of liquid columns on a rigid horizontal plane. Philosophical Transactions of the Royal Society of London. Series A, Mathematical and Physical Sciences, 244(882):312-324, 1952. doi:10.1098/rsta.1952.0006.">3</a>]</span></span><a class="headerlink" href="#f-dambreak-mpm-exp" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </section>

@@ -8,7 +8,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Getting Started &mdash; ExaGOOP 22.12 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="_static/theme.css?v=df66b05f" />
       <link rel="stylesheet" type="text/css" href="_static/css/custom.css" />
 
@@ -16,7 +16,7 @@
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="_static/documentation_options.js?v=d09052ea"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -69,6 +69,10 @@
 <li class="toctree-l1"><a class="reference internal" href="tutorial_dambreak.html#generating-initial-material-point-file">Generating initial material point file</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial_dambreak.html#running-exagoop-and-viewing-output-files">Running ExaGOOP and viewing output files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial_heat_cylinder.html">Tutorial: 2-D Steady Heat Conduction around a Cylinder (Dirichlet)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="input_reference.html">Input File Reference</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Physics Modules:</span></p>
 <ul>
@@ -135,7 +139,8 @@ users should use the Windows Subsystem for Linux (WSL).</p>
 <li><p>GCC 8 or newer</p></li>
 <li><p>Clang 3.6 or newer</p></li>
 </ul>
-<p>Microsoft Visual C++ (MSVC) is not supported.</p>
+<p>Microsoft Visual C++ (MSVC) is not offcially supported. However, the developers are not aware of any potential issues preventing Windows 11
+builds on non-GPU architectures.</p>
 <p><strong>Build system.</strong> Either of:</p>
 <ul class="simple">
 <li><p>CMake 3.20 or newer (recommended)</p></li>
@@ -155,7 +160,7 @@ portability layer.</p>
 <section id="obtaining-the-source">
 <h2>Obtaining the Source<a class="headerlink" href="#obtaining-the-source" title="Link to this heading"></a></h2>
 <p>Clone the repository with its AMReX submodule in a single step:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>--recurse-submodules<span class="w"> </span>https://github.com/NREL/Exagoop.git
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>--recurse-submodules<span class="w"> </span>https://github.com/NatLabRockies/Exagoop.git
 </pre></div>
 </div>
 <p>This creates an <code class="docutils literal notranslate"><span class="pre">Exagoop/</span></code> directory. The AMReX sources reside under
@@ -170,7 +175,7 @@ persistent:</p>
 </section>
 <section id="building-with-cmake">
 <h2>Building with CMake<a class="headerlink" href="#building-with-cmake" title="Link to this heading"></a></h2>
-<p>CMake is the recommended build path. The <code class="docutils literal notranslate"><span class="pre">Build_Cmake/cmake.sh</span></code> script
+<p>The <code class="docutils literal notranslate"><span class="pre">Build_Cmake/cmake.sh</span></code> script
 contains a template <code class="docutils literal notranslate"><span class="pre">cmake</span></code> invocation; edit it to match your environment
 before running it.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span><span class="nv">$MPM_HOME</span>/Build_Cmake
@@ -226,13 +231,12 @@ sh<span class="w"> </span>cmake.sh
 </tr>
 </tbody>
 </table>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p><code class="docutils literal notranslate"><span class="pre">EXAGOOP_DIM</span></code> is fixed at <code class="docutils literal notranslate"><span class="pre">3</span></code> in the CMake build. Two-dimensional
-runs should use the GNUmake build with <code class="docutils literal notranslate"><span class="pre">DIM=2</span></code>.</p>
-</div>
-<p>On a successful build the executable <code class="docutils literal notranslate"><span class="pre">ExaGOOP.exe</span></code> is placed in
-<code class="docutils literal notranslate"><span class="pre">$MPM_HOME/Build_Cmake</span></code>.</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">EXAGOOP_DIM</span></code> is fixed at <code class="docutils literal notranslate"><span class="pre">2</span></code> in the CMake build. Users should set these variables corresponding to the dimensionality</dt><dd><p>of the problem they intend to solve.</p>
+</dd>
+</dl>
+<p>On a successful build the executable <code class="docutils literal notranslate"><span class="pre">ExaGOOP&lt;dim&gt;d.*.exe</span></code> is placed in
+<code class="docutils literal notranslate"><span class="pre">$MPM_HOME/Build_Cmake</span></code>. The executable name is determined by the dimensionality used as well other build variables.</p>
 </section>
 <section id="building-with-gnumake">
 <h2>Building with GNUmake<a class="headerlink" href="#building-with-gnumake" title="Link to this heading"></a></h2>
@@ -307,7 +311,9 @@ placed in the same directory.</p>
 has no physics-module dependencies and produces a known analytical solution:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span><span class="nv">$MPM_HOME</span>/Tests/1D_Axial_Bar_Vibration
 sh<span class="w"> </span>Generate_MPs_and_InputFiles.sh
-<span class="c1"># Then follow the cmake_run.sh script for your build</span>
+<span class="c1"># This creates an initial material point file (mpm_particles.dat or mpm_particles.h5) and an input file- Inputs_1DAxialBarVibration.inp</span>
+<span class="c1"># Now copy the ExaGOOP executable from the build folder and run the solver</span>
+./ExaGOOP1d.*.ex<span class="w"> </span>Inputs_1DAxialBarVibration.ex
 </pre></div>
 </div>
 <p>If the run completes without errors, the build is working correctly.  For a

@@ -8,8 +8,7 @@ UDF Moving Wall Boundary Conditions
 ExaGOOP supports spatially- and temporally-varying velocity boundary
 conditions at any domain face through a *user-defined function* (UDF)
 supplied as a runtime-loaded shared library.  This mechanism allows
-arbitrary wall motions — rotating walls, oscillating pistons, prescribed
-shear profiles — to be specified without recompiling the solver.
+arbitrary wall motions such as linearly translating walls,  rotating wall etc. to be specified without recompiling the solver.
 
 
 Overview

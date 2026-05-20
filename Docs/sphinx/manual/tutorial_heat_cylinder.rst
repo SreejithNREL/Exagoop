@@ -20,7 +20,7 @@ Physical problem
 A unit square domain :math:`[0,1]^2` contains a circular cylinder of radius
 :math:`r = 0.15` centred at :math:`(0.5,\,0.5)`.  The four domain walls are
 held at :math:`T = 0`, and the cylinder surface is isothermal at :math:`T = 1`.
-There are no volumetric heat sources, and the fluid velocity is zero throughout.
+There are no volumetric heat sources, and the initial elastic solid velocity is zero throughout.
 
 The governing equation is the steady-state heat equation (Laplace equation):
 
@@ -181,8 +181,8 @@ To (re)generate the particle and input files, run from the test directory:
 
 .. code-block:: bash
 
-   cd Tests/2D_Heat_Conduction_Cylinder_Dirichlet/PreProcess
-   python Generate_MPs_Inputfile_Generic.py
+   cd Tests/2D_Heat_Conduction_Cylinder_Dirichlet/   
+   bash Generate_MPs_Inputfile_Generic.sh
 
 This writes ``mpm_particles.dat`` (particle positions and thermal properties)
 and ``Inputs_2DHeat_Conduction_Cylinder_Dirichlet.inp`` one level up.
@@ -196,10 +196,11 @@ Navigate to the test directory and build with the required flags:
 .. code-block:: bash
 
    cd Tests/2D_Heat_Conduction_Cylinder_Dirichlet
+   # create a temporary copy of the GNUmakefile here
    make USE_EB=TRUE USE_TEMP=TRUE DIM=2 -j4
 
 The resulting executable is named
-``ExaGOOP2d.gnu.MPI.EXE`` (suffix depends on the build environment).
+``ExaGOOP2d.<suffix>.ex`` (suffix depends on the build environment).
 
 .. note::
 
@@ -215,19 +216,19 @@ From the test directory:
 
 .. code-block:: bash
 
-   ./ExaGOOP2d.gnu.MPI.EXE Inputs_2DHeat_Conduction_Cylinder_Dirichlet.inp
+   ./ExaGOOP2d.<suffix>.ex Inputs_2DHeat_Conduction_Cylinder_Dirichlet.inp
 
 For a parallel run on four MPI ranks:
 
 .. code-block:: bash
 
-   mpirun -n 4 ./ExaGOOP2d.gnu.MPI.EXE \
+   mpirun -n 4 ./ExaGOOP2d.<suffix>.ex \
        Inputs_2DHeat_Conduction_Cylinder_Dirichlet.inp
 
 ASCII particle snapshots are written at intervals of
 ``mpm.write_output_time = 0.01`` to the subdirectory
-``2D_Heat_Conduction_Cylinder_Dirichlet/matpnt*``.  A checkpoint is written
-to ``2D_Heat_Conduction_Cylinder_Dirichlet/chk*`` at the same frequency.
+``2D_Heat_Conduction_Cylinder_Dirichlet/<solution folder name set in input file>/matpnt*``.  A checkpoint is written
+to ``2D_Heat_Conduction_Cylinder_Dirichlet/solution folder name set in input file/chk*`` at the same frequency.
 
 
 Post-processing and validation
@@ -239,8 +240,9 @@ temperature profile against the analytical steady-state:
 
 .. code-block:: bash
 
-   cd Tests/2D_Heat_Conduction_Cylinder_Dirichlet/PostProcess
-   python validate.py
+   cd Tests/2D_Heat_Conduction_Cylinder_Dirichlet/
+   python3 PostProcess/validate.py --time 0.1
+   
 
 A passing run prints the RMS error and ``PASS``.  The acceptance criterion
 is RMS :math:`< 5 \times 10^{-2}` (the finite-time run and square-vs-circle

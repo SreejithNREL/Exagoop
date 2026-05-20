@@ -447,12 +447,11 @@ To regenerate the particle and input files, run from the test directory:
 
 .. code-block:: bash
 
-   cd Tests/1D_Heat_Conduction_HeatFlux/PreProcess
-   python Generate_MPs_Inputfile_Generic.py
+   cd Tests/1D_Heat_Conduction_HeatFlux/
+   bash Generate_MPs_and_InputFiles.sh
 
 This writes ``mpm_particles.dat`` and
-``Inputs_1DHeatConduction_HeatFlux.inp`` one level up.
-The boundary conditions in the generated input file are:
+``Inputs_1DHeatConduction_HeatFlux.inp``. The boundary conditions in the generated input file are:
 
 .. code-block:: bash
 
@@ -462,7 +461,7 @@ The boundary conditions in the generated input file are:
    mpm.bc_xhi_temp.flux     = 1.0
 
 To change the imposed flux, set ``mpm.bc_xhi_temp.flux`` to the desired
-value of :math:`q / k`.  If the material thermal conductivity is also
+value of :math:`q`.  If the material thermal conductivity is also
 changed (via ``thermcond`` in ``config.json``), the flux entry in the
 input file should be updated to :math:`q / k` accordingly.
 
@@ -473,13 +472,14 @@ Build the binary with the temperature module enabled:
 .. code-block:: bash
 
    cd Tests/1D_Heat_Conduction_HeatFlux
+   # copy make file here.
    make USE_TEMP=TRUE -j4
 
 Then run:
 
 .. code-block:: bash
 
-   ./ExaGOOP2d.gnu.MPI.ex Inputs_1DHeatConduction_HeatFlux.inp
+   ./ExaGOOP2d.<suffix>.ex Inputs_1DHeatConduction_HeatFlux.inp
 
 Output particle snapshots are written to the subdirectory specified by
 ``mpm.prefix_asciifilename`` inside the test directory.

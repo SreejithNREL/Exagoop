@@ -35,7 +35,7 @@ material deforms across fixed grid cells, decoupling it from the grid nodes. Whi
 formulation is numerically stable, it is less suited for problems involving moving
 interfaces and materials with history-dependent properties.
 
-The Material Point Method (MPM) is a mesh-free technique that has garnered significant
+MPM is a mesh-free technique that has garnered significant
 attention for its ability to simulate problems with considerable deformations. MPM is a
 Lagrangian, particle-based numerical method inspired by the Particle-In-Cell (PIC)
 :cite:`osti_4769185` and Fluid-Implicit Particle (FLIP) methods :cite:`BRACKBILL1986314`.

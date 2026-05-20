@@ -8,7 +8,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Temperature Module (USE_TEMP) &mdash; ExaGOOP 22.12 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="_static/theme.css?v=df66b05f" />
       <link rel="stylesheet" type="text/css" href="_static/css/custom.css" />
 
@@ -16,14 +16,14 @@
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="_static/documentation_options.js?v=d09052ea"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Embedded Boundaries via Level Sets (USE_EB)" href="levelsets.html" />
-    <link rel="prev" title="Tutorial: 2-D Steady Heat Conduction around a Cylinder (Dirichlet)" href="tutorial_heat_cylinder.html" /> 
+    <link rel="prev" title="Physics Modules" href="physics_modules.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -50,6 +50,10 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="intro.html">Introduction</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">Getting Started:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="tutorial_dambreak.html">Setting up the simulation folder</a></li>
@@ -58,8 +62,13 @@
 <li class="toctree-l1"><a class="reference internal" href="tutorial_dambreak.html#running-exagoop-and-viewing-output-files">Running ExaGOOP and viewing output files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial_heat_cylinder.html">Tutorial: 2-D Steady Heat Conduction around a Cylinder (Dirichlet)</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="input_reference.html">Input File Reference</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Physics Modules:</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="physics_modules.html">Physics Modules</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Temperature Module (<code class="docutils literal notranslate"><span class="pre">USE_TEMP</span></code>)</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#enabling-the-module-at-build-time">Enabling the module at build time</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#autogeneration-parameters">Autogeneration parameters</a></li>
@@ -573,13 +582,12 @@ in <code class="docutils literal notranslate"><span class="pre">PreProcess/confi
 </pre></div>
 </div>
 <p>To regenerate the particle and input files, run from the test directory:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>Tests/1D_Heat_Conduction_HeatFlux/PreProcess
-python<span class="w"> </span>Generate_MPs_Inputfile_Generic.py
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>Tests/1D_Heat_Conduction_HeatFlux/
+bash<span class="w"> </span>Generate_MPs_and_InputFiles.sh
 </pre></div>
 </div>
 <p>This writes <code class="docutils literal notranslate"><span class="pre">mpm_particles.dat</span></code> and
-<code class="docutils literal notranslate"><span class="pre">Inputs_1DHeatConduction_HeatFlux.inp</span></code> one level up.
-The boundary conditions in the generated input file are:</p>
+<code class="docutils literal notranslate"><span class="pre">Inputs_1DHeatConduction_HeatFlux.inp</span></code>. The boundary conditions in the generated input file are:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mpm.bc_xlo_temp<span class="w">          </span><span class="o">=</span><span class="w"> </span>dirichlet
 mpm.bc_xlo_temp.T_wall<span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="m">0</span>.0
 mpm.bc_xhi_temp<span class="w">          </span><span class="o">=</span><span class="w"> </span>heatflux
@@ -587,7 +595,7 @@ mpm.bc_xhi_temp.flux<span class="w">     </span><span class="o">=</span><span cl
 </pre></div>
 </div>
 <p>To change the imposed flux, set <code class="docutils literal notranslate"><span class="pre">mpm.bc_xhi_temp.flux</span></code> to the desired
-value of <span class="math notranslate nohighlight">\(q / k\)</span>.  If the material thermal conductivity is also
+value of <span class="math notranslate nohighlight">\(q\)</span>.  If the material thermal conductivity is also
 changed (via <code class="docutils literal notranslate"><span class="pre">thermcond</span></code> in <code class="docutils literal notranslate"><span class="pre">config.json</span></code>), the flux entry in the
 input file should be updated to <span class="math notranslate nohighlight">\(q / k\)</span> accordingly.</p>
 <p><strong>Running</strong></p>
@@ -781,7 +789,7 @@ RMS <span class="math notranslate nohighlight">\(\approx 2 \times 10^{-3}\)</spa
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="tutorial_heat_cylinder.html" class="btn btn-neutral float-left" title="Tutorial: 2-D Steady Heat Conduction around a Cylinder (Dirichlet)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="physics_modules.html" class="btn btn-neutral float-left" title="Physics Modules" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="levelsets.html" class="btn btn-neutral float-right" title="Embedded Boundaries via Level Sets (USE_EB)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

@@ -8,7 +8,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Introduction &mdash; ExaGOOP 22.12 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="_static/theme.css?v=df66b05f" />
       <link rel="stylesheet" type="text/css" href="_static/css/custom.css" />
 
@@ -16,7 +16,7 @@
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="_static/documentation_options.js?v=d09052ea"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -154,10 +154,10 @@ abruptly. In contrast, Eulerian-based methods do not require grid movement; inst
 material deforms across fixed grid cells, decoupling it from the grid nodes. While this
 formulation is numerically stable, it is less suited for problems involving moving
 interfaces and materials with history-dependent properties.</p>
-<p>The Material Point Method (MPM) is a mesh-free technique that has garnered significant
+<p>MPM is a mesh-free technique that has garnered significant
 attention for its ability to simulate problems with considerable deformations. MPM is a
 Lagrangian, particle-based numerical method inspired by the Particle-In-Cell (PIC)
-<span class="bibtex-citation" id="id1">[<a class="reference internal" href="references.html#id4" title="Francis H Harlow. The particle-in-cell method for numerical solution of problems in fluid dynamics. Technical Report, Los Alamos Scientific Lab., N. Mex., 02 1962. URL: https://www.osti.gov/biblio/4769185, doi:10.2172/4769185.">2</a>]</span> and Fluid-Implicit Particle (FLIP) methods <span class="bibtex-citation" id="id2">[<a class="reference internal" href="references.html#id3" title="J.U. Brackbill and H.M. Ruppel. Flip: a method for adaptively zoned, particle-in-cell calculations of fluid flows in two dimensions. Journal of Computational Physics, 65(2):314-343, 1986. URL: https://www.sciencedirect.com/science/article/pii/0021999186902111, doi:https://doi.org/10.1016/0021-9991(86)90211-1.">1</a>]</span>.
+<span id="id1">[<a class="reference internal" href="references.html#id4" title="Francis H Harlow. The particle-in-cell method for numerical solution of problems in fluid dynamics. Technical Report, Los Alamos Scientific Lab., N. Mex., 02 1962. URL: https://www.osti.gov/biblio/4769185, doi:10.2172/4769185.">2</a>]</span> and Fluid-Implicit Particle (FLIP) methods <span id="id2">[<a class="reference internal" href="references.html#id3" title="J.U. Brackbill and H.M. Ruppel. Flip: a method for adaptively zoned, particle-in-cell calculations of fluid flows in two dimensions. Journal of Computational Physics, 65(2):314-343, 1986. URL: https://www.sciencedirect.com/science/article/pii/0021999186902111, doi:https://doi.org/10.1016/0021-9991(86)90211-1.">1</a>]</span>.
 Although MPM was initially developed for solid mechanics problems, it has since been
 extended for use in fluid simulations as well. In MPM, the entire material domain is
 discretized using particles or material points, where all material properties — such as
