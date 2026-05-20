@@ -30,8 +30,6 @@ ifeq ($(UNAME), Darwin)
   endif
 
   USE_HDF5                = TRUE
-  AMREX_USE_HDF5          = TRUE
-  AMREX_USE_HDF5_PARALLEL = TRUE
 
 endif  # Darwin
 
@@ -42,12 +40,10 @@ ifeq ($(UNAME), Linux)
 
   _MULTIARCH := $(shell dpkg-architecture -qDEB_HOST_MULTIARCH 2>/dev/null)
   ifeq ($(_MULTIARCH),)
-    _MULTIARCH := $(_MULTIARCH)
+    _MULTIARCH := $(shell uname -m)-linux-gnu
   endif
 
-  USE_HDF5                = FALSE
-  AMREX_USE_HDF5          = FALSE
-  AMREX_USE_HDF5_PARALLEL = FALSE   # flip to TRUE for a parallel HDF5 install
+  USE_HDF5                = FALSE   # flip to TRUE once HDF5 paths are configured below
 
   # --- Strategy A: HDF5 built from source with a standard prefix ---
   # Set HDF5_HOME to your install prefix (e.g. $(HOME)/hdf5-parallel).
@@ -73,7 +69,7 @@ ifeq ($(UNAME), Linux)
     INCLUDE_LOCATIONS          += /usr/include/hdf5/openmpi
     LIBRARY_LOCATIONS          += /usr/lib/$(_MULTIARCH)/hdf5/openmpi
     AMREX_USE_HDF5_PARALLEL     = TRUE
-    _MPI_INC := $(shell mpicc --showme:incdirs 2>/dev/null | tr ' ' '\n' | head -1)
+    _MPI_INC := $(shell mpicc --showme:incdirs 2>/dev/null | tr ' ' '\n' | head -1 2>/dev/null)
     ifeq ($(_MPI_INC),)
       # mpicc not in PATH — use the standard Ubuntu libopenmpi-dev path
       _MPI_INC := /usr/lib/$(_MULTIARCH)/openmpi/include
@@ -85,7 +81,7 @@ ifeq ($(UNAME), Linux)
     INCLUDE_LOCATIONS          += /usr/include/hdf5/mpich
     LIBRARY_LOCATIONS          += /usr/lib/$(_MULTIARCH)/hdf5/mpich
     AMREX_USE_HDF5_PARALLEL     = TRUE
-    _MPI_INC := $(shell mpicc --showme:incdirs 2>/dev/null | tr ' ' '\n' | head -1)
+    _MPI_INC := $(shell mpicc --showme:incdirs 2>/dev/null | tr ' ' '\n' | head -1 2>/dev/null)
     ifeq ($(_MPI_INC),)
       _MPI_INC := /usr/lib/$(_MULTIARCH)/mpich/include
     endif

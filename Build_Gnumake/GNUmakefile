@@ -66,17 +66,11 @@ endif
 # ===============================================================
 ifeq ($(USE_CUDA),TRUE)
   CXXFLAGS += -DEXAGOOP_GPU_BACKEND=\"CUDA\"
-endif
-
-ifeq ($(USE_HIP),TRUE)
+else ifeq ($(USE_HIP),TRUE)
   CXXFLAGS += -DEXAGOOP_GPU_BACKEND=\"HIP\"
-endif
-
-ifeq ($(USE_SYCL),TRUE)
+else ifeq ($(USE_SYCL),TRUE)
   CXXFLAGS += -DEXAGOOP_GPU_BACKEND=\"SYCL\"
-endif
-
-ifndef EXAGOOP_GPU_BACKEND
+else
   CXXFLAGS += -DEXAGOOP_GPU_BACKEND=\"None\"
 endif
 
@@ -108,10 +102,10 @@ include $(AMREX_HOME)/Src/AmrCore/Make.package
 # ===============================================================
 # Git hashes (ExaGOOP + AMReX)
 # ===============================================================
-EXAGOOP_GIT_HASH := $(shell git rev-parse --short HEAD)
+EXAGOOP_GIT_HASH := $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 CXXFLAGS += -DEXAGOOP_GIT_HASH=\"$(EXAGOOP_GIT_HASH)\"
 
-AMREX_GIT_HASH := $(shell git -C $(AMREX_HOME) rev-parse --short HEAD)
+AMREX_GIT_HASH := $(shell git -C $(AMREX_HOME) rev-parse --short HEAD 2>/dev/null || echo unknown)
 CXXFLAGS += -DAMREX_GIT_HASH=\"$(AMREX_GIT_HASH)\"
 
 ifeq ($(USE_EB),TRUE)
