@@ -22,8 +22,8 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Build Options Reference" href="build_options.html" />
-    <link rel="prev" title="Axial vibration of an elastic bar" href="validation.html" /> 
+    <link rel="next" title="Tutorial: 2-D Steady Heat Conduction around a Cylinder (Dirichlet)" href="tutorial_heat_cylinder.html" />
+    <link rel="prev" title="Introduction" href="intro.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -46,15 +46,27 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">The ExaGOOP MPM Solver:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Introduction:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="intro.html">Key Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="intro.html">Introduction</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">Theory:</span></p>
+<p class="caption" role="heading"><span class="caption-text">Tutorials:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Setting up the simulation folder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#setting-up-the-input-file">Setting up the input file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#generating-initial-material-point-file">Generating initial material point file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#running-exagoop-and-viewing-output-files">Running ExaGOOP and viewing output files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_heat_cylinder.html">Tutorial: 2-D Steady Heat Conduction around a Cylinder (Dirichlet)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Physics Modules:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="theory.html">Governing equations of continuum mechanics</a></li>
-<li class="toctree-l1"><a class="reference internal" href="mpm_equations.html">Governing Equations of MPM</a></li>
-<li class="toctree-l1"><a class="reference internal" href="mpm_equations.html#mpm-discretisation-steps">MPM discretisation steps</a></li>
+<li class="toctree-l1"><a class="reference internal" href="temperature_module.html">Temperature Module (<code class="docutils literal notranslate"><span class="pre">USE_TEMP</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="levelsets.html">Embedded Boundaries via Level Sets (<code class="docutils literal notranslate"><span class="pre">USE_EB</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="udf_moving_wall.html">UDF Moving Wall Boundary Conditions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Numerical Methods:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="theory.html">Numerical Methods</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Validation and Verification:</span></p>
 <ul>
@@ -63,21 +75,9 @@
 <li class="toctree-l1"><a class="reference internal" href="validation.html#dam-break-simulation">Dam break simulation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="validation.html#torsion-of-a-three-dimensional-elastic-column">Torsion of a three-dimensional elastic column</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">Tutorial:</span></p>
-<ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Setting up the simulation folder</a></li>
-<li class="toctree-l1"><a class="reference internal" href="#setting-up-the-input-file">Setting up the input file</a></li>
-<li class="toctree-l1"><a class="reference internal" href="#generating-initial-material-point-file">Generating initial material point file</a></li>
-<li class="toctree-l1"><a class="reference internal" href="#running-exagoop-and-viewing-output-files">Running ExaGOOP and viewing output files</a></li>
-</ul>
 <p class="caption" role="heading"><span class="caption-text">Build Reference:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="build_options.html">Build Options Reference</a></li>
-</ul>
-<p class="caption" role="heading"><span class="caption-text">Physics Modules:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="temperature_module.html">Temperature Module (<code class="docutils literal notranslate"><span class="pre">USE_TEMP</span></code>)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="udf_moving_wall.html">UDF Moving Wall Boundary Conditions</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">References:</span></p>
 <ul>
@@ -139,7 +139,7 @@ cp<span class="w"> </span><span class="nv">$MPM_HOME</span>/Build_Gnumake/ExaGOO
 </section>
 <section id="setting-up-the-input-file">
 <h1>Setting up the input file<a class="headerlink" href="#setting-up-the-input-file" title="Link to this heading"></a></h1>
-<p>As mentioned in the <a class="reference internal" href="mpm_equations.html#mpmsect"><span class="std std-ref">MPM discretisation steps</span></a> section, MPM requires a background grid. ExaGOOP utilizes a single, Adaptive Mesh Refinement (AMR) level Cartesian background grid. The following section provides a detailed description of the necessary inputs required for setting up the background grid. Please note that all input parameter definitions in the input file should begin with the prefix <code class="docutils literal notranslate"><span class="pre">mpm.</span></code> to be read correctly by the solver.</p>
+<p>As mentioned in the <a class="reference internal" href="theory.html#mpmsect"><span class="std std-ref">MPM discretisation steps</span></a> section, MPM requires a background grid. ExaGOOP utilizes a single, Adaptive Mesh Refinement (AMR) level Cartesian background grid. The following section provides a detailed description of the necessary inputs required for setting up the background grid. Please note that all input parameter definitions in the input file should begin with the prefix <code class="docutils literal notranslate"><span class="pre">mpm.</span></code> to be read correctly by the solver.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1">#Geometry parameters</span>
 mpm.prob_lo<span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0</span>.0<span class="w"> </span><span class="m">0</span>.0<span class="w"> </span><span class="m">0</span>.0<span class="w">                       </span><span class="c1">#Lower corner of physical domain</span>
 mpm.prob_hi<span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0</span>.4<span class="w"> </span><span class="m">0</span>.4<span class="w"> </span><span class="m">0</span>.012<span class="w">                     </span><span class="c1">#Upper corner of physical domain</span>
@@ -250,8 +250,8 @@ mpm.bc_zlo_mom.wall_mu<span class="w">  </span><span class="o">=</span><span cla
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="validation.html" class="btn btn-neutral float-left" title="Axial vibration of an elastic bar" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="build_options.html" class="btn btn-neutral float-right" title="Build Options Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="intro.html" class="btn btn-neutral float-left" title="Introduction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tutorial_heat_cylinder.html" class="btn btn-neutral float-right" title="Tutorial: 2-D Steady Heat Conduction around a Cylinder (Dirichlet)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

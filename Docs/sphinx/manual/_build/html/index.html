@@ -22,7 +22,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Key Features" href="intro.html" /> 
+    <link rel="next" title="Introduction" href="intro.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -45,15 +45,36 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">The ExaGOOP MPM Solver:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Introduction:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="intro.html">Key Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="intro.html">Introduction</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">Theory:</span></p>
+<p class="caption" role="heading"><span class="caption-text">Getting Started:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="theory.html">Governing equations of continuum mechanics</a></li>
-<li class="toctree-l1"><a class="reference internal" href="mpm_equations.html">Governing Equations of MPM</a></li>
-<li class="toctree-l1"><a class="reference internal" href="mpm_equations.html#mpm-discretisation-steps">MPM discretisation steps</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_dambreak.html">Setting up the simulation folder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_dambreak.html#setting-up-the-input-file">Setting up the input file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_dambreak.html#generating-initial-material-point-file">Generating initial material point file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_dambreak.html#running-exagoop-and-viewing-output-files">Running ExaGOOP and viewing output files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_heat_cylinder.html">Tutorial: 2-D Steady Heat Conduction around a Cylinder (Dirichlet)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="input_reference.html">Input File Reference</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Physics Modules:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="physics_modules.html">Physics Modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="temperature_module.html">Temperature Module (<code class="docutils literal notranslate"><span class="pre">USE_TEMP</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="levelsets.html">Embedded Boundaries via Level Sets (<code class="docutils literal notranslate"><span class="pre">USE_EB</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="udf_moving_wall.html">UDF Moving Wall Boundary Conditions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Numerical Methods:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="theory.html">Numerical Methods</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Validation and Verification:</span></p>
 <ul>
@@ -62,21 +83,9 @@
 <li class="toctree-l1"><a class="reference internal" href="validation.html#dam-break-simulation">Dam break simulation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="validation.html#torsion-of-a-three-dimensional-elastic-column">Torsion of a three-dimensional elastic column</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">Tutorial:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="tutorial_dambreak.html">Setting up the simulation folder</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorial_dambreak.html#setting-up-the-input-file">Setting up the input file</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorial_dambreak.html#generating-initial-material-point-file">Generating initial material point file</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorial_dambreak.html#running-exagoop-and-viewing-output-files">Running ExaGOOP and viewing output files</a></li>
-</ul>
 <p class="caption" role="heading"><span class="caption-text">Build Reference:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="build_options.html">Build Options Reference</a></li>
-</ul>
-<p class="caption" role="heading"><span class="caption-text">Physics Modules:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="temperature_module.html">Temperature Module (<code class="docutils literal notranslate"><span class="pre">USE_TEMP</span></code>)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="udf_moving_wall.html">UDF Moving Wall Boundary Conditions</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">References:</span></p>
 <ul>
@@ -109,33 +118,134 @@
              
   <section id="welcome-to-exagoop-s-documentation">
 <h1>Welcome to ExaGOOP’s documentation!<a class="headerlink" href="#welcome-to-exagoop-s-documentation" title="Link to this heading"></a></h1>
-<p>Numerical simulations have become an essential tool in engineering analysis today. They provide an effective alternative to expensive experiments and are frequently used to selectively identify optimal designs for experimental testing. The traditional numerical methods utilized in continuum mechanics include Finite Volume Methods (FVMs), Finite Element Methods (FEMs), and Finite Difference Methods (FDMs). The first two methods rely on the integral form of the governing equations, while the last method is based on the differential form, approximating derivatives using algebraic expressions. A shared characteristic of these three methods is the requirement of a computational grid to solve the governing equations. This grid consists of a collection of numbered points (or nodes) interconnected by edges (in 2D) or faces (in 3D) to form grid cells. These grid cells together encompass the entire computational domain. In solid mechanics, these methods are usually applied in conjunction with the Lagrangian form of the governing equations. In this context, the grid nodes are attached to the material and move as the material deforms. However, when the material experiences severe deformation, the movement of the mesh nodes can lead to grid entanglement, resulting in numerical instabilities that may cause the solver to halt abruptly. In contrast, Eulerian-based methods do not require grid movement; instead, the material deforms across fixed grid cells, decoupling it from the grid nodes. While this formulation is numerically stable, it is less suited for problems involving moving interfaces and materials with history-dependent properties.</p>
-<p>The Material Point Method (MPM) is a ‘mesh-free’ technique that has garnered significant attention for its ability to simulate problems with considerable deformations. MPM is a Lagrangian, particle-based numerical method inspired by the Particle-In-Cell (PIC) <span class="bibtex-citation" id="id1">[<a class="reference internal" href="references.html#id4" title="Francis H Harlow. The particle-in-cell method for numerical solution of problems in fluid dynamics. Technical Report, Los Alamos Scientific Lab., N. Mex., 02 1962. URL: https://www.osti.gov/biblio/4769185, doi:10.2172/4769185.">2</a>]</span> and Fluid-Implicit Particle (FLIP) methods <span class="bibtex-citation" id="id2">[<a class="reference internal" href="references.html#id3" title="J.U. Brackbill and H.M. Ruppel. Flip: a method for adaptively zoned, particle-in-cell calculations of fluid flows in two dimensions. Journal of Computational Physics, 65(2):314-343, 1986. URL: https://www.sciencedirect.com/science/article/pii/0021999186902111, doi:https://doi.org/10.1016/0021-9991(86)90211-1.">1</a>]</span>. Although MPM was initially developed for solid mechanics problems, it has since been extended for use in fluid simulations as well. In MPM, the entire material domain is discretized using particles or material points, where all material properties—such as velocity, density, strain rates, and stresses—are stored. This aspect of MPM makes it especially useful for modeling history-dependent constitutive models. The lack of a grid connecting these material points allows MPM to effectively simulate scenarios with significant material deformations, such as solid fractures, foam deformations, and granular flows. Although a background grid is necessary for MPM, it is primarily used as a tool for performing certain numerical operations that are not computationally intensive. These unique features make MPM a promising approach for studying materials with large deformations and history-dependent properties.</p>
+<p>ExaGOOP is a high-performance Material Point Method (MPM) solver for continuum mechanics
+problems involving gaseous, liquid, and solid phases. It is developed at the National
+Renewable Energy Laboratory (NREL), built on the
+<a class="reference external" href="https://amrex-codes.github.io/amrex/">AMReX</a> framework, and runs on CPUs, GPUs, and
+heterogeneous architectures at scale.</p>
 <div class="toctree-wrapper compound">
-<p class="caption" role="heading"><span class="caption-text">The ExaGOOP MPM Solver:</span></p>
+<p class="caption" role="heading"><span class="caption-text">Introduction:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="intro.html">Key Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="intro.html">Introduction</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="intro.html#about-exagoop">About ExaGOOP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="intro.html#background-and-motivation">Background and Motivation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="intro.html#key-features">Key Features</a></li>
+</ul>
+</li>
 </ul>
 </div>
 <div class="toctree-wrapper compound">
-<p class="caption" role="heading"><span class="caption-text">Theory:</span></p>
+<p class="caption" role="heading"><span class="caption-text">Getting Started:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="theory.html">Governing equations of continuum mechanics</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="theory.html#deformation-gradient-tensor">Deformation gradient tensor</a></li>
-<li class="toctree-l2"><a class="reference internal" href="theory.html#velocity-gradient-tensor">Velocity gradient tensor</a></li>
-<li class="toctree-l2"><a class="reference internal" href="theory.html#jacobian">Jacobian</a></li>
-<li class="toctree-l2"><a class="reference internal" href="theory.html#stress-tensor-and-constitutive-models">Stress tensor and Constitutive models</a></li>
-<li class="toctree-l2"><a class="reference internal" href="theory.html#equation-of-conservation-of-mass">Equation of conservation of mass</a></li>
-<li class="toctree-l2"><a class="reference internal" href="theory.html#conservation-of-momentum">Conservation of momentum</a></li>
-<li class="toctree-l2"><a class="reference internal" href="theory.html#initial-and-boundary-conditions">Initial and Boundary conditions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#system-requirements">System Requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#obtaining-the-source">Obtaining the Source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#building-with-cmake">Building with CMake</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#building-with-gnumake">Building with GNUmake</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#verifying-the-build">Verifying the Build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#visualizing-output">Visualizing Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#getting-help">Getting Help</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="mpm_equations.html">Governing Equations of MPM</a></li>
-<li class="toctree-l1"><a class="reference internal" href="mpm_equations.html#mpm-discretisation-steps">MPM discretisation steps</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="mpm_equations.html#particle-to-grid-interpolation-p2g">Particle to Grid Interpolation (P2G)</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mpm_equations.html#temporal-integration-at-grid-nodes">Temporal integration at grid nodes</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mpm_equations.html#grid-to-particle-g2p-interpolation">Grid to Particle (G2P) Interpolation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mpm_equations.html#material-point-position-update-and-grid-reset">Material point position update and grid reset</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Tutorials:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_dambreak.html">Setting up the simulation folder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_dambreak.html#setting-up-the-input-file">Setting up the input file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_dambreak.html#generating-initial-material-point-file">Generating initial material point file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_dambreak.html#running-exagoop-and-viewing-output-files">Running ExaGOOP and viewing output files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_heat_cylinder.html">Tutorial: 2-D Steady Heat Conduction around a Cylinder (Dirichlet)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorial_heat_cylinder.html#physical-problem">Physical problem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial_heat_cylinder.html#analytical-solution">Analytical solution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial_heat_cylinder.html#material-properties">Material properties</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial_heat_cylinder.html#domain-and-discretisation">Domain and discretisation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial_heat_cylinder.html#boundary-conditions">Boundary conditions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial_heat_cylinder.html#setting-up-the-test-case">Setting up the test case</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial_heat_cylinder.html#building">Building</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial_heat_cylinder.html#running">Running</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial_heat_cylinder.html#post-processing-and-validation">Post-processing and validation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial_heat_cylinder.html#expected-result">Expected result</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">User Guide:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="input_reference.html">Input File Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="input_reference.html#running-the-solver">Running the solver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input_reference.html#particle-file-format">Particle File Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input_reference.html#input-parameter-file">Input Parameter File</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input_reference.html#mpm-namespace-domain-and-grid"><code class="docutils literal notranslate"><span class="pre">mpm.</span></code> namespace — Domain and Grid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input_reference.html#mpm-namespace-time-control"><code class="docutils literal notranslate"><span class="pre">mpm.</span></code> namespace — Time Control</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input_reference.html#mpm-namespace-physics"><code class="docutils literal notranslate"><span class="pre">mpm.</span></code> namespace — Physics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input_reference.html#mpm-namespace-material-points"><code class="docutils literal notranslate"><span class="pre">mpm.</span></code> namespace — Material Points</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input_reference.html#mpm-namespace-output"><code class="docutils literal notranslate"><span class="pre">mpm.</span></code> namespace — Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input_reference.html#mpm-namespace-diagnostics"><code class="docutils literal notranslate"><span class="pre">mpm.</span></code> namespace — Diagnostics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input_reference.html#mpm-namespace-level-set-output"><code class="docutils literal notranslate"><span class="pre">mpm.</span></code> namespace — Level-Set Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input_reference.html#mpm-namespace-momentum-boundary-conditions"><code class="docutils literal notranslate"><span class="pre">mpm.</span></code> namespace — Momentum Boundary Conditions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input_reference.html#mpm-namespace-temperature-boundary-conditions-use-temp-only"><code class="docutils literal notranslate"><span class="pre">mpm.</span></code> namespace — Temperature Boundary Conditions (<code class="docutils literal notranslate"><span class="pre">USE_TEMP</span></code> only)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input_reference.html#amr-namespace-restart"><code class="docutils literal notranslate"><span class="pre">amr.</span></code> namespace — Restart</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input_reference.html#eb2-namespace-embedded-boundaries-use-eb-only"><code class="docutils literal notranslate"><span class="pre">eb2.</span></code> namespace — Embedded Boundaries (<code class="docutils literal notranslate"><span class="pre">USE_EB</span></code> only)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input_reference.html#per-body-namespace-body-name-use-eb-only">Per-body namespace <code class="docutils literal notranslate"><span class="pre">&lt;body_name&gt;.</span></code> (<code class="docutils literal notranslate"><span class="pre">USE_EB</span></code> only)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input_reference.html#minimal-working-example">Minimal Working Example</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Physics Modules:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="physics_modules.html">Physics Modules</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="physics_modules.html#temperature-module">Temperature Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="physics_modules.html#embedded-boundaries-level-sets">Embedded Boundaries / Level Sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="physics_modules.html#udf-moving-wall-boundary-conditions">UDF Moving Wall Boundary Conditions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="physics_modules.html#combining-modules">Combining Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="temperature_module.html">Temperature Module (<code class="docutils literal notranslate"><span class="pre">USE_TEMP</span></code>)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="temperature_module.html#enabling-the-module-at-build-time">Enabling the module at build time</a></li>
+<li class="toctree-l2"><a class="reference internal" href="temperature_module.html#autogeneration-parameters">Autogeneration parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="temperature_module.html#temperature-boundary-conditions">Temperature boundary conditions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="temperature_module.html#nodal-fields-added-by-the-temperature-module">Nodal fields added by the temperature module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="temperature_module.html#per-particle-thermal-fields">Per-particle thermal fields</a></li>
+<li class="toctree-l2"><a class="reference internal" href="temperature_module.html#time-step-sequence-for-the-thermal-solve">Time-step sequence for the thermal solve</a></li>
+<li class="toctree-l2"><a class="reference internal" href="temperature_module.html#minimal-input-file-snippet">Minimal input file snippet</a></li>
+<li class="toctree-l2"><a class="reference internal" href="temperature_module.html#verification-test-cases">Verification test cases</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="levelsets.html">Embedded Boundaries via Level Sets (<code class="docutils literal notranslate"><span class="pre">USE_EB</span></code>)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="levelsets.html#build-requirements">Build requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="levelsets.html#multi-body-implementation">Multi-body implementation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="levelsets.html#supported-geometry-types">Supported geometry types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="levelsets.html#momentum-level-set-boundary-conditions">Momentum level-set boundary conditions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="levelsets.html#temperature-level-set-boundary-conditions">Temperature level-set boundary conditions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="levelsets.html#implementation-notes">Implementation notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="levelsets.html#complete-per-body-input-block-example">Complete per-body input block example</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="udf_moving_wall.html">UDF Moving Wall Boundary Conditions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="udf_moving_wall.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="udf_moving_wall.html#udf-interface">UDF interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="udf_moving_wall.html#building-the-shared-library">Building the shared library</a></li>
+<li class="toctree-l2"><a class="reference internal" href="udf_moving_wall.html#linking-the-solver-against-libdl">Linking the solver against <code class="docutils literal notranslate"><span class="pre">libdl</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="udf_moving_wall.html#input-file-parameters">Input file parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="udf_moving_wall.html#implementation-details">Implementation details</a></li>
+<li class="toctree-l2"><a class="reference internal" href="udf_moving_wall.html#supported-face-labels">Supported face labels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="udf_moving_wall.html#limitations">Limitations</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Numerical Methods:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="theory.html">Numerical Methods</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="theory.html#governing-equations-of-continuum-mechanics">Governing equations of continuum mechanics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="theory.html#governing-equations-of-mpm">Governing Equations of MPM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="theory.html#mpm-discretisation-steps">MPM discretisation steps</a></li>
 </ul>
 </li>
 </ul>
@@ -151,15 +261,6 @@
 <li class="toctree-l1"><a class="reference internal" href="validation.html#collision-of-two-dimensional-elastic-disks">Collision of two-dimensional elastic disks</a></li>
 <li class="toctree-l1"><a class="reference internal" href="validation.html#dam-break-simulation">Dam break simulation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="validation.html#torsion-of-a-three-dimensional-elastic-column">Torsion of a three-dimensional elastic column</a></li>
-</ul>
-</div>
-<div class="toctree-wrapper compound">
-<p class="caption" role="heading"><span class="caption-text">Tutorial:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="tutorial_dambreak.html">Setting up the simulation folder</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorial_dambreak.html#setting-up-the-input-file">Setting up the input file</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorial_dambreak.html#generating-initial-material-point-file">Generating initial material point file</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorial_dambreak.html#running-exagoop-and-viewing-output-files">Running ExaGOOP and viewing output files</a></li>
 </ul>
 </div>
 <div class="toctree-wrapper compound">
@@ -180,32 +281,6 @@
 </ul>
 </div>
 <div class="toctree-wrapper compound">
-<p class="caption" role="heading"><span class="caption-text">Physics Modules:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="temperature_module.html">Temperature Module (<code class="docutils literal notranslate"><span class="pre">USE_TEMP</span></code>)</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="temperature_module.html#enabling-the-module-at-build-time">Enabling the module at build time</a></li>
-<li class="toctree-l2"><a class="reference internal" href="temperature_module.html#autogeneration-parameters">Autogeneration parameters</a></li>
-<li class="toctree-l2"><a class="reference internal" href="temperature_module.html#temperature-boundary-conditions">Temperature boundary conditions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="temperature_module.html#nodal-fields-added-by-the-temperature-module">Nodal fields added by the temperature module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="temperature_module.html#per-particle-thermal-fields">Per-particle thermal fields</a></li>
-<li class="toctree-l2"><a class="reference internal" href="temperature_module.html#time-step-sequence-for-the-thermal-solve">Time-step sequence for the thermal solve</a></li>
-<li class="toctree-l2"><a class="reference internal" href="temperature_module.html#minimal-input-file-snippet">Minimal input file snippet</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="udf_moving_wall.html">UDF Moving Wall Boundary Conditions</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="udf_moving_wall.html#overview">Overview</a></li>
-<li class="toctree-l2"><a class="reference internal" href="udf_moving_wall.html#udf-interface">UDF interface</a></li>
-<li class="toctree-l2"><a class="reference internal" href="udf_moving_wall.html#building-the-shared-library">Building the shared library</a></li>
-<li class="toctree-l2"><a class="reference internal" href="udf_moving_wall.html#linking-the-solver-against-libdl">Linking the solver against <code class="docutils literal notranslate"><span class="pre">libdl</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="udf_moving_wall.html#input-file-parameters">Input file parameters</a></li>
-<li class="toctree-l2"><a class="reference internal" href="udf_moving_wall.html#implementation-details">Implementation details</a></li>
-<li class="toctree-l2"><a class="reference internal" href="udf_moving_wall.html#supported-face-labels">Supported face labels</a></li>
-<li class="toctree-l2"><a class="reference internal" href="udf_moving_wall.html#limitations">Limitations</a></li>
-</ul>
-</li>
-</ul>
-</div>
-<div class="toctree-wrapper compound">
 <p class="caption" role="heading"><span class="caption-text">References:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
@@ -217,7 +292,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="intro.html" class="btn btn-neutral float-right" title="Key Features" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="intro.html" class="btn btn-neutral float-right" title="Introduction" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

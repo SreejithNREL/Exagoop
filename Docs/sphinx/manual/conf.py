@@ -121,5 +121,34 @@ bibtex_default_style = 'plain'
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'ExaGOOPdoc'
 
+import shutil
+
+def _copy_landing_images(app, exception):
+    """
+    Copy images from the shared landing/_images directory into the manual's
+    HTML output directory after every successful build.
+
+    validation.rst (and other pages) reference images via raw HTML
+    <img src="_images/..."> tags, which Sphinx does not process and therefore
+    does not copy automatically.  The canonical image source is the sibling
+    landing/_images directory; this hook makes them available in the output
+    without requiring every RST file to be rewritten.
+    """
+    if exception:
+        return
+    import os
+    src = os.path.normpath(os.path.join(app.srcdir, '..', 'landing', '_images'))
+    dst = os.path.join(app.outdir, '_images')
+    if not os.path.isdir(src):
+        return
+    os.makedirs(dst, exist_ok=True)
+    for fname in os.listdir(src):
+        src_file = os.path.join(src, fname)
+        dst_file = os.path.join(dst, fname)
+        if os.path.isfile(src_file):
+            shutil.copy2(src_file, dst_file)
+
+
 def setup(app):
     app.add_css_file('theme.css')
+    app.connect('build-finished', _copy_landing_images)
