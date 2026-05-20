@@ -207,6 +207,6 @@ directory as a dataset.
 Getting Help
 ------------
 
-- For questions and discussion: `GitHub Discussions <https://github.com/NREL/Exagoop/discussions>`_
-- To report a bug: `GitHub Issues <https://github.com/NREL/Exagoop/issues>`_
+- For questions and discussion: `GitHub Discussions <https://github.com/NatLabRockies/Exagoop/discussions>`_
+- To report a bug: `GitHub Issues <https://github.com/NatLabRockies/Exagoop/issues>`_
   (include your compiler version, MPI implementation, and the build flags used)

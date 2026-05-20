@@ -15,7 +15,7 @@ Create a folder (say 'Sim1_DamBreak') in your chosen location and navigate into 
    mkdir Sim1_DamBreak
    cd Sim1_DamBreak
 	
-Copy the input and particle files from the Tests folder. One can generate these files using the shell script ```Generate_MPs_and_InputFiles.sh``` located in the ``$MPM_HOME/Tests/Dam_Break/`` folder. Ensure the environment variable ``$MPM_HOME`` is set as detailed in the `README <https://github.com/NREL/Exagoop>`_  file.
+Copy the input and particle files from the Tests folder. One can generate these files using the shell script ```Generate_MPs_and_InputFiles.sh``` located in the ``$MPM_HOME/Tests/Dam_Break/`` folder. Ensure the environment variable ``$MPM_HOME`` is set as detailed in the `README <https://github.com/NatLabRockies/Exagoop>`_  file.
 
 .. code-block:: bash
 
