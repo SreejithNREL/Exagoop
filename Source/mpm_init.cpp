@@ -547,7 +547,19 @@ void Initialise_Material_Points(MPMspecs &specs,
                              specs.autogen_cp, specs.autogen_heatsrc,
 #endif
                              specs.autogen_multi_part_per_cell,
-                             specs.total_mass, specs.total_vol);
+                             specs.total_mass, specs.total_vol,
+                             specs.autogen_JC_A,
+                             specs.autogen_JC_B,
+                             specs.autogen_JC_n,
+                             specs.autogen_JC_C,
+                             specs.autogen_JC_m,
+                             specs.autogen_JC_eps_dot_0,
+                             specs.autogen_JC_Tr,
+                             specs.autogen_JC_Tm,
+                             specs.autogen_JC_chi,
+                             specs.autogen_JC_c0,
+                             specs.autogen_JC_Salpha,
+                             specs.autogen_JC_Gamma0);
         auto io_time = amrex::second() - io_time_start;
         msg = FormatElapsedTime(io_time);
         PrintMessage(msg, print_length, true);
@@ -1066,6 +1078,43 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
                 safe_read(ifs, p.rdata(realData::Dynamic_viscosity),
                           "Error reading Dynamic_viscosity");
             }
+            else if (p.idata(intData::constitutive_model) == 2)
+            {
+                safe_read(ifs, p.rdata(realData::E),  "Error reading E (JC)");
+                safe_read(ifs, p.rdata(realData::nu), "Error reading nu (JC)");
+                p.rdata(realData::Bulk_modulus)      = 0.0;
+                p.rdata(realData::Gama_pressure)     = 0.0;
+                p.rdata(realData::Dynamic_viscosity) = 0.0;
+
+                safe_read(ifs, p.rdata(realData::JC_A),
+                          "Error reading JC_A");
+                safe_read(ifs, p.rdata(realData::JC_B),
+                          "Error reading JC_B");
+                safe_read(ifs, p.rdata(realData::JC_n),
+                          "Error reading JC_n");
+                safe_read(ifs, p.rdata(realData::JC_C),
+                          "Error reading JC_C");
+                safe_read(ifs, p.rdata(realData::JC_m),
+                          "Error reading JC_m");
+                safe_read(ifs, p.rdata(realData::JC_eps_dot_0),
+                          "Error reading JC_eps_dot_0");
+                safe_read(ifs, p.rdata(realData::JC_Tr),
+                          "Error reading JC_Tr");
+                safe_read(ifs, p.rdata(realData::JC_Tm),
+                          "Error reading JC_Tm");
+                safe_read(ifs, p.rdata(realData::JC_chi),
+                          "Error reading JC_chi");
+                safe_read(ifs, p.rdata(realData::JC_c0),
+                          "Error reading JC_c0");
+                safe_read(ifs, p.rdata(realData::JC_Salpha),
+                          "Error reading JC_Salpha");
+                safe_read(ifs, p.rdata(realData::JC_Gamma0),
+                          "Error reading JC_Gamma0");
+
+                p.rdata(realData::equiv_plastic_strain) = 0.0;
+                for (int comp = 0; comp < NCOMP_TENSOR; ++comp)
+                    p.rdata(realData::dev_stress_unrot + comp) = 0.0;
+            }
             else
             {
                 amrex::Abort("Incorrect constitutive model");
@@ -1194,7 +1243,19 @@ void MPMParticleContainer::InitParticles(
 #endif
     int do_multi_part_per_cell,
     amrex::Real &total_mass,
-    amrex::Real &total_vol)
+    amrex::Real &total_vol,
+    amrex::Real JC_A,
+    amrex::Real JC_B,
+    amrex::Real JC_n,
+    amrex::Real JC_C,
+    amrex::Real JC_m,
+    amrex::Real JC_eps_dot_0,
+    amrex::Real JC_Tr,
+    amrex::Real JC_Tm,
+    amrex::Real JC_chi,
+    amrex::Real JC_c0,
+    amrex::Real JC_Salpha,
+    amrex::Real JC_Gamma0)
 {
     const int lev = 0;
     const auto dxA = Geom(lev).CellSizeArray(); // dimension-aware dx
@@ -1289,7 +1350,21 @@ void MPMParticleContainer::InitParticles(
                         T, cp, thermcond, heatsrc
 #endif
                     );
-
+                    if (constmodel == 2)
+                    {
+                        p.rdata(realData::JC_A)         = JC_A;
+                        p.rdata(realData::JC_B)         = JC_B;
+                        p.rdata(realData::JC_n)         = JC_n;
+                        p.rdata(realData::JC_C)         = JC_C;
+                        p.rdata(realData::JC_m)         = JC_m;
+                        p.rdata(realData::JC_eps_dot_0) = JC_eps_dot_0;
+                        p.rdata(realData::JC_Tr)        = JC_Tr;
+                        p.rdata(realData::JC_Tm)        = JC_Tm;
+                        p.rdata(realData::JC_chi)       = JC_chi;
+                        p.rdata(realData::JC_c0)        = JC_c0;
+                        p.rdata(realData::JC_Salpha)    = JC_Salpha;
+                        p.rdata(realData::JC_Gamma0)    = JC_Gamma0;
+                    }
                     total_mass += p.rdata(realData::mass);
                     total_vol += p.rdata(realData::volume);
                     host_particles.push_back(p);
@@ -1334,6 +1409,21 @@ void MPMParticleContainer::InitParticles(
                                 T, cp, thermcond, heatsrc
 #endif
                             );
+                            if (constmodel == 2)
+                            {
+                                p.rdata(realData::JC_A)         = JC_A;
+                                p.rdata(realData::JC_B)         = JC_B;
+                                p.rdata(realData::JC_n)         = JC_n;
+                                p.rdata(realData::JC_C)         = JC_C;
+                                p.rdata(realData::JC_m)         = JC_m;
+                                p.rdata(realData::JC_eps_dot_0) = JC_eps_dot_0;
+                                p.rdata(realData::JC_Tr)        = JC_Tr;
+                                p.rdata(realData::JC_Tm)        = JC_Tm;
+                                p.rdata(realData::JC_chi)       = JC_chi;
+                                p.rdata(realData::JC_c0)        = JC_c0;
+                                p.rdata(realData::JC_Salpha)    = JC_Salpha;
+                                p.rdata(realData::JC_Gamma0)    = JC_Gamma0;
+                            }
                             npart++;
 
                             total_mass += p.rdata(realData::mass);
@@ -1469,6 +1559,25 @@ MPMParticleContainer::generate_particle(amrex::Real coords[AMREX_SPACEDIM],
         p.rdata(realData::strain + comp) = shunya;
         p.rdata(realData::stress + comp) = shunya;
     }
+
+    // Johnson-Cook state variables: zero-initialise for all model types
+    p.rdata(realData::equiv_plastic_strain) = shunya;
+    for (int comp = 0; comp < NCOMP_TENSOR; ++comp)
+        p.rdata(realData::dev_stress_unrot + comp) = shunya;
+
+    // Johnson-Cook material parameters: zero by default (unused for models 0/1)
+    p.rdata(realData::JC_A)         = shunya;
+    p.rdata(realData::JC_B)         = shunya;
+    p.rdata(realData::JC_n)         = shunya;
+    p.rdata(realData::JC_C)         = shunya;
+    p.rdata(realData::JC_m)         = shunya;
+    p.rdata(realData::JC_eps_dot_0) = eka;
+    p.rdata(realData::JC_Tr)        = shunya;
+    p.rdata(realData::JC_Tm)        = shunya;
+    p.rdata(realData::JC_chi)       = shunya;
+    p.rdata(realData::JC_c0)        = shunya;
+    p.rdata(realData::JC_Salpha)    = shunya;
+    p.rdata(realData::JC_Gamma0)    = shunya;
 
     return p;
 }

@@ -124,7 +124,19 @@ class MPMParticleContainer
 #endif
                   int do_multi_part_per_cell,
                   Real &total_mass,
-                  Real &total_vol);
+                  Real &total_vol,
+                  Real JC_A         = 0.0,
+                  Real JC_B         = 0.0,
+                  Real JC_n         = 0.0,
+                  Real JC_C         = 0.0,
+                  Real JC_m         = 0.0,
+                  Real JC_eps_dot_0 = 1.0,
+                  Real JC_Tr        = 0.0,
+                  Real JC_Tm        = 1600.0,
+                  Real JC_chi       = 0.9,
+                  Real JC_c0        = 0.0,
+                  Real JC_Salpha    = 0.0,
+                  Real JC_Gamma0    = 0.0);
 
     /**
      * @brief Advances particle positions and applies boundary conditions.

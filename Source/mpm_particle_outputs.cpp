@@ -276,6 +276,25 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
     real_data_names.push_back("Dynamic_viscosity");
     real_data_names.push_back("yacceleration");
 
+    // Johnson-Cook elasto-plastic model fields
+    real_data_names.push_back("equiv_plastic_strain");
+    for (int c = 0; c < NCOMP_TENSOR; ++c)
+    {
+        real_data_names.push_back(amrex::Concatenate("dev_stress_unrot_", c, 1));
+    }
+    real_data_names.push_back("JC_A");
+    real_data_names.push_back("JC_B");
+    real_data_names.push_back("JC_n");
+    real_data_names.push_back("JC_C");
+    real_data_names.push_back("JC_m");
+    real_data_names.push_back("JC_eps_dot_0");
+    real_data_names.push_back("JC_Tr");
+    real_data_names.push_back("JC_Tm");
+    real_data_names.push_back("JC_chi");
+    real_data_names.push_back("JC_c0");
+    real_data_names.push_back("JC_Salpha");
+    real_data_names.push_back("JC_Gamma0");
+
 #if USE_TEMP
     // Thermal fields
     real_data_names.push_back("temperature");
@@ -479,6 +498,25 @@ void MPMParticleContainer::writeCheckpointFile(
     real_data_names.push_back("Gama_pressure");
     real_data_names.push_back("Dynamic_viscosity");
     real_data_names.push_back("yacceleration");
+
+    // Johnson-Cook elasto-plastic model fields
+    real_data_names.push_back("equiv_plastic_strain");
+    for (int c = 0; c < NCOMP_TENSOR; ++c)
+    {
+        real_data_names.push_back(amrex::Concatenate("dev_stress_unrot_", c, 1));
+    }
+    real_data_names.push_back("JC_A");
+    real_data_names.push_back("JC_B");
+    real_data_names.push_back("JC_n");
+    real_data_names.push_back("JC_C");
+    real_data_names.push_back("JC_m");
+    real_data_names.push_back("JC_eps_dot_0");
+    real_data_names.push_back("JC_Tr");
+    real_data_names.push_back("JC_Tm");
+    real_data_names.push_back("JC_chi");
+    real_data_names.push_back("JC_c0");
+    real_data_names.push_back("JC_Salpha");
+    real_data_names.push_back("JC_Gamma0");
 
 #if USE_TEMP
     real_data_names.push_back("temperature");

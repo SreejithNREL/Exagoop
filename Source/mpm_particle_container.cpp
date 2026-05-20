@@ -115,6 +115,67 @@ void MPMParticleContainer::apply_constitutive_model(
                                         p.rdata(realData::Dynamic_viscosity),
                                         p.rdata(realData::pressure));
                     }
+                    else if (p.idata(intData::constitutive_model) == 2)
+                    {
+                        // Johnson-Cook hypoelastic-plastic model
+                        amrex::Real F[9] = {};
+                        for (int r = 0; r < AMREX_SPACEDIM; ++r)
+                            for (int c = 0; c < AMREX_SPACEDIM; ++c)
+                                F[r*3+c] = p.rdata(
+                                    realData::deformation_gradient +
+                                    r * AMREX_SPACEDIM + c);
+#if (AMREX_SPACEDIM < 3)
+                        F[2*3+2] = amrex::Real(1.0);
+#endif
+
+                        amrex::Real sdev_ur[NCOMP_TENSOR];
+                        for (int c = 0; c < NCOMP_TENSOR; ++c)
+                            sdev_ur[c] =
+                                p.rdata(realData::dev_stress_unrot + c);
+
+                        amrex::Real ep =
+                            p.rdata(realData::equiv_plastic_strain);
+                        amrex::Real pres  = amrex::Real(0.0);
+                        amrex::Real hsrc  = amrex::Real(0.0);
+
+                        amrex::Real T_p = amrex::Real(0.0);
+#if USE_TEMP
+                        T_p = p.rdata(realData::temperature);
+#endif
+                        amrex::Real rho0 =
+                            p.rdata(realData::mass) /
+                            p.rdata(realData::vol_init);
+
+                        johnson_cook_stress_update(
+                            F, strainrate, sdev_ur, ep,
+                            stress, pres, hsrc,
+                            p.rdata(realData::density), rho0,
+                            p.rdata(realData::E),
+                            p.rdata(realData::nu),
+                            p.rdata(realData::JC_A),
+                            p.rdata(realData::JC_B),
+                            p.rdata(realData::JC_n),
+                            p.rdata(realData::JC_C),
+                            p.rdata(realData::JC_m),
+                            p.rdata(realData::JC_eps_dot_0),
+                            T_p,
+                            p.rdata(realData::JC_Tr),
+                            p.rdata(realData::JC_Tm),
+                            p.rdata(realData::JC_chi),
+                            p.rdata(realData::JC_c0),
+                            p.rdata(realData::JC_Salpha),
+                            p.rdata(realData::JC_Gamma0),
+                            dt);
+
+                        for (int c = 0; c < NCOMP_TENSOR; ++c)
+                            p.rdata(realData::dev_stress_unrot + c) =
+                                sdev_ur[c];
+                        p.rdata(realData::equiv_plastic_strain) = ep;
+                        p.rdata(realData::pressure)             = pres;
+#if USE_TEMP
+                        p.rdata(realData::heat_source) = hsrc;
+#endif
+                    }
 
                     // Write back stress
                     for (int d = 0; d < NCOMP_TENSOR; ++d)
@@ -239,6 +300,79 @@ void MPMParticleContainer::apply_constitutive_model_delta(
                         amrex::Abort(
                             "\nDelta strain model for weakly compressible "
                             "fluids not implemented yet.");
+                    }
+                    else if (p.idata(intData::constitutive_model) == 2)
+                    {
+                        // Johnson-Cook: the algorithm is natively incremental,
+                        // so the delta variant calls the same kernel using the
+                        // current strainrate as D. The delta_stress local array
+                        // is unused; the kernel writes directly to stress[].
+                        amrex::Real F[9] = {};
+                        for (int r = 0; r < AMREX_SPACEDIM; ++r)
+                            for (int c = 0; c < AMREX_SPACEDIM; ++c)
+                                F[r*3+c] = p.rdata(
+                                    realData::deformation_gradient +
+                                    r * AMREX_SPACEDIM + c);
+#if (AMREX_SPACEDIM < 3)
+                        F[2*3+2] = amrex::Real(1.0);
+#endif
+
+                        amrex::Real sdev_ur[NCOMP_TENSOR];
+                        for (int c = 0; c < NCOMP_TENSOR; ++c)
+                            sdev_ur[c] =
+                                p.rdata(realData::dev_stress_unrot + c);
+
+                        amrex::Real ep =
+                            p.rdata(realData::equiv_plastic_strain);
+                        amrex::Real pres = amrex::Real(0.0);
+                        amrex::Real hsrc = amrex::Real(0.0);
+                        amrex::Real stress_jc[NCOMP_TENSOR];
+
+                        amrex::Real T_p = amrex::Real(0.0);
+#if USE_TEMP
+                        T_p = p.rdata(realData::temperature);
+#endif
+                        amrex::Real rho0 =
+                            p.rdata(realData::mass) /
+                            p.rdata(realData::vol_init);
+
+                        amrex::Real sr[NCOMP_TENSOR];
+                        for (int c = 0; c < NCOMP_TENSOR; ++c)
+                            sr[c] = p.rdata(realData::strainrate + c);
+
+                        johnson_cook_stress_update(
+                            F, sr, sdev_ur, ep,
+                            stress_jc, pres, hsrc,
+                            p.rdata(realData::density), rho0,
+                            p.rdata(realData::E),
+                            p.rdata(realData::nu),
+                            p.rdata(realData::JC_A),
+                            p.rdata(realData::JC_B),
+                            p.rdata(realData::JC_n),
+                            p.rdata(realData::JC_C),
+                            p.rdata(realData::JC_m),
+                            p.rdata(realData::JC_eps_dot_0),
+                            T_p,
+                            p.rdata(realData::JC_Tr),
+                            p.rdata(realData::JC_Tm),
+                            p.rdata(realData::JC_chi),
+                            p.rdata(realData::JC_c0),
+                            p.rdata(realData::JC_Salpha),
+                            p.rdata(realData::JC_Gamma0),
+                            dt);
+
+                        for (int c = 0; c < NCOMP_TENSOR; ++c)
+                        {
+                            p.rdata(realData::dev_stress_unrot + c) =
+                                sdev_ur[c];
+                            p.rdata(realData::stress + c) = stress_jc[c];
+                        }
+                        p.rdata(realData::equiv_plastic_strain) = ep;
+                        p.rdata(realData::pressure)             = pres;
+#if USE_TEMP
+                        p.rdata(realData::heat_source) = hsrc;
+#endif
+                        return;
                     }
 
                     // Accumulate stress with delta contribution

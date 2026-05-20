@@ -1,33 +1,33 @@
 {
-  "_comment": "JC Twisted column. Section 10.3.3, Nguyen et al. 2023.",
-  "_units": "mm, ms, kg  =>  stress GPa, density kg/mm^3",
+  "_comment": "JC Plate under gravitational compression. Section 10.3.3, Nguyen et al. 2023.",
+  "_units": "mm, ms, kg => stress in GPa, force in kN, density in kg/mm^3",
 
   "dimensions": 3,
 
   "grid": {
-    "xmin": -6.0,
-    "xmax":  6.0,
-    "ymin": -6.0,
-    "ymax":  6.0,
-    "zmin":  0.0,
-    "zmax": 105.0,
-    "nx": 12,
-    "ny": 12,
-    "nz": 21
+    "xmin": -5.0,
+    "xmax": 15.0,
+    "ymin":  0.0,
+    "ymax": 15.0,
+    "zmin": -0.1,
+    "zmax":  0.2,
+    "nx": 40,
+    "ny": 30,
+    "nz":  3
   },
 
-  "ppc": [2, 2, 2],
+  "ppc": [2, 2, 1],
 
   "bodies": [
     {
       "shape": {
         "type":  "block",
-        "xmin": -5.0,
-        "xmax":  5.0,
-        "ymin": -5.0,
-        "ymax":  5.0,
+        "xmin":  0.0,
+        "xmax": 10.0,
+        "ymin":  0.0,
+        "ymax": 10.0,
         "zmin":  0.0,
-        "zmax": 100.0
+        "zmax":  0.1
       },
       "constitutive_model": {
         "type":    "johnson_cook",
@@ -64,25 +64,27 @@
     }
   ],
 
+  "physics": {
+    "gravity":         [0.0, -5000.0, 0.0],
+    "final_time":       0.2,
+    "write_output_time": 0.02,
+    "screen_output_time": 0.002
+  },
+
+  "bc": {
+    "ylo": "noslip",
+    "yhi": "slip",
+    "xlo": "slip",
+    "xhi": "slip",
+    "zlo": "slip",
+    "zhi": "slip"
+  },
+
   "CFL":                  0.3,
   "order_scheme":         3,
   "stress_update_scheme": "MUSL",
 
-  "output_tag":             "3D_Twisted_Column_JC",
-  "input_filename":         "Inputs_3DTwistedColumn.inp",
-  "materialpoint_filename": "mpm_particles.dat",
-
-  "udf": {
-    "zhi_lib":  "./UDF/libwall_twist.dylib",
-    "zhi_func": "wall_vel_twist",
-    "omega":    6.283185307
-  },
-
-  "physics": {
-    "H": 100.0,
-    "W":   5.0,
-    "final_time":        3.0,
-    "write_output_time": 0.15,
-    "screen_output_time": 0.015
-  }
+  "output_tag":              "JC_Plate_Compression",
+  "input_filename":          "Inputs_JCPlate.inp",
+  "materialpoint_filename":  "mpm_particles.dat"
 }

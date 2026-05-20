@@ -49,12 +49,36 @@ struct realData
             45, // 45	This is for storing the acceleration of each particle in
                 // the y-direction. This variable is not generic and used only
                 // for the spring-mass and membrane simulations only
+
+        // ---- Johnson-Cook elasto-plastic model (constitutive_model == 2) ----
+        // State variables (updated every time step)
+        equiv_plastic_strain = 46, // accumulated equivalent plastic strain ep
+        dev_stress_unrot = 47,     // un-rotated deviatoric Cauchy stress, 6
+                                   // components (XX=47,YY=48,ZZ=49,XY=50,
+                                   // XZ=51,YZ=52); persistent across steps
+
+        // Johnson-Cook flow stress parameters
+        JC_A        = 53, // yield stress A  [stress units]
+        JC_B        = 54, // strain hardening modulus B
+        JC_n        = 55, // strain hardening exponent n
+        JC_C        = 56, // strain-rate sensitivity C (set 0 to disable)
+        JC_m        = 57, // temperature softening exponent m (set 0 to disable)
+        JC_eps_dot_0 = 58, // reference plastic strain rate ep_dot_0
+        JC_Tr       = 59, // reference (room) temperature Tr
+        JC_Tm       = 60, // melting temperature Tm
+        JC_chi      = 61, // Taylor-Quinney inelastic heat fraction (0 < chi <= 1)
+
+        // Mie-Gruneisen equation of state parameters
+        JC_c0       = 62, // bulk speed of sound c0
+        JC_Salpha   = 63, // linear Hugoniot slope coefficient S_alpha
+        JC_Gamma0   = 64, // Gruneisen Gamma in reference state Gamma_0
+
 #if USE_TEMP
-        temperature = 46,
-        specific_heat = 47,        // specific heat used in temperature equation
-        thermal_conductivity = 48, // For now, treated as a scalar
-        heat_flux = 49,            // AMREX_SPACEDIM size
-        heat_source = 52,          // Used in the temperature equation
+        temperature = 65,
+        specific_heat = 66,        // specific heat used in temperature equation
+        thermal_conductivity = 67, // For now, treated as a scalar
+        heat_flux = 68,            // AMREX_SPACEDIM size
+        heat_source = 71,          // Used in the temperature equation
 #endif
         count
 
@@ -198,6 +222,21 @@ class MPMspecs
     Real autogen_bulkmod = 0.0;
     Real autogen_Gama_pres = 1.4;
     Real autogen_visc = 0.001;
+
+    // Johnson-Cook autogen parameters (used when autogen_constmodel == 2)
+    Real autogen_JC_A         = 0.0;
+    Real autogen_JC_B         = 0.0;
+    Real autogen_JC_n         = 0.0;
+    Real autogen_JC_C         = 0.0;
+    Real autogen_JC_m         = 0.0;
+    Real autogen_JC_eps_dot_0 = 1.0;
+    Real autogen_JC_Tr        = 0.0;
+    Real autogen_JC_Tm        = 1600.0;
+    Real autogen_JC_chi       = 0.9;
+    Real autogen_JC_c0        = 0.0;
+    Real autogen_JC_Salpha    = 0.0;
+    Real autogen_JC_Gamma0    = 0.0;
+
     Vector<int> autogen_ppc;
 
     Real autogen_T = 0.001;
@@ -317,6 +356,23 @@ class MPMspecs
             pp.query("bulkmod_autogen", autogen_bulkmod);
             pp.query("Gama_pres_autogen", autogen_Gama_pres);
             pp.query("visc_autogen", autogen_visc);
+
+            if (autogen_constmodel == 2)
+            {
+                pp.get("JC_A_autogen",         autogen_JC_A);
+                pp.get("JC_B_autogen",         autogen_JC_B);
+                pp.get("JC_n_autogen",         autogen_JC_n);
+                pp.query("JC_C_autogen",       autogen_JC_C);
+                pp.query("JC_m_autogen",       autogen_JC_m);
+                pp.query("JC_eps_dot_0_autogen", autogen_JC_eps_dot_0);
+                pp.query("JC_Tr_autogen",      autogen_JC_Tr);
+                pp.query("JC_Tm_autogen",      autogen_JC_Tm);
+                pp.query("JC_chi_autogen",     autogen_JC_chi);
+                pp.get("JC_c0_autogen",        autogen_JC_c0);
+                pp.get("JC_Salpha_autogen",    autogen_JC_Salpha);
+                pp.query("JC_Gamma0_autogen",  autogen_JC_Gamma0);
+            }
+
             pp.queryarr("ppc", autogen_ppc);
 #if USE_TEMP
             pp.query("T_autogen", autogen_T);

@@ -1,7 +1,17 @@
 #!/usr/bin/env python3
+"""
+PreProcessor for 3D_Twisted_Column (JC elasto-plastic material).
+
+Generates the particle file and AMReX input file from config.json.
+Supports constitutive model types: "elastic" (cm_id=0) and
+"johnson_cook" (cm_id=2).
+
+Usage:
+    python3 Generate_MPs_Inputfile_Generic.py --config ./PreProcess/config.json
+"""
+
 import argparse
 import json
-import hashlib
 import platform
 import numpy as np
 import os
@@ -15,7 +25,7 @@ def die(msg: str):
 
 def parse_cli():
     p = argparse.ArgumentParser(
-        description="PreProcessor for 3D_Twisted_Column: generates particles + input file"
+        description="PreProcessor for 3D_Twisted_Column"
     )
     p.add_argument("--config", type=str, required=True,
                    help="Path to JSON configuration file")
@@ -40,8 +50,18 @@ def ppc_offsets(N):
     return (2 * i - 1) / (2 * N)
 
 
+def cm_id_for(cm_cfg):
+    t = cm_cfg.get("type", "elastic").lower()
+    if t == "elastic":
+        return 0
+    if t in ("johnson_cook", "jc"):
+        return 2
+    die(f"Unknown constitutive model type: {t}")
+
+
 def generate_particle_chunks(grid, ppc, shape, cm_cfg, density,
-                              vx0, vy0, vz0, chunk_size=200_000):
+                              vx0, vy0, vz0, temp_cfg=None,
+                              chunk_size=200_000):
     nx, ny, nz = grid["nx"], grid["ny"], grid["nz"]
     xmin, xmax = grid["xmin"], grid["xmax"]
     ymin, ymax = grid["ymin"], grid["ymax"]
@@ -56,12 +76,34 @@ def generate_particle_chunks(grid, ppc, shape, cm_cfg, density,
 
     E   = cm_cfg["E"]
     nu  = cm_cfg["nu"]
+    cm  = cm_id_for(cm_cfg)
     vol = dx * dy * dz / (ppc[0] * ppc[1] * ppc[2])
     radius = (3.0 * vol / (4.0 * np.pi)) ** (1.0 / 3.0)
 
-    buf = {k: [] for k in ["phase", "x", "y", "z", "radius",
-                             "density", "vx", "vy", "vz", "cm_id",
-                             "E", "nu"]}
+    is_jc = (cm == 2)
+    jc = {}
+    if is_jc:
+        for k in ["JC_A", "JC_B", "JC_n", "JC_C", "JC_m",
+                  "JC_eps_dot_0", "JC_Tr", "JC_Tm", "JC_chi",
+                  "JC_c0", "JC_Salpha", "JC_Gamma0"]:
+            jc[k] = cm_cfg.get(k, 0.0)
+
+    use_temp = (temp_cfg is not None and temp_cfg.get("enabled", False))
+    T0      = temp_cfg.get("T",       0.0)  if use_temp else 0.0
+    spheat  = temp_cfg.get("spheat",  1.0)  if use_temp else 1.0
+    thermk  = temp_cfg.get("thermcond", 1.0) if use_temp else 1.0
+    heatsrc = temp_cfg.get("heatsrc", 0.0)  if use_temp else 0.0
+
+    cols = ["phase", "x", "y", "z", "radius",
+            "density", "vx", "vy", "vz", "cm_id", "E", "nu"]
+    if is_jc:
+        cols += ["JC_A", "JC_B", "JC_n", "JC_C", "JC_m",
+                 "JC_eps_dot_0", "JC_Tr", "JC_Tm", "JC_chi",
+                 "JC_c0", "JC_Salpha", "JC_Gamma0"]
+    if use_temp:
+        cols += ["T", "spheat", "thermcond", "heatsrc"]
+
+    buf = {k: [] for k in cols}
 
     def flush():
         out = {k: np.array(v) for k, v in buf.items()}
@@ -93,9 +135,20 @@ def generate_particle_chunks(grid, ppc, shape, cm_cfg, density,
                             buf["vx"].append(vx0)
                             buf["vy"].append(vy0)
                             buf["vz"].append(vz0)
-                            buf["cm_id"].append(0)
+                            buf["cm_id"].append(cm)
                             buf["E"].append(E)
                             buf["nu"].append(nu)
+                            if is_jc:
+                                for k in ["JC_A", "JC_B", "JC_n", "JC_C",
+                                          "JC_m", "JC_eps_dot_0", "JC_Tr",
+                                          "JC_Tm", "JC_chi",
+                                          "JC_c0", "JC_Salpha", "JC_Gamma0"]:
+                                    buf[k].append(jc[k])
+                            if use_temp:
+                                buf["T"].append(T0)
+                                buf["spheat"].append(spheat)
+                                buf["thermcond"].append(thermk)
+                                buf["heatsrc"].append(heatsrc)
                             count += 1
                             if count >= chunk_size:
                                 yield flush()
@@ -105,9 +158,7 @@ def generate_particle_chunks(grid, ppc, shape, cm_cfg, density,
         yield flush()
 
 
-def write_particles_ascii(filename, chunk_iter):
-    colnames = ["phase", "x", "y", "z", "radius",
-                "density", "vx", "vy", "vz", "cm_id", "E", "nu"]
+def write_particles_ascii(filename, chunk_iter, colnames):
     f = open(filename, "w")
     f.write("dim: 3\n")
     f.write("number_of_material_points: 0\n")
@@ -156,9 +207,8 @@ def write_inputs_file(cfg, output_tag, particle_filename, out_filename):
     grid    = cfg["grid"]
     physics = cfg["physics"]
     udf     = cfg["udf"]
-    B       = physics["B"]
+    H       = physics["H"]
     W       = physics["W"]
-    L       = physics["L"]
     ft      = physics["final_time"]
     wt      = physics["write_output_time"]
     st      = physics["screen_output_time"]
@@ -166,35 +216,29 @@ def write_inputs_file(cfg, output_tag, particle_filename, out_filename):
     order   = cfg["order_scheme"]
     sus     = cfg["stress_update_scheme"]
 
+    gx      = physics.get("gravity", [0.0, 0.0, 0.0])
+    gravity_str = f"{gx[0]} {gx[1]} {gx[2]}" if isinstance(gx, list) \
+                  else "0.0 0.0 0.0"
+
+    body      = cfg["bodies"][0]
+    temp_cfg  = body.get("temperature", {})
+    use_temp  = temp_cfg.get("enabled", False)
+
     with open(out_filename, "w") as f:
         f.write("# Auto-generated MPM input file\n")
+        f.write(f"# {output_tag}\n")
 
         write_block(f, [
-            ("mpm.prob_lo",        f"{-B} {-B} 0.0"),
-            ("mpm.prob_hi",        f"{B} {B} {L}"),
+            ("mpm.prob_lo",        f"{grid['xmin']} {grid['ymin']} {grid['zmin']}"),
+            ("mpm.prob_hi",        f"{grid['xmax']} {grid['ymax']} {grid['zmax']}"),
             ("mpm.ncells",         f"{grid['nx']} {grid['ny']} {grid['nz']}"),
             ("mpm.max_grid_size",  f"{max(grid['nx'], grid['ny'], grid['nz'])}"),
             ("mpm.is_it_periodic", "0 0 0"),
         ], comment="Geometry Parameters")
 
         write_block(f, [
-            ("#restart_checkfile", "\"\"")
-        ], comment="AMR Parameters")
-
-        write_block(f, [
-            ("mpm.use_autogen",                 "0"),
-            ("mpm.mincoords_autogen",           "0.0 0.0 0.0"),
-            ("mpm.maxcoords_autogen",           "1.0 1.0 1.0"),
-            ("mpm.vel_autogen",                 "0.0 0.0 0.0"),
-            ("mpm.constmodel_autogen",          "0"),
-            ("mpm.dens_autogen",                "1.0"),
-            ("mpm.E_autogen",                   "1e7"),
-            ("mpm.nu_autogen",                  "0.3"),
-            ("mpm.bulkmod_autogen",             "2e6"),
-            ("mpm.Gama_pres_autogen",           "7"),
-            ("mpm.visc_autogen",                "0.001"),
-            ("mpm.multi_part_per_cell_autogen", "1"),
-            ("mpm.particle_file",               f"\"{particle_filename}\""),
+            ("mpm.use_autogen",    "0"),
+            ("mpm.particle_file",  f"\"{particle_filename}\""),
         ], comment="Input Material Points")
 
         write_block(f, [
@@ -218,7 +262,6 @@ def write_inputs_file(cfg, output_tag, particle_filename, out_filename):
 
         write_block(f, [
             ("mpm.fixed_timestep", "0"),
-            ("mpm.timestep",       "1.0e-5"),
             ("mpm.CFL",            f"{CFL}"),
             ("mpm.dt_min_limit",   "1e-12"),
             ("mpm.dt_max_limit",   "1e+00"),
@@ -238,28 +281,33 @@ def write_inputs_file(cfg, output_tag, particle_filename, out_filename):
         ], comment="Numerical Schemes")
 
         write_block(f, [
-            ("mpm.gravity",                        "0.0 0.0 0.0"),
-            ("mpm.applied_strainrate_time",        "0.0"),
-            ("mpm.applied_strainrate",             "0.0"),
-            ("mpm.calculate_strain_based_on_delta","0"),
-            ("mpm.external_loads",                 "0"),
-            ("mpm.force_slab_lo",                  "0.0 0.0 0.0"),
-            ("mpm.force_slab_hi",                  "1.0 1.0 1.0"),
-            ("mpm.extforce",                       "0.0 0.0 0.0"),
+            ("mpm.gravity",                         gravity_str),
+            ("mpm.applied_strainrate_time",         "0.0"),
+            ("mpm.applied_strainrate",              "0.0"),
+            ("mpm.calculate_strain_based_on_delta", "0"),
+            ("mpm.external_loads",                  "0"),
         ], comment="Physics Parameters")
 
         write_block(f, [
-            ("mpm.bc_xlo_mom",        "slip"),
-            ("mpm.bc_xhi_mom",        "slip"),
-            ("mpm.bc_ylo_mom",        "slip"),
-            ("mpm.bc_yhi_mom",        "slip"),
-            ("mpm.bc_zlo_mom",        "noslip"),
-            ("mpm.bc_zhi_mom",        "noslip"),
+            ("mpm.bc_xlo_mom",          "slip"),
+            ("mpm.bc_xhi_mom",          "slip"),
+            ("mpm.bc_ylo_mom",          "slip"),
+            ("mpm.bc_yhi_mom",          "slip"),
+            ("mpm.bc_zlo_mom",          "noslip"),
+            ("mpm.bc_zhi_mom",          "noslip"),
             ("mpm.bc_zhi_mom.udf_lib",  f"\"{udf['zhi_lib']}\""),
             ("mpm.bc_zhi_mom.udf_func", f"\"{udf['zhi_func']}\""),
-            ("mpm.levelset_bc",       "1"),
-            ("mpm.levelset_wall_mu",  "0.0"),
         ], comment="Boundary Conditions")
+
+        if use_temp:
+            write_block(f, [
+                ("mpm.bc_xlo_temp", "adiabatic"),
+                ("mpm.bc_xhi_temp", "adiabatic"),
+                ("mpm.bc_ylo_temp", "adiabatic"),
+                ("mpm.bc_yhi_temp", "adiabatic"),
+                ("mpm.bc_zlo_temp", "adiabatic"),
+                ("mpm.bc_zhi_temp", "adiabatic"),
+            ], comment="Thermal Boundary Conditions")
 
         write_block(f, [
             ("mpm.print_diagnostics",        "1"),
@@ -281,7 +329,6 @@ def main():
     grid    = cfg["grid"]
     ppc     = tuple(cfg["ppc"])
     bodies  = cfg["bodies"]
-    physics = cfg["physics"]
     density = bodies[0]["constitutive_model"].get("density", 1000.0)
 
     shape_cfg = bodies[0]["shape"]
@@ -294,6 +341,22 @@ def main():
     vy0 = vel_cfg.get("vy", 0.0)
     vz0 = vel_cfg.get("vz", 0.0)
 
+    temp_cfg = bodies[0].get("temperature", {})
+    cm_cfg   = bodies[0]["constitutive_model"]
+    cm       = cm_id_for(cm_cfg)
+
+    is_jc    = (cm == 2)
+    use_temp = temp_cfg.get("enabled", False)
+
+    colnames = ["phase", "x", "y", "z", "radius",
+                "density", "vx", "vy", "vz", "cm_id", "E", "nu"]
+    if is_jc:
+        colnames += ["JC_A", "JC_B", "JC_n", "JC_C", "JC_m",
+                     "JC_eps_dot_0", "JC_Tr", "JC_Tm", "JC_chi",
+                     "JC_c0", "JC_Salpha", "JC_Gamma0"]
+    if use_temp:
+        colnames += ["T", "spheat", "thermcond", "heatsrc"]
+
     matpt_filename = cfg["materialpoint_filename"]
 
     def chunk_iter():
@@ -301,28 +364,26 @@ def main():
             grid=grid,
             ppc=ppc,
             shape=shape,
-            cm_cfg=bodies[0]["constitutive_model"],
+            cm_cfg=cm_cfg,
             density=density,
             vx0=vx0, vy0=vy0, vz0=vz0,
+            temp_cfg=temp_cfg,
         )
 
-    total = write_particles_ascii(matpt_filename, chunk_iter())
-    print(f"Generated {total} material points → {matpt_filename}")
+    total = write_particles_ascii(matpt_filename, chunk_iter(), colnames)
+    print(f"Generated {total} material points -> {matpt_filename}")
 
-    output_tag    = cfg.get("output_tag", "3D_Twisted_Column")
+    output_tag     = cfg.get("output_tag", "3D_Twisted_Column_JC")
     input_filename = cfg["input_filename"]
     write_inputs_file(cfg, output_tag, matpt_filename, input_filename)
 
     print("""
-    ┌───────────────────────────────────────────────────────────────────────────────┐
-    │  IMPORTANT: Review the input file and build the UDF before running.           │
-    │                                                                               │
-    │    cd UDF && make                                                             │
-    │                                                                               │
-    │  The rotating-top UDF (wall_vel_twist) applies:                              │
-    │    vx = -omega * y,   vy = omega * x,   vz = 0                              │
-    │  at the z=L face, giving a solid-body angular velocity omega about z.        │
-    └───────────────────────────────────────────────────────────────────────────────┘
+    IMPORTANT: Build the UDF before running:
+        cd UDF && make
+
+    The rotating-top UDF (wall_vel_twist) applies:
+        vx = -omega * y,   vy = omega * x,   vz = 0
+    at the z=H face. omega = 2*pi rad/ms for the JC test (Section 10.3.3).
     """)
 
 

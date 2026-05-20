@@ -60,9 +60,10 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
                     Cs = std::sqrt(p.rdata(realData::Bulk_modulus) /
                                    p.rdata(realData::density));
                 }
-                else if (p.idata(intData::constitutive_model) == 0)
+                else if (p.idata(intData::constitutive_model) == 0 ||
+                         p.idata(intData::constitutive_model) == 2)
                 {
-
+                    // Elastic and Johnson-Cook: P-wave speed from E and nu
                     amrex::Real lambda = p.rdata(realData::E) *
                                          p.rdata(realData::nu) /
                                          ((1 + p.rdata(realData::nu)) *
