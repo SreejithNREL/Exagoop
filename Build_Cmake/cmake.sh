@@ -9,8 +9,9 @@
 # To use a non-default compiler, add to the cmake call below:
 #   -DCMAKE_CXX_COMPILER:STRING=/path/to/your/c++ \
 #   -DCMAKE_C_COMPILER:STRING=/path/to/your/cc   \
+#
+
 cmake -DCMAKE_INSTALL_PREFIX:PATH=./install \
-      -DMPIEXEC_PREFLAGS:STRING=--oversubscribe \
       -DCMAKE_BUILD_TYPE:STRING=Release \
       -DEXAGOOP_USE_TEMP=ON \
       -DEXAGOOP_ENABLE_MPI:BOOL=ON \
@@ -20,7 +21,7 @@ cmake -DCMAKE_INSTALL_PREFIX:PATH=./install \
       -DAMReX_AMD_ARCH="gfx90a" \
       -DPYTHON_EXECUTABLE=$(which python3) \
       -DEXAGOOP_PRECISION:STRING=DOUBLE \
-      -DEXAGOOP_DIM=2 \
+      -DEXAGOOP_DIM=3 \
       -DEXAGOOP_USE_HDF5_PARALLEL=ON \
       -DHDF5_ROOT=$HDF5_ROOT \
       -DHDF5_PREFER_PARALLEL=ON \
