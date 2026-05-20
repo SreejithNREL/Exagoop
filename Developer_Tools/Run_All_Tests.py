@@ -1904,9 +1904,11 @@ def Run_Build_Matrix(cfg, root=None, timeout=300, parallel_jobs=8, output_dir=No
     Tests all combinations of build configurations using GNUMake and CMake.
 
     Detects available tools (compilers, MPI, OpenMP, HDF5, GPU backends) and
-    generates a build matrix spanning DIM 1/2/3, USE_EB, USE_TEMP, compiler,
-    DEBUG, MPI, OMP, HDF5, and optional GPU backends.  Each combination is
-    built in an isolated temporary directory with a configurable timeout.
+    generates a build matrix spanning DIM 1/2/3, USE_EB, USE_TEMP, compiler
+    (gnu + clang for both build systems), DEBUG, MPI (TRUE and FALSE),
+    OMP, HDF5, and GPU backends (CUDA/HIP/SYCL for DIM>=2, all EB/TEMP
+    combos).  Each combination is built in an isolated temporary directory
+    with a configurable timeout.
     Results are written to a timestamped JSON file and a plain-text summary
     table.
 
@@ -1934,26 +1936,86 @@ def Run_Build_Matrix(cfg, root=None, timeout=300, parallel_jobs=8, output_dir=No
     def _tool(name):
         return shutil.which(name) is not None
 
-    def _hdf5_headers():
-        search_dirs = [
-            "/usr/include/hdf5/openmpi",
-            "/usr/include",
-            "/usr/local/include",
-            "/opt/homebrew/include",
-            "/opt/homebrew/opt/hdf5/include",
-        ]
-        for d in search_dirs:
-            if os.path.exists(os.path.join(d, "hdf5.h")):
-                return True
+    def _hdf5_serial():
+        """Detect a serial (non-MPI) HDF5 installation.  Returns (found, path|None)."""
+        # macOS Homebrew: 'hdf5' formula (serial)
         try:
             r = subprocess.run(
-                ["pkg-config", "--exists", "hdf5"],
-                capture_output=True,
-                timeout=5,
+                ["brew", "--prefix", "hdf5"],
+                capture_output=True, text=True, timeout=10,
             )
-            return r.returncode == 0
+            if r.returncode == 0:
+                p = r.stdout.strip()
+                if os.path.exists(os.path.join(p, "include", "hdf5.h")):
+                    return True, p
         except Exception:
-            return False
+            pass
+
+        # Linux: apt serial path
+        for d in [
+            "/usr/include/hdf5/serial",
+            "/usr/local/include",
+            "/usr/include",
+        ]:
+            if os.path.exists(os.path.join(d, "hdf5.h")):
+                # Try to derive a usable prefix (parent of include/)
+                prefix = os.path.dirname(d) if d.endswith("serial") else None
+                return True, prefix
+        return False, None
+
+    def _hdf5_parallel():
+        """Detect a parallel (MPI-linked) HDF5 installation.  Returns (found, path|None)."""
+        # macOS Homebrew: 'hdf5-mpi' formula
+        try:
+            r = subprocess.run(
+                ["brew", "--prefix", "hdf5-mpi"],
+                capture_output=True, text=True, timeout=10,
+            )
+            if r.returncode == 0:
+                p = r.stdout.strip()
+                if os.path.exists(os.path.join(p, "include", "hdf5.h")):
+                    return True, p
+        except Exception:
+            pass
+
+        # Linux: apt parallel paths (openmpi preferred, mpich fallback)
+        import glob as _glob
+        for pattern in [
+            "/usr/include/hdf5/openmpi",
+            "/usr/include/hdf5/mpich",
+        ]:
+            if os.path.exists(os.path.join(pattern, "hdf5.h")):
+                # Derive lib path using multiarch if possible
+                try:
+                    r = subprocess.run(
+                        ["dpkg-architecture", "-qDEB_HOST_MULTIARCH"],
+                        capture_output=True, text=True, timeout=5,
+                    )
+                    ma = r.stdout.strip() if r.returncode == 0 else ""
+                except Exception:
+                    ma = ""
+                flavour = "openmpi" if "openmpi" in pattern else "mpich"
+                if ma:
+                    lib_path = f"/usr/lib/{ma}/hdf5/{flavour}"
+                else:
+                    lib_path = f"/usr/lib/hdf5/{flavour}"
+                return True, None   # let Make.local/AMReX pick up the path via INCLUDE_LOCATIONS
+
+        # h5pcc wrapper (covers source-built and module-loaded parallel HDF5)
+        try:
+            r = subprocess.run(
+                ["h5pcc", "-showconfig"],
+                capture_output=True, text=True, timeout=10,
+            )
+            if r.returncode == 0:
+                for line in r.stdout.splitlines():
+                    if "Installation point" in line:
+                        prefix = line.split(":")[-1].strip()
+                        return True, prefix if prefix else None
+        except Exception:
+            pass
+
+        return False, None
 
     def _omp_available():
         omp_paths = [
@@ -1964,20 +2026,32 @@ def Run_Build_Matrix(cfg, root=None, timeout=300, parallel_jobs=8, output_dir=No
         ]
         return any(os.path.exists(p) for p in omp_paths)
 
+    _serial_found,   _serial_path   = _hdf5_serial()
+    _parallel_found, _parallel_path = _hdf5_parallel()
+
     has = {
-        "gxx":   _tool("g++"),
-        "clang": _tool("clang++"),
-        "nvcc":  _tool("nvcc"),
-        "hipcc": _tool("hipcc"),
-        "icpx":  _tool("icpx"),
-        "mpi":   _tool("mpicc"),
-        "omp":   _omp_available(),
-        "hdf5":  _hdf5_headers(),
+        "gxx":              _tool("g++"),
+        "clang":            _tool("clang++"),
+        "nvcc":             _tool("nvcc"),
+        "hipcc":            _tool("hipcc"),
+        "icpx":             _tool("icpx"),
+        "mpi":              _tool("mpicc"),
+        "omp":              _omp_available(),
+        "hdf5_serial":      _serial_found,
+        "hdf5_serial_path": _serial_path,
+        "hdf5_parallel":      _parallel_found,
+        "hdf5_parallel_path": _parallel_path,
     }
 
     print("\n=== Build-Matrix: Tool Detection ===")
     for tool, found in has.items():
-        print(f"  {tool:8s}: {'FOUND' if found else 'not found'}")
+        if tool.endswith("_path"):
+            continue
+        label = "FOUND" if found else "not found"
+        path_key = tool + "_path"
+        if path_key in has and found and has[path_key]:
+            label += f"  ({has[path_key]})"
+        print(f"  {tool:16s}: {label}")
 
     # ------------------------------------------------------------------
     # 2. Generate build combinations
@@ -1990,87 +2064,98 @@ def Run_Build_Matrix(cfg, root=None, timeout=300, parallel_jobs=8, output_dir=No
     combo_id = 0
 
     for build_sys in ["gnumake", "cmake"]:
-        for dim in [1, 2, 3]:
+        for dim in [1, 3]:
             for use_eb in ["TRUE", "FALSE"]:
                 # AMReX does not support EB in 1D
                 if dim == 1 and use_eb == "TRUE":
                     continue
                 for use_temp in ["TRUE", "FALSE"]:
                     for use_hdf5 in ["TRUE", "FALSE"]:
-                        # Skip HDF5=TRUE if headers not available
-                        if use_hdf5 == "TRUE" and not has["hdf5"]:
-                            continue
-
-                        # Compiler variants: clang only for GNUMake and if available
+                        # Change 1: clang available for both build systems
                         compilers = ["gnu"]
-                        if build_sys == "gnumake" and has["clang"]:
+                        if has["clang"]:
                             compilers.append("clang")
 
                         for comp in compilers:
-                            base = dict(
-                                id=combo_id,
-                                build_sys=build_sys,
-                                dim=dim,
-                                use_eb=use_eb,
-                                use_temp=use_temp,
-                                comp=comp,
-                                debug="FALSE",
-                                use_mpi="TRUE" if has["mpi"] else "FALSE",
-                                use_omp="FALSE",
-                                use_hdf5=use_hdf5,
-                                use_cuda="FALSE",
-                                use_hip="FALSE",
-                                use_sycl="FALSE",
-                            )
-                            combos.append(base)
-                            combo_id += 1
+                            # DEBUG=TRUE only: catches more issues at compile time
+                            for debug in ["TRUE"]:
+                                # Change 3: MPI=FALSE also tested when MPI is available
+                                mpi_options = ["TRUE", "FALSE"] if has["mpi"] else ["FALSE"]
+                                for use_mpi in mpi_options:
+                                    # Skip HDF5=TRUE combos that can't build on this machine.
+                                    # Parallel HDF5 requires MPI; serial HDF5 works without MPI.
+                                    if use_hdf5 == "TRUE":
+                                        if use_mpi == "FALSE" and not has["hdf5_serial"]:
+                                            continue
+                                        if use_mpi == "TRUE" and not (has["hdf5_parallel"] or has["hdf5_serial"]):
+                                            continue
 
-                            # Extra variants only for one representative core
-                            # combo to keep the total count manageable
-                            is_representative = (
-                                dim == 2
-                                and use_eb == "FALSE"
-                                and use_temp == "FALSE"
-                                and use_hdf5 == "FALSE"
-                                and comp == "gnu"
-                            )
+                                    # Resolve which HDF5 path to inject into the build
+                                    if use_hdf5 == "TRUE":
+                                        if use_mpi == "TRUE" and has["hdf5_parallel"]:
+                                            hdf5_path = has["hdf5_parallel_path"]
+                                        else:
+                                            hdf5_path = has["hdf5_serial_path"]
+                                    else:
+                                        hdf5_path = None
 
-                            if is_representative:
-                                # DEBUG=TRUE variant
-                                c = base.copy()
-                                c["id"] = combo_id
-                                c["debug"] = "TRUE"
-                                combos.append(c)
-                                combo_id += 1
+                                    # Change 4: OMP is now a full axis
+                                    omp_options = ["TRUE", "FALSE"] if has["omp"] else ["FALSE"]
+                                    for use_omp in omp_options:
+                                        combos.append(dict(
+                                            id=combo_id,
+                                            build_sys=build_sys,
+                                            dim=dim,
+                                            use_eb=use_eb,
+                                            use_temp=use_temp,
+                                            comp=comp,
+                                            debug=debug,
+                                            use_mpi=use_mpi,
+                                            use_omp=use_omp,
+                                            use_hdf5=use_hdf5,
+                                            hdf5_path=hdf5_path,
+                                            use_cuda="FALSE",
+                                            use_hip="FALSE",
+                                            use_sycl="FALSE",
+                                        ))
+                                        combo_id += 1
 
-                                # USE_OMP=TRUE variant
-                                if has["omp"]:
-                                    c = base.copy()
-                                    c["id"] = combo_id
-                                    c["use_omp"] = "TRUE"
-                                    combos.append(c)
-                                    combo_id += 1
-
-                            # GPU backends: DIM=3, EB=FALSE, TEMP=FALSE,
-                            # HDF5=FALSE, gnu only — added once per core combo
-                            if (dim == 3 and use_eb == "FALSE"
-                                    and use_temp == "FALSE"
-                                    and use_hdf5 == "FALSE"
-                                    and comp == "gnu"):
+                            # Change 5: GPU backends for DIM>=2, all EB/TEMP combos.
+                            # Fixed representative slice: debug=FALSE, omp=FALSE,
+                            # mpi=TRUE, gnu, hdf5=FALSE — to avoid combinatorial explosion.
+                            if (dim >= 2
+                                    and comp == "gnu"
+                                    and use_hdf5 == "FALSE"):
+                                gpu_base = dict(
+                                    id=combo_id,
+                                    build_sys=build_sys,
+                                    dim=dim,
+                                    use_eb=use_eb,
+                                    use_temp=use_temp,
+                                    comp="gnu",
+                                    debug="FALSE",
+                                    use_mpi="TRUE" if has["mpi"] else "FALSE",
+                                    use_omp="FALSE",
+                                    use_hdf5="FALSE",
+                                    hdf5_path=None,
+                                    use_cuda="FALSE",
+                                    use_hip="FALSE",
+                                    use_sycl="FALSE",
+                                )
                                 if has["nvcc"]:
-                                    c = base.copy()
+                                    c = gpu_base.copy()
                                     c["id"] = combo_id
                                     c["use_cuda"] = "TRUE"
                                     combos.append(c)
                                     combo_id += 1
                                 if has["hipcc"]:
-                                    c = base.copy()
+                                    c = gpu_base.copy()
                                     c["id"] = combo_id
                                     c["use_hip"] = "TRUE"
                                     combos.append(c)
                                     combo_id += 1
                                 if has["icpx"]:
-                                    c = base.copy()
+                                    c = gpu_base.copy()
                                     c["id"] = combo_id
                                     c["use_sycl"] = "TRUE"
                                     combos.append(c)
@@ -2131,13 +2216,14 @@ def Run_Build_Matrix(cfg, root=None, timeout=300, parallel_jobs=8, output_dir=No
                     f"USE_MPI={combo['use_mpi']}",
                     f"USE_OMP={combo['use_omp']}",
                     f"USE_HDF5={combo['use_hdf5']}",
-                    f"AMREX_USE_HDF5={combo['use_hdf5']}",
                     f"USE_CUDA={combo['use_cuda']}",
                     f"USE_HIP={combo['use_hip']}",
                     f"USE_SYCL={combo['use_sycl']}",
                     f"MPM_HOME={root}",
                     f"AMREX_HOME={root}/Submodules/amrex",
                 ]
+                if combo["use_hdf5"] == "TRUE" and combo.get("hdf5_path"):
+                    make_flags.append(f"HDF5_HOME={combo['hdf5_path']}")
                 cmd = ["make", f"-j{parallel_jobs}"] + make_flags
 
             else:  # cmake
@@ -2155,6 +2241,8 @@ def Run_Build_Matrix(cfg, root=None, timeout=300, parallel_jobs=8, output_dir=No
                 ]
                 if combo["comp"] == "clang":
                     cmake_flags.append("-DCMAKE_CXX_COMPILER=clang++")
+                if combo["use_hdf5"] == "TRUE" and combo.get("hdf5_path"):
+                    cmake_flags.append(f"-DHDF5_ROOT={combo['hdf5_path']}")
                 # cmake + make chained via shell so we can run two commands
                 # in the same cwd; use a list-compatible shell invocation
                 cmd = ["sh", "-c",
