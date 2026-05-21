@@ -67,6 +67,10 @@ function(build_exagoop_exe exagoop_exe_name)
 
   target_link_libraries(${exagoop_exe_name} PRIVATE amrex)
 
+  if(AMReX_SYCL)
+    target_link_options(${exagoop_exe_name} PRIVATE -Wl,--allow-multiple-definition)
+  endif()
+
   install(TARGETS ${exagoop_exe_name}
           RUNTIME DESTINATION bin
           ARCHIVE DESTINATION lib
