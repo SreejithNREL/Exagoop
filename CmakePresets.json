@@ -17,8 +17,8 @@
       "name": "cpu-mpi",      
       "displayName": "CPU + MPI",
       "cacheVariables": { 
-        "CMAKE_C_COMPILER": "cl.exe", 
-        "CMAKE_CXX_COMPILER": "cl.exe",
+        "CMAKE_C_COMPILER": "clang", 
+        "CMAKE_CXX_COMPILER": "clang",
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "EXAGOOP_ENABLE_MPI": "ON",
