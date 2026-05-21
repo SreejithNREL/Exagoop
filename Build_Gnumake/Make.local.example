@@ -1,9 +1,31 @@
-# Keeping codebase and machine specific params separate
+# ================================================================
+# Make.local.example — template for machine-local build settings
+#
+# Copy this file to Make.local and edit as needed.
+# Make.local is already listed in .gitignore so your local paths
+# will not be committed to the repository.
+#
+# HOW HDF5 PATH INJECTION WORKS:
+#   Set HDF5_HOME to the HDF5 install prefix.  AMReX's Make.hdf5
+#   picks up HDF5_HOME and appends include/ and lib/ automatically.
+#   Do NOT manually add -I / -L / -lhdf5 here — that causes
+#   duplicate flags and link-order issues.
+#
+# PARALLEL HDF5:
+#   Parallel HDF5 is determined by the HDF5 library itself (whether
+#   it was built with MPI).  Simply point HDF5_HOME at a
+#   parallel-enabled install and set USE_MPI=TRUE.
+# ================================================================
 
-AMREX_USE_HDF5 = FALSE
-AMREX_USE_HDF5_PARALLEL = FALSE
-HDF5_HOME = /path/to/hdf5
+# ----------------------------------------------------------------
+# Example: custom HDF5 install (source-built or Spack)
+# ----------------------------------------------------------------
+# USE_HDF5 = TRUE
+# HDF5_HOME = $(HOME)/hdf5-parallel
 
-CXXFLAGS += -I$(HDF5_HOME)/include
-LDFLAGS  += -L$(HDF5_HOME)/lib -lhdf5 -lhdf5_hl
-
+# ----------------------------------------------------------------
+# Example: HPC system with environment modules
+# Cray/Spack module sets HDF5_DIR automatically; no path needed.
+# ----------------------------------------------------------------
+# USE_HDF5 = TRUE
+# AMREX_HDF5_HOME = $(HDF5_DIR)

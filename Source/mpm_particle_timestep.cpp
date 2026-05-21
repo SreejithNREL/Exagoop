@@ -89,7 +89,8 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
                     dxmin = amrex::min(dxmin, dx[d]);
                 }
 
-                return dxmin / (Cs + velmag);
+                amrex::Real dt_p = dxmin / (Cs + velmag);
+                return dt_p;
             }
             return std::numeric_limits<amrex::Real>::max();
         });
@@ -131,7 +132,7 @@ void MPMParticleContainer::updateVolume()
     {
         auto &ptile = plev[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
         auto &aos = ptile.GetArrayOfStructs();
-        const size_t np = aos.numParticles();
+        const int np = aos.numRealParticles();
         ParticleType *pstruct = aos().dataPtr();
 
         amrex::ParallelFor(
@@ -205,12 +206,13 @@ void MPMParticleContainer::updateVolume()
  * @param[in] dt              Time step.
  * @param[in] bclo            Boundary condition types at low faces.
  * @param[in] bchi            Boundary condition types at high faces.
- * @param[in] lsetbc          Boundary condition type for level‑set EB.
  * @param[in] wall_mu_lo      Friction coefficients at low faces.
  * @param[in] wall_mu_hi      Friction coefficients at high faces.
  * @param[in] wall_vel_lo     Wall velocities at low faces (flattened array).
  * @param[in] wall_vel_hi     Wall velocities at high faces (flattened array).
- * @param[in] lset_wall_mu    Friction coefficient for level‑set EB.
+ *
+ * Level-set BC type and friction coefficient are read per-body from
+ * mpm_ebtools::ls_bodies (set by init_eb() from the input file).
  *
  * @return None.
  */
@@ -219,24 +221,54 @@ void MPMParticleContainer::moveParticles(
     const amrex::Real &dt,
     int bclo[AMREX_SPACEDIM],
     int bchi[AMREX_SPACEDIM],
-    [[maybe_unused]] int lsetbc,
     amrex::Real wall_mu_lo[AMREX_SPACEDIM],
     amrex::Real wall_mu_hi[AMREX_SPACEDIM],
     amrex::Real wall_vel_lo[AMREX_SPACEDIM * AMREX_SPACEDIM],
     amrex::Real wall_vel_hi[AMREX_SPACEDIM * AMREX_SPACEDIM],
-    [[maybe_unused]] amrex::Real lset_wall_mu)
+    amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM> udf_wall_vel_lo_dev,
+    amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM> udf_wall_vel_hi_dev)
 {
     BL_PROFILE("MPMParticleContainer::moveParticles");
 
     const int lev = 0;
     const auto plo = Geom(lev).ProbLoArray();
-    const auto phi = Geom(lev).ProbHiArray();
+    const auto p_hi = Geom(lev).ProbHiArray();
+#if (AMREX_SPACEDIM >= 2)
     const auto dx = Geom(lev).CellSizeArray();
+#endif
     auto &plev = GetParticles(lev);
 
 #if USE_EB
     bool using_levsets = mpm_ebtools::using_levelset_geometry;
-    int lsref = mpm_ebtools::ls_refinement;
+    const int num_bodies = static_cast<int>(mpm_ebtools::ls_bodies.size());
+
+    amrex::GpuArray<int, EXAGOOP_MAX_LS_BODIES> body_refs;
+    amrex::GpuArray<int, EXAGOOP_MAX_LS_BODIES> body_bcs;
+    amrex::GpuArray<amrex::Real, EXAGOOP_MAX_LS_BODIES> body_mus;
+    for (int b = 0; b < num_bodies; ++b)
+    {
+        body_refs[b] = 1;
+        body_bcs[b] = mpm_ebtools::ls_bodies[b].mom_bc_int();
+        body_mus[b] = mpm_ebtools::ls_bodies[b].wall_mu;
+    }
+
+    amrex::Vector<amrex::MultiFab> lsphi_coarse(num_bodies);
+    if (using_levsets)
+    {
+        for (int b = 0; b < num_bodies; ++b)
+        {
+            int lsref = mpm_ebtools::ls_bodies[b].ls_refinement;
+            amrex::BoxArray coarse_ba =
+                mpm_ebtools::ls_bodies[b].lsphi->boxArray();
+            coarse_ba.coarsen(lsref);
+            lsphi_coarse[b].define(
+                coarse_ba, mpm_ebtools::ls_bodies[b].lsphi->DistributionMap(),
+                1, 1);
+            amrex::average_down_nodal(*mpm_ebtools::ls_bodies[b].lsphi,
+                                      lsphi_coarse[b], amrex::IntVect(lsref));
+            lsphi_coarse[b].FillBoundary(Geom(lev).periodicity());
+        }
+    }
 #endif
 
     GpuArray<int, AMREX_SPACEDIM> bc_lo_arr, bc_hi_arr;
@@ -261,20 +293,32 @@ void MPMParticleContainer::moveParticles(
         wall_mu_hi_arr[d] = wall_mu_hi[d];
     }
 
+    const auto domain = Geom(lev).Domain();
+    GpuArray<int, AMREX_SPACEDIM> ncells_arr;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        ncells_arr[d] = domain.length(d);
+
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         auto &ptile = plev[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
         auto &aos = ptile.GetArrayOfStructs();
-        const size_t np = aos.numParticles();
+        const size_t np = aos.numRealParticles();
         ParticleType *pstruct = aos().dataPtr();
 
 #if USE_EB
-        amrex::Array4<amrex::Real> lsetarr;
+        amrex::GpuArray<amrex::Array4<amrex::Real>, EXAGOOP_MAX_LS_BODIES>
+            body_arrs;
         if (using_levsets)
         {
-            lsetarr = mpm_ebtools::lsphi->array(mfi);
+            for (int b = 0; b < num_bodies; ++b)
+                body_arrs[b] = lsphi_coarse[b].array(mfi);
         }
 #endif
+
+        const amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM> udf_lo_ptrs =
+            udf_wall_vel_lo_dev;
+        const amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM> udf_hi_ptrs =
+            udf_wall_vel_hi_dev;
 
         amrex::ParallelFor(
             np,
@@ -298,7 +342,6 @@ void MPMParticleContainer::moveParticles(
                 }
 
 #if USE_EB
-                // Levelset BC
 
                 if (using_levsets && p.idata(intData::phase) == 0)
                 {
@@ -306,15 +349,26 @@ void MPMParticleContainer::moveParticles(
                     for (int d = 0; d < AMREX_SPACEDIM; ++d)
                         xp[d] = p.pos(d);
 
-                    amrex::Real dist =
-                        get_levelset_value(lsetarr, plo, dx, xp, lsref);
-                    if (dist < TINYVAL)
+                    int hit_body = -1;
+                    amrex::Real min_phi = TINYVAL;
+
+                    for (int b = 0; b < num_bodies; ++b)
+                    {
+                        amrex::Real phi = get_levelset_value(
+                            body_arrs[b], plo, dx, xp, body_refs[b]);
+                        if (phi < min_phi)
+                        {
+                            min_phi = phi;
+                            hit_body = b;
+                        }
+                    }
+
+                    if (hit_body >= 0)
                     {
                         amrex::Real normaldir[AMREX_SPACEDIM];
-                        get_levelset_grad(lsetarr, plo, dx, xp, lsref,
-                                          normaldir);
+                        get_levelset_grad(body_arrs[hit_body], plo, dx, xp,
+                                          body_refs[hit_body], normaldir);
 
-                        // normalize
                         amrex::Real gradmag = 0.0;
                         for (int d = 0; d < AMREX_SPACEDIM; ++d)
                             gradmag += normaldir[d] * normaldir[d];
@@ -323,14 +377,14 @@ void MPMParticleContainer::moveParticles(
                             normaldir[d] /= (gradmag + TINYVAL);
 
                         int modify_pos =
-                            applybc(relvel_in, relvel_out, lset_wall_mu,
-                                    normaldir, lsetbc);
+                            applybc(relvel_in, relvel_out, body_mus[hit_body],
+                                    normaldir, body_bcs[hit_body]);
                         if (modify_pos)
                         {
                             for (int d = 0; d < AMREX_SPACEDIM; ++d)
                             {
-                                p.pos(d) +=
-                                    2.0 * amrex::Math::abs(dist) * normaldir[d];
+                                p.pos(d) += 2.0 * amrex::Math::abs(min_phi) *
+                                            normaldir[d];
                             }
                         }
                         for (int d = 0; d < AMREX_SPACEDIM; ++d)
@@ -350,13 +404,73 @@ void MPMParticleContainer::moveParticles(
                 {
                     if (p.pos(dir) < plo[dir])
                     {
-                        // subtract wall velocity
                         for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                        {
                             wallvel[d] =
                                 wall_vel_lo_arr[dir * AMREX_SPACEDIM + d];
-                            relvel_in[d] -= wallvel[d];
+
+                        if (udf_lo_ptrs[dir] != nullptr)
+                        {
+#if (AMREX_SPACEDIM >= 2)
+                            int p0 = (dir == 0) ? 1 : 0;
+#endif
+#if (AMREX_SPACEDIM == 2)
+                            amrex::Real frac = (p.pos(p0) - plo[p0]) / dx[p0];
+                            frac = amrex::max(
+                                amrex::Real(0.0),
+                                amrex::min(amrex::Real(ncells_arr[p0]), frac));
+                            int j0 = (int)frac;
+                            int j1 = amrex::min(j0 + 1, ncells_arr[p0]);
+                            amrex::Real wt1 = frac - j0;
+                            amrex::Real wt0 = amrex::Real(1.0) - wt1;
+                            for (int c = 0; c < AMREX_SPACEDIM; ++c)
+                                wallvel[c] =
+                                    wt0 * udf_lo_ptrs[dir]
+                                                     [j0 * AMREX_SPACEDIM + c] +
+                                    wt1 * udf_lo_ptrs[dir]
+                                                     [j1 * AMREX_SPACEDIM + c];
+#elif (AMREX_SPACEDIM == 3)
+                            int p1 = (dir == 2) ? 1 : 2;
+                            amrex::Real frac0 = (p.pos(p0) - plo[p0]) / dx[p0];
+                            amrex::Real frac1 = (p.pos(p1) - plo[p1]) / dx[p1];
+                            frac0 = amrex::max(
+                                amrex::Real(0.0),
+                                amrex::min(amrex::Real(ncells_arr[p0]), frac0));
+                            frac1 = amrex::max(
+                                amrex::Real(0.0),
+                                amrex::min(amrex::Real(ncells_arr[p1]), frac1));
+                            int j0 = (int)frac0;
+                            int j1 = amrex::min(j0 + 1, ncells_arr[p0]);
+                            int k0 = (int)frac1;
+                            int k1 = amrex::min(k0 + 1, ncells_arr[p1]);
+                            amrex::Real wx1 = frac0 - j0;
+                            amrex::Real wx0 = amrex::Real(1.0) - wx1;
+                            amrex::Real wy1 = frac1 - k0;
+                            amrex::Real wy0 = amrex::Real(1.0) - wy1;
+                            int n1 = ncells_arr[p1] + 1;
+                            for (int c = 0; c < AMREX_SPACEDIM; ++c)
+                                wallvel[c] =
+                                    wx0 * wy0 *
+                                        udf_lo_ptrs[dir][(j0 * n1 + k0) *
+                                                             AMREX_SPACEDIM +
+                                                         c] +
+                                    wx0 * wy1 *
+                                        udf_lo_ptrs[dir][(j0 * n1 + k1) *
+                                                             AMREX_SPACEDIM +
+                                                         c] +
+                                    wx1 * wy0 *
+                                        udf_lo_ptrs[dir][(j1 * n1 + k0) *
+                                                             AMREX_SPACEDIM +
+                                                         c] +
+                                    wx1 * wy1 *
+                                        udf_lo_ptrs[dir][(j1 * n1 + k1) *
+                                                             AMREX_SPACEDIM +
+                                                         c];
+#endif
                         }
+
+                        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                            relvel_in[d] -= wallvel[d];
+
                         amrex::Real normaldir[AMREX_SPACEDIM] = {0};
                         normaldir[dir] = 1.0;
                         int modify_pos =
@@ -366,15 +480,79 @@ void MPMParticleContainer::moveParticles(
                         {
                             p.pos(dir) = 2.0 * plo[dir] - p.pos(dir);
                         }
+                        for (int c = 0; c < AMREX_SPACEDIM; ++c)
+                            p.rdata(realData::xvel + c) =
+                                relvel_out[c] + wallvel[c];
                     }
-                    else if (p.pos(dir) > phi[dir])
+                    else if (p.pos(dir) > p_hi[dir])
                     {
                         for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                        {
                             wallvel[d] =
                                 wall_vel_hi_arr[dir * AMREX_SPACEDIM + d];
-                            relvel_in[d] -= wallvel[d];
+
+                        if (udf_hi_ptrs[dir] != nullptr)
+                        {
+#if (AMREX_SPACEDIM >= 2)
+                            int p0 = (dir == 0) ? 1 : 0;
+#endif
+#if (AMREX_SPACEDIM == 2)
+                            amrex::Real frac = (p.pos(p0) - plo[p0]) / dx[p0];
+                            frac = amrex::max(
+                                amrex::Real(0.0),
+                                amrex::min(amrex::Real(ncells_arr[p0]), frac));
+                            int j0 = (int)frac;
+                            int j1 = amrex::min(j0 + 1, ncells_arr[p0]);
+                            amrex::Real wt1 = frac - j0;
+                            amrex::Real wt0 = amrex::Real(1.0) - wt1;
+                            for (int c = 0; c < AMREX_SPACEDIM; ++c)
+                                wallvel[c] =
+                                    wt0 * udf_hi_ptrs[dir]
+                                                     [j0 * AMREX_SPACEDIM + c] +
+                                    wt1 * udf_hi_ptrs[dir]
+                                                     [j1 * AMREX_SPACEDIM + c];
+#elif (AMREX_SPACEDIM == 3)
+                            int p1 = (dir == 2) ? 1 : 2;
+                            amrex::Real frac0 = (p.pos(p0) - plo[p0]) / dx[p0];
+                            amrex::Real frac1 = (p.pos(p1) - plo[p1]) / dx[p1];
+                            frac0 = amrex::max(
+                                amrex::Real(0.0),
+                                amrex::min(amrex::Real(ncells_arr[p0]), frac0));
+                            frac1 = amrex::max(
+                                amrex::Real(0.0),
+                                amrex::min(amrex::Real(ncells_arr[p1]), frac1));
+                            int j0 = (int)frac0;
+                            int j1 = amrex::min(j0 + 1, ncells_arr[p0]);
+                            int k0 = (int)frac1;
+                            int k1 = amrex::min(k0 + 1, ncells_arr[p1]);
+                            amrex::Real wx1 = frac0 - j0;
+                            amrex::Real wx0 = amrex::Real(1.0) - wx1;
+                            amrex::Real wy1 = frac1 - k0;
+                            amrex::Real wy0 = amrex::Real(1.0) - wy1;
+                            int n1 = ncells_arr[p1] + 1;
+                            for (int c = 0; c < AMREX_SPACEDIM; ++c)
+                                wallvel[c] =
+                                    wx0 * wy0 *
+                                        udf_hi_ptrs[dir][(j0 * n1 + k0) *
+                                                             AMREX_SPACEDIM +
+                                                         c] +
+                                    wx0 * wy1 *
+                                        udf_hi_ptrs[dir][(j0 * n1 + k1) *
+                                                             AMREX_SPACEDIM +
+                                                         c] +
+                                    wx1 * wy0 *
+                                        udf_hi_ptrs[dir][(j1 * n1 + k0) *
+                                                             AMREX_SPACEDIM +
+                                                         c] +
+                                    wx1 * wy1 *
+                                        udf_hi_ptrs[dir][(j1 * n1 + k1) *
+                                                             AMREX_SPACEDIM +
+                                                         c];
+#endif
                         }
+
+                        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                            relvel_in[d] -= wallvel[d];
+
                         amrex::Real normaldir[AMREX_SPACEDIM] = {0};
                         normaldir[dir] = -1.0;
                         int modify_pos =
@@ -382,72 +560,15 @@ void MPMParticleContainer::moveParticles(
                                     normaldir, bc_hi_arr[dir]);
                         if (modify_pos)
                         {
-                            p.pos(dir) = 2.0 * phi[dir] - p.pos(dir);
+                            p.pos(dir) = 2.0 * p_hi[dir] - p.pos(dir);
                         }
+                        for (int c = 0; c < AMREX_SPACEDIM; ++c)
+                            p.rdata(realData::xvel + c) =
+                                relvel_out[c] + wallvel[c];
                     }
-                    p.rdata(realData::xvel + dir) =
-                        relvel_out[dir] + wallvel[dir];
                 }
             });
     }
-}
-
-/**
- * @brief Returns the maximum Y‑coordinate among all particles.
- *
- * This is typically used to track the top surface of a deforming body
- * (e.g., for spring compression diagnostics).
- *
- * @return amrex::Real  Maximum particle y‑position.
- */
-
-amrex::Real MPMParticleContainer::GetPosSpring()
-{
-
-    amrex::Real ymin = 0.0;
-
-    using PType = typename MPMParticleContainer::SuperParticleType;
-    ymin = amrex::ReduceMax(*this,
-                            [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
-                            {
-                                Real yscale;
-                                yscale = p.pos(YDIR);
-                                return (yscale);
-                            });
-    return (ymin);
-}
-
-/**
- * @brief Returns the minimum Y‑coordinate among all rigid‑body‑0 particles.
- *
- * Performs a GPU‑parallel reduction over all particles with phase = 1 and
- * rigid_body_id = 0 (the piston), returning the lowest Y position. All
- * other particles contribute +∞ to the reduction so they are ignored.
- *
- * @return amrex::Real  Minimum Y‑position of the piston rigid body.
- */
-amrex::Real MPMParticleContainer::GetPosPiston()
-{
-    amrex::Real ymin = std::numeric_limits<amrex::Real>::max();
-
-    using PType = typename MPMParticleContainer::SuperParticleType;
-    ymin = amrex::ReduceMin(*this,
-                            [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
-                            {
-                                Real yscale;
-                                if (p.idata(intData::phase) == 1 and
-                                    p.idata(intData::rigid_body_id) == 0)
-                                {
-                                    yscale = p.pos(YDIR);
-                                }
-                                else
-                                {
-                                    yscale =
-                                        std::numeric_limits<amrex::Real>::max();
-                                }
-                                return (yscale);
-                            });
-    return (ymin);
 }
 
 /**

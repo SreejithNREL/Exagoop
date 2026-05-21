@@ -48,6 +48,7 @@ def clean_build_matrices(root: str) -> None:
     for pat in patterns:
         for fpath in sorted(glob.glob(os.path.join(root, pat))):
             _remove_file(fpath)
+            
 
 
 # ── per-test-case cleanup ──────────────────────────────────────────
@@ -61,17 +62,41 @@ DIRS_TO_REMOVE = [
     "Solution",
     "tmp_build_dir",
     "Diagnostics",
+    "CMakeFiles",
+    "Submodules",
+    
 ]
 
 
 def clean_test_case(case_dir: str) -> None:
     """Remove build artifacts from a single test-case directory."""
     # Named executables
-    for name in EXECUTABLE_NAMES:
-        _remove_file(os.path.join(case_dir, name))
+    for path in glob.glob(os.path.join(case_dir, "ExaGOOP?d.*.ex")):
+        _remove_file(path)
 
     # Backtrace.* (glob)
     for fpath in sorted(glob.glob(os.path.join(case_dir, "Backtrace.*"))):
+        _remove_file(fpath)
+        
+    # mpm_particles.* (glob)
+    for fpath in sorted(glob.glob(os.path.join(case_dir, "mpm_particles.*"))):
+        _remove_file(fpath)
+        
+    # GNUmakefile (glob)
+    for fpath in sorted(glob.glob(os.path.join(case_dir, "GNUmakefile"))):
+        _remove_file(fpath)
+        
+    # *.inp (glob)
+    for fpath in sorted(glob.glob(os.path.join(case_dir, "*.inp"))):
+        _remove_file(fpath)
+        
+    for fpath in sorted(glob.glob(os.path.join(case_dir, "CMakeCache.txt"))):
+        _remove_file(fpath)
+        
+    for fpath in sorted(glob.glob(os.path.join(case_dir, "cmake_install.cmake"))):
+        _remove_file(fpath)
+
+    for fpath in sorted(glob.glob(os.path.join(case_dir, "Makefile"))):
         _remove_file(fpath)
 
     # Directories (recursive delete)

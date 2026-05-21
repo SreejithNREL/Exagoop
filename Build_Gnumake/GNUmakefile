@@ -3,17 +3,16 @@ AMREX_HOME ?= ${MPM_HOME}/Submodules/amrex
 
 EBASE = ExaGOOP
 
-include $(MPM_HOME)/Build_Gnumake/Make.local 
-include $(AMREX_HOME)/Tools/GNUMake/Make.defs
-
+include $(MPM_HOME)/Build_Gnumake/Make.local
+NVCC_HOST_COMP ?= gnu
+#  SYS       DIM  EB     TEMP   COMP    DBG    MPI    OMP    HDF5   GPU        TIME  STATUS
+# 25  gnumake     3  TRUE   TRUE   gnu     FALSE  TRUE   FALSE  FALSE  SYCL     154.8s  FAIL
 # ===============================================================
 # AMReX configuration
 # ===============================================================
-DIM     = 2
-COMP       = gnu
-PRECISION  = DOUBLE
+DIM        = 3
+COMP       = gnu 
 USE_EB     = TRUE
-USE_HYPRE  = FALSE
 
 # ===============================================================
 # Profiling
@@ -45,9 +44,8 @@ THREAD_SANITIZER  = FALSE
 # ===============================================================
 # ExaGOOP configuration
 # ===============================================================
-USE_TEMP     = TRUE
+USE_TEMP      = TRUE
 USE_PARTICLES = TRUE
-
 # ===============================================================
 # Precision 
 # ===============================================================
@@ -69,17 +67,11 @@ endif
 # ===============================================================
 ifeq ($(USE_CUDA),TRUE)
   CXXFLAGS += -DEXAGOOP_GPU_BACKEND=\"CUDA\"
-endif
-
-ifeq ($(USE_HIP),TRUE)
+else ifeq ($(USE_HIP),TRUE)
   CXXFLAGS += -DEXAGOOP_GPU_BACKEND=\"HIP\"
-endif
-
-ifeq ($(USE_SYCL),TRUE)
+else ifeq ($(USE_SYCL),TRUE)
   CXXFLAGS += -DEXAGOOP_GPU_BACKEND=\"SYCL\"
-endif
-
-ifndef EXAGOOP_GPU_BACKEND
+else
   CXXFLAGS += -DEXAGOOP_GPU_BACKEND=\"None\"
 endif
 
@@ -111,10 +103,10 @@ include $(AMREX_HOME)/Src/AmrCore/Make.package
 # ===============================================================
 # Git hashes (ExaGOOP + AMReX)
 # ===============================================================
-EXAGOOP_GIT_HASH := $(shell git rev-parse --short HEAD)
+EXAGOOP_GIT_HASH := $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 CXXFLAGS += -DEXAGOOP_GIT_HASH=\"$(EXAGOOP_GIT_HASH)\"
 
-AMREX_GIT_HASH := $(shell git -C $(AMREX_HOME) rev-parse --short HEAD)
+AMREX_GIT_HASH := $(shell git -C $(AMREX_HOME) rev-parse --short HEAD 2>/dev/null || echo unknown)
 CXXFLAGS += -DAMREX_GIT_HASH=\"$(AMREX_GIT_HASH)\"
 
 ifeq ($(USE_EB),TRUE)

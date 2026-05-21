@@ -1,7 +1,7 @@
 // clang-format off
 void Initialise_Domain(MPMspecs &specs,
                        Geometry &geom,
-					   Geometry &geom_leset,
+					   Geometry &geom_levset,
                        BoxArray &ba,
                        DistributionMapping &dm,
                        int &ng_cells,

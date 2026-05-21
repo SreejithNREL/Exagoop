@@ -1,4 +1,4 @@
-#include <AMReX.H> // for amrex::Print and amrex::Real
+#include <AMReX.H>
 #include <aesthetics.H>
 #include <iomanip>
 #include <iostream>
@@ -7,7 +7,20 @@
 
 #include <AMReX_ParallelDescriptor.H>
 #include <ctime>
+
+#define CCCL_IGNORE_MSVC_TRADITIONAL_PREPROCESSOR_WARNING // Suppress warning
+                                                          // while detecting
+                                                          // msvc compilers when
+                                                          // running on CUDA
+
+// get host name
+
+#ifdef _WIN32
+#include <winsock2.h>
+#pragma comment(lib, "Ws2_32.lib")
+#else
 #include <unistd.h>
+#endif
 
 using namespace amrex;
 
@@ -190,66 +203,6 @@ void PrintMessage(std::string msg, int print_len, bool begin, char c)
         msg = " Done";
         amrex::Print() << msg;
     }
-}
-
-/**
- * @brief Prints key simulation parameters for the current MPM setup.
- *
- * This function prints:
- *  - Total number of material points
- *  - Total mass of material points
- *  - Total volume of material points
- *  - Rigid-body particle counts and masses for each rigid body
- *
- * It queries the MPMParticleContainer and MPMspecs structures to extract
- * physically meaningful summary information for the user.
- */
-
-void PrintSimParams(MPMParticleContainer *mpm_pc, MPMspecs *specs)
-{
-
-    std::string msg = "";
-    int tmpi;
-    amrex::Real tmpr;
-
-    msg = "\n     ";
-    PrintMessage(msg, print_length, true, '*'); //* line
-
-    msg = "\n     Total number of material points:";
-    PrintMessage(msg, print_length, true);
-
-    mpm_pc->Calculate_Total_Number_of_MaterialParticles(tmpi);
-    amrex::Print() << " " << tmpi;
-
-    msg = "\n     Total mass of material points:";
-    PrintMessage(msg, print_length, true);
-
-    mpm_pc->Calculate_Total_Mass_MaterialPoints(tmpr);
-    amrex::Print() << " " << std::setprecision(4) << tmpr;
-
-    msg = "\n     Total volume of material points:";
-    PrintMessage(msg, print_length, true);
-
-    mpm_pc->Calculate_Total_Vol_MaterialPoints(tmpr);
-    amrex::Print() << " " << std::setprecision(4) << tmpr;
-
-    msg = "\n     Rigid particle details:";
-    PrintMessage(msg, print_length, true);
-
-    for (int i = 0; i < specs->no_of_rigidbodies_present; i++)
-    {
-        msg = "\n        Total number of rigid body particles in body " +
-              std::to_string(i) + ":";
-        PrintMessage(msg, print_length, true);
-        amrex::Print() << " " << specs->Rb[i].num_of_mp << "\n";
-
-        msg = "\n        Total mass of rigid body " + std::to_string(i) + ":";
-        PrintMessage(msg, print_length, true);
-        amrex::Print() << " " << specs->Rb[i].total_mass << "\n";
-    }
-
-    msg = "\n     ";
-    PrintMessage(msg, print_length, true, '*'); //* line
 }
 
 /**

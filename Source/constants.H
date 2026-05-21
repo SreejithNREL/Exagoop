@@ -12,9 +12,7 @@
 #define PI 3.141592654
 #define three 3.0
 #define two 2.0
-#define eka                                                                    \
-    1.0 // one in sanskrit. naming as 'one' creates problems during cuda
-        // compilation
+#define eka 1.0 // naming it as one creates issues on cuda
 #define four 4.0
 #define onebysix 0.16666666666667
 #define onebythree 0.333333333333
@@ -22,7 +20,7 @@
 #define twobythree 0.6666666666667
 #define fourth 0.25
 #define eighth 0.125
-#define shunya 0.0 // zero in sanskrit.
+#define shunya 0.0 // naming it as zero creates issues on cuda
 #define TINYVAL 1e-20
 #define BIGVAL 1e20
 
@@ -30,12 +28,10 @@
 #define NCOMP_FULLTENSOR 9
 
 #if USE_TEMP
-#define NUM_STATES 25
+#define NUM_STATES 26
 #else
 #define NUM_STATES 20
 #endif
-
-#define testing 0
 
 #define MASS_INDEX 0
 #define VELX_INDEX 1
@@ -60,10 +56,11 @@
 
 #if USE_TEMP
 #define MASS_SPHEAT 20       // \sigma m_p c_p N_I(x_p)
-#define MASS_SPHEAT_TEMP 21  // \sigma m_p c_p N_I(x_p)
+#define MASS_SPHEAT_TEMP 21  // \sigma m_p c_p T_p N_I(x_p)
 #define TEMPERATURE 22       // T_I
 #define SOURCE_TEMP_INDEX 23 // Source terms in temperature equation
-#define DELTA_TEMPERATURE 24 // T_I
+#define DELTA_TEMPERATURE 24 // \Delta T_I
+#define MASS_CONDUCTIVITY 25 // \sigma m_p k_p N_I(x_p)
 #endif
 
 #if (AMREX_SPACEDIM == 1)
@@ -94,6 +91,9 @@
 #define BC_SLIPWALL 2
 #define BC_PARTIALSLIPWALL 3
 #define BC_OUTFLOW 4
+
+#define USL 0
+#define MUSL 1
 
 #define ACCG 9.81
 

@@ -2,13 +2,13 @@
 // #include <AMReX_MultiFab.H>
 #include <AMReX_PlotFileUtil.H>
 #include <aesthetics.H>
-#include <iomanip>  // for std::setprecision
-#include <iostream> // optional, if you use std::cout
+#include <iomanip>
+#include <iostream>
 #include <mpm_check_pair.H>
 #include <mpm_eb.H>
 #include <nodal_data_ops.H>
-#include <sstream> // optional, if you later use string streams
-#include <string>  // for std::string
+#include <sstream>
+#include <string>
 
 /**
  * @brief Writes all particle, grid, and level‑set outputs for the current step.
@@ -63,7 +63,6 @@ void Write_Particle_Grid_Levset_Output(
     Print() << "\n Writing outputs at step, time:" << steps << ", " << time
             << "\n";
 
-    std::string msg;
     std::string pltfile = amrex::Concatenate(
         specs.prefix_gridfilename, output_it, specs.num_of_digits_in_filenames);
 
@@ -126,8 +125,7 @@ void P2G_Momentum(MPMspecs &specs,
                   int update_vel,
                   int update_forces)
 {
-    if (testing == 1)
-        amrex::Print() << "\n Doing P2G \n";
+
     mpm_pc.deposit_onto_grid_momentum(
         nodaldata, specs.gravity, specs.external_loads_present,
         specs.force_slab_lo, specs.force_slab_hi, specs.extforce, update_mass,
@@ -159,8 +157,7 @@ void P2G_Temperature(MPMspecs &specs,
                      int update_temp,
                      int update_source)
 {
-    if (testing == 1)
-        amrex::Print() << "\n Doing P2G for temperature\n";
+
     mpm_pc.deposit_onto_grid_temperature(
         nodaldata, reset_nodaldata_to_zero, update_temp, update_source,
         specs.mass_tolerance, specs.order_scheme_directional, specs.periodic);
@@ -186,22 +183,23 @@ void P2G_Temperature(MPMspecs &specs,
 void Apply_Nodal_BCs(amrex::Geometry &geom,
                      amrex::MultiFab &nodaldata,
                      MPMspecs &specs,
-                     amrex::Real dt)
+                     amrex::Real dt,
+                     amrex::Real t)
 {
-
     nodal_bcs(geom, nodaldata, specs.bclo.data(), specs.bchi.data(),
               specs.wall_mu_lo.data(), specs.wall_mu_hi.data(),
               specs.wall_vel_lo.data(), specs.wall_vel_hi.data(), dt);
 
+    compute_udf_wall_vel_at_nodes(geom, specs, t);
+    apply_udf_nodal_bcs(geom, nodaldata, specs);
+
 #if USE_EB
     if (mpm_ebtools::using_levelset_geometry)
     {
-        nodal_levelset_bcs(nodaldata, geom, dt, specs.levelset_bc,
-                           specs.levelset_wall_mu);
+        nodal_levelset_bcs(nodaldata, geom, dt);
     }
 #endif
 
-    // Calculate velocity diff
     store_delta_velocity(nodaldata);
 }
 
@@ -223,18 +221,49 @@ void Apply_Nodal_BCs(amrex::Geometry &geom,
 void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
                                  amrex::MultiFab &nodaldata,
                                  MPMspecs &specs,
-                                 [[maybe_unused]] amrex::Real dt)
+                                 [[maybe_unused]] amrex::Real dt,
+                                 amrex::Real t,
+                                 bool dirichlet_only)
 {
-    amrex::Array<amrex::Real, AMREX_SPACEDIM> temp_lo;
-    amrex::Array<amrex::Real, AMREX_SPACEDIM> temp_hi;
-    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    if (!dirichlet_only)
     {
-        temp_lo[d] = specs.bclo_tempval[d];
-        temp_hi[d] = specs.bchi_tempval[d];
+        nodal_bcs_temperature(
+            geom, nodaldata, specs.bclo_temp.data(), specs.bchi_temp.data(),
+            specs.bc_temp_T_wall_lo.data(), specs.bc_temp_T_wall_hi.data(),
+            specs.bc_temp_flux_lo.data(), specs.bc_temp_flux_hi.data(),
+            specs.bc_temp_h_lo.data(), specs.bc_temp_h_hi.data(),
+            specs.bc_temp_Tinf_lo.data(), specs.bc_temp_Tinf_hi.data());
+        compute_udf_temp_at_nodes(geom, specs, t);
+        apply_udf_nodal_bcs_temperature(geom, nodaldata, specs);
+#if USE_EB
+        if (mpm_ebtools::using_levelset_geometry)
+            nodal_levelset_bcs_temperature(nodaldata, geom,
+                                           /*dirichlet_only=*/false);
+#endif
     }
-    nodal_bcs_temperature(geom, nodaldata, specs.bclo.data(), specs.bchi.data(),
-                          temp_lo.data(), temp_hi.data());
-    store_delta_temperature(nodaldata);
+    else
+    {
+        amrex::Vector<int> bclo_dirichlet(AMREX_SPACEDIM, 0);
+        amrex::Vector<int> bchi_dirichlet(AMREX_SPACEDIM, 0);
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        {
+            bclo_dirichlet[d] = (specs.bclo_temp[d] == 1) ? 1 : 0;
+            bchi_dirichlet[d] = (specs.bchi_temp[d] == 1) ? 1 : 0;
+        }
+        nodal_bcs_temperature(
+            geom, nodaldata, bclo_dirichlet.data(), bchi_dirichlet.data(),
+            specs.bc_temp_T_wall_lo.data(), specs.bc_temp_T_wall_hi.data(),
+            specs.bc_temp_flux_lo.data(), specs.bc_temp_flux_hi.data(),
+            specs.bc_temp_h_lo.data(), specs.bc_temp_h_hi.data(),
+            specs.bc_temp_Tinf_lo.data(), specs.bc_temp_Tinf_hi.data());
+        compute_udf_temp_at_nodes(geom, specs, t);
+        apply_udf_nodal_bcs_temperature(geom, nodaldata, specs);
+#if USE_EB
+        if (mpm_ebtools::using_levelset_geometry)
+            nodal_levelset_bcs_temperature(nodaldata, geom,
+                                           /*dirichlet_only=*/true);
+#endif
+    }
 }
 #endif
 
@@ -261,8 +290,7 @@ void G2P_Momentum(MPMspecs &specs,
                   int update_strainrate,
                   amrex::Real dt)
 {
-    if (testing == 1)
-        amrex::Print() << "\n Doing G2P \n";
+
     mpm_pc.interpolate_from_grid(nodaldata, update_vel, update_strainrate,
                                  specs.order_scheme_directional, specs.periodic,
                                  specs.alpha_pic_flip, dt);
@@ -291,8 +319,6 @@ void G2P_Temperature(MPMspecs &specs,
                      int update_heatflux,
                      [[maybe_unused]] amrex::Real dt)
 {
-    if (testing == 1)
-        amrex::Print() << "\n Doing G2P \n";
     mpm_pc.interpolate_from_grid_temperature(
         nodaldata, update_temperature, update_heatflux,
         specs.order_scheme_directional, specs.periodic, specs.alpha_pic_flip);
@@ -317,10 +343,21 @@ void Update_MP_Positions(MPMspecs &specs,
                          MPMParticleContainer &mpm_pc,
                          amrex::Real dt)
 {
+    amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM> udf_lo_ptrs,
+        udf_hi_ptrs;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        udf_lo_ptrs[d] = specs.udf_func_ptr_lo[d]
+                             ? specs.udf_wall_vel_nodes_lo[d].data()
+                             : nullptr;
+        udf_hi_ptrs[d] = specs.udf_func_ptr_hi[d]
+                             ? specs.udf_wall_vel_nodes_hi[d].data()
+                             : nullptr;
+    }
     mpm_pc.moveParticles(dt, specs.bclo.data(), specs.bchi.data(),
-                         specs.levelset_bc, specs.wall_mu_lo.data(),
-                         specs.wall_mu_hi.data(), specs.wall_vel_lo.data(),
-                         specs.wall_vel_hi.data(), specs.levelset_wall_mu);
+                         specs.wall_mu_lo.data(), specs.wall_mu_hi.data(),
+                         specs.wall_vel_lo.data(), specs.wall_vel_hi.data(),
+                         udf_lo_ptrs, udf_hi_ptrs);
 }
 
 /**
@@ -580,10 +617,10 @@ void Do_All_Diagnostics(MPMspecs &specs,
         mpm_pc.Calculate_MWA_VelocityMagnitude(Vmag);
         if (amrex::ParallelDescriptor::IOProcessor())
         {
-            specs.tmp_mwa_velcomp << steps << " " << current_time << " " << Vmag
-                                  << "\n";
+            specs.tmp_mwa_velmag << steps << " " << current_time << " " << Vmag
+                                 << "\n";
         }
-        specs.tmp_mwa_velcomp.flush();
+        specs.tmp_mwa_velmag.flush();
     }
 
     if (specs.do_calculate_minmaxpos)

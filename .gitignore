@@ -5,6 +5,8 @@
 .clang-format
 /paper/
 
+Docs/sphinx/manual/_build/
+
 Tests/*/mpm_particles.dat
 Tests/*/Backtrace.*
 Tests/*/Diagnostics/*

@@ -71,6 +71,7 @@ void Name_Nodaldata_Variables(amrex::Vector<std::string> &nodaldata_names)
     nodaldata_names.push_back("TEMPERATURE");
     nodaldata_names.push_back("SOURCE_TEMP_INDEX");
     nodaldata_names.push_back("DELTA_TEMPERATURE");
+    nodaldata_names.push_back("MASS_CONDUCTIVITY");
 #endif
 }
 
@@ -185,7 +186,7 @@ void Initialise_Domain(MPMspecs &specs,
         {
             const int ncd = specs.ncells[d];
             const int periodic_d = specs.periodic[d];
-            // Non-periodic: need >=5 to allow cubic; periodic: need >=3
+
             specs.order_scheme_directional[d] =
                 ((periodic_d == 0) ? ((ncd < 5) ? 1 : 2) : ((ncd < 3) ? 1 : 2));
         }
@@ -204,7 +205,6 @@ void Initialise_Domain(MPMspecs &specs,
                               "directions\n";
         }
 
-        // Ensure no spline box has size==1 in any dimension
         for (int box_index = 0; box_index < ba.size(); ++box_index)
         {
             const auto sz = ba[box_index].size();
@@ -224,12 +224,11 @@ void Initialise_Domain(MPMspecs &specs,
     {
         ng_cells_nodaldata = 3;
 
-        // Set directional order-scheme based on periodicity and grid size
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
         {
             const int ncd = specs.ncells[d];
             const int periodic_d = specs.periodic[d];
-            // Non-periodic: need >=5 to allow cubic; periodic: need >=3
+
             specs.order_scheme_directional[d] =
                 ((periodic_d == 0) ? ((ncd < 5) ? 1 : 3) : ((ncd < 3) ? 1 : 3));
         }
@@ -279,11 +278,9 @@ void Initialise_Domain(MPMspecs &specs,
 #endif
     const BoxArray nodeba = amrex::convert(ba, nodal_iv);
 
-    // Nodal data (NUM_STATES components, ng_cells_nodaldata ghost)
     nodaldata.define(nodeba, dm, NUM_STATES, ng_cells_nodaldata);
     nodaldata.setVal(0.0, ng_cells_nodaldata);
 
-    // Level-set geometry and data (refined domain)
     Box dom_levset = geom.Domain();
     dom_levset.refine(specs.levset_gridratio);
 
@@ -423,26 +420,19 @@ void Initialise_Internal_Forces(MPMspecs &specs,
         std::string msg = "\n Calculating initial heat flux";
         PrintMessage(msg, print_length, true);
 
-        // Dimension-aware thermal BC ranges
-        amrex::Array<amrex::Real, AMREX_SPACEDIM> temp_lo;
-        amrex::Array<amrex::Real, AMREX_SPACEDIM> temp_hi;
-        for (int d = 0; d < AMREX_SPACEDIM; ++d)
-        {
-            temp_lo[d] = specs.bclo_tempval[d];
-            temp_hi[d] = specs.bchi_tempval[d];
-        }
-
         mpm_pc.deposit_onto_grid_temperature(
             nodaldata, 1, 1, 0, specs.mass_tolerance,
             specs.order_scheme_directional, specs.periodic);
 
         backup_current_temperature(nodaldata);
 
-        // Apply nodal boundary conditions
         const Geometry &geom = mpm_pc.Geom(0);
-        nodal_bcs_temperature(geom, nodaldata, specs.bclo.data(),
-                              specs.bchi.data(), temp_lo.data(),
-                              temp_hi.data());
+        nodal_bcs_temperature(
+            geom, nodaldata, specs.bclo_temp.data(), specs.bchi_temp.data(),
+            specs.bc_temp_T_wall_lo.data(), specs.bc_temp_T_wall_hi.data(),
+            specs.bc_temp_flux_lo.data(), specs.bc_temp_flux_hi.data(),
+            specs.bc_temp_h_lo.data(), specs.bc_temp_h_hi.data(),
+            specs.bc_temp_Tinf_lo.data(), specs.bc_temp_Tinf_hi.data());
         store_delta_temperature(nodaldata);
 
         // Interpolate temperature grid -> particles
@@ -608,16 +598,19 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
     int my_rank = ParallelDescriptor::MyProc();
     int n_ranks = ParallelDescriptor::NProcs();
 
+    hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
+
+#ifdef AMREX_USE_MPI
     MPI_Comm comm = ParallelDescriptor::Communicator();
     MPI_Info info = MPI_INFO_NULL;
-
-    hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
     H5Pset_fapl_mpio(fapl, comm, info);
+#endif
 
     hid_t file_id = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, fapl);
 
     if (ParallelDescriptor::IOProcessor())
     {
+#ifdef AMREX_USE_MPI
         if (H5Pget_driver(fapl) == H5FD_MPIO)
         {
             std::string msg =
@@ -625,6 +618,7 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
             PrintMultiLineMessage(msg, print_length, true);
         }
         else
+#endif
         {
             std::string msg = "\n    HDF5: Using Serial HDF5 (no MPI-IO)";
             PrintMultiLineMessage(msg, print_length, true);
@@ -689,7 +683,9 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
         hid_t memspace = H5Screate_simple(1, size, nullptr);
 
         hid_t dxpl = H5Pcreate(H5P_DATASET_XFER);
+#ifdef AMREX_USE_MPI
         H5Pset_dxpl_mpio(dxpl, H5FD_MPIO_COLLECTIVE);
+#endif
 
         herr_t status =
             H5Dread(dset, h5_real_type, memspace, filespace, dxpl, vec.data());
@@ -1001,9 +997,6 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
         Gpu::HostVector<ParticleType> host_particles;
         host_particles.reserve(CHUNK_SIZE);
 
-        int rigid_bodies_seen[32];
-        for (int i = 0; i < 32; ++i)
-            rigid_bodies_seen[i] = -99999;
         int rigid_count = 0;
 
         for (int i = 0; i < np; ++i)
@@ -1021,25 +1014,11 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
             // phase
             safe_read(ifs, p.idata(intData::phase), "Error reading phase");
 
+            p.idata(intData::rigid_body_id) = -1;
+
             if (p.idata(intData::phase) == 1)
             {
                 ifrigidnodespresent = 1;
-
-                safe_read(ifs, p.idata(intData::rigid_body_id),
-                          "Error reading rigid_body_id");
-
-                bool found = false;
-                for (int j = 0; j < rigid_count; ++j)
-                    found |= (rigid_bodies_seen[j] ==
-                              p.idata(intData::rigid_body_id));
-
-                if (!found && rigid_count < 32)
-                    rigid_bodies_seen[rigid_count++] =
-                        p.idata(intData::rigid_body_id);
-            }
-            else
-            {
-                p.idata(intData::rigid_body_id) = -1;
             }
 
             // positions
@@ -1286,14 +1265,13 @@ void MPMParticleContainer::InitParticles(
         {
             if (do_multi_part_per_cell == 0)
             {
-                // Cell center position
+
                 amrex::Real coords[AMREX_SPACEDIM];
                 for (int d = 0; d < AMREX_SPACEDIM; ++d)
                 {
                     coords[d] = ploA[d] + (iv[d] + HALF_CONST) * dxA[d];
                 }
 
-                // Inside user box?
                 bool inside = true;
                 for (int d = 0; d < AMREX_SPACEDIM && inside; ++d)
                 {
@@ -1340,7 +1318,6 @@ void MPMParticleContainer::InitParticles(
                             if (AMREX_SPACEDIM == 3)
                                 coords[2] = base[2] + offz[iz] * dxA[2];
 
-                            // bounding box check
                             bool inside = true;
                             for (int d = 0; d < AMREX_SPACEDIM && inside; ++d)
                                 inside = (coords[d] >= mincoords[d] &&
@@ -1431,7 +1408,6 @@ MPMParticleContainer::generate_particle(amrex::Real coords[AMREX_SPACEDIM],
     p.id() = ParticleType::NextID();
     p.cpu() = ParallelDescriptor::MyProc();
 
-    // Position assignment dimension‑aware
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
     {
         p.pos(d) = coords[d];
@@ -1527,7 +1503,25 @@ void MPMParticleContainer::removeParticlesInsideEB()
     const auto plo = geom.ProbLoArray();
 
 #if USE_EB
-    int lsref = mpm_ebtools::ls_refinement;
+    const int num_bodies = static_cast<int>(mpm_ebtools::ls_bodies.size());
+
+    amrex::GpuArray<int, EXAGOOP_MAX_LS_BODIES> body_refs;
+    for (int b = 0; b < num_bodies; ++b)
+        body_refs[b] = 1;
+
+    amrex::Vector<amrex::MultiFab> lsphi_coarse(num_bodies);
+    for (int b = 0; b < num_bodies; ++b)
+    {
+        int lsref = mpm_ebtools::ls_bodies[b].ls_refinement;
+        amrex::BoxArray coarse_ba = mpm_ebtools::ls_bodies[b].lsphi->boxArray();
+        coarse_ba.coarsen(lsref);
+        lsphi_coarse[b].define(
+            coarse_ba, mpm_ebtools::ls_bodies[b].lsphi->DistributionMap(), 1,
+            1);
+        amrex::average_down_nodal(*mpm_ebtools::ls_bodies[b].lsphi,
+                                  lsphi_coarse[b], amrex::IntVect(lsref));
+        lsphi_coarse[b].FillBoundary(geom.periodicity());
+    }
 #endif
 
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
@@ -1542,7 +1536,12 @@ void MPMParticleContainer::removeParticlesInsideEB()
         int np = aos.numRealParticles();
         ParticleType *pstruct = aos().dataPtr();
 
-        amrex::Array4<amrex::Real> lsetarr = mpm_ebtools::lsphi->array(mfi);
+#if USE_EB
+        amrex::GpuArray<amrex::Array4<amrex::Real>, EXAGOOP_MAX_LS_BODIES>
+            body_arrs;
+        for (int b = 0; b < num_bodies; ++b)
+            body_arrs[b] = lsphi_coarse[b].array(mfi);
+#endif
 
         amrex::ParallelFor(np,
                            [=] AMREX_GPU_DEVICE(int i) noexcept
@@ -1555,13 +1554,18 @@ void MPMParticleContainer::removeParticlesInsideEB()
                                    xp[d] = p.pos(d);
                                }
 
-                               amrex::Real lsval = get_levelset_value(
-                                   lsetarr, plo, dx, xp, lsref);
-
-                               if (lsval < TINYVAL)
+#if USE_EB
+                               for (int b = 0; b < num_bodies; ++b)
                                {
-                                   p.id() = -1;
+                                   amrex::Real lsval = get_levelset_value(
+                                       body_arrs[b], plo, dx, xp, body_refs[b]);
+                                   if (lsval < TINYVAL)
+                                   {
+                                       p.id() = -1;
+                                       break;
+                                   }
                                }
+#endif
                            });
     }
 

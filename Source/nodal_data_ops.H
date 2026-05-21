@@ -46,32 +46,52 @@ void nodal_bcs(const amrex::Geometry geom,
                amrex::Real wall_vel_lo[AMREX_SPACEDIM * AMREX_SPACEDIM],
                amrex::Real wall_vel_hi[AMREX_SPACEDIM * AMREX_SPACEDIM],
                const amrex::Real &dt);
-void nodal_bcs(const amrex::Geometry geom,
-               amrex::MultiFab &nodaldata,
-               const amrex::Real &dt);
-void nodal_bcs_temperature(
-    const amrex::Geometry geom,
-    amrex::MultiFab &nodaldata,
-    int bcloarr[AMREX_SPACEDIM],
-    int bchiarr[AMREX_SPACEDIM],
-    amrex::Real dirichlet_temperature_lo[AMREX_SPACEDIM],
-    amrex::Real dirichlet_temperature_hi[AMREX_SPACEDIM]);
-void CalculateSurfaceIntegralOnBG(const amrex::Geometry geom,
-                                  amrex::MultiFab &nodaldata,
-                                  int nodaldataindex,
-                                  amrex::Real &integral_value);
+
+void nodal_bcs_temperature(const amrex::Geometry geom,
+                           amrex::MultiFab &nodaldata,
+                           int bcloarr[AMREX_SPACEDIM],
+                           int bchiarr[AMREX_SPACEDIM],
+                           amrex::Real T_wall_lo[AMREX_SPACEDIM],
+                           amrex::Real T_wall_hi[AMREX_SPACEDIM],
+                           amrex::Real flux_lo[AMREX_SPACEDIM],
+                           amrex::Real flux_hi[AMREX_SPACEDIM],
+                           amrex::Real h_lo[AMREX_SPACEDIM],
+                           amrex::Real h_hi[AMREX_SPACEDIM],
+                           amrex::Real Tinf_lo[AMREX_SPACEDIM],
+                           amrex::Real Tinf_hi[AMREX_SPACEDIM]);
+
 void CalculateInterpolationError(const amrex::Geometry geom,
                                  amrex::MultiFab &nodaldata,
                                  int nodaldataindex);
 
 void nodal_levelset_bcs(amrex::MultiFab &nodaldata,
-                        const amrex::Geometry geom,
-                        amrex::Real &dt,
-                        int lsetbc,
-                        amrex::Real lset_wall_mu);
+                        const amrex::Geometry &geom,
+                        amrex::Real &dt);
+
+#if USE_TEMP
+void nodal_levelset_bcs_temperature(amrex::MultiFab &nodaldata,
+                                    const amrex::Geometry &geom,
+                                    bool dirichlet_only);
+#endif
 
 void Create_Output_Directories(MPMspecs &specs);
 void Reset_Nodaldata_to_Zero(amrex::MultiFab &nodaldata,
                              int ng_cells_nodaldata);
+
+void compute_udf_wall_vel_at_nodes(const amrex::Geometry &geom,
+                                   MPMspecs &specs,
+                                   amrex::Real t);
+void apply_udf_nodal_bcs(const amrex::Geometry &geom,
+                         amrex::MultiFab &nodaldata,
+                         MPMspecs &specs);
+
+#if USE_TEMP
+void compute_udf_temp_at_nodes(const amrex::Geometry &geom,
+                               MPMspecs &specs,
+                               amrex::Real t);
+void apply_udf_nodal_bcs_temperature(const amrex::Geometry &geom,
+                                     amrex::MultiFab &nodaldata,
+                                     MPMspecs &specs);
+#endif
 
 #endif

@@ -25,7 +25,6 @@ int main(int argc, char *argv[])
 
         // Initializing and reading input file for the simulation
         MPMspecs specs;
-        // Rigid_Bodies *Rb=nullptr;
         specs.read_mpm_specs();
 
         // Declaring solver variables
@@ -38,8 +37,6 @@ int main(int argc, char *argv[])
         Real output_time = shunya;
         Real output_timePrint = shunya;
         Real diag_timePrint = shunya;
-        // GpuArray<int, AMREX_SPACEDIM> order_surface_integral =
-        // {AMREX_D_DECL(3, 3, 3)};
         std::string msg;
 
         int ng_cells;
@@ -56,7 +53,7 @@ int main(int argc, char *argv[])
                           ng_cells_nodaldata, nodaldata, levset_data,
                           nodaldata_names);
 #if USE_EB
-        mpm_ebtools::init_eb(geom, ba, dm);
+        mpm_ebtools::init_eb(geom, ba, dm, specs);
 #endif
 
         MPMParticleContainer mpm_pc(geom, dm, ba, ng_cells);
@@ -97,13 +94,15 @@ int main(int argc, char *argv[])
             P2G_Momentum(specs, mpm_pc, nodaldata, 1, 1, 1);
             backup_current_velocity(nodaldata);
             Nodal_Time_Update_Momentum(nodaldata, dt, specs.mass_tolerance);
-            Apply_Nodal_BCs(geom, nodaldata, specs, dt);
+            Apply_Nodal_BCs(geom, nodaldata, specs, dt, time);
 
 #if USE_TEMP
             P2G_Temperature(specs, mpm_pc, nodaldata, 1, 1, 1);
             backup_current_temperature(nodaldata);
             Nodal_Time_Update_Temperature(nodaldata, dt, specs.mass_tolerance);
-            Apply_Nodal_BCs_Temperature(geom, nodaldata, specs, dt);
+            Apply_Nodal_BCs_Temperature(geom, nodaldata, specs, dt, time,
+                                        specs.stress_update_scheme == MUSL);
+            store_delta_temperature(nodaldata);
 #endif
 
             if (specs.stress_update_scheme == 0)
@@ -125,14 +124,15 @@ int main(int argc, char *argv[])
                 // 20
                 P2G_Momentum(specs, mpm_pc, nodaldata, 0, 1, 0);
                 // 21
-                Apply_Nodal_BCs(geom, nodaldata, specs, dt);
+                Apply_Nodal_BCs(geom, nodaldata, specs, dt, time);
                 // 25
                 G2P_Momentum(specs, mpm_pc, nodaldata, 0, 1, dt);
 
 #if USE_TEMP
                 G2P_Temperature(specs, mpm_pc, nodaldata, 1, 0, dt);
                 P2G_Temperature(specs, mpm_pc, nodaldata, 1, 0, 1);
-                Apply_Nodal_BCs_Temperature(geom, nodaldata, specs, dt);
+                Apply_Nodal_BCs_Temperature(geom, nodaldata, specs, dt, time,
+                                            false);
                 G2P_Temperature(specs, mpm_pc, nodaldata, 0, 1, dt);
 #endif
 
@@ -140,8 +140,6 @@ int main(int argc, char *argv[])
             }
 
             Redistribute_Fill_Update(specs, mpm_pc, steps);
-
-            // mpm_pc.updateNeighbors();
 
             Update_MP_Volume(mpm_pc);
 

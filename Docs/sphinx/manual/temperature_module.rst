@@ -95,46 +95,72 @@ by the reader regardless of what the file contains.
 Temperature boundary conditions
 ---------------------------------
 
-Two arrays control the thermal boundary condition at each face of the
-domain.  Each array has ``SPACEDIM`` entries, one per spatial direction.
+Temperature BCs follow the same per-face naming convention as the momentum
+BCs.  Each domain face is identified by an axis prefix (``x``, ``y``, ``z``)
+and a side suffix (``lo``, ``hi``), giving keys of the form
+``mpm.bc_xlo_temp``, ``mpm.bc_xhi_temp``, ``mpm.bc_ylo_temp``, etc.
 
 .. list-table::
    :header-rows: 1
-   :widths: 32 12 14 42
+   :widths: 38 12 14 36
 
    * - Parameter
      - Type
      - Default
      - Description
-   * - ``mpm.bc_lower_temp``
-     - ``int[SPACEDIM]``
-     - ``[1 1 1]``
-     - BC type at each lower face (see flag table below).
-   * - ``mpm.bc_upper_temp``
-     - ``int[SPACEDIM]``
-     - ``[1 1 1]``
-     - BC type at each upper face (see flag table below).
-   * - ``mpm.bc_lower_tempval``
-     - ``Real[SPACEDIM]``
-     - ``[0.0 0.0 0.0]``
-     - Dirichlet temperature value at each lower face.
-   * - ``mpm.bc_upper_tempval``
-     - ``Real[SPACEDIM]``
-     - ``[0.0 0.0 0.0]``
-     - Dirichlet temperature value at each upper face.
+   * - ``mpm.bc_<face>_temp``
+     - ``string``
+     - ``dirichlet`` (non-periodic faces); ``periodic`` (periodic faces)
+     - BC type for the named face (see keyword table below).
+   * - ``mpm.bc_<face>_temp.T_wall``
+     - ``Real``
+     - ``0.0``
+     - Wall temperature :math:`T_w` for ``dirichlet`` faces.
+   * - ``mpm.bc_<face>_temp.flux``
+     - ``Real``
+     - ``0.0``
+     - Prescribed temperature gradient :math:`\partial T / \partial n` for
+       ``heatflux`` faces.  For a dimensional heat flux :math:`q`, set
+       ``flux`` = :math:`-q / k` where :math:`k` is the material thermal
+       conductivity.
+   * - ``mpm.bc_<face>_temp.h``
+     - ``Real``
+     - ``0.0``
+     - Heat transfer coefficient :math:`h` for ``convective`` faces.
+   * - ``mpm.bc_<face>_temp.T_inf``
+     - ``Real``
+     - ``0.0``
+     - Ambient temperature :math:`T_\infty` for ``convective`` faces.
 
-.. note::
+The five recognised BC type keywords are:
 
-   The temperature BC system currently implements **Dirichlet conditions
-   only**.  At every time step, ``nodal_bcs_temperature()`` overwrites the
-   nodal temperature on the domain boundary planes with the values in
-   ``bc_lower_tempval`` / ``bc_upper_tempval``.  The ``bc_lower_temp`` and
-   ``bc_upper_temp`` flag arrays are read and stored but are not yet used
-   to select different BC types at individual faces; all faces receive the
-   Dirichlet treatment unconditionally.  Adiabatic (zero-flux) walls are
-   the effective behaviour when no ``bcval`` entries are set (the default
-   value of ``0.0`` prescribes :math:`T = 0` on those faces, so non-zero
-   Dirichlet temperatures must be specified explicitly).
+.. list-table::
+   :header-rows: 1
+   :widths: 20 80
+
+   * - Keyword
+     - Meaning
+   * - ``periodic``
+     - Periodic face.  Automatically set for directions where
+       ``mpm.is_it_periodic`` is 1; no sub-parameters needed.
+   * - ``dirichlet``
+     - Fixed-temperature wall.  The nodal temperature is overwritten each
+       step with ``mpm.bc_<face>_temp.T_wall``.
+   * - ``adiabatic``
+     - Zero heat-flux (insulated) wall.  The boundary node temperature is
+       set equal to the first interior neighbour, enforcing
+       :math:`\partial T / \partial n = 0`.  No sub-parameters needed.
+   * - ``heatflux``
+     - Prescribed heat-flux wall.  The boundary node temperature is set
+       using a ghost-point formula:
+       :math:`T_b = T_\text{int} + \texttt{flux} \cdot \Delta x`,
+       where :math:`T_\text{int}` is the first interior neighbour and
+       :math:`\Delta x` is the cell width in the face-normal direction.
+   * - ``convective``
+     - Convective (Robin) wall.  The boundary temperature is set via a
+       Biot-number weighting:
+       :math:`T_b = (T_\text{int} + \text{Bi} \cdot T_\infty) / (1 + \text{Bi})`,
+       where :math:`\text{Bi} = h \cdot \Delta x`.
 
 
 Nodal fields added by the temperature module
@@ -276,21 +302,18 @@ fixed temperatures at the lower and upper :math:`y`-faces:
 
    # -------------------------------------------------------------------
    # Temperature boundary conditions
-   # One value per spatial direction (x  y  z)
    # -------------------------------------------------------------------
-   mpm.bc_lower_tempval = 0.0  400.0  0.0   # Dirichlet T at lower faces (K)
-   mpm.bc_upper_tempval = 0.0  300.0  0.0   # Dirichlet T at upper faces (K)
+   mpm.bc_ylo_temp          = dirichlet
+   mpm.bc_ylo_temp.T_wall   = 400.0
 
-   # bc_lower_temp / bc_upper_temp flag arrays are read but currently
-   # all faces receive Dirichlet treatment; leave at default or omit.
-   mpm.bc_lower_temp    = 1  1  1
-   mpm.bc_upper_temp    = 1  1  1
+   mpm.bc_yhi_temp          = dirichlet
+   mpm.bc_yhi_temp.T_wall   = 300.0
 
-In this example the :math:`x`- and :math:`z`-faces have a prescribed
-temperature of 0 K (effectively insulated when the domain temperature is
-initialised to 300 K), while the lower :math:`y`-face is held at 400 K
-and the upper :math:`y`-face at 300 K, imposing a temperature gradient in
-the :math:`y`-direction.
+In this example the :math:`x`- and :math:`z`-faces are left at their
+defaults (``dirichlet`` with ``T_wall = 0.0`` for non-periodic directions),
+while the lower :math:`y`-face is held at 400 K and the upper
+:math:`y`-face at 300 K, imposing a temperature gradient in the
+:math:`y`-direction.
 
 .. warning::
 
@@ -299,3 +322,352 @@ the :math:`y`-direction.
    explicitly set in the input file will have its boundary nodes forced to
    :math:`T = 0` each step.  Always specify all six values (three lower,
    three upper) when running with ``USE_TEMP=1``.
+
+
+Verification test cases
+------------------------
+
+The following two test cases verify the ``heatflux`` and ``convective``
+temperature boundary conditions against analytical solutions.  Both are
+located under ``Tests/`` and follow the standard ExaGOOP layout: a
+``PreProcess/`` directory containing ``config.json`` and
+``Generate_MPs_Inputfile_Generic.py``, a top-level input file
+(``Inputs_*.inp``), a particle file (``mpm_particles.dat``), and a
+``PostProcess/`` directory containing ``validate.py``.
+
+The thermal diffusivity for both cases is
+:math:`\alpha = k / (\rho c_p) = 1 / (1 \times 1) = 1`, which gives
+unit-diffusivity heat conduction — a clean choice that makes the
+analytical series converge quickly.
+
+
+1D heat conduction with prescribed heat flux
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _test-heatflux:
+
+**Physical problem**
+
+A stationary elastic slab occupies :math:`x \in [0, L]` with :math:`L = 1`.
+The left face is held at a fixed temperature, and the right face has a
+prescribed outward heat flux.  The problem is effectively one-dimensional:
+the :math:`y`-faces are periodic and the domain is thin
+(:math:`L_y = 0.1`) so there is no variation in :math:`y`.
+
+Governing equation:
+
+.. math::
+
+   \frac{\partial T}{\partial t} = \alpha \frac{\partial^2 T}{\partial x^2},
+   \qquad \alpha = \frac{k}{\rho c_p}
+
+Boundary and initial conditions:
+
+.. math::
+
+   T(0,\, t) &= 0 \quad &&\text{(Dirichlet)} \\
+   \frac{\partial T}{\partial x}\bigg|_{x=L} &= \frac{q}{k} = 1 \quad
+     &&\text{(prescribed flux, } q = 1,\; k = 1\text{)} \\
+   T(x,\, 0) &= 0 \quad &&\text{(initial condition)}
+
+**Material properties**
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 20 40
+
+   * - Property
+     - Value
+     - Notes
+   * - Density :math:`\rho`
+     - 1.0
+     - uniform
+   * - Specific heat :math:`c_p`
+     - 1.0
+     - uniform
+   * - Thermal conductivity :math:`k`
+     - 1.0
+     - uniform, giving :math:`\alpha = 1`
+   * - Internal heat source :math:`\dot{q}`
+     - 0.0
+     - no volumetric source
+   * - Initial temperature :math:`T_0`
+     - 0.0
+     - uniform
+
+**Domain and discretisation**
+
+The computational domain is :math:`[0,1] \times [0,0.1]` with
+:math:`40 \times 4` background grid cells.  Two material points per cell
+in each direction gives :math:`80 \times 8 = 640` material points in
+total.  The time step is fixed at :math:`\Delta t = 10^{-5}` and the
+simulation is advanced to :math:`t_\text{final} = 2.0`.
+
+**Analytical solution**
+
+Decomposing :math:`T = T_s(x) + v(x,t)` where
+:math:`T_s = (q/k)\,x` is the steady state, the transient part satisfies
+the heat equation with a Dirichlet condition at :math:`x = 0` and a
+zero-flux condition at :math:`x = L`.  The eigenvalues of this
+Sturm-Liouville problem are
+:math:`\lambda_n = (2n-1)\pi / (2L),\; n = 1,2,\ldots`, giving:
+
+.. math::
+
+   T(x, t) = \frac{q}{k}\,x
+   \;+\; \sum_{n=1}^{\infty}
+     \frac{2\,(-1)^n}{L\,\lambda_n^2}
+     \sin(\lambda_n x)\,
+     e^{-\lambda_n^2 \alpha t}
+
+At long times the solution approaches the linear steady state
+:math:`T_s(x) = x`.
+
+**Setting up the test case**
+
+The particle file and input file are generated from the configuration
+in ``PreProcess/config.json``.  The key editable fields are:
+
+.. code-block:: json
+
+   {
+     "grid": { "nx": 40, "ny": 4 },
+     "ppc": [2, 2],
+     "bodies": [{
+       "temperature": {
+         "T": 0.0,
+         "spheat": 1.0,
+         "thermcond": 1.0,
+         "heatsrc": 0.0
+       }
+     }]
+   }
+
+To regenerate the particle and input files, run from the test directory:
+
+.. code-block:: bash
+
+   cd Tests/1D_Heat_Conduction_HeatFlux/
+   bash Generate_MPs_and_InputFiles.sh
+
+This writes ``mpm_particles.dat`` and
+``Inputs_1DHeatConduction_HeatFlux.inp``. The boundary conditions in the generated input file are:
+
+.. code-block:: bash
+
+   mpm.bc_xlo_temp          = dirichlet
+   mpm.bc_xlo_temp.T_wall   = 0.0
+   mpm.bc_xhi_temp          = heatflux
+   mpm.bc_xhi_temp.flux     = 1.0
+
+To change the imposed flux, set ``mpm.bc_xhi_temp.flux`` to the desired
+value of :math:`q`.  If the material thermal conductivity is also
+changed (via ``thermcond`` in ``config.json``), the flux entry in the
+input file should be updated to :math:`q / k` accordingly.
+
+**Running**
+
+Build the binary with the temperature module enabled:
+
+.. code-block:: bash
+
+   cd Tests/1D_Heat_Conduction_HeatFlux
+   # copy make file here.
+   make USE_TEMP=TRUE -j4
+
+Then run:
+
+.. code-block:: bash
+
+   ./ExaGOOP2d.<suffix>.ex Inputs_1DHeatConduction_HeatFlux.inp
+
+Output particle snapshots are written to the subdirectory specified by
+``mpm.prefix_asciifilename`` inside the test directory.
+
+**Post-processing and validation**
+
+The validation script compares the numerical temperature profile against
+the analytical Fourier-series solution at :math:`t = 0.5`:
+
+.. code-block:: bash
+
+   cd Tests/1D_Heat_Conduction_HeatFlux/PostProcess
+   python validate.py
+
+A passing run prints the RMS error and ``PASS``.  The acceptance
+criterion is RMS :math:`< 10^{-2}`.
+
+**Sample result**
+
+At :math:`t = 0.5` the transient has partially decayed.  The profile
+rises from :math:`T(0) = 0` and curves upward, approaching the linear
+steady state :math:`T = x`.  The first-mode relaxation time is
+:math:`1/\lambda_1^2 = 4/\pi^2 \approx 0.41`, so at :math:`t = 0.5`
+roughly :math:`e^{-1.23} \approx 29\%` of the leading-mode amplitude
+remains.  Representative exact values are:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 30 30
+
+   * - :math:`x`
+     - :math:`T_\text{exact}(x,\,0.5)`
+     - Steady state :math:`x`
+   * - 0.00
+     - 0.000
+     - 0.000
+   * - 0.25
+     - 0.160
+     - 0.250
+   * - 0.50
+     - 0.333
+     - 0.500
+   * - 0.75
+     - 0.532
+     - 0.750
+   * - 1.00
+     - 0.764
+     - 1.000
+
+The numerical solution produced by ExaGOOP matches these values to within
+RMS :math:`\approx 3 \times 10^{-3}`.
+
+
+1D heat conduction with convective boundary condition
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _test-convective:
+
+**Physical problem**
+
+The same slab geometry and material as the heat-flux case, but with
+different boundary conditions: the left face has a fixed temperature and
+the right face is subject to Newton cooling (a Robin condition).
+
+Boundary and initial conditions:
+
+.. math::
+
+   T(0,\, t) &= T_w = 1 \quad &&\text{(Dirichlet)} \\
+   -k\,\frac{\partial T}{\partial x}\bigg|_{x=L}
+     &= h\bigl(T(L,t) - T_\infty\bigr)
+     \quad &&\text{(convective, } h = 2,\; T_\infty = 0\text{)} \\
+   T(x,\, 0) &= 0 \quad &&\text{(initial condition)}
+
+This models a slab heated from one end by a fixed wall and cooled from
+the other by a convective fluid.  The Biot number is
+:math:`\text{Bi} = h L / k = 2`, placing this case firmly in the
+mixed-convection regime (neither thermally thin nor thick limit).
+
+**Material properties**
+
+Identical to the heat-flux case: :math:`\rho = c_p = k = 1`,
+:math:`\dot{q} = 0`, :math:`T_0 = 0`.
+
+**Analytical solution**
+
+The steady state satisfying both boundary conditions is:
+
+.. math::
+
+   T_s(x) = T_w + \frac{(T_\infty - T_w)\,(h/k)\,x}{1 + h L / k}
+           = 1 - \frac{2x}{3}
+
+Decomposing :math:`T = T_s + w`, the transient part :math:`w` satisfies
+homogeneous boundary conditions of the same type (Dirichlet at
+:math:`x = 0`, Robin at :math:`x = L`).  The eigenfunctions are
+:math:`\sin(\lambda_n x)` where the eigenvalues satisfy the transcendental
+equation:
+
+.. math::
+
+   \lambda_n \cot(\lambda_n L) = -\frac{h}{k}
+
+For :math:`h/k = 2` the first few roots are approximately
+:math:`\lambda_1 \approx 1.077`,
+:math:`\lambda_2 \approx 3.644`,
+:math:`\lambda_3 \approx 6.578`, … .  The full solution is:
+
+.. math::
+
+   T(x, t) = T_s(x)
+   \;+\; \sum_{n=1}^{\infty}
+     C_n \sin(\lambda_n x)\,e^{-\lambda_n^2 \alpha t},
+   \qquad
+   C_n = \frac{\displaystyle\int_0^L -T_s(\xi)\sin(\lambda_n\xi)\,\mathrm{d}\xi}
+              {\displaystyle\int_0^L \sin^2(\lambda_n\xi)\,\mathrm{d}\xi}
+
+**Setting up the test case**
+
+The ``config.json`` structure is identical to the heat-flux case.  The
+key boundary condition lines in the generated input file are:
+
+.. code-block:: bash
+
+   mpm.bc_xlo_temp          = dirichlet
+   mpm.bc_xlo_temp.T_wall   = 1.0
+   mpm.bc_xhi_temp          = convective
+   mpm.bc_xhi_temp.h        = 2.0
+   mpm.bc_xhi_temp.T_inf    = 0.0
+
+To change the heat transfer coefficient, edit ``mpm.bc_xhi_temp.h``.
+To change the far-field temperature, edit ``mpm.bc_xhi_temp.T_inf``.
+Regenerate input and particle files after editing ``config.json``:
+
+.. code-block:: bash
+
+   cd Tests/1D_Heat_Conduction_Convective/PreProcess
+   python Generate_MPs_Inputfile_Generic.py
+
+**Running**
+
+.. code-block:: bash
+
+   cd Tests/1D_Heat_Conduction_Convective
+   make USE_TEMP=TRUE -j4
+   ./ExaGOOP2d.gnu.MPI.ex Inputs_1DHeatConduction_Convective.inp
+
+**Post-processing and validation**
+
+.. code-block:: bash
+
+   cd Tests/1D_Heat_Conduction_Convective/PostProcess
+   python validate.py
+
+The script finds eigenvalues numerically (``scipy.optimize.brentq``),
+evaluates the Fourier series at :math:`t = 0.5`, and reports the RMS
+error.  Acceptance criterion: RMS :math:`< 10^{-2}`.
+
+**Sample result**
+
+The steady state :math:`T_s(x) = 1 - 2x/3` drops from 1 at the heated
+wall to :math:`1/3 \approx 0.333` at the convective boundary.  The first
+eigenvalue :math:`\lambda_1 \approx 2.289` gives a relaxation time of
+:math:`1/\lambda_1^2 \approx 0.19`, so by :math:`t = 0.5` the profile is
+close to steady state.  Representative exact values:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 30 30
+
+   * - :math:`x`
+     - :math:`T_\text{exact}(x,\,0.5)`
+     - Steady state :math:`T_s(x)`
+   * - 0.00
+     - 1.000
+     - 1.000
+   * - 0.25
+     - 0.805
+     - 0.833
+   * - 0.50
+     - 0.619
+     - 0.667
+   * - 0.75
+     - 0.448
+     - 0.500
+   * - 1.00
+     - 0.294
+     - 0.333
+
+The numerical solution produced by ExaGOOP matches these values to within
+RMS :math:`\approx 2 \times 10^{-3}`.

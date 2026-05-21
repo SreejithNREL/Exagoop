@@ -1,0 +1,102 @@
+{
+  "_comment": "2-D dam break with a box EB obstacle defined via a 3-D STL. AMReX EB2 computes the signed-distance level set from the 3-D STL and intersects it with the 2-D domain, giving the correct 2-D cross-section obstacle.",
+  "_stl_gen_cmd": "python generate_box_stl.py --lo 0.15 0.0 -0.01 --hi 0.25 0.1 0.01 --output obstacle.stl --name obstacle",
+  "dimensions": 2,
+  "grid": {
+    "xmin": 0.0,
+    "xmax": 0.4,
+    "nx": 80,
+    "ymin": 0.0,
+    "ymax": 0.4,
+    "ny": 80
+  },
+  "ppc": [
+    4,
+    4
+  ],
+  "bodies": [
+    {
+      "shape": {
+        "type": "rectangle",
+        "xmin": 0.0,
+        "xmax": 0.1,
+        "ymin": 0.0,
+        "ymax": 0.2
+      },
+      "constitutive_model": {
+        "type": "fluid",
+        "Bulk_modulus": 20000.0,
+        "Gamma_pressure": 7.0,
+        "Dynamic_viscosity": 0.001
+      },
+      "initial_velocity": {
+        "type": "uniform",
+        "vx": 0.0,
+        "vy": 0.0
+      },
+      "temperature": {
+        "enabled": false,
+        "type": "uniform",
+        "T": 0.0,
+        "spheat": 1.0,
+        "thermcond": 1.0,
+        "heatsrc": 0.0
+      }
+    }
+  ],
+  "CFL": 0.1,
+  "order_scheme": 1,
+  "stress_update_scheme": "MUSL",
+  "alpha_pic_flip": 0.9,
+  "output_tag": "DamBreak_BoxObstacle_80",
+  "input_filename": "Inputs_DamBreak_BoxObstacle_80.inp",
+  "output_format": "ascii",
+  "materialpoint_filename": "mpm_particles_80.dat",
+  "plot_to_check": false,
+  "simulation": {
+    "final_time": 2.5,
+    "max_steps": 5000000,
+    "screen_output_time": 0.01,
+    "write_output_time": 0.05,
+    "num_redist": 1,
+    "fixed_timestep": 0,
+    "timestep": 1e-05
+  },
+  "gravity": [
+    0.0,
+    -9.81,
+    0.0
+  ],
+  "boundary_conditions": {
+    "xlo": { "mom": "slip" },
+    "xhi": { "mom": "slip" },
+    "ylo": { "mom": "slip" },
+    "yhi": { "mom": "slip" }
+  },
+  "levelset_bodies": [
+    {
+      "name": "obstacle",
+      "geom_type": "stl",
+      "stl_file": "obstacle.stl",
+      "ls_refinement": 2,
+      "levelset_mom": "slipwall"
+    }
+  ],
+  "diagnostics": {
+    "print_diagnostics": 1,
+    "do_calculate_tke_tse": 1,
+    "do_calculate_mwa_velcomp": 0,
+    "do_calculate_mwa_velmag": 0,
+    "do_calculate_minmaxpos": 1,
+    "write_diag_output_time": 0.05
+  },
+  "build_with_hdf": false,
+  "build_system": "gnumake",
+  "use_mpi": true,
+  "use_cuda": false,
+  "use_hip": false,
+  "use_omp": false,
+  "use_sycl": false,
+  "use_eb": true,
+  "use_temp": false
+}

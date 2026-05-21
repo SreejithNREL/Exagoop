@@ -55,9 +55,7 @@ void MPMParticleContainer::apply_constitutive_model(
         auto &ptile = plev[index];
         auto &aos = ptile.GetArrayOfStructs();
 
-        int np = aos.numRealParticles();
-        int ng = aos.numNeighborParticles();
-        int nt = np + ng;
+        const int nt = aos.numRealParticles();
 
         ParticleType *pstruct = aos().dataPtr();
 
@@ -79,9 +77,6 @@ void MPMParticleContainer::apply_constitutive_model(
                             dt * p.rdata(realData::strainrate + d);
                     }
 
-                // Apply external axial strainrate in active spatial dims
-                // Assumes XX, YY, ZZ are defined consistently with
-                // AMREX_SPACEDIM
 #if (AMREX_SPACEDIM >= 1)
                     p.rdata(realData::strain + XX) += dt * applied_strainrate;
 #endif
@@ -180,9 +175,7 @@ void MPMParticleContainer::apply_constitutive_model_delta(
         auto &ptile = plev[index];
         auto &aos = ptile.GetArrayOfStructs();
 
-        const int np = aos.numRealParticles();
-        const int ng = aos.numNeighborParticles();
-        const int nt = np + ng;
+        const int nt = aos.numRealParticles();
 
         ParticleType *pstruct = aos().dataPtr();
 

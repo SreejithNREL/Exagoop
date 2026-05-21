@@ -91,6 +91,8 @@ void MPMParticleContainer::update_phase_field(MultiFab &phasedata,
             [=] AMREX_GPU_DEVICE(int ip) noexcept
             {
                 ParticleType &p = pstruct[ip];
+                if (p.id() < 0)
+                    return; // skip invalidated particles
 
                 // Particle cell index at refined resolution
                 IntVect iv = getParticleCell(p, plo, dxi, domain);
@@ -229,7 +231,6 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
     Vector<std::string> real_data_names;
     Vector<std::string> int_data_names;
 
-    // Always include radius
     real_data_names.push_back("radius");
 
     real_data_names.push_back("xvel");
@@ -309,7 +310,7 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
     writeflags_real[realData::pressure] = 1;
     writeflags_real[realData::vol_init] = 1;
 
-    // Optional material properties (disabled by default)
+    // Optional material properties
     writeflags_real[realData::E] = 0;
     writeflags_real[realData::nu] = 0;
     writeflags_real[realData::Bulk_modulus] = 0;

@@ -4,8 +4,13 @@
 #include <AMReX.H>
 #include <AMReX_REAL.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_GpuContainers.H>
 #include <constants.H>
+#include <mpm_udf_loader.H>
 // clang-format on
+
+typedef void (*WallVelUDFFuncPtr)(double, double, double, double, double *);
+typedef void (*TempUDFFuncPtr)(double, double, double, double, double *);
 
 using namespace amrex;
 
@@ -67,25 +72,6 @@ struct intData
     };
 };
 
-struct Rigid_Bodies
-{
-    int Rigid_Body_Id;
-    int num_of_mp;
-    amrex::Real total_mass;
-    amrex::Real total_volume;
-    Array<amrex::Real, AMREX_SPACEDIM> gravity;
-    Array<amrex::Real, AMREX_SPACEDIM> force_external;
-    Array<amrex::Real, AMREX_SPACEDIM> force_internal;
-    Array<amrex::Real, AMREX_SPACEDIM> velocity;
-    Array<amrex::Real, AMREX_SPACEDIM> imposed_velocity;
-    amrex::Real Damping_Coefficient;
-    // Body forces
-    int position_update_method; // 0-->Constant Velocity 1-->Particle dynamics
-                                // solver
-    bool enable_weight;
-    bool enable_damping_force;
-};
-
 class MPMspecs
 {
   public:
@@ -125,6 +111,8 @@ class MPMspecs
     std::string checkpoint_output_folder = "./Solution/checkpoint_files/";
     std::string ascii_output_folder = "./Solution/ascii_files/";
     std::string levset_output_folder = "./Solution/levset_files/";
+    std::string blevset_output_folder =
+        "./Solution/blevset_files/"; // body levelset
     std::string diagnostic_output_folder = "./Diagnostics/";
 
     // Diagnostic output filenames
@@ -148,29 +136,7 @@ class MPMspecs
     // Diagnostic parameters
     int print_diagnostics = 0;
     int ifrigidnodespresent = 0;
-    bool is_standard_test = true;
-    int test_number = 0; // 0->is_standard_test=false,1-->axial vibration of
-                         // bar, 2-->Dam break, 3--> Elastic collision of disks,
-                         // 4--> Lateral deflection of beam
     int no_of_rigidbodies_present = 0;
-    amrex::Real total_mass_phase_0 = 0.0;
-    amrex::Real total_vol_phase_0 = 0.0;
-
-    // Rigid body nodes
-    Rigid_Bodies *Rb;
-
-    // Parameters for membrane compaction
-    amrex::Real mem_compaction_area = 1.0;
-    amrex::Real mem_compaction_dampcoeff = 1.0;
-    amrex::Real mem_compaction_L0 = 1.0;
-    int mem_compaction_restoring_force_calc_method = 1;
-
-    // Parameters for spring alone simulation
-    amrex::Real spring_alone_area = 0.1;
-    amrex::Real spring_alone_length = 0.0;
-    amrex::Real spring_alone_E = 0.0;
-    amrex::Real spring_alone_exact_deflection = 0.0;
-    amrex::Real spring_alone_exact_delta = 0.0;
 
     // 1-->tent function, 3--> cubic spline shape function
     int order_scheme = 1;
@@ -191,8 +157,6 @@ class MPMspecs
     Real total_mass = 0.0;
     Real total_rigid_mass = 0.0;
     Real total_vol = 0.0;
-    Real mem_compaction_vnew = 0.0;
-    Real mem_compaction_vold = 0.0;
     int stress_update_scheme = 1;
     int calculate_strain_based_on_delta = 0;
 
@@ -202,8 +166,21 @@ class MPMspecs
 #if USE_TEMP
     Vector<int> bclo_temp;
     Vector<int> bchi_temp;
-    Vector<amrex::Real> bclo_tempval;
-    Vector<amrex::Real> bchi_tempval;
+    Array<Real, AMREX_SPACEDIM> bc_temp_T_wall_lo{AMREX_D_DECL(0.0, 0.0, 0.0)};
+    Array<Real, AMREX_SPACEDIM> bc_temp_T_wall_hi{AMREX_D_DECL(0.0, 0.0, 0.0)};
+    Array<Real, AMREX_SPACEDIM> bc_temp_flux_lo{AMREX_D_DECL(0.0, 0.0, 0.0)};
+    Array<Real, AMREX_SPACEDIM> bc_temp_flux_hi{AMREX_D_DECL(0.0, 0.0, 0.0)};
+    Array<Real, AMREX_SPACEDIM> bc_temp_h_lo{AMREX_D_DECL(0.0, 0.0, 0.0)};
+    Array<Real, AMREX_SPACEDIM> bc_temp_h_hi{AMREX_D_DECL(0.0, 0.0, 0.0)};
+    Array<Real, AMREX_SPACEDIM> bc_temp_Tinf_lo{AMREX_D_DECL(0.0, 0.0, 0.0)};
+    Array<Real, AMREX_SPACEDIM> bc_temp_Tinf_hi{AMREX_D_DECL(0.0, 0.0, 0.0)};
+
+    std::unique_ptr<UDFLoader> udf_temp_loader_lo[AMREX_SPACEDIM];
+    std::unique_ptr<UDFLoader> udf_temp_loader_hi[AMREX_SPACEDIM];
+    TempUDFFuncPtr udf_temp_func_ptr_lo[AMREX_SPACEDIM] = {};
+    TempUDFFuncPtr udf_temp_func_ptr_hi[AMREX_SPACEDIM] = {};
+    amrex::Gpu::DeviceVector<amrex::Real> udf_temp_nodes_lo[AMREX_SPACEDIM];
+    amrex::Gpu::DeviceVector<amrex::Real> udf_temp_nodes_hi[AMREX_SPACEDIM];
 #endif
 
     GpuArray<int, AMREX_SPACEDIM> order_scheme_directional{
@@ -228,16 +205,20 @@ class MPMspecs
     Real autogen_heatsrc = 0.001;
     Real autogen_thermcond = 0.001;
 
-    int levelset_bc = 1; // no slip wall
-    Real levelset_wall_mu = 0.1;
-
     Array<Real, AMREX_SPACEDIM> wall_mu_lo{AMREX_D_DECL(0.1, 0.1, 0.1)};
     Array<Real, AMREX_SPACEDIM> wall_mu_hi{AMREX_D_DECL(0.1, 0.1, 0.1)};
 
     Array<Real, AMREX_SPACEDIM * AMREX_SPACEDIM> wall_vel_lo{0.0};
     Array<Real, AMREX_SPACEDIM * AMREX_SPACEDIM> wall_vel_hi{0.0};
 
-    Real levset_mu = 0.1;
+    std::unique_ptr<UDFLoader> udf_loader_lo[AMREX_SPACEDIM];
+    std::unique_ptr<UDFLoader> udf_loader_hi[AMREX_SPACEDIM];
+    WallVelUDFFuncPtr udf_func_ptr_lo[AMREX_SPACEDIM] = {};
+    WallVelUDFFuncPtr udf_func_ptr_hi[AMREX_SPACEDIM] = {};
+    amrex::Gpu::DeviceVector<amrex::Real> udf_wall_vel_nodes_lo[AMREX_SPACEDIM];
+    amrex::Gpu::DeviceVector<amrex::Real> udf_wall_vel_nodes_hi[AMREX_SPACEDIM];
+
+    ~MPMspecs() = default;
 
     void read_mpm_specs()
     {
@@ -246,6 +227,11 @@ class MPMspecs
 #if USE_TEMP
         bclo_temp.resize(AMREX_SPACEDIM);
         bchi_temp.resize(AMREX_SPACEDIM);
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        {
+            bclo_temp[d] = periodic[d] ? 0 : 2;
+            bchi_temp[d] = periodic[d] ? 0 : 2;
+        }
 #endif
 
         // autogen_mincoords.resize(AMREX_SPACEDIM);
@@ -314,15 +300,6 @@ class MPMspecs
         pp.query("num_of_digits_in_filenames", num_of_digits_in_filenames);
         pp.query("write_ascii", write_ascii);
 
-        pp.query("mem_compaction_area", mem_compaction_area);
-        pp.query("mem_compaction_dampcoeff", mem_compaction_dampcoeff);
-        pp.query("mem_compaction_restoring_force_calc_method",
-                 mem_compaction_restoring_force_calc_method);
-
-        pp.query("spring_alone_area", spring_alone_area);
-        pp.query("spring_alone_length", spring_alone_length);
-        pp.query("spring_alone_E", spring_alone_E);
-
         if (!use_autogen)
         {
             particlefilename = "mpm_particles.dat";
@@ -353,7 +330,24 @@ class MPMspecs
         }
 
         pp.query("fixed_timestep", fixed_timestep);
-        pp.query("stress_update_scheme", stress_update_scheme);
+        std::string sus_string = "USL";
+        pp.query("stress_update_scheme", sus_string);
+        if (sus_string == "USL")
+        {
+            stress_update_scheme = USL;
+        }
+        else if (sus_string == "MUSL")
+        {
+            stress_update_scheme = MUSL;
+        }
+        else
+        {
+            std::string error_msg = "\nError! Stress update scheme  should be "
+                                    "USL/MUSL. But found " +
+                                    sus_string;
+            amrex::Abort(error_msg);
+        }
+
         if (fixed_timestep == 1)
         {
             pp.get("timestep", timestep);
@@ -396,7 +390,6 @@ class MPMspecs
             pp.query("write_diag_output_time", write_diag_output_time);
         }
 
-        // by default it is periodic
         bclo[0] = BC_SLIPWALL;
         bchi[0] = BC_SLIPWALL;
 #if (AMREX_SPACEDIM >= 2)
@@ -407,73 +400,168 @@ class MPMspecs
         bclo[2] = BC_SLIPWALL;
         bchi[2] = BC_SLIPWALL;
 #endif
-        pp.queryarr("bc_lower", bclo);
-        pp.queryarr("bc_upper", bchi);
+
+        auto bc_str_to_int = [](const std::string &s) -> int
+        {
+            if (s == "periodic")
+                return BC_PERIODIC;
+            if (s == "noslip")
+                return BC_NOSLIPWALL;
+            if (s == "slip")
+                return BC_SLIPWALL;
+            if (s == "partialslip")
+                return BC_PARTIALSLIPWALL;
+            if (s == "outflow")
+                return BC_OUTFLOW;
+            amrex::Abort("\nUnknown BC type: " + s);
+            return -1;
+        };
+
+        const std::string face_lo_keys[3] = {"bc_xlo_mom", "bc_ylo_mom",
+                                             "bc_zlo_mom"};
+        const std::string face_hi_keys[3] = {"bc_xhi_mom", "bc_yhi_mom",
+                                             "bc_zhi_mom"};
+        const std::string face_lo_ns[3] = {"mpm.bc_xlo_mom", "mpm.bc_ylo_mom",
+                                           "mpm.bc_zlo_mom"};
+        const std::string face_hi_ns[3] = {"mpm.bc_xhi_mom", "mpm.bc_yhi_mom",
+                                           "mpm.bc_zhi_mom"};
+
+        for (int d = 0; d < AMREX_SPACEDIM; d++)
+        {
+            std::string bc_str;
+            if (pp.query(face_lo_keys[d].c_str(), bc_str))
+            {
+                bclo[d] = bc_str_to_int(bc_str);
+            }
+            if (pp.query(face_hi_keys[d].c_str(), bc_str))
+            {
+                bchi[d] = bc_str_to_int(bc_str);
+            }
+
+            ParmParse pp_lo(face_lo_ns[d]);
+            pp_lo.query("wall_mu", wall_mu_lo[d]);
+            Vector<Real> wvel_lo(AMREX_SPACEDIM, 0.0);
+            if (pp_lo.queryarr("wall_vel", wvel_lo))
+            {
+                for (int c = 0; c < AMREX_SPACEDIM; c++)
+                {
+                    wall_vel_lo[d * AMREX_SPACEDIM + c] = wvel_lo[c];
+                }
+            }
+            {
+                std::string udf_lib_lo, udf_func_lo;
+                bool has_lib = pp_lo.query("udf_lib", udf_lib_lo);
+                bool has_func = pp_lo.query("udf_func", udf_func_lo);
+                if (has_lib && has_func)
+                {
+                    udf_loader_lo[d] = std::make_unique<UDFLoader>(udf_lib_lo);
+                    udf_func_ptr_lo[d] =
+                        udf_loader_lo[d]->symbol<WallVelUDFFuncPtr>(
+                            udf_func_lo);
+                }
+            }
+
+            ParmParse pp_hi(face_hi_ns[d]);
+            pp_hi.query("wall_mu", wall_mu_hi[d]);
+            Vector<Real> wvel_hi(AMREX_SPACEDIM, 0.0);
+            if (pp_hi.queryarr("wall_vel", wvel_hi))
+            {
+                for (int c = 0; c < AMREX_SPACEDIM; c++)
+                {
+                    wall_vel_hi[d * AMREX_SPACEDIM + c] = wvel_hi[c];
+                }
+            }
+            {
+                std::string udf_lib_hi, udf_func_hi;
+                bool has_lib = pp_hi.query("udf_lib", udf_lib_hi);
+                bool has_func = pp_hi.query("udf_func", udf_func_hi);
+                if (has_lib && has_func)
+                {
+                    udf_loader_hi[d] = std::make_unique<UDFLoader>(udf_lib_hi);
+                    udf_func_ptr_hi[d] =
+                        udf_loader_hi[d]->symbol<WallVelUDFFuncPtr>(
+                            udf_func_hi);
+                }
+            }
+        }
 
 #if USE_TEMP
-        pp.queryarr("bc_lower_temp", bclo_temp);
-        pp.queryarr("bc_upper_temp", bchi_temp);
+        auto bc_temp_str_to_int = [](const std::string &s) -> int
+        {
+            if (s == "periodic")
+                return 0;
+            if (s == "dirichlet")
+                return 1;
+            if (s == "adiabatic")
+                return 2;
+            if (s == "heatflux")
+                return 3;
+            if (s == "convective")
+                return 4;
+            amrex::Abort("\nUnknown temperature BC type: " + s);
+            return -1;
+        };
 
-        pp.queryarr("bc_lower_tempval", bclo_tempval);
-        pp.queryarr("bc_upper_tempval", bchi_tempval);
+        const std::string face_lo_temp_keys[3] = {"bc_xlo_temp", "bc_ylo_temp",
+                                                  "bc_zlo_temp"};
+        const std::string face_hi_temp_keys[3] = {"bc_xhi_temp", "bc_yhi_temp",
+                                                  "bc_zhi_temp"};
+        const std::string face_lo_temp_ns[3] = {
+            "mpm.bc_xlo_temp", "mpm.bc_ylo_temp", "mpm.bc_zlo_temp"};
+        const std::string face_hi_temp_ns[3] = {
+            "mpm.bc_xhi_temp", "mpm.bc_yhi_temp", "mpm.bc_zhi_temp"};
+
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        {
+            std::string bc_temp_str;
+            if (pp.query(face_lo_temp_keys[d].c_str(), bc_temp_str))
+            {
+                bclo_temp[d] = bc_temp_str_to_int(bc_temp_str);
+            }
+            if (pp.query(face_hi_temp_keys[d].c_str(), bc_temp_str))
+            {
+                bchi_temp[d] = bc_temp_str_to_int(bc_temp_str);
+            }
+
+            ParmParse pp_lo_temp(face_lo_temp_ns[d]);
+            pp_lo_temp.query("T_wall", bc_temp_T_wall_lo[d]);
+            pp_lo_temp.query("flux", bc_temp_flux_lo[d]);
+            pp_lo_temp.query("h", bc_temp_h_lo[d]);
+            pp_lo_temp.query("T_inf", bc_temp_Tinf_lo[d]);
+            {
+                std::string udf_lib_lo, udf_func_lo;
+                bool has_lib = pp_lo_temp.query("udf_lib", udf_lib_lo);
+                bool has_func = pp_lo_temp.query("udf_func", udf_func_lo);
+                if (has_lib && has_func)
+                {
+                    udf_temp_loader_lo[d] =
+                        std::make_unique<UDFLoader>(udf_lib_lo);
+                    udf_temp_func_ptr_lo[d] =
+                        udf_temp_loader_lo[d]->symbol<TempUDFFuncPtr>(
+                            udf_func_lo);
+                }
+            }
+
+            ParmParse pp_hi_temp(face_hi_temp_ns[d]);
+            pp_hi_temp.query("T_wall", bc_temp_T_wall_hi[d]);
+            pp_hi_temp.query("flux", bc_temp_flux_hi[d]);
+            pp_hi_temp.query("h", bc_temp_h_hi[d]);
+            pp_hi_temp.query("T_inf", bc_temp_Tinf_hi[d]);
+            {
+                std::string udf_lib_hi, udf_func_hi;
+                bool has_lib = pp_hi_temp.query("udf_lib", udf_lib_hi);
+                bool has_func = pp_hi_temp.query("udf_func", udf_func_hi);
+                if (has_lib && has_func)
+                {
+                    udf_temp_loader_hi[d] =
+                        std::make_unique<UDFLoader>(udf_lib_hi);
+                    udf_temp_func_ptr_hi[d] =
+                        udf_temp_loader_hi[d]->symbol<TempUDFFuncPtr>(
+                            udf_func_hi);
+                }
+            }
+        }
 #endif
-
-        pp.query("levelset_bc", levelset_bc);
-        pp.query("levelset_wall_mu", levelset_wall_mu);
-
-        pp.query("wall_mu_lo", wall_mu_lo);
-        pp.query("wall_mu_hi", wall_mu_hi);
-
-        for (int i = 0; i < AMREX_SPACEDIM * AMREX_SPACEDIM; i++)
-        {
-            wall_vel_lo[i] = 0.0;
-            wall_vel_hi[i] = 0.0;
-        }
-
-        pp.query("wall_vel_lo", wall_vel_lo);
-        pp.query("wall_vel_hi", wall_vel_hi);
-    }
-
-    std::string Convert_arr_string(Array<Real, AMREX_SPACEDIM> arr)
-    {
-        std::string str;
-        str = "[";
-        for (int i = 0; i < AMREX_SPACEDIM - 1; i++)
-        {
-            str = str + std::to_string(arr[i]) + ",";
-        }
-        str = str + std::to_string(arr[AMREX_SPACEDIM - 1]);
-        return (str);
-    }
-
-    void PrintSimulationParams()
-    {
-        // To be completed, Sreejith
-        std::string vect_str;
-        vect_str = Convert_arr_string(plo);
-        amrex::Print() << "\n\tBackground grid physical extents: " << vect_str;
-    }
-    void ThreeDOF_Solver(amrex::Real dt)
-    {
-        for (int i = 0; i < no_of_rigidbodies_present; i++)
-        {
-            if (Rb[i].position_update_method == 1)
-            {
-                for (int j = 0; j < AMREX_SPACEDIM; j++)
-                {
-                    Rb[i].velocity[j] +=
-                        (Rb[i].force_internal[j] + Rb[i].force_external[j]) /
-                        Rb[i].total_mass * dt;
-                }
-            }
-            else
-            {
-                for (int j = 0; j < AMREX_SPACEDIM; j++)
-                {
-                    Rb[i].velocity[j] = Rb[i].imposed_velocity[j];
-                }
-            }
-        }
     }
 };
 

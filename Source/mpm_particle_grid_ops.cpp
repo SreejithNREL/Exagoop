@@ -5,45 +5,6 @@
 // clang-format on
 
 /**
- * @brief Checks whether any rigid-body particles are present in the container.
- *
- * Performs a parallel reduction over all particles to determine whether
- * any particle has phase = 1 (rigid). Returns 1 if at least one rigid
- * particle exists, otherwise returns 0.
- *
- * @return int
- *         1 if rigid particles are present,
- *         0 otherwise.
- */
-
-int MPMParticleContainer::checkifrigidnodespresent()
-{
-    int rigidnodespresent = 0;
-
-    using PType = typename MPMParticleContainer::SuperParticleType;
-    rigidnodespresent = static_cast<int>(
-        amrex::ReduceMax(*this,
-                         [=] AMREX_GPU_HOST_DEVICE(const PType &p) -> Real
-                         {
-                             if (p.idata(intData::phase) == 1)
-                             {
-                                 int rigidnodespresenttmp = 1;
-                                 return (rigidnodespresenttmp);
-                             }
-                             else
-                             {
-                                 int rigidnodespresenttmp = 0;
-                                 return (rigidnodespresenttmp);
-                             }
-                         }));
-
-#ifdef BL_USE_MPI
-    ParallelDescriptor::ReduceIntMax(rigidnodespresent);
-#endif
-    return (rigidnodespresent);
-}
-
-/**
  * @brief Computes the total number of rigid-body particles belonging to a given
  * body ID.
  *
@@ -299,7 +260,7 @@ compute_bounds(int ivd, int lod, int hid, int scheme, bool is_periodic)
 
     if (scheme == 1)
     {
-        // Linear: 2-point support
+
         bmin = 0;
         bmax = 2;
     }
@@ -383,7 +344,6 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
     amrex::GpuArray<int, AMREX_SPACEDIM> order_scheme_directional,
     amrex::GpuArray<int, AMREX_SPACEDIM> periodic)
 {
-    // if(testing==1) amrex::Print()<<"\n Entered deposit_onto_grid_momentum";
 
     const int lev = 0;
     const Geometry &geom = Geom(lev);
@@ -405,11 +365,11 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
 
     int extloads = external_loads_present;
 
-    // Zero out nodal data
     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
     {
 
-        const Box &nodalbox = mfi.validbox();
+        const Box &nodalbox =
+            convert(mfi.validbox(), IntVect(AMREX_D_DECL(1, 1, 1)));
         auto nodal_data_arr = nodaldata.array(mfi);
         amrex::ParallelFor(
             nodalbox,
@@ -442,18 +402,6 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
             });
     }
 
-    // Color stride per dimension: linear stencil has width 2, quad/cubic
-    // width 4. Particles with the same color are separated by >= stride cells
-    // in every dimension, so their stencil supports are disjoint — plain += is
-    // safe.
-    amrex::GpuArray<int, AMREX_SPACEDIM> color_stride;
-    int ncolors = 1;
-    for (int d = 0; d < AMREX_SPACEDIM; ++d)
-    {
-        color_stride[d] = (order_scheme_directional[d] == 1) ? 2 : 4;
-        ncolors *= color_stride[d];
-    }
-
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
 
@@ -465,203 +413,184 @@ void MPMParticleContainer::deposit_onto_grid_momentum(
         auto nodal_data_arr = nodaldata.array(mfi);
         ParticleType *pstruct = aos().dataPtr();
 
-        for (int icolor = 0; icolor < ncolors; ++icolor)
-        {
-            // Decode the flat color index into per-dimension indices.
-            amrex::GpuArray<int, AMREX_SPACEDIM> color_idx;
+        amrex::ParallelFor(
+            nt,
+            [=] AMREX_GPU_DEVICE(int ip) noexcept
             {
-                int tmp = icolor;
+                ParticleType &p = pstruct[ip];
+                if (p.id() < 0)
+                    return;
+                if (p.idata(intData::phase) != 0)
+                    return;
+
+                amrex::Real xp[AMREX_SPACEDIM];
+                for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                    xp[d] = p.pos(d);
+
+                auto iv = getParticleCell(p, plo, dxi, domain);
+
+                // Compute stencil extents per dimension
+
+                int min_idx[AMREX_SPACEDIM], max_idx[AMREX_SPACEDIM];
+
                 for (int d = 0; d < AMREX_SPACEDIM; ++d)
                 {
-                    color_idx[d] = tmp % color_stride[d];
-                    tmp /= color_stride[d];
+                    auto bounds = compute_bounds(iv[d], lo[d], hi[d],
+                                                 order_scheme_directional[d],
+                                                 periodic[d]);
+                    min_idx[d] =
+                        amrex::max(bounds.first, nodalbox.smallEnd(d) - iv[d]);
+                    max_idx[d] = amrex::min(bounds.second,
+                                            nodalbox.bigEnd(d) - iv[d] + 1);
                 }
-            }
 
-            amrex::ParallelFor(
-                nt,
-                [=] AMREX_GPU_DEVICE(int ip) noexcept
-                {
-                    ParticleType &p = pstruct[ip];
-                    if (p.idata(intData::phase) != 0)
-                        return;
-
-                    amrex::Real xp[AMREX_SPACEDIM];
-                    for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                        xp[d] = p.pos(d);
-
-                    auto iv = getParticleCell(p, plo, dxi, domain);
-
-                    for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                    {
-                        if (iv[d] % color_stride[d] != color_idx[d])
-                            return;
-                    }
-
-                    // Compute stencil extents per dimension
-
-                    int min_idx[AMREX_SPACEDIM], max_idx[AMREX_SPACEDIM];
-
-                    for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                    {
-                        auto bounds = compute_bounds(
-                            iv[d], lo[d], hi[d], order_scheme_directional[d],
-                            periodic[d]);
-                        min_idx[d] = amrex::max(bounds.first,
-                                                nodalbox.smallEnd(d) - iv[d]);
-                        max_idx[d] = amrex::min(bounds.second,
-                                                nodalbox.bigEnd(d) - iv[d] + 1);
-                    }
-
-                    // Nested loops over stencil (specialized per dimension)
-                    amrex::Real basisvalue = 0.0;
-                    amrex::Real basisval_grad[AMREX_SPACEDIM] = {
-                        AMREX_D_DECL(0.0, 0.0, 0.0)};
-                    IntVect ivlocal(AMREX_D_DECL(0, 0, 0));
+                // Nested loops over stencil (specialized per dimension)
+                amrex::Real basisvalue = 0.0;
+                amrex::Real basisval_grad[AMREX_SPACEDIM] = {
+                    AMREX_D_DECL(0.0, 0.0, 0.0)};
+                IntVect ivlocal(AMREX_D_DECL(0, 0, 0));
 
 #if (AMREX_SPACEDIM == 3)
-                    for (int n = min_idx[2]; n < max_idx[2]; n++)
-                    {
+                for (int n = min_idx[2]; n < max_idx[2]; n++)
+                {
 #endif
 #if (AMREX_SPACEDIM >= 2)
-                        for (int m = min_idx[1]; m < max_idx[1]; m++)
-                        {
+                    for (int m = min_idx[1]; m < max_idx[1]; m++)
+                    {
 #endif
-                            for (int l = min_idx[0]; l < max_idx[0]; l++)
-                            {
-                                ivlocal = IntVect(AMREX_D_DECL(
-                                    iv[0] + l, iv[1] + m, iv[2] + n));
+                        for (int l = min_idx[0]; l < max_idx[0]; l++)
+                        {
+                            ivlocal = IntVect(
+                                AMREX_D_DECL(iv[0] + l, iv[1] + m, iv[2] + n));
 
-                                IntVect stencil(AMREX_D_DECL(l, m, n));
+                            IntVect stencil(AMREX_D_DECL(l, m, n));
+                            {
+
+                                if (update_forces)
+                                {
+                                    basisvalue = basisval_and_grad(
+                                        stencil, iv, xp, plo, dx,
+                                        order_scheme_directional, periodic, lo,
+                                        hi, basisval_grad);
+                                }
+                                else
+                                {
+                                    basisvalue =
+                                        basisval(stencil, iv, xp, plo, dx,
+                                                 order_scheme_directional,
+                                                 periodic, lo, hi);
+                                }
+
+                                if (update_mass)
+                                {
+                                    amrex::Real mass_contrib =
+                                        p.rdata(realData::mass) * basisvalue;
+                                    amrex::Gpu::Atomic::AddNoRet(
+                                        &nodal_data_arr(ivlocal, MASS_INDEX),
+                                        mass_contrib);
+                                }
+                                if (update_vel)
                                 {
 
-                                    if (update_forces)
-                                    {
-                                        basisvalue = basisval_and_grad(
-                                            stencil, iv, xp, plo, dx,
-                                            order_scheme_directional, periodic,
-                                            lo, hi, basisval_grad);
-                                    }
-                                    else
-                                    {
-                                        basisvalue =
-                                            basisval(stencil, iv, xp, plo, dx,
-                                                     order_scheme_directional,
-                                                     periodic, lo, hi);
-                                    }
-
-                                    if (update_mass)
-                                    {
-                                        amrex::Real mass_contrib =
+                                    amrex::Real p_contrib[AMREX_SPACEDIM] = {
+                                        AMREX_D_DECL(
                                             p.rdata(realData::mass) *
-                                            basisvalue;
-                                        nodal_data_arr(ivlocal, MASS_INDEX) +=
-                                            mass_contrib;
-                                    }
-                                    if (update_vel)
+                                                p.rdata(realData::xvel) *
+                                                basisvalue,
+                                            p.rdata(realData::mass) *
+                                                p.rdata(realData::yvel) *
+                                                basisvalue,
+                                            p.rdata(realData::mass) *
+                                                p.rdata(realData::zvel) *
+                                                basisvalue)};
+
+                                    for (int dim = 0; dim < AMREX_SPACEDIM;
+                                         dim++)
                                     {
-
-                                        amrex::Real p_contrib[AMREX_SPACEDIM] =
-                                            {AMREX_D_DECL(
-                                                p.rdata(realData::mass) *
-                                                    p.rdata(realData::xvel) *
-                                                    basisvalue,
-                                                p.rdata(realData::mass) *
-                                                    p.rdata(realData::yvel) *
-                                                    basisvalue,
-                                                p.rdata(realData::mass) *
-                                                    p.rdata(realData::zvel) *
-                                                    basisvalue)};
-
-                                        for (int dim = 0; dim < AMREX_SPACEDIM;
-                                             dim++)
-                                        {
-                                            nodal_data_arr(ivlocal,
-                                                           VELX_INDEX + dim) +=
-                                                p_contrib[dim];
-                                        }
+                                        amrex::Gpu::Atomic::AddNoRet(
+                                            &nodal_data_arr(ivlocal,
+                                                            VELX_INDEX + dim),
+                                            p_contrib[dim]);
                                     }
+                                }
 
-                                    if (update_forces)
-                                    {
+                                if (update_forces)
+                                {
 
-                                        amrex::Real stress_tens[AMREX_SPACEDIM *
-                                                                AMREX_SPACEDIM];
-                                        get_tensor(p, realData::stress,
-                                                   stress_tens);
+                                    amrex::Real stress_tens[AMREX_SPACEDIM *
+                                                            AMREX_SPACEDIM];
+                                    get_tensor(p, realData::stress,
+                                               stress_tens);
 
-                                        amrex::Real
-                                            bforce_contrib[AMREX_SPACEDIM] = {
-                                                AMREX_D_DECL(
-                                                    p.rdata(realData::mass) *
-                                                        grav[XDIR] * basisvalue,
-                                                    p.rdata(realData::mass) *
-                                                        grav[YDIR] * basisvalue,
-                                                    p.rdata(realData::mass) *
-                                                        grav[ZDIR] *
-                                                        basisvalue)};
+                                    amrex::Real bforce_contrib[AMREX_SPACEDIM] =
+                                        {AMREX_D_DECL(
+                                            p.rdata(realData::mass) *
+                                                grav[XDIR] * basisvalue,
+                                            p.rdata(realData::mass) *
+                                                grav[YDIR] * basisvalue,
+                                            p.rdata(realData::mass) *
+                                                grav[ZDIR] * basisvalue)};
 
-                                        if (extloads &&
-                                            xp[XDIR] > force_slab_lo[XDIR] &&
-                                            xp[XDIR] < force_slab_hi[XDIR]
+                                    if (extloads &&
+                                        xp[XDIR] > force_slab_lo[XDIR] &&
+                                        xp[XDIR] < force_slab_hi[XDIR]
 #if (AMREX_SPACEDIM >= 2)
-                                            && xp[YDIR] > force_slab_lo[YDIR] &&
-                                            xp[YDIR] < force_slab_hi[YDIR]
+                                        && xp[YDIR] > force_slab_lo[YDIR] &&
+                                        xp[YDIR] < force_slab_hi[YDIR]
 #endif
 #if (AMREX_SPACEDIM == 3)
-                                            && xp[ZDIR] > force_slab_lo[ZDIR] &&
-                                            xp[ZDIR] < force_slab_hi[ZDIR]
+                                        && xp[ZDIR] > force_slab_lo[ZDIR] &&
+                                        xp[ZDIR] < force_slab_hi[ZDIR]
 #endif
-                                        )
-                                        {
-                                            for (int dim = 0;
-                                                 dim < AMREX_SPACEDIM; dim++)
-                                            {
-                                                bforce_contrib[dim] +=
-                                                    extpforce[dim] * basisvalue;
-                                            }
-                                        }
-
-                                        amrex::Real tensvect[AMREX_SPACEDIM];
-                                        tensor_vector_pdt(stress_tens,
-                                                          basisval_grad,
-                                                          tensvect);
-
-                                        amrex::Real
-                                            intforce_contrib[AMREX_SPACEDIM] = {
-                                                AMREX_D_DECL(
-                                                    -p.rdata(realData::volume) *
-                                                        tensvect[XDIR],
-                                                    -p.rdata(realData::volume) *
-                                                        tensvect[YDIR],
-                                                    -p.rdata(realData::volume) *
-                                                        tensvect[ZDIR])};
-
+                                    )
+                                    {
                                         for (int dim = 0; dim < AMREX_SPACEDIM;
                                              dim++)
                                         {
-                                            nodal_data_arr(ivlocal,
-                                                           FRCX_INDEX + dim) +=
-                                                bforce_contrib[dim] +
-                                                intforce_contrib[dim];
+                                            bforce_contrib[dim] +=
+                                                extpforce[dim] * basisvalue;
                                         }
+                                    }
+
+                                    amrex::Real tensvect[AMREX_SPACEDIM];
+                                    tensor_vector_pdt(stress_tens,
+                                                      basisval_grad, tensvect);
+
+                                    amrex::Real
+                                        intforce_contrib[AMREX_SPACEDIM] = {
+                                            AMREX_D_DECL(
+                                                -p.rdata(realData::volume) *
+                                                    tensvect[XDIR],
+                                                -p.rdata(realData::volume) *
+                                                    tensvect[YDIR],
+                                                -p.rdata(realData::volume) *
+                                                    tensvect[ZDIR])};
+
+                                    for (int dim = 0; dim < AMREX_SPACEDIM;
+                                         dim++)
+                                    {
+                                        amrex::Gpu::Atomic::AddNoRet(
+                                            &nodal_data_arr(ivlocal,
+                                                            FRCX_INDEX + dim),
+                                            bforce_contrib[dim] +
+                                                intforce_contrib[dim]);
                                     }
                                 }
                             }
-#if (AMREX_SPACEDIM >= 2)
                         }
-#endif
-#if (AMREX_SPACEDIM == 3)
+#if (AMREX_SPACEDIM >= 2)
                     }
 #endif
-                });
-        }
+#if (AMREX_SPACEDIM == 3)
+                }
+#endif
+            });
     }
 
     // Normalize velocities and stresses
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
-        // Box nodalbox = convert(mfi.tilebox(), {AMREX_D_DECL(1, 1, 1)});
+
         Box nodalbox = convert(mfi.tilebox(), IntVect(AMREX_D_DECL(1, 1, 1)));
 
         auto nodal_data_arr = nodaldata.array(mfi);
@@ -754,7 +683,8 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
         for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
         {
 
-            const Box &nodalbox = mfi.validbox();
+            const Box &nodalbox =
+                convert(mfi.validbox(), IntVect(AMREX_D_DECL(1, 1, 1)));
             auto nodal_data_arr = nodaldata.array(mfi);
             amrex::ParallelFor(
                 nodalbox,
@@ -763,20 +693,11 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
                     IntVect nodeindex(AMREX_D_DECL(i, j, k));
                     nodal_data_arr(nodeindex, MASS_SPHEAT) = shunya;
                     nodal_data_arr(nodeindex, MASS_SPHEAT_TEMP) = shunya;
-                    // nodal_data_arr(nodeindex, TEMPERATURE) = shunya;
                     nodal_data_arr(nodeindex, SOURCE_TEMP_INDEX) = shunya;
+                    if (update_mass_temp)
+                        nodal_data_arr(nodeindex, MASS_CONDUCTIVITY) = shunya;
                 });
         }
-    }
-
-    // Color stride per dimension: linear stencil has width 2, quad/cubic
-    // width 4.
-    amrex::GpuArray<int, AMREX_SPACEDIM> color_stride;
-    int ncolors = 1;
-    for (int d = 0; d < AMREX_SPACEDIM; ++d)
-    {
-        color_stride[d] = (order_scheme_directional[d] == 1) ? 2 : 4;
-        ncolors *= color_stride[d];
     }
 
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
@@ -789,145 +710,147 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
         auto nodal_data_arr = nodaldata.array(mfi);
         ParticleType *pstruct = aos().dataPtr();
 
-        for (int icolor = 0; icolor < ncolors; ++icolor)
-        {
-            amrex::GpuArray<int, AMREX_SPACEDIM> color_idx;
+        amrex::ParallelFor(
+            nt,
+            [=] AMREX_GPU_DEVICE(int ip) noexcept
             {
-                int tmp = icolor;
+                ParticleType &p = pstruct[ip];
+                if (p.id() < 0)
+                    return; // skip invalidated particles (NaN-init guard)
+                if (p.idata(intData::phase) != 0)
+                    return;
+
+                amrex::Real xp[AMREX_SPACEDIM];
+                for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                    xp[d] = p.pos(d);
+
+                auto iv = getParticleCell(p, plo, dxi, domain);
+
+                // Compute stencil extents per dimension
+
+                int min_idx[AMREX_SPACEDIM], max_idx[AMREX_SPACEDIM];
+
                 for (int d = 0; d < AMREX_SPACEDIM; ++d)
                 {
-                    color_idx[d] = tmp % color_stride[d];
-                    tmp /= color_stride[d];
+                    auto bounds = compute_bounds(iv[d], lo[d], hi[d],
+                                                 order_scheme_directional[d],
+                                                 periodic[d]);
+
+                    min_idx[d] =
+                        amrex::max(bounds.first, nodalbox.smallEnd(d) - iv[d]);
+                    max_idx[d] = amrex::min(bounds.second,
+                                            nodalbox.bigEnd(d) - iv[d] + 1);
                 }
-            }
 
-            amrex::ParallelFor(
-                nt,
-                [=] AMREX_GPU_DEVICE(int ip) noexcept
-                {
-                    ParticleType &p = pstruct[ip];
-                    if (p.idata(intData::phase) != 0)
-                        return;
-
-                    amrex::Real xp[AMREX_SPACEDIM];
-                    for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                        xp[d] = p.pos(d);
-
-                    auto iv = getParticleCell(p, plo, dxi, domain);
-
-                    for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                    {
-                        if (iv[d] % color_stride[d] != color_idx[d])
-                            return;
-                    }
-
-                    // Compute stencil extents per dimension
-
-                    int min_idx[AMREX_SPACEDIM], max_idx[AMREX_SPACEDIM];
-
-                    for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                    {
-                        auto bounds = compute_bounds(
-                            iv[d], lo[d], hi[d], order_scheme_directional[d],
-                            periodic[d]);
-
-                        min_idx[d] = amrex::max(bounds.first,
-                                                nodalbox.smallEnd(d) - iv[d]);
-                        max_idx[d] = amrex::min(bounds.second,
-                                                nodalbox.bigEnd(d) - iv[d] + 1);
-                    }
-
-                    // Nested loops over stencil (specialized per dimension)
-                    amrex::Real basisvalue = 0.0;
-                    amrex::Real basisval_grad[AMREX_SPACEDIM] = {
-                        AMREX_D_DECL(0.0, 0.0, 0.0)};
-                    IntVect ivlocal(AMREX_D_DECL(0, 0, 0));
+                // Nested loops over stencil (specialized per dimension)
+                amrex::Real basisvalue = 0.0;
+                amrex::Real basisval_grad[AMREX_SPACEDIM] = {
+                    AMREX_D_DECL(0.0, 0.0, 0.0)};
+                IntVect ivlocal(AMREX_D_DECL(0, 0, 0));
 
 #if (AMREX_SPACEDIM == 3)
-                    for (int n = min_idx[2]; n < max_idx[2]; n++)
-                    {
+                for (int n = min_idx[2]; n < max_idx[2]; n++)
+                {
 #endif
 #if (AMREX_SPACEDIM >= 2)
-                        for (int m = min_idx[1]; m < max_idx[1]; m++)
-                        {
+                    for (int m = min_idx[1]; m < max_idx[1]; m++)
+                    {
 #endif
-                            for (int l = min_idx[0]; l < max_idx[0]; l++)
+                        for (int l = min_idx[0]; l < max_idx[0]; l++)
+                        {
+                            ivlocal = IntVect(
+                                AMREX_D_DECL(iv[0] + l, iv[1] + m, iv[2] + n));
+                            IntVect stencil(AMREX_D_DECL(l, m, n));
                             {
-                                ivlocal = IntVect(AMREX_D_DECL(
-                                    iv[0] + l, iv[1] + m, iv[2] + n));
-                                IntVect stencil(AMREX_D_DECL(l, m, n));
+                                basisvalue = basisval(stencil, iv, xp, plo, dx,
+                                                      order_scheme_directional,
+                                                      periodic, lo, hi);
+
+                                if (update_mass_temp)
                                 {
-                                    basisvalue =
-                                        basisval(stencil, iv, xp, plo, dx,
-                                                 order_scheme_directional,
-                                                 periodic, lo, hi);
+                                    amrex::Real mass_spheat_contrib =
+                                        p.rdata(realData::mass) *
+                                        p.rdata(realData::specific_heat) *
+                                        basisvalue;
+                                    amrex::Real mass_spheat_temp_contrib =
+                                        p.rdata(realData::mass) *
+                                        p.rdata(realData::specific_heat) *
+                                        p.rdata(realData::temperature) *
+                                        basisvalue;
+                                    amrex::Real mass_conductivity_contrib =
+                                        p.rdata(realData::mass) *
+                                        p.rdata(
+                                            realData::thermal_conductivity) *
+                                        basisvalue;
+                                    amrex::Gpu::Atomic::AddNoRet(
+                                        &nodal_data_arr(ivlocal, MASS_SPHEAT),
+                                        mass_spheat_contrib);
+                                    amrex::Gpu::Atomic::AddNoRet(
+                                        &nodal_data_arr(ivlocal,
+                                                        MASS_SPHEAT_TEMP),
+                                        mass_spheat_temp_contrib);
+                                    amrex::Gpu::Atomic::AddNoRet(
+                                        &nodal_data_arr(ivlocal,
+                                                        MASS_CONDUCTIVITY),
+                                        mass_conductivity_contrib);
+                                }
 
-                                    if (update_mass_temp)
+                                if (update_source)
+                                {
+                                    for (int dim = 0; dim < AMREX_SPACEDIM;
+                                         dim++)
                                     {
-                                        amrex::Real mass_spheat_contrib =
-                                            p.rdata(realData::mass) *
-                                            p.rdata(realData::specific_heat) *
-                                            basisvalue;
-                                        amrex::Real mass_spheat_temp_contrib =
-                                            p.rdata(realData::mass) *
-                                            p.rdata(realData::specific_heat) *
-                                            p.rdata(realData::temperature) *
-                                            basisvalue;
-                                        nodal_data_arr(ivlocal, MASS_SPHEAT) +=
-                                            mass_spheat_contrib;
-                                        nodal_data_arr(ivlocal,
-                                                       MASS_SPHEAT_TEMP) +=
-                                            mass_spheat_temp_contrib;
+                                        basisval_grad[dim] = basisvalder(
+                                            dim, stencil, iv, xp, plo, dx,
+                                            order_scheme_directional, periodic,
+                                            lo, hi);
                                     }
 
-                                    if (update_source)
+                                    amrex::Real heat_flux_vect[AMREX_SPACEDIM];
+                                    amrex::Real net_heatflux = 0.0;
+                                    amrex::Real int_source = 0.0;
+                                    amrex::Real ext_source = 0.0;
+                                    get_vector(p, realData::heat_flux,
+                                               heat_flux_vect);
+
+                                    for (int dim = 0; dim < AMREX_SPACEDIM;
+                                         dim++)
                                     {
-                                        for (int dim = 0; dim < AMREX_SPACEDIM;
-                                             dim++)
-                                        {
-                                            basisval_grad[dim] = basisvalder(
-                                                dim, stencil, iv, xp, plo, dx,
-                                                order_scheme_directional,
-                                                periodic, lo, hi);
-                                        }
-
-                                        amrex::Real
-                                            heat_flux_vect[AMREX_SPACEDIM];
-                                        amrex::Real net_heatflux = 0.0;
-                                        amrex::Real int_source = 0.0;
-                                        amrex::Real ext_source = 0.0;
-                                        get_vector(p, realData::heat_flux,
-                                                   heat_flux_vect);
-
-                                        for (int dim = 0; dim < AMREX_SPACEDIM;
-                                             dim++)
-                                        {
-                                            net_heatflux +=
-                                                heat_flux_vect[dim] *
-                                                basisval_grad[dim];
-                                        }
-
-                                        int_source = net_heatflux *
-                                                     p.rdata(realData::volume);
-                                        ext_source =
-                                            p.rdata(realData::volume) *
-                                            p.rdata(realData::heat_source) *
-                                            basisvalue;
-
-                                        nodal_data_arr(ivlocal,
-                                                       SOURCE_TEMP_INDEX) +=
-                                            int_source + ext_source;
+                                        net_heatflux += heat_flux_vect[dim] *
+                                                        basisval_grad[dim];
                                     }
+
+                                    int_source = net_heatflux *
+                                                 p.rdata(realData::volume);
+                                    ext_source =
+                                        p.rdata(realData::volume) *
+                                        p.rdata(realData::heat_source) *
+                                        basisvalue;
+
+                                    amrex::Gpu::Atomic::AddNoRet(
+                                        &nodal_data_arr(ivlocal,
+                                                        SOURCE_TEMP_INDEX),
+                                        int_source + ext_source);
                                 }
                             }
-#if (AMREX_SPACEDIM >= 2)
                         }
-#endif
-#if (AMREX_SPACEDIM == 3)
+#if (AMREX_SPACEDIM >= 2)
                     }
 #endif
-                });
-        }
+#if (AMREX_SPACEDIM == 3)
+                }
+#endif
+            });
+    }
+
+    if (update_mass_temp)
+    {
+        nodaldata.SumBoundary(MASS_SPHEAT, 2, geom.periodicity());
+        nodaldata.SumBoundary(MASS_CONDUCTIVITY, 1, geom.periodicity());
+    }
+    if (update_source)
+    {
+        nodaldata.SumBoundary(SOURCE_TEMP_INDEX, 1, geom.periodicity());
     }
 
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
@@ -961,244 +884,6 @@ void MPMParticleContainer::deposit_onto_grid_temperature(
 }
 
 #endif
-
-/**
- * @brief Deposits rigid‑body particle quantities onto the Eulerian grid
- *        (stub — body currently disabled).
- *
- * This function is intended to perform a P2G transfer using only the rigid
- * (phase = 1) particles, segregating their mass and momentum onto the nodal
- * MultiFab independently of the material‑point contribution. The full
- * implementation is currently commented out; the function is a no‑op
- * placeholder for future use.
- *
- * @param[in,out] nodaldata               Nodal MultiFab (unused in stub).
- * @param[in]     gravity                 Gravitational acceleration vector.
- * @param[in]     external_loads_present  Flag enabling external body forces.
- * @param[in]     force_slab_lo           Lower corner of the body‑force slab.
- * @param[in]     force_slab_hi           Upper corner of the body‑force slab.
- * @param[in]     extforce                External force vector.
- * @param[in]     update_massvel          Flag to update nodal mass/velocity.
- * @param[in]     update_forces           Flag to update nodal forces.
- * @param[in]     mass_tolerance          Minimum nodal mass threshold.
- * @param[in]     order_scheme_directional Per‑dimension interpolation order.
- * @param[in]     periodic                Per‑dimension periodicity flags.
- *
- * @return None.
- */
-void MPMParticleContainer::deposit_onto_grid_rigidnodesonly(
-    MultiFab & /*nodaldata*/,
-    Array<Real, AMREX_SPACEDIM> /*gravity*/,
-    int /*external_loads_present*/,
-    Array<Real, AMREX_SPACEDIM> /*force_slab_lo*/,
-    Array<Real, AMREX_SPACEDIM> /*force_slab_hi*/,
-    Array<Real, AMREX_SPACEDIM> /*extforce*/,
-    int /*update_massvel*/,
-    int /*update_forces*/,
-    amrex::Real /*mass_tolerance*/,
-    GpuArray<int, AMREX_SPACEDIM> /*order_scheme_directional*/,
-    GpuArray<int, AMREX_SPACEDIM> /*periodic*/)
-{ /*
-
-     For now, we are holding off rigid particle implementation. We will add this
-     feature in the upcoming version of ExaGOOP
-
-     const int lev = 0;
-     const Geometry &geom = Geom(lev);
-     auto &plev = GetParticles(lev);
-     const auto dxi = geom.InvCellSizeArray();
-     const auto dx = geom.CellSizeArray();
-     const auto plo = geom.ProbLoArray();
-     const auto domain = geom.Domain();
-
-     const int *loarr = domain.loVect();
-     const int *hiarr = domain.hiVect();
-
-     int lo[] = {loarr[0], loarr[1], loarr[2]};
-     int hi[] = {hiarr[0], hiarr[1], hiarr[2]};
-
-     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
-     {
-         // already nodal as mfi is from nodaldata
-         const Box &nodalbox = mfi.validbox();
-
-         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
-
-         amrex::ParallelFor(nodalbox,
-                            [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
-                            { nodal_data_arr(i, j, k, RIGID_BODY_ID) = -1; });
-     }
-
-     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
-     {
-         const amrex::Box &box = mfi.tilebox();
-         Box nodalbox = convert(box, {AMREX_D_DECL(1,1,1)});
-
-         int gid = mfi.index();
-         int tid = mfi.LocalTileIndex();
-         auto index = std::make_pair(gid, tid);
-
-         auto &ptile = plev[index];
-         auto &aos = ptile.GetArrayOfStructs();
-         int np = aos.numRealParticles();
-         int ng = aos.numNeighborParticles();
-         int nt = np + ng;
-
-         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
-
-         ParticleType *pstruct = aos().dataPtr();
-
-         amrex::ParallelFor(
-             nt,
-             [=] AMREX_GPU_DEVICE(int i) noexcept
-             {
-                 int lmin, lmax, nmin, nmax, mmin, mmax;
-
-                 ParticleType &p = pstruct[i];
-
-                 if (p.idata(intData::phase) ==
-                     1) // Compute only for rigid particles with phase=1
-                 {
-                     amrex::Real xp[AMREX_SPACEDIM];
-
-                     xp[XDIR] = p.pos(XDIR);
-                     xp[YDIR] = p.pos(YDIR);
-                     xp[ZDIR] = p.pos(ZDIR);
-
-                     auto iv = getParticleCell(p, plo, dxi, domain);
-
-                     lmin = (order_scheme_directional[0] == 1)
-                                ? 0
-                                : ((order_scheme_directional[0] == 3)
-                                       ? (iv[XDIR] == lo[XDIR])
-                                             ? 0
-                                             : ((iv[XDIR] == hi[XDIR]) ? -1 :
-     -1) : -1000); lmax = (order_scheme_directional[0] == 1) ? 2 :
-     ((order_scheme_directional[0] == 3) ? (iv[XDIR] == lo[XDIR]) ? lmin + 3 :
-     ((iv[XDIR] == hi[XDIR]) ? lmin + 3 : lmin + 4) : -1000);
-
-                     mmin = (order_scheme_directional[1] == 1)
-                                ? 0
-                                : ((order_scheme_directional[1] == 3)
-                                       ? (iv[YDIR] == lo[YDIR])
-                                             ? 0
-                                             : ((iv[YDIR] == hi[YDIR]) ? -1 :
-     -1) : -1000); mmax = (order_scheme_directional[1] == 1) ? 2 :
-     ((order_scheme_directional[1] == 3) ? (iv[YDIR] == lo[YDIR]) ? mmin + 3 :
-     ((iv[YDIR] == hi[YDIR]) ? mmin + 3 : mmin + 4) : -1000);
-
-                     nmin = (order_scheme_directional[2] == 1)
-                                ? 0
-                                : ((order_scheme_directional[2] == 3)
-                                       ? (iv[ZDIR] == lo[ZDIR])
-                                             ? 0
-                                             : ((iv[ZDIR] == hi[ZDIR]) ? -1 :
-     -1) : -1000); nmax = (order_scheme_directional[2] == 1) ? 2 :
-     ((order_scheme_directional[2] == 3) ? (iv[ZDIR] == lo[ZDIR]) ? nmin + 3 :
-     ((iv[ZDIR] == hi[ZDIR]) ? nmin + 3 : nmin + 4) : -1000);
-
-                     if (lmin == -1000 or lmax == -1000 or mmin == -1000 or
-                         mmax == -1000 or nmin == -1000 or nmax == -1000)
-                     {
-                         amrex::Abort("\nError. Something wrong with min/max "
-                                      "index values in "
-                                      "deposit onto grid");
-                     }
-
-                     for (int n = nmin; n < nmax; n++)
-                     {
-                         for (int m = mmin; m < mmax; m++)
-                         {
-                             for (int l = lmin; l < lmax; l++)
-                             {
-                                 IntVect ivlocal({AMREX_D_DECL(iv[XDIR] + l,
-     iv[YDIR] + m, iv[ZDIR] + n)});
-
-                                 if (nodalbox.contains(ivlocal))
-                                 {
-
-                                     amrex::Real basisvalue = basisval(
-                                         l, m, n, iv[XDIR], iv[YDIR], iv[ZDIR],
-                                         xp, plo, dx, order_scheme_directional,
-                                         periodic, lo, hi);
-
-                                     amrex::Real mass_contrib =
-                                         p.rdata(realData::mass) * basisvalue;
-                                     amrex::Real p_contrib[AMREX_SPACEDIM] = {
-                                         p.rdata(realData::mass) *
-                                             p.rdata(realData::xvel) *
-                                             basisvalue,
-                                         p.rdata(realData::mass) *
-                                             p.rdata(realData::yvel) *
-                                             basisvalue,
-                                         p.rdata(realData::mass) *
-                                             p.rdata(realData::zvel) *
-                                             basisvalue};
-
-                                     amrex::Gpu::Atomic::AddNoRet(
-                                         &nodal_data_arr(ivlocal,
-                                                         MASS_RIGID_INDEX),
-                                         mass_contrib);
-                                     nodal_data_arr(ivlocal, RIGID_BODY_ID) =
-                                         p.idata(intData::rigid_body_id);
-
-                                     for (int dim = 0; dim < AMREX_SPACEDIM;
-                                          dim++)
-                                     {
-                                         amrex::Gpu::Atomic::AddNoRet(
-                                             &nodal_data_arr(ivlocal,
-                                                             VELX_RIGID_INDEX +
-                                                                 dim),
-                                             p_contrib[dim]);
-                                     }
-                                 }
-                             }
-                         }
-                     }
-                 }
-             });
-     }
-     // nodaldata.FillBoundary(geom.periodicity());
-     // nodaldata.SumBoundary(geom.periodicity());
-     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
-     {
-         const amrex::Box &box = mfi.tilebox();
-         Box nodalbox = convert(box, {1, 1, 1});
-
-         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
-
-         amrex::ParallelFor(
-             nodalbox,
-             [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
-             {
-                 if (update_massvel)
-                 {
-                     // amrex::Print()<<"\n Nodal mass values for i = "<<i<<" j
-     =
-                     // "<<j<<" k =
-                     // "<<k<<" is "<<nodal_data_arr(i,j,k,MASS_INDEX);
-                     if (nodal_data_arr(i, j, k, MASS_RIGID_INDEX) > 0.0)
-                     {
-                         for (int dim = 0; dim < AMREX_SPACEDIM; dim++)
-                         {
-                             if (nodal_data_arr(i, j, k, MASS_RIGID_INDEX) >=
-                                 mass_tolerance)
-                             {
-                                 nodal_data_arr(i, j, k,
-                                                VELX_RIGID_INDEX + dim) /=
-                                     nodal_data_arr(i, j, k, MASS_RIGID_INDEX);
-                             }
-                             else
-                             {
-                                 nodal_data_arr(i, j, k,
-                                                VELX_RIGID_INDEX + dim) = 0.0;
-                             }
-                         }
-                     }
-                 }
-             });
-     }*/
-}
 
 /**
  * @brief Interpolates nodal grid quantities back to particles (G2P transfer).
@@ -1284,6 +969,8 @@ void MPMParticleContainer::interpolate_from_grid(
             [=] AMREX_GPU_DEVICE(int i) noexcept
             {
                 ParticleType &p = pstruct[i];
+                if (p.id() < 0)
+                    return; // skip invalidated particles (NaN-init guard)
                 if (p.idata(intData::phase) != 0)
                     return;
 
@@ -1296,8 +983,6 @@ void MPMParticleContainer::interpolate_from_grid(
                 auto iv = getParticleCell(p, plo, dxi, domain);
 
                 // Dimension‑aware min/max indices
-                /*IntVect min_index = {AMREX_D_DECL(0, 0, 0)};
-                IntVect max_index = {AMREX_D_DECL(0, 0, 0)};*/
 
                 IntVect min_index(AMREX_D_DECL(0, 0, 0));
                 IntVect max_index(AMREX_D_DECL(0, 0, 0));
@@ -1313,10 +998,7 @@ void MPMParticleContainer::interpolate_from_grid(
 
                 if (update_vel)
                 {
-                    // Interpolate vel_grid (VELX) and delta_vel_grid
-                    // (DELTA_VELX) in a single stencil traversal per dimension.
-                    // Both fields share identical basis weights — computing
-                    // them together halves the number of spline evaluations.
+
                     amrex::Real interp_vals[2];
                     for (int dim = 0; dim < AMREX_SPACEDIM; dim++)
                     {
@@ -1343,7 +1025,6 @@ void MPMParticleContainer::interpolate_from_grid(
                                 DELTA_VELX_INDEX + dim, lo, hi, interp_vals);
                         }
 
-                        // interp_vals[0] = v_grid,  interp_vals[1] = Δv_grid
                         p.rdata(realData::xvel_prime + dim) = interp_vals[0];
                         p.rdata(realData::xvel + dim) =
                             alpha_pic_flip * p.rdata(realData::xvel + dim) +
@@ -1490,6 +1171,8 @@ void MPMParticleContainer::interpolate_from_grid_temperature(
             [=] AMREX_GPU_DEVICE(int i) noexcept
             {
                 ParticleType &p = pstruct[i];
+                if (p.id() < 0)
+                    return;
                 if (p.idata(intData::phase) != 0)
                     return;
 
@@ -1502,8 +1185,6 @@ void MPMParticleContainer::interpolate_from_grid_temperature(
                 auto iv = getParticleCell(p, plo, dxi, domain);
 
                 // Dimension‑aware min/max indices
-                // IntVect min_index = {AMREX_D_DECL(0, 0, 0)};
-                // IntVect max_index = {AMREX_D_DECL(0, 0, 0)};
 
                 IntVect min_index(AMREX_D_DECL(0, 0, 0));
                 IntVect max_index(AMREX_D_DECL(0, 0, 0));
@@ -1609,190 +1290,6 @@ void MPMParticleContainer::calculate_nodal_normal(
     amrex::Real /*mass_tolerance*/,
     GpuArray<int, AMREX_SPACEDIM> /*order_scheme_directional*/,
     GpuArray<int, AMREX_SPACEDIM> /*periodic*/)
-{ /*
-     For now, we are holding off rigid particle implementation. We will add this
-     feature in the upcoming version of ExaGOOP const int lev = 0; const
-     Geometry &geom = Geom(lev); auto &plev = GetParticles(lev); const auto dxi
-     = geom.InvCellSizeArray(); const auto dx = geom.CellSizeArray(); const auto
-     plo = geom.ProbLoArray(); const auto domain = geom.Domain();
-
-     const int *loarr = domain.loVect();
-     const int *hiarr = domain.hiVect();
-
-     int lo[] = {loarr[0], loarr[1], loarr[2]};
-     int hi[] = {hiarr[0], hiarr[1], hiarr[2]};
-
-     for (MFIter mfi(nodaldata); mfi.isValid(); ++mfi)
-     {
-         const Box &nodalbox = mfi.validbox();
-
-         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
-
-         amrex::ParallelFor(nodalbox,
-                            [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
-                            {
-                                nodal_data_arr(i, j, k, NORMALX) = shunya;
-                                nodal_data_arr(i, j, k, NORMALY) = shunya;
-                                nodal_data_arr(i, j, k, NORMALZ) = shunya;
-                            });
-     }
-
-     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
-     {
-         const amrex::Box &box = mfi.tilebox();
-         Box nodalbox = convert(box, {AMREX_D_DECL(1, 1, 1)});
-
-         int gid = mfi.index();
-         int tid = mfi.LocalTileIndex();
-         auto index = std::make_pair(gid, tid);
-
-         auto &ptile = plev[index];
-         auto &aos = ptile.GetArrayOfStructs();
-         int np = aos.numRealParticles();
-         int ng = aos.numNeighborParticles();
-         int nt = np + ng;
-
-         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
-
-         ParticleType *pstruct = aos().dataPtr();
-
-         amrex::ParallelFor(
-             nt,
-             [=] AMREX_GPU_DEVICE(int i) noexcept
-             {
-                 int lmin, lmax, nmin, nmax, mmin, mmax;
-
-                 ParticleType &p = pstruct[i];
-
-                 if (p.idata(intData::phase) ==
-                     0) // Compute only for standard particles
-                        // and not rigid particles with phase=1
-                 {
-
-                     amrex::Real xp[AMREX_SPACEDIM];
-
-                     xp[XDIR] = p.pos(XDIR);
-                     xp[YDIR] = p.pos(YDIR);
-                     xp[ZDIR] = p.pos(ZDIR);
-
-                     auto iv = getParticleCell(p, plo, dxi, domain);
-
-                     lmin = (order_scheme_directional[0] == 1)
-                                ? 0
-                                : ((order_scheme_directional[0] == 3)
-                                       ? (iv[XDIR] == lo[XDIR])
-                                             ? 0
-                                             : ((iv[XDIR] == hi[XDIR]) ? -1 :
-     -1) : -1000); lmax = (order_scheme_directional[0] == 1) ? 2 :
-     ((order_scheme_directional[0] == 3) ? (iv[XDIR] == lo[XDIR]) ? lmin + 3 :
-     ((iv[XDIR] == hi[XDIR]) ? lmin + 3 : lmin + 4) : -1000);
-
-                     mmin = (order_scheme_directional[1] == 1)
-                                ? 0
-                                : ((order_scheme_directional[1] == 3)
-                                       ? (iv[YDIR] == lo[YDIR])
-                                             ? 0
-                                             : ((iv[YDIR] == hi[YDIR]) ? -1 :
-     -1) : -1000); mmax = (order_scheme_directional[1] == 1) ? 2 :
-     ((order_scheme_directional[1] == 3) ? (iv[YDIR] == lo[YDIR]) ? mmin + 3 :
-     ((iv[YDIR] == hi[YDIR]) ? mmin + 3 : mmin + 4) : -1000);
-
-                     nmin = (order_scheme_directional[2] == 1)
-                                ? 0
-                                : ((order_scheme_directional[2] == 3)
-                                       ? (iv[ZDIR] == lo[ZDIR])
-                                             ? 0
-                                             : ((iv[ZDIR] == hi[ZDIR]) ? -1 :
-     -1) : -1000); nmax = (order_scheme_directional[2] == 1) ? 2 :
-     ((order_scheme_directional[2] == 3) ? (iv[ZDIR] == lo[ZDIR]) ? nmin + 3 :
-     ((iv[ZDIR] == hi[ZDIR]) ? nmin + 3 : nmin + 4) : -1000);
-
-                     if (lmin == -1000 or lmax == -1000 or mmin == -1000 or
-                         mmax == -1000 or nmin == -1000 or nmax == -1000)
-                     {
-                         amrex::Abort("\nError. Something wrong with min/max "
-                                      "index values in "
-                                      "deposit onto grid");
-                     }
-
-                     for (int n = nmin; n < nmax; n++)
-                     {
-                         for (int m = mmin; m < mmax; m++)
-                         {
-                             for (int l = lmin; l < lmax; l++)
-                             {
-                                 IntVect ivlocal(iv[XDIR] + l, iv[YDIR] + m,
-                                                 iv[ZDIR] + n);
-                                 if (nodalbox.contains(ivlocal))
-                                 {
-
-                                     IntVect stencil(
-                                         AMREX_D_DECL(l, m, n));
-                                     amrex::Real basisval_grad[AMREX_SPACEDIM];
-                                     for (int d = 0; d < AMREX_SPACEDIM; d++)
-                                     {
-                                         basisval_grad[d] = basisvalder(
-                                             d, stencil,
-                                             IntVect(AMREX_D_DECL(
-                                                 iv[XDIR], iv[YDIR], iv[ZDIR])),
-                                             xp, plo, dx,
-                                             order_scheme_directional, periodic,
-                                             lo, hi);
-                                     }
-                                     amrex::Real normal[AMREX_SPACEDIM] = {
-                                         p.rdata(realData::mass) *
-                                             basisval_grad[XDIR],
-                                         p.rdata(realData::mass) *
-                                             basisval_grad[YDIR],
-                                         p.rdata(realData::mass) *
-                                             basisval_grad[ZDIR]};
-                                     for (int dim = 0; dim < AMREX_SPACEDIM;
-                                          dim++)
-                                     {
-                                         amrex::Gpu::Atomic::AddNoRet(
-                                             &nodal_data_arr(
-                                                 ivlocal, NORMALX + dim),
-                                             normal[dim]);
-                                     }
-                                 }
-                             }
-                         }
-                     }
-                 }
-             });
-     }
-
-     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
-     {
-         const amrex::Box &box = mfi.tilebox();
-         Box nodalbox = convert(box, {AMREX_D_DECL(1, 1, 1)});
-
-         Array4<Real> nodal_data_arr = nodaldata.array(mfi);
-
-         amrex::ParallelFor(
-             nodalbox,
-             [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
-             {
-                 amrex::Real nmag = pow((nodal_data_arr(i, j, k, NORMALX) *
-     nodal_data_arr(i, j, k, NORMALX) + nodal_data_arr(i, j, k, NORMALY) *
-     nodal_data_arr(i, j, k, NORMALY) + nodal_data_arr(i, j, k, NORMALZ) *
-                                             nodal_data_arr(i, j, k, NORMALZ)),
-                                        0.5);
-
-                 if (nmag > mass_tolerance)
-                 {
-                     for (int d = 0; d < AMREX_SPACEDIM; d++)
-                     {
-                         nodal_data_arr(i, j, k, NORMALX + d) =
-                             nodal_data_arr(i, j, k, NORMALX + d) / nmag;
-                     }
-                 }
-                 else
-                 {
-                     nodal_data_arr(i, j, k, NORMALX) = 0.0;
-                     nodal_data_arr(i, j, k, NORMALY) = 0.0;
-                     nodal_data_arr(i, j, k, NORMALZ) = 0.0;
-                 }
-             });
-     }*/
+{
+    // To be implemented
 }

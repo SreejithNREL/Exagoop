@@ -11,23 +11,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 #Setting ExaGOOP permanent settings. Do NOT change them
 set(EXAGOOP_DIM "3" CACHE STRING "Number of spatial dimensions")
-set(EXAGOOP_PRECISION DOUBLE)
-set(EXAGOOP_ENABLE_EB ON)
+option(EXAGOOP_ENABLE_EB "Enable embedded boundary support (requires DIM >= 2)" ON)
 set(EXAGOOP_ENABLE_PARTICLES ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMake")
 
-# ===============================================================
-# EB enforcement (AMReX limitation)
-# ===============================================================
-if(EXAGOOP_DIM EQUAL 1 AND EXAGOOP_ENABLE_EB)
-    message(WARNING "EB requested but not available in 1D. Forcing USE_EB=0.")
-    add_compile_definitions(USE_EB=0)
-elseif(EXAGOOP_ENABLE_EB)
-    add_compile_definitions(USE_EB=1)
-else()
-    add_compile_definitions(USE_EB=0)
+if(WIN32)
+    add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN CCCL_IGNORE_MSVC_TRADITIONAL_PREPROCESSOR_WARNING)
 endif()
+
 
 
 # ===============================================================
@@ -68,7 +60,7 @@ endif()
 
 
 #Enable Temperature Equation
-option(EXAGOOP_USE_TEMP "Enable temperature equation" ON)
+option(EXAGOOP_USE_TEMP "Enable temperature equation" OFF)
 
 if (EXAGOOP_USE_TEMP)
     add_compile_definitions(USE_TEMP=1)
@@ -87,12 +79,12 @@ endif()
 # Setting CUDA
 if(EXAGOOP_ENABLE_CUDA)
   enable_language(CUDA)
-  if(CMAKE_CUDA_COMPILER_VERSION VERSION_LESS "10.0")
+  if(CMAKE_CUDA_COMPILER_VERSION VERSION_LESS "11.0")
     message(FATAL_ERROR "Your nvcc version is ${CMAKE_CUDA_COMPILER_VERSION} which is unsupported."
-      "Please use CUDA toolkit version 10.0 or newer.")
+      "Please use CUDA toolkit version 11.0 or newer.")
   endif()
   if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-    set(CMAKE_CUDA_ARCHITECTURES 90)
+    set(CMAKE_CUDA_ARCHITECTURES "Auto")
   endif()
 endif()
 
@@ -133,7 +125,7 @@ if (EXAGOOP_ENABLE_MPI)
     set(PARALLEL ".MPI")
 endif()
 
-if (EXAGOOP_ENABLE_OMP)
+if (EXAGOOP_ENABLE_OPENMP)
     set(PARALLEL "${PARALLEL}.OMP")
 endif()
 
@@ -141,9 +133,17 @@ if (EXAGOOP_ENABLE_CUDA)
     set(PARALLEL "${PARALLEL}.CUDA")
 endif()
 
+if (EXAGOOP_ENABLE_HIP)
+    set(PARALLEL "${PARALLEL}.HIP")
+endif()
+
+if (EXAGOOP_ENABLE_SYCL)
+    set(PARALLEL "${PARALLEL}.SYCL")
+endif()
+
 # Debug/opt
-if (CMAKE_BUILD_TYPE MATCHES ".Debug")
-    set(BTYPE "DEBUG")
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(BTYPE ".DEBUG")
 endif()
 
 # Final executable name
@@ -195,7 +195,12 @@ execute_process(
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     OUTPUT_VARIABLE EXAGOOP_GIT_HASH
     OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+    RESULT_VARIABLE EXAGOOP_GIT_RESULT
 )
+if(NOT EXAGOOP_GIT_RESULT EQUAL 0)
+    set(EXAGOOP_GIT_HASH "unknown")
+endif()
 add_compile_definitions(EXAGOOP_GIT_HASH="${EXAGOOP_GIT_HASH}")
 
 # AMReX git hash
@@ -204,7 +209,12 @@ execute_process(
     WORKING_DIRECTORY ${AMREX_SUBMOD_LOCATION}
     OUTPUT_VARIABLE AMREX_GIT_HASH
     OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+    RESULT_VARIABLE AMREX_GIT_RESULT
 )
+if(NOT AMREX_GIT_RESULT EQUAL 0)
+    set(AMREX_GIT_HASH "unknown")
+endif()
 add_compile_definitions(AMREX_GIT_HASH="${AMREX_GIT_HASH}")
 
 
