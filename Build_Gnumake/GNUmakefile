@@ -29,10 +29,10 @@ BL_NO_FORT     = TRUE
 # Parallelism
 # ===============================================================
 USE_MPI   = TRUE
-USE_OMP   = TRUE
+USE_OMP   = FALSE
 USE_CUDA  = FALSE
 USE_HIP   = FALSE
-USE_SYCL  = TRUE
+USE_SYCL  = FALSE
 
 # ===============================================================
 # Debugging
