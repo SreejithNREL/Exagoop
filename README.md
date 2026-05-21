@@ -15,7 +15,7 @@ Key features of ExaGOOP MPM solver include:
 - Simulation of complex geometries using the embedded boundary method.
 - Rigid material points are available for simulating either stationary or moving rigid walls.
 
-For more details on the governing equations, numerical methods, validation tests, and tutorials, please visit: [ExaGOOP Documentation](https://nrel.github.io/Exagoop/).
+For more details on the governing equations, numerical methods, validation tests, and tutorials, please visit: [ExaGOOP Documentation](https://natlabrockies.github.io/Exagoop/).
 
 ## Installing ExaGOOP
 
