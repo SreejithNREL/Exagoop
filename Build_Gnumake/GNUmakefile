@@ -5,11 +5,12 @@ EBASE = ExaGOOP
 
 include $(MPM_HOME)/Build_Gnumake/Make.local
 NVCC_HOST_COMP ?= gnu
-
+#  SYS       DIM  EB     TEMP   COMP    DBG    MPI    OMP    HDF5   GPU        TIME  STATUS
+# 25  gnumake     3  TRUE   TRUE   gnu     FALSE  TRUE   FALSE  FALSE  SYCL     154.8s  FAIL
 # ===============================================================
 # AMReX configuration
 # ===============================================================
-DIM        = 1
+DIM        = 3
 COMP       = gnu 
 USE_EB     = TRUE
 
@@ -27,16 +28,16 @@ BL_NO_FORT     = TRUE
 # ===============================================================
 # Parallelism
 # ===============================================================
-USE_MPI   = FALSE
-USE_OMP   = FALSE
+USE_MPI   = TRUE
+USE_OMP   = TRUE
 USE_CUDA  = FALSE
 USE_HIP   = FALSE
-USE_SYCL  = FALSE
+USE_SYCL  = TRUE
 
 # ===============================================================
 # Debugging
 # ===============================================================
-DEBUG             = TRUE
+DEBUG             = FALSE
 FSANITIZER        = FALSE
 THREAD_SANITIZER  = FALSE
 

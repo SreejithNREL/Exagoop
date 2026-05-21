@@ -1172,7 +1172,7 @@ void MPMParticleContainer::interpolate_from_grid_temperature(
             {
                 ParticleType &p = pstruct[i];
                 if (p.id() < 0)
-                    return; // skip invalidated particles (NaN-init guard)
+                    return; 
                 if (p.idata(intData::phase) != 0)
                     return;
 

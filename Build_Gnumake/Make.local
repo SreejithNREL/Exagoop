@@ -43,77 +43,122 @@ ifeq ($(UNAME), Linux)
     _MULTIARCH := $(shell uname -m)-linux-gnu
   endif
 
-  USE_HDF5                = FALSE   # flip to TRUE once HDF5 paths are configured below
+  USE_HDF5                = FALSE
 
-  # --- Strategy A: HDF5 built from source with a standard prefix ---
-  # Set HDF5_HOME to your install prefix (e.g. $(HOME)/hdf5-parallel).
-  # AMReX will find include/ and lib/ beneath it automatically.
+  # ----------------------------------------------------------------
+  # Strategy B: System HDF5 installed via apt (Ubuntu/Debian)
+  # ----------------------------------------------------------------
+  # HDF5 selection is split by USE_MPI to prevent the parallel (OpenMPI/
+  # MPICH) HDF5 variant from being injected into non-MPI builds.
   #
-  # HDF5_HOME = $(HOME)/hdf5-parallel
-
-  # --- Strategy B: System HDF5 installed via apt (Ubuntu/Debian) ---
-  # Ubuntu places headers and libs in non-standard sub-directories.
-  # Detect which flavour is installed and inject the paths directly.
+  # Parallel HDF5 headers include <mpi.h>, which causes AMReX's parallel-
+  # HDF5 code to reference MPI_Comm / BL_COMM_WORLD even when USE_MPI=FALSE,
+  # producing compilation errors (undefined symbols) in every translation
+  # unit that transitively includes hdf5.h.
   #
-  # IMPORTANT — detection order: parallel before serial.
-  # Parallel HDF5 is a strict superset of serial HDF5: it compiles and
-  # runs correctly for non-MPI builds, and it is the only option that
-  # provides H5Pset_fapl_mpio / H5Pset_dxpl_mpio which AMReX calls when
-  # USE_MPI=TRUE.  Serial HDF5 must only be used when no parallel build
-  # of HDF5 is installed at all.
+  # Rule: USE_MPI=TRUE  → parallel HDF5 (OpenMPI preferred, MPICH fallback)
+  #       USE_MPI=FALSE → serial HDF5 only
 
-  # Parallel HDF5 (OpenMPI): apt install libhdf5-openmpi-dev
-  # The openmpi HDF5 headers #include <mpi.h>, so the OpenMPI include
-  # directory must also be on the path (from libopenmpi-dev).
-  ifneq ($(wildcard /usr/include/hdf5/openmpi/hdf5.h),)
-    INCLUDE_LOCATIONS          += /usr/include/hdf5/openmpi
-    LIBRARY_LOCATIONS          += /usr/lib/$(_MULTIARCH)/hdf5/openmpi
-    AMREX_USE_HDF5_PARALLEL     = TRUE
-    _MPI_INC := $(shell mpicc --showme:incdirs 2>/dev/null | tr ' ' '\n' | head -1 2>/dev/null)
-    ifeq ($(_MPI_INC),)
-      # mpicc not in PATH — use the standard Ubuntu libopenmpi-dev path
-      _MPI_INC := /usr/lib/$(_MULTIARCH)/openmpi/include
-    endif
-    INCLUDE_LOCATIONS          += $(_MPI_INC)
+  ifeq ($(USE_MPI),TRUE)
 
-  # Parallel HDF5 (MPICH): apt install libhdf5-mpich-dev
-  else ifneq ($(wildcard /usr/include/hdf5/mpich/hdf5.h),)
-    INCLUDE_LOCATIONS          += /usr/include/hdf5/mpich
-    LIBRARY_LOCATIONS          += /usr/lib/$(_MULTIARCH)/hdf5/mpich
-    AMREX_USE_HDF5_PARALLEL     = TRUE
-    _MPI_INC := $(shell mpicc --showme:incdirs 2>/dev/null | tr ' ' '\n' | head -1 2>/dev/null)
-    ifeq ($(_MPI_INC),)
-      _MPI_INC := /usr/lib/$(_MULTIARCH)/mpich/include
-    endif
-    INCLUDE_LOCATIONS          += $(_MPI_INC)
+    # ------------------------------------------------------------------
+    # Parallel HDF5 (OpenMPI): apt install libhdf5-openmpi-dev
+    # ------------------------------------------------------------------
+    # CRITICAL: libhdf5-openmpi.so carries a NEEDED entry for libmpi.so.40
+    # (OpenMPI's soname).  Adding the OpenMPI runtime lib directory to
+    # LIBRARY_LOCATIONS ensures the linker resolves that transitive DSO
+    # *before* any MPICH -L path injected by AMReX's Make.unknown.
+    # Without this, mixed-MPI systems fail with:
+    #   libmpi.so.40 may conflict with libmpi.so.12
+    #   undefined reference to symbol 'ompi_mpi_unsigned_long'
+    #   DSO missing from command line
+    ifneq ($(wildcard /usr/include/hdf5/openmpi/hdf5.h),)
+      INCLUDE_LOCATIONS          += /usr/include/hdf5/openmpi
+      LIBRARY_LOCATIONS          += /usr/lib/$(_MULTIARCH)/hdf5/openmpi
+      LIBRARY_LOCATIONS          += /usr/lib/$(_MULTIARCH)/openmpi/lib
+      AMREX_USE_HDF5_PARALLEL     = TRUE
+      # --showme:version is OpenMPI-specific; returns empty with MPICH.
+      _IS_OMPI := $(findstring Open MPI,$(shell mpicc --showme:version 2>&1))
+      ifeq ($(_IS_OMPI),)
+        # mpicc is not OpenMPI (likely MPICH or not in PATH).
+        # LIBRARY_LOCATIONS above ensures -lmpi resolves to libmpi.so.40
+        # first.  For a fully clean environment, align mpicc with OpenMPI:
+        #   sudo update-alternatives --set mpi    /usr/bin/mpicc.openmpi
+        #   sudo update-alternatives --set mpicxx /usr/bin/mpicxx.openmpi
+        $(warning *** Make.local: libhdf5-openmpi-dev found but mpicc is not OpenMPI.)
+        $(warning *** Fix: sudo update-alternatives --set mpi /usr/bin/mpicc.openmpi)
+        $(warning ***      sudo update-alternatives --set mpicxx /usr/bin/mpicxx.openmpi)
+        _MPI_INC := /usr/lib/$(_MULTIARCH)/openmpi/include
+      else
+        _MPI_INC := $(shell mpicc --showme:incdirs 2>/dev/null | tr ' ' '\n' | head -1 2>/dev/null)
+        ifeq ($(_MPI_INC),)
+          _MPI_INC := /usr/lib/$(_MULTIARCH)/openmpi/include
+        endif
+      endif
+      INCLUDE_LOCATIONS          += $(_MPI_INC)
 
-  # Serial HDF5: apt install libhdf5-dev
-  # Safe for USE_MPI=FALSE builds only. AMReX will fail to compile if
-  # USE_MPI=TRUE because H5Pset_fapl_mpio is absent from serial HDF5.
-  else ifneq ($(wildcard /usr/include/hdf5/serial/hdf5.h),)
-    ifeq ($(USE_MPI),TRUE)
+    # ------------------------------------------------------------------
+    # Parallel HDF5 (MPICH): apt install libhdf5-mpich-dev
+    # ------------------------------------------------------------------
+    else ifneq ($(wildcard /usr/include/hdf5/mpich/hdf5.h),)
+      INCLUDE_LOCATIONS          += /usr/include/hdf5/mpich
+      LIBRARY_LOCATIONS          += /usr/lib/$(_MULTIARCH)/hdf5/mpich
+      AMREX_USE_HDF5_PARALLEL     = TRUE
+      _MPI_INC := $(shell mpicc --showme:incdirs 2>/dev/null | tr ' ' '\n' | head -1 2>/dev/null)
+      ifeq ($(_MPI_INC),)
+        _MPI_INC := /usr/lib/$(_MULTIARCH)/mpich/include
+      endif
+      INCLUDE_LOCATIONS          += $(_MPI_INC)
+
+    # ------------------------------------------------------------------
+    # Fallback for USE_MPI=TRUE: serial HDF5 found, warn and use it
+    # ------------------------------------------------------------------
+    else ifneq ($(wildcard /usr/include/hdf5/serial/hdf5.h),)
       $(warning *** Make.local: serial HDF5 detected but USE_MPI=TRUE.)
-      $(warning *** AMReX needs parallel HDF5 for MPI builds.)
+      $(warning *** AMReX needs parallel HDF5 for MPI+HDF5 builds.)
       $(warning *** Install:  sudo apt install libhdf5-openmpi-dev)
-    endif
-    INCLUDE_LOCATIONS += /usr/include/hdf5/serial
-    LIBRARY_LOCATIONS += /usr/lib/$(_MULTIARCH)/hdf5/serial
+      INCLUDE_LOCATIONS += /usr/include/hdf5/serial
+      LIBRARY_LOCATIONS += /usr/lib/$(_MULTIARCH)/hdf5/serial
 
-  else
-    # --- Strategy C: locate via h5cc wrapper ---
-    # Works for both source-built and module-loaded HDF5.
-    _H5_PREFIX := $(shell h5cc -showconfig 2>/dev/null \
-                    | grep 'Installation point' \
-                    | sed 's/.*:[[:space:]]*//' \
-                    | tr -d '[:space:]')
-    ifneq ($(_H5_PREFIX),)
-      HDF5_HOME ?= $(_H5_PREFIX)
     else
-      $(warning Make.local: HDF5 not found via apt, h5cc, or HDF5_HOME.)
-      $(warning   Install with:  sudo apt install libhdf5-dev)
-      $(warning   Or set HDF5_HOME manually in Build_Gnumake/Make.local.)
+      # Strategy C: locate via h5pcc wrapper (source-built / module-loaded)
+      _H5_PREFIX := $(shell h5pcc -showconfig 2>/dev/null \
+                      | grep 'Installation point' \
+                      | sed 's/.*:[[:space:]]*//' \
+                      | tr -d '[:space:]')
+      ifneq ($(_H5_PREFIX),)
+        HDF5_HOME ?= $(_H5_PREFIX)
+      else
+        $(warning Make.local: parallel HDF5 not found. Install libhdf5-openmpi-dev)
+        $(warning   or set HDF5_HOME manually in Build_Gnumake/Make.local.)
+      endif
     endif
-  endif
+
+  else  # USE_MPI=FALSE — serial HDF5 only
+
+    # ------------------------------------------------------------------
+    # Serial HDF5: apt install libhdf5-dev
+    # ------------------------------------------------------------------
+    ifneq ($(wildcard /usr/include/hdf5/serial/hdf5.h),)
+      INCLUDE_LOCATIONS += /usr/include/hdf5/serial
+      LIBRARY_LOCATIONS += /usr/lib/$(_MULTIARCH)/hdf5/serial
+
+    else
+      # Strategy C: locate via h5cc wrapper (source-built / module-loaded)
+      _H5_PREFIX := $(shell h5cc -showconfig 2>/dev/null \
+                      | grep 'Installation point' \
+                      | sed 's/.*:[[:space:]]*//' \
+                      | tr -d '[:space:]')
+      ifneq ($(_H5_PREFIX),)
+        HDF5_HOME ?= $(_H5_PREFIX)
+      else
+        $(warning Make.local: serial HDF5 not found for USE_MPI=FALSE build.)
+        $(warning   Install with:  sudo apt install libhdf5-dev)
+        $(warning   Or set HDF5_HOME manually in Build_Gnumake/Make.local.)
+      endif
+    endif
+
+  endif  # USE_MPI
 
 endif  # Linux
 

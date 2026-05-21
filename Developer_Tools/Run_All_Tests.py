@@ -1899,7 +1899,8 @@ def Run_ParameterSweep_EDC(cfg):
 # Build Matrix
 # ============================================================
 
-def Run_Build_Matrix(cfg, root=None, timeout=300, parallel_jobs=8, output_dir=None):
+def Run_Build_Matrix(cfg, root=None, timeout=300, parallel_jobs=8, output_dir=None,
+                     combo_filter=None):
     """
     Tests all combinations of build configurations using GNUMake and CMake.
 
@@ -1924,6 +1925,10 @@ def Run_Build_Matrix(cfg, root=None, timeout=300, parallel_jobs=8, output_dir=No
         Number of parallel make jobs (default 8).
     output_dir : str, optional
         Directory for results files.  Defaults to *root*.
+    combo_filter : dict, optional
+        If provided, only combos whose fields match ALL key=value pairs in this
+        dict are built.  Useful for targeted re-runs of specific failure cases.
+        Example: {"build_sys": "cmake", "use_mpi": "FALSE", "use_hdf5": "TRUE"}
     """
     if root is None:
         root = ROOT
@@ -1937,7 +1942,17 @@ def Run_Build_Matrix(cfg, root=None, timeout=300, parallel_jobs=8, output_dir=No
         return shutil.which(name) is not None
 
     def _hdf5_serial():
-        """Detect a serial (non-MPI) HDF5 installation.  Returns (found, path|None)."""
+        """Detect a serial (non-MPI) HDF5 installation.
+
+        Returns (found, path_or_dict|None) where:
+        - path_or_dict is a string prefix (include/ and lib/ sub-dirs exist) for
+          standard layouts (macOS Homebrew, /usr/local, /usr), OR
+        - a dict {"include": ..., "lib": ...} for the Ubuntu apt serial layout
+          where headers and libraries live in non-standard split directories
+          that CMake's FindHDF5 cannot discover from a single HDF5_ROOT prefix.
+        - None when found=True but no usable path can be constructed (Make.local
+          or pkg-config should handle discovery instead).
+        """
         # macOS Homebrew: 'hdf5' formula (serial)
         try:
             r = subprocess.run(
@@ -1951,17 +1966,76 @@ def Run_Build_Matrix(cfg, root=None, timeout=300, parallel_jobs=8, output_dir=No
         except Exception:
             pass
 
-        # Linux: apt serial path
-        for d in [
-            "/usr/include/hdf5/serial",
-            "/usr/local/include",
-            "/usr/include",
-        ]:
+        # Linux: Ubuntu/Debian apt serial path — non-standard split layout.
+        # Headers are under /usr/include/hdf5/serial/, libs under
+        # /usr/lib/<multiarch>/hdf5/serial/.  There is no single directory
+        # that CMake's FindHDF5 can use as HDF5_ROOT (it would need
+        # root/include/hdf5.h and root/lib/libhdf5.so to exist).
+        # Return a dict so the cmake flag builder can pass the two paths
+        # explicitly via HDF5_C_INCLUDE_DIR and HDF5_C_LIBRARY_hdf5 cache vars.
+        if os.path.exists("/usr/include/hdf5/serial/hdf5.h"):
+            try:
+                r = subprocess.run(
+                    ["dpkg-architecture", "-qDEB_HOST_MULTIARCH"],
+                    capture_output=True, text=True, timeout=5,
+                )
+                ma = r.stdout.strip() if r.returncode == 0 else ""
+            except Exception:
+                ma = ""
+            if not ma:
+                import platform
+                ma = f"{platform.machine()}-linux-gnu"
+            lib_dir = f"/usr/lib/{ma}/hdf5/serial"
+            return True, {"include": "/usr/include/hdf5/serial", "lib": lib_dir}
+
+        # Standard Linux prefix layouts (/usr/local, /usr)
+        for d in ["/usr/local/include", "/usr/include"]:
             if os.path.exists(os.path.join(d, "hdf5.h")):
-                # Try to derive a usable prefix (parent of include/)
-                prefix = os.path.dirname(d) if d.endswith("serial") else None
+                # Strip /include to get the root prefix (e.g. /usr/local, /usr)
+                prefix = os.path.dirname(d)
                 return True, prefix
+
         return False, None
+
+    def _has_sycl():
+        """Return True only if icpx exists AND the SYCL environment is fully
+        functional: sycl/sycl.hpp is resolvable and the -fsycl-device-lib flag
+        that AMReX injects is accepted by the compiler.
+
+        Rationale for two-step probe:
+        - SYCL CMake failures (#81,91,101,111): icpx is in PATH but oneAPI
+          environment not sourced → sycl/sycl.hpp not found.
+        - SYCL GNUmake failures (#25,35,45,55): icpx present and headers OK,
+          but the installed version predates -fsycl-device-lib=libc,...
+          (requires oneAPI 2023.1+).
+        Skipping both categories avoids polluting the build matrix with
+        predictable failures.
+        """
+        if not shutil.which("icpx"):
+            return False
+        try:
+            # Write to a real temp file: -fsycl does device+host multi-pass
+            # compilation and cannot re-read stdin for each pass, so piping
+            # produces "undefined reference to main" on the link step.
+            import tempfile
+            with tempfile.NamedTemporaryFile(suffix=".cpp", mode="w",
+                                             delete=False) as tf:
+                tf.write("#include <sycl/sycl.hpp>\nint main(){}\n")
+                src = tf.name
+            out = src.replace(".cpp", ".out")
+            r = subprocess.run(
+                ["icpx", "-fsycl", src, "-o", out],
+                capture_output=True, text=True, timeout=60,
+            )
+            # Clean up regardless of result
+            for f in (src, out):
+                try:
+                    os.remove(f)
+                except OSError:
+                    pass
+            return r.returncode == 0
+        except Exception:
+            return False
 
     def _hdf5_parallel():
         """Detect a parallel (MPI-linked) HDF5 installation.  Returns (found, path|None)."""
@@ -2034,7 +2108,8 @@ def Run_Build_Matrix(cfg, root=None, timeout=300, parallel_jobs=8, output_dir=No
         "clang":            _tool("clang++"),
         "nvcc":             _tool("nvcc"),
         "hipcc":            _tool("hipcc"),
-        "icpx":             _tool("icpx"),
+        "icpx":             _tool("icpx"),   # binary present (informational)
+        "sycl":             _has_sycl(),     # full SYCL capability (headers + flags)
         "mpi":              _tool("mpicc"),
         "omp":              _omp_available(),
         "hdf5_serial":      _serial_found,
@@ -2050,7 +2125,12 @@ def Run_Build_Matrix(cfg, root=None, timeout=300, parallel_jobs=8, output_dir=No
         label = "FOUND" if found else "not found"
         path_key = tool + "_path"
         if path_key in has and found and has[path_key]:
-            label += f"  ({has[path_key]})"
+            pval = has[path_key]
+            if isinstance(pval, dict):
+                # apt split layout: show include dir for readability
+                label += f"  ({pval.get('include', pval)})"
+            else:
+                label += f"  ({pval})"
         print(f"  {tool:16s}: {label}")
 
     # ------------------------------------------------------------------
@@ -2154,12 +2234,25 @@ def Run_Build_Matrix(cfg, root=None, timeout=300, parallel_jobs=8, output_dir=No
                                     c["use_hip"] = "TRUE"
                                     combos.append(c)
                                     combo_id += 1
-                                if has["icpx"]:
+                                if has["sycl"]:
                                     c = gpu_base.copy()
                                     c["id"] = combo_id
                                     c["use_sycl"] = "TRUE"
                                     combos.append(c)
                                     combo_id += 1
+
+    # Apply --filter: keep only combos that match all key=value conditions
+    if combo_filter:
+        before = len(combos)
+        combos = [
+            c for c in combos
+            if all(str(c.get(k)) == str(v) for k, v in combo_filter.items())
+        ]
+        print(f"\n=== Build-Matrix: filter '{combo_filter}' "
+              f"→ {len(combos)} of {before} combos selected ===")
+        if not combos:
+            print("  WARNING: no combos match the filter — check key/value spelling.")
+            return []
 
     total = len(combos)
     print(f"\n=== Build-Matrix: {total} combinations to test ===\n")
@@ -2223,7 +2316,13 @@ def Run_Build_Matrix(cfg, root=None, timeout=300, parallel_jobs=8, output_dir=No
                     f"AMREX_HOME={root}/Submodules/amrex",
                 ]
                 if combo["use_hdf5"] == "TRUE" and combo.get("hdf5_path"):
-                    make_flags.append(f"HDF5_HOME={combo['hdf5_path']}")
+                    p = combo["hdf5_path"]
+                    if isinstance(p, str):
+                        # Standard prefix layout: Make.hdf5 picks it up via HDF5_HOME
+                        make_flags.append(f"HDF5_HOME={p}")
+                    # dict case (Ubuntu apt serial layout): Make.local already
+                    # injects the correct INCLUDE_LOCATIONS / LIBRARY_LOCATIONS,
+                    # so no HDF5_HOME override is needed here.
                 cmd = ["make", f"-j{parallel_jobs}"] + make_flags
 
             else:  # cmake
@@ -2239,10 +2338,30 @@ def Run_Build_Matrix(cfg, root=None, timeout=300, parallel_jobs=8, output_dir=No
                     f"-DEXAGOOP_ENABLE_SYCL={_cmake_bool(combo['use_sycl'])}",
                     f"-DCMAKE_BUILD_TYPE={'Debug' if combo['debug'] == 'TRUE' else 'Release'}",
                 ]
-                if combo["comp"] == "clang":
+                if combo["use_sycl"] == "TRUE":
+                    # SYCL requires icpx as the CXX compiler — g++ has no
+                    # sycl/sycl.hpp in its include path.  GNUMake handles this
+                    # automatically via dpcpp.mak (CXX = icpx); CMake must be
+                    # told explicitly, overriding whatever comp= was set to.
+                    cmake_flags.append("-DCMAKE_CXX_COMPILER=icpx")
+                elif combo["comp"] == "clang":
                     cmake_flags.append("-DCMAKE_CXX_COMPILER=clang++")
                 if combo["use_hdf5"] == "TRUE" and combo.get("hdf5_path"):
-                    cmake_flags.append(f"-DHDF5_ROOT={combo['hdf5_path']}")
+                    p = combo["hdf5_path"]
+                    if isinstance(p, dict):
+                        # Ubuntu apt serial HDF5: non-standard split layout.
+                        # Headers live under /usr/include/hdf5/serial/ and libs
+                        # under /usr/lib/<ma>/hdf5/serial/ — no single HDF5_ROOT
+                        # covers both.  Pass explicit CMake cache variables so
+                        # FindHDF5 can locate the pieces directly.
+                        cmake_flags.append(f"-DHDF5_C_INCLUDE_DIR={p['include']}")
+                        cmake_flags.append(
+                            f"-DHDF5_C_LIBRARY_hdf5={p['lib']}/libhdf5.so"
+                        )
+                    else:
+                        # Standard prefix: include/hdf5.h and lib/libhdf5.so
+                        # exist under this root (e.g. macOS Homebrew, /usr/local)
+                        cmake_flags.append(f"-DHDF5_ROOT={p}")
                 # cmake + make chained via shell so we can run two commands
                 # in the same cwd; use a list-compatible shell invocation
                 cmd = ["sh", "-c",
@@ -2792,7 +2911,37 @@ if __name__ == "__main__":
             "for result number N (0-based index into the results list)."
         ),
     )
+    parser.add_argument(
+        "--filter",
+        default=None,
+        metavar="KEY=VAL[,KEY=VAL...]",
+        help=(
+            "Only run build-matrix combos matching all specified KEY=VALUE "
+            "conditions (comma-separated).  Keys are combo dict fields: "
+            "build_sys, dim, use_eb, use_temp, comp, debug, use_mpi, use_omp, "
+            "use_hdf5, use_cuda, use_hip, use_sycl.  Values are case-sensitive. "
+            "Example: --filter build_sys=cmake,use_mpi=FALSE,use_hdf5=TRUE"
+        ),
+    )
     args = parser.parse_args()
+
+    # Parse --filter into a dict of required key=value conditions
+    _filter: dict = {}
+    if args.filter:
+        for token in args.filter.split(","):
+            token = token.strip()
+            if "=" not in token:
+                parser.error(f"--filter token '{token}' must be KEY=VALUE")
+            k, v = token.split("=", 1)
+            k = k.strip()
+            v = v.strip()
+            # Coerce numeric dim to int to match combo dict type
+            if k == "dim":
+                try:
+                    v = int(v)
+                except ValueError:
+                    pass
+            _filter[k] = v
 
     if args.build_matrix:
         bm_results = Run_Build_Matrix(
@@ -2801,6 +2950,7 @@ if __name__ == "__main__":
             timeout=args.timeout,
             parallel_jobs=args.jobs,
             output_dir=args.output_dir,
+            combo_filter=_filter if _filter else None,
         )
         if args.show_log is not None:
             idx = args.show_log
