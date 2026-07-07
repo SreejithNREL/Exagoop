@@ -158,4 +158,95 @@ Newtonian_Fluid(amrex::Real epsdot[NCOMP_TENSOR],
 #endif
 }
 
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+left_cauchy_green(const amrex::Real F[NCOMP_FULLTENSOR],
+                  amrex::Real b[NCOMP_TENSOR])
+{
+    constexpr int d = AMREX_SPACEDIM; // stride into F, NOT 3
+
+    auto row_dot = [&](int i, int j)
+    {
+        amrex::Real s = amrex::Real(0.0);
+        for (int k = 0; k < d; ++k)
+            s += F[i * d + k] * F[j * d + k];
+        return s;
+    };
+
+    b[XX] = row_dot(0, 0);
+#if (AMREX_SPACEDIM >= 2)
+    b[YY] = row_dot(1, 1);
+    b[XY] = row_dot(0, 1);
+#endif
+#if (AMREX_SPACEDIM == 3)
+    b[ZZ] = row_dot(2, 2);
+    b[XZ] = row_dot(0, 2);
+    b[YZ] = row_dot(1, 2);
+#endif
+}
+
+/**
+ * @brief Computes Cauchy stress for a neo-hooken solid
+ *
+ * Implements compressible neo-hookean elasticity in 1D, 2D, or 3D depending on
+ * AMREX_SPACEDIM. Uses Young’s modulus (E) and Poisson’s ratio (v) to form
+ * the constitutive matrix and multiplies it by the strain tensor eps[].
+ *
+ * @param eps    Strain tensor components
+ * @param sigma  Output stress tensor components
+ * @param E      Young’s modulus
+ * @param v      Poisson’s ratio
+ */
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+neo_hookean(amrex::Real sigma[NCOMP_TENSOR],
+            const amrex::Real F[NCOMP_FULLTENSOR],
+            amrex::Real E,
+            amrex::Real v)
+{
+    amrex::Real mu = E / (two * (eka + v));                     // shear modulus
+    amrex::Real lambda = E * v / ((eka + v) * (eka - two * v)); // first Lamé
+
+    amrex::Real B[NCOMP_TENSOR];
+    left_cauchy_green(F, B); // B = F Fᵀ
+
+    // Jacobian
+    amrex::Real detF = 0.0;
+#if (AMREX_SPACEDIM == 1)
+    detF = F[0];
+#elif (AMREX_SPACEDIM == 2)
+    detF = F[0] * F[3] - F[1] * F[2];
+#else
+    detF = F[0] * (F[4] * F[8] - F[5] * F[7]) -
+           F[1] * (F[3] * F[8] - F[5] * F[6]) +
+           F[2] * (F[3] * F[7] - F[4] * F[6]);
+#endif
+    detF = amrex::max(detF, amrex::Real(1.e-12)); // NaN guard
+
+    const amrex::Real vol = lambda * std::log(detF) / detF; // λ ln(J)/J
+    const amrex::Real muJ = mu / detF;                      // μ/J
+
+#if (AMREX_SPACEDIM == 1)
+    sigma[XX] = muJ * (B[XX] - 1.0) + vol;
+    sigma[YY] = sigma[ZZ] = 0.0;
+    sigma[XY] = sigma[XZ] = sigma[YZ] = 0.0;
+
+#elif (AMREX_SPACEDIM == 2)
+    // plane strain: F_zz = 1 implicit, so b_zz = 1 → out-of-plane deviatoric =
+    // 0
+    sigma[XX] = muJ * (B[XX] - 1.0) + vol;
+    sigma[YY] = muJ * (B[YY] - 1.0) + vol;
+    sigma[ZZ] = 0.0; // NOT zero under plane strain
+    sigma[XY] = muJ * B[XY];
+    sigma[XZ] = sigma[YZ] = 0.0;
+
+#elif (AMREX_SPACEDIM == 3)
+    sigma[XX] = muJ * (B[XX] - 1.0) + vol;
+    sigma[YY] = muJ * (B[YY] - 1.0) + vol;
+    sigma[ZZ] = muJ * (B[ZZ] - 1.0) + vol;
+    sigma[XY] = muJ * B[XY];
+    sigma[XZ] = muJ * B[XZ];
+    sigma[YZ] = muJ * B[YZ];
+#endif
+}
+
 #endif

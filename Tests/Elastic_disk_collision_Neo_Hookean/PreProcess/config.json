@@ -23,7 +23,7 @@
         "radius": 0.2
       },
       "constitutive_model": {
-        "type": "elastic",
+        "type": "neo-hookean",
         "E": 1000.0,
         "nu": 0.3
       },
@@ -51,7 +51,7 @@
         "radius": 0.2
       },
       "constitutive_model": {
-        "type": "elastic",
+        "type": "neo-hookean",
         "E": 1000.0,
         "nu": 0.3
       },
@@ -115,7 +115,7 @@
     "do_calculate_minmaxpos": 1,
     "write_diag_output_time": 0.01
   },
-  "build_with_hdf": true,
+  "build_with_hdf": false,
   "build_system": "gnumake",
   "use_mpi": true,
   "use_cuda": false,

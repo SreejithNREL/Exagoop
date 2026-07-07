@@ -55,7 +55,8 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
             if (p.idata(intData::phase) == 0)
             {
                 amrex::Real Cs = 0.0;
-                if (p.idata(intData::constitutive_model) == 1)
+                if (p.idata(intData::constitutive_model) == 1 or
+                    p.idata(intData::constitutive_model) == 2)
                 {
                     Cs = std::sqrt(p.rdata(realData::Bulk_modulus) /
                                    p.rdata(realData::density));

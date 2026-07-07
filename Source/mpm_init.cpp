@@ -1066,8 +1066,19 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
                 safe_read(ifs, p.rdata(realData::Dynamic_viscosity),
                           "Error reading Dynamic_viscosity");
             }
+            else if (p.idata(intData::constitutive_model) == 2)
+            {
+                safe_read(ifs, p.rdata(realData::E), "Error reading E");
+                safe_read(ifs, p.rdata(realData::nu), "Error reading nu");
+                p.rdata(realData::Bulk_modulus) = 0.0;
+                p.rdata(realData::Gama_pressure) = 0.0;
+                p.rdata(realData::Dynamic_viscosity) = 0.0;
+            }
             else
             {
+                amrex::Print() << "Error: Constitutive model ID "
+                               << p.idata(intData::constitutive_model)
+                               << " is not recognized.\n";
                 amrex::Abort("Incorrect constitutive model");
             }
 
