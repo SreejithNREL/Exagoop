@@ -1,0 +1,166 @@
+{
+  "dimensions": 3,
+  "grid": {
+    "xmin": 0.0,
+    "xmax": 0.4,
+    "nx": 16,
+    "ymin": 0.0,
+    "ymax": 0.4,
+    "ny": 16,
+    "zmin": 0.0,
+    "zmax": 1.2,
+    "nz": 48
+  },
+  "ppc": [
+    2,
+    2,
+    2
+  ],
+  "bodies": [
+    {
+      "shape": {
+        "type": "block",
+        "xmin": 0.1,
+        "xmax": 0.3,
+        "ymin": 0.1,
+        "ymax": 0.3,
+        "zmin": 0.0,
+        "zmax": 1.0
+      },
+      "constitutive_model": {
+        "type": "elastic",
+        "E": 10000.0,
+        "nu": 0.3,
+        "density": 1000.0
+      },
+      "initial_velocity": {
+        "type": "uniform",
+        "vx": 0.0,
+        "vy": 0.0,
+        "vz": 0.0
+      },
+      "temperature": {
+        "enabled": false,
+        "type": "uniform",
+        "T": 0.0,
+        "spheat": 1.0,
+        "thermcond": 1.0,
+        "heatsrc": 0.0
+      }
+    }
+  ],
+  "CFL": 0.2,
+  "alpha_pic_flip": 0.95,
+  "order_scheme": 1,
+  "stress_update_scheme": "MUSL",
+  "output_tag": "3D_Compression_Column",
+  "input_filename": "Inputs_3D_Compression_Column.inp",
+  "output_format": "ascii",
+  "materialpoint_filename": "mpm_particles.dat",
+  "plot_to_check": false,
+  "build_with_hdf": false,
+  "build_system": "gnumake",
+  "use_mpi": false,
+  "use_cuda": false,
+  "use_hip": false,
+  "use_omp": false,
+  "use_sycl": false,
+  "use_eb": true,
+  "use_temp": true,
+  "simulation": {
+    "final_time": 0.6,
+    "max_steps": 5000000,
+    "screen_output_time": 0.002,
+    "write_output_time": 0.02,
+    "num_redist": 10,
+    "fixed_timestep": 0,
+    "timestep": 0.0001
+  },
+  "gravity": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "boundary_conditions": {
+    "xlo": {
+      "mom": "slip",
+      "temp": {
+        "type": "dirichlet",
+        "T_wall": 0.0
+      }
+    },
+    "xhi": {
+      "mom": "slip",
+      "temp": {
+        "type": "dirichlet",
+        "T_wall": 0.0
+      }
+    },
+    "ylo": {
+      "mom": "slip",
+      "temp": {
+        "type": "dirichlet",
+        "T_wall": 0.0
+      }
+    },
+    "yhi": {
+      "mom": "slip",
+      "temp": {
+        "type": "dirichlet",
+        "T_wall": 0.0
+      }
+    },
+    "zlo": {
+      "mom": "noslip",
+      "temp": {
+        "type": "dirichlet",
+        "T_wall": 0.0
+      }
+    },
+    "zhi": {
+      "mom": "noslip",
+      "temp": {
+        "type": "dirichlet",
+        "T_wall": 0.0
+      }
+    }
+  },
+  "levelset_bodies": [
+    {
+      "name": "piston",
+      "geom_type": "plane",
+      "plane_point": [
+        0.2,
+        0.2,
+        1.02
+      ],
+      "plane_normal": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "plane_has_fluid_inside": false,
+      "ls_refinement": 2,
+      "levelset_mom": "slipwall",
+      "motion_type": "translate",
+      "motion_vel": [
+        0.0,
+        0.0,
+        -0.3
+      ],
+      "motion_center": [
+        0.2,
+        0.2,
+        1.02
+      ]
+    }
+  ],
+  "diagnostics": {
+    "print_diagnostics": 0,
+    "do_calculate_tke_tse": 0,
+    "do_calculate_mwa_velcomp": 0,
+    "do_calculate_mwa_velmag": 0,
+    "do_calculate_minmaxpos": 0,
+    "write_diag_output_time": 0.02
+  }
+}

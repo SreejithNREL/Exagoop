@@ -1,11 +1,20 @@
 .project
 .pydevproject
+.cproject
+
+.settings/org.eclipse.core.resources.prefs
+.externalToolBuilders/
 
 .DS_Store
 .clang-format
 /paper/
+.clangd
+clangformat.sh
 
 Docs/sphinx/manual/_build/
+Docs/adr
+Docs/eclipse_setup_guide.md
+Docs/moving_levelset_design.md
 
 Tests/*/mpm_particles.dat
 Tests/*/Backtrace.*
@@ -31,6 +40,10 @@ Build_Gnumake/Backtrace.*
 Build_Gnumake/tmp_build_dir/*
 
 Developer_Tools/sweep_results.json
+Developer_Tools/__pycache__/
+Developer_Tools/SETUP.md
 
 build_matrix_*.json
 build_matrix_*.txt
+
+.settings/**
