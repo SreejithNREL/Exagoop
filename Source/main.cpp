@@ -60,6 +60,13 @@ int main(int argc, char *argv[])
 
         Initialise_Material_Points(specs, mpm_pc, steps, time, output_it);
 
+        // Build the per-model material-parameter table (ADR-0001) before any
+        // constitutive evaluation or CFL calculation uses it. Prefer the input
+        // material block (authoritative, restart-safe); otherwise fall back to
+        // parameters collected by the particle readers.
+        if (!mpm_pc.build_material_table_from_input())
+            mpm_pc.upload_material_table();
+
         Create_Output_Directories(specs);
 
         Initialise_Diagnostic_Streams(specs);

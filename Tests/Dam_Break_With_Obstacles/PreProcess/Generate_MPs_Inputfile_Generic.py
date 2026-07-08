@@ -1682,6 +1682,30 @@ def write_inputs_file(
                         ls_entries.append((f"{name}.{k}", str(v)))
             write_block(f, ls_entries, comment="Embedded Boundary — Level Sets")
 
+        # Material parameters (ADR-0001 Phase 3b): one entry per cm_id, parsed
+        # by the solver into the device material table. Restart-safe (params
+        # live in the input, not the checkpoint).
+        _cmt = constitutive_model["type"]
+        _cmid = 1 if _cmt == "fluid" else 0
+        _mat = [("mpm.num_materials", str(_cmid + 1))]
+        for _m in range(_cmid + 1):
+            if _m == _cmid and _cmt == "elastic":
+                _mat += [(f"mpm.material_{_m}.model", "elastic"),
+                         (f"mpm.material_{_m}.E",  str(constitutive_model["E"])),
+                         (f"mpm.material_{_m}.nu", str(constitutive_model["nu"]))]
+            elif _m == _cmid and _cmt == "fluid":
+                _gama = constitutive_model.get("Gama_pressure",
+                        constitutive_model.get("Gamma_pressure", 0.0))
+                _mat += [(f"mpm.material_{_m}.model", "fluid"),
+                         (f"mpm.material_{_m}.Bulk_modulus", str(constitutive_model["Bulk_modulus"])),
+                         (f"mpm.material_{_m}.Gama_pressure", str(_gama)),
+                         (f"mpm.material_{_m}.Dynamic_viscosity", str(constitutive_model["Dynamic_viscosity"]))]
+            else:
+                _mat += [(f"mpm.material_{_m}.model", "elastic"),
+                         (f"mpm.material_{_m}.E", "0.0"),
+                         (f"mpm.material_{_m}.nu", "0.0")]
+        write_block(f, _mat, comment="Material parameters (ADR-0001)")
+
         # Diagnostics
         write_block(f, [
             ("mpm.print_diagnostics",        str(diag.get("print_diagnostics",        0))),

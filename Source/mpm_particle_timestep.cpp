@@ -47,6 +47,8 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
     const Geometry &geom = Geom(lev);
     const auto dx = geom.CellSizeArray();
 
+    const MaterialParams *mat = m_material_table.dataPtr();
+
     using PType = typename MPMParticleContainer::SuperParticleType;
     amrex::Real dt = amrex::ReduceMin(
         *this,
@@ -55,20 +57,22 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
             if (p.idata(intData::phase) == 0)
             {
                 amrex::Real Cs = 0.0;
-                if (p.idata(intData::constitutive_model) == 1)
+                const int cm = p.idata(intData::constitutive_model);
+                if (mat[cm].model == CModel::FLUID)
                 {
-                    Cs = std::sqrt(p.rdata(realData::Bulk_modulus) /
+                    Cs = std::sqrt(mat[cm].p[FluidP::bulk] /
                                    p.rdata(realData::density));
                 }
-                else if (p.idata(intData::constitutive_model) == 0)
+                else if (mat[cm].model == CModel::ELASTIC ||
+                         mat[cm].model == CModel::JOHNSON_COOK)
                 {
-
-                    amrex::Real lambda = p.rdata(realData::E) *
-                                         p.rdata(realData::nu) /
-                                         ((1 + p.rdata(realData::nu)) *
-                                          (1 - 2.0 * p.rdata(realData::nu)));
-                    amrex::Real mu = p.rdata(realData::E) /
-                                     (2.0 * (1 + p.rdata(realData::nu)));
+                    // Elastic dilatational wave speed (JC uses E/nu at slots
+                    // 0,1, same as elastic).
+                    const amrex::Real Emod = mat[cm].p[ElasticP::E];
+                    const amrex::Real nu = mat[cm].p[ElasticP::nu];
+                    amrex::Real lambda =
+                        Emod * nu / ((1 + nu) * (1 - 2.0 * nu));
+                    amrex::Real mu = Emod / (2.0 * (1 + nu));
                     Cs = std::sqrt((lambda + 2.0 * mu) /
                                    p.rdata(realData::density));
                 }

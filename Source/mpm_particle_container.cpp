@@ -40,11 +40,134 @@ using namespace amrex;
  * @return None.
  */
 
+void MPMParticleContainer::build_material_table(
+    const amrex::Vector<MaterialParams> &host_table)
+{
+    m_material_table.resize(host_table.size());
+    amrex::Gpu::copy(amrex::Gpu::hostToDevice, host_table.begin(),
+                     host_table.end(), m_material_table.begin());
+}
+
+void MPMParticleContainer::record_material_elastic(int cm, amrex::Real E,
+                                                   amrex::Real nu)
+{
+    if (cm < 0)
+        return;
+    if (cm >= static_cast<int>(m_host_material_table.size()))
+        m_host_material_table.resize(cm + 1);
+    m_host_material_table[cm].model = CModel::ELASTIC;
+    m_host_material_table[cm].p[ElasticP::E] = E;
+    m_host_material_table[cm].p[ElasticP::nu] = nu;
+}
+
+void MPMParticleContainer::record_material_fluid(int cm, amrex::Real bulk,
+                                                 amrex::Real gama,
+                                                 amrex::Real visc)
+{
+    if (cm < 0)
+        return;
+    if (cm >= static_cast<int>(m_host_material_table.size()))
+        m_host_material_table.resize(cm + 1);
+    m_host_material_table[cm].model = CModel::FLUID;
+    m_host_material_table[cm].p[FluidP::bulk] = bulk;
+    m_host_material_table[cm].p[FluidP::gama] = gama;
+    m_host_material_table[cm].p[FluidP::visc] = visc;
+}
+
+namespace
+{
+// Host-side constitutive-model registry (ADR-0001 Phase 3b). Single source of
+// truth mapping a model's input name to its id and its parameter names in
+// MaterialParams::p[] slot order. Adding a model = one entry here (+ its id in
+// CModel, its slot enum, and its device update function). The input parser and
+// (later) the generator/IO are driven by this table rather than hard-coding.
+struct ModelInfo
+{
+    const char *name;
+    int id;
+    std::vector<const char *> param_names; // in slot order
+};
+const std::vector<ModelInfo> &model_registry()
+{
+    static const std::vector<ModelInfo> reg = {
+        {"elastic", CModel::ELASTIC, {"E", "nu"}},
+        {"fluid",
+         CModel::FLUID,
+         {"Bulk_modulus", "Gama_pressure", "Dynamic_viscosity"}},
+        {"johnson_cook",
+         CModel::JOHNSON_COOK,
+         // slot order must match JCP:: in constitutive_models.H
+         {"E", "nu", "JC_A", "JC_B", "JC_n", "JC_C", "JC_m", "JC_eps_dot_0",
+          "JC_Tr", "JC_Tm", "JC_chi", "JC_c0", "JC_Salpha", "JC_Gamma0",
+          "density"}},
+    };
+    return reg;
+}
+} // namespace
+
+bool MPMParticleContainer::build_material_table_from_input()
+{
+    amrex::ParmParse pp("mpm");
+    int nmat = 0;
+    pp.query("num_materials", nmat);
+    if (nmat <= 0)
+        return false; // no material block -> caller falls back
+
+    const auto &reg = model_registry();
+    amrex::Vector<MaterialParams> table(nmat);
+    for (int m = 0; m < nmat; ++m)
+    {
+        const std::string prefix = "mpm.material_" + std::to_string(m);
+        amrex::ParmParse ppm(prefix.c_str());
+        std::string model;
+        ppm.get("model", model);
+
+        const ModelInfo *info = nullptr;
+        for (const auto &mi : reg)
+            if (model == mi.name)
+            {
+                info = &mi;
+                break;
+            }
+        if (info == nullptr)
+            amrex::Abort("Unknown material model '" + model + "' for " + prefix);
+
+        table[m].model = info->id;
+        for (std::size_t s = 0; s < info->param_names.size(); ++s)
+            ppm.get(info->param_names[s], table[m].p[s]);
+    }
+    build_material_table(table);
+    return true;
+}
+
+void MPMParticleContainer::upload_material_table()
+{
+    // MPI-complete: each rank may have read only a subset of materials. Agree
+    // on the table size, then reduce-max each entry (params are homogeneous and
+    // non-negative per cm_id, so max recovers the value on ranks that saw it).
+    int nmat = static_cast<int>(m_host_material_table.size());
+#ifdef BL_USE_MPI
+    amrex::ParallelDescriptor::ReduceIntMax(nmat);
+    m_host_material_table.resize(nmat);
+    for (int m = 0; m < nmat; ++m)
+    {
+        amrex::ParallelDescriptor::ReduceIntMax(m_host_material_table[m].model);
+        for (int s = 0; s < MAX_MODEL_PARAMS; ++s)
+            amrex::ParallelDescriptor::ReduceRealMax(
+                m_host_material_table[m].p[s]);
+    }
+#endif
+    build_material_table(m_host_material_table);
+}
+
 void MPMParticleContainer::apply_constitutive_model(
     const amrex::Real &dt, amrex::Real applied_strainrate /*=0.0*/)
 {
     const int lev = 0;
     auto &plev = GetParticles(lev);
+
+    // Device-resident per-model parameter table (ADR-0001), indexed by cm_id.
+    const MaterialParams *mat = m_material_table.dataPtr();
 
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
@@ -94,26 +217,66 @@ void MPMParticleContainer::apply_constitutive_model(
                         strain[d] = p.rdata(realData::strain + d);
                     }
 
-                    if (p.idata(intData::constitutive_model) == 0)
+                    const int cm = p.idata(intData::constitutive_model);
+                    const MaterialParams &mp = mat[cm];
+                    if (mp.model == CModel::ELASTIC)
                     {
                         // Elastic solid
-                        linear_elastic(strain, stress, p.rdata(realData::E),
-                                       p.rdata(realData::nu));
+                        linear_elastic(strain, stress, mp.p[ElasticP::E],
+                                       mp.p[ElasticP::nu]);
                     }
-                    else if (p.idata(intData::constitutive_model) == 1)
+                    else if (mp.model == CModel::FLUID)
                     {
                         // Viscous fluid with approximate EoS
                         const amrex::Real p_inf = 0.0;
                         p.rdata(realData::pressure) =
-                            p.rdata(realData::Bulk_modulus) *
+                            mp.p[FluidP::bulk] *
                                 (std::pow(1.0 / p.rdata(realData::jacobian),
-                                          p.rdata(realData::Gama_pressure)) -
+                                          mp.p[FluidP::gama]) -
                                  1.0) +
                             p_inf;
 
-                        Newtonian_Fluid(strainrate, stress,
-                                        p.rdata(realData::Dynamic_viscosity),
+                        Newtonian_Fluid(strainrate, stress, mp.p[FluidP::visc],
                                         p.rdata(realData::pressure));
+                    }
+                    else if (mp.model == CModel::JOHNSON_COOK)
+                    {
+                        // Deformation gradient (row-major 3x3) from storage.
+                        amrex::Real F[9];
+                        for (int c = 0; c < 9; ++c)
+                            F[c] = p.rdata(realData::deformation_gradient + c);
+
+                        // Per-particle state from the ISV block.
+                        amrex::Real ep = p.rdata(realData::isv + JC_ISV::ep);
+                        amrex::Real sdev[NCOMP_TENSOR];
+                        for (int c = 0; c < NCOMP_TENSOR; ++c)
+                            sdev[c] =
+                                p.rdata(realData::isv + JC_ISV::sdev + c);
+
+                        amrex::Real press = 0.0, hsrc = 0.0;
+#if USE_TEMP
+                        amrex::Real Tcur = p.rdata(realData::temperature);
+#else
+                        amrex::Real Tcur = mp.p[JCP::Tr];
+#endif
+                        johnson_cook_stress_update(
+                            F, strainrate, sdev, ep, stress, press, hsrc,
+                            p.rdata(realData::density), mp.p[JCP::rho0],
+                            mp.p[JCP::E], mp.p[JCP::nu], mp.p[JCP::A],
+                            mp.p[JCP::B], mp.p[JCP::n], mp.p[JCP::C],
+                            mp.p[JCP::m], mp.p[JCP::eps_dot_0], Tcur,
+                            mp.p[JCP::Tr], mp.p[JCP::Tm], mp.p[JCP::chi],
+                            mp.p[JCP::c0], mp.p[JCP::Salpha], mp.p[JCP::Gamma0],
+                            dt);
+
+                        // Persist state.
+                        p.rdata(realData::isv + JC_ISV::ep) = ep;
+                        for (int c = 0; c < NCOMP_TENSOR; ++c)
+                            p.rdata(realData::isv + JC_ISV::sdev + c) = sdev[c];
+                        p.rdata(realData::pressure) = press;
+#if USE_TEMP
+                        p.rdata(realData::heat_source) = hsrc;
+#endif
                     }
 
                     // Write back stress
@@ -165,6 +328,8 @@ void MPMParticleContainer::apply_constitutive_model_delta(
 {
     const int lev = 0;
     auto &plev = GetParticles(lev);
+
+    const MaterialParams *mat = m_material_table.dataPtr();
 
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
@@ -227,14 +392,15 @@ void MPMParticleContainer::apply_constitutive_model_delta(
 #endif
 
                     // Constitutive response for delta update
-                    if (p.idata(intData::constitutive_model) == 0)
+                    const int cm = p.idata(intData::constitutive_model);
+                    if (mat[cm].model == CModel::ELASTIC)
                     {
                         // Elastic solid: linear operator on delta_strain
                         linear_elastic_delta(delta_strain, delta_stress,
-                                             p.rdata(realData::E),
-                                             p.rdata(realData::nu));
+                                             mat[cm].p[ElasticP::E],
+                                             mat[cm].p[ElasticP::nu]);
                     }
-                    else if (p.idata(intData::constitutive_model) == 1)
+                    else if (mat[cm].model == CModel::FLUID)
                     {
                         amrex::Abort(
                             "\nDelta strain model for weakly compressible "

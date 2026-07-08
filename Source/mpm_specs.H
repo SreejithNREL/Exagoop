@@ -14,6 +14,12 @@ typedef void (*TempUDFFuncPtr)(double, double, double, double, double *);
 
 using namespace amrex;
 
+// Number of generic per-particle internal state variables (ADR-0001 Phase 2).
+// Model-specific history lives in realData::isv .. isv+EXAGOOP_NISV-1; each
+// model documents its own slot usage. Elastic and Newtonian fluid use none.
+// Grow this (worst case over enabled models) when a model needs more slots.
+constexpr int EXAGOOP_NISV = 8;
+
 struct realData
 {
     enum
@@ -40,24 +46,29 @@ struct realData
         jacobian = 37,             // 34
         pressure = 38,             // 35
         vol_init = 39,             // 36
-        E = 40,                    // 37
-        nu = 41,                   // 38
-        Bulk_modulus = 42,         // 39
-        Gama_pressure = 43,        // 40
-        Dynamic_viscosity = 44,    // 41
+        // NOTE (ADR-0001 Phase 3): material parameters (E, nu, Bulk_modulus,
+        // Gama_pressure, Dynamic_viscosity) are no longer stored per particle.
+        // They live once per cm_id in the device material table
+        // (MPMParticleContainer::m_material_table).
         yacceleration =
-            45, // 45	This is for storing the acceleration of each particle in
+            40, // This is for storing the acceleration of each particle in
                 // the y-direction. This variable is not generic and used only
                 // for the spring-mass and membrane simulations only
 #if USE_TEMP
-        temperature = 46,
-        specific_heat = 47,        // specific heat used in temperature equation
-        thermal_conductivity = 48, // For now, treated as a scalar
-        heat_flux = 49,            // AMREX_SPACEDIM size
-        heat_source = 52,          // Used in the temperature equation
+        temperature,               // follows yacceleration
+        specific_heat,             // specific heat used in temperature equation
+        thermal_conductivity,      // treated as a scalar
+        heat_flux,                 // AMREX_SPACEDIM size (reserves 3 slots)
+        heat_source = heat_flux + 3, // Used in the temperature equation
 #endif
-        count
-
+        // Generic internal state variables (ADR-0001 Phase 2). Per-particle
+        // model history goes in slots isv .. isv+EXAGOOP_NISV-1. Elastic and
+        // Newtonian fluid use none; a plastic/damage model (e.g. Johnson-Cook)
+        // will use these slots (eps_p, damage, T-state, ...) without changing
+        // this enum. Initialised to 0 at particle setup; not read from the
+        // input file (runtime state).
+        isv,
+        count = isv + EXAGOOP_NISV
     };
 };
 

@@ -5,6 +5,7 @@
 #include <AMReX_NeighborParticles.H>
 #include <mpm_specs.H>
 #include <constants.H>
+#include <constitutive_models.H>
 // clang-format on
 
 class MPMParticleContainer
@@ -527,6 +528,46 @@ class MPMParticleContainer
      */
     void apply_constitutive_model(const amrex::Real &dt,
                                   amrex::Real applied_strainrate);
+
+    // ------------------------------------------------------------
+    // Material-parameter table (ADR-0001, Phase 1). Device-resident table of
+    // per-model parameters, indexed by intData::constitutive_model. Built once
+    // at init from the host table (build_material_table) and read in the hot
+    // kernels instead of per-particle E/nu/Bulk_modulus/... fields.
+    // ------------------------------------------------------------
+    amrex::Gpu::DeviceVector<MaterialParams> m_material_table; // device
+    amrex::Vector<MaterialParams> m_host_material_table;       // host accumulator
+
+    /**
+     * @brief Uploads the per-model parameter table to the device. Indexed by
+     *        cm_id. Call once after the host table is fully populated.
+     */
+    void build_material_table(const amrex::Vector<MaterialParams> &host_table);
+
+    /**
+     * @brief Records one material's parameters into the host table (ADR-0001
+     *        Phase 3). Called from the particle readers as parameters are
+     *        parsed, so material properties are stored once per cm_id instead
+     *        of on every particle. Idempotent per cm_id.
+     */
+    void record_material_elastic(int cm, amrex::Real E, amrex::Real nu);
+    void record_material_fluid(int cm, amrex::Real bulk, amrex::Real gama,
+                               amrex::Real visc);
+
+    /**
+     * @brief MPI-completes the host material table and uploads it to the
+     *        device. Call once after all particles/materials are read.
+     */
+    void upload_material_table();
+
+    /**
+     * @brief Builds the material table from the input material block
+     *        (ADR-0001 Phase 3b): mpm.num_materials + mpm.material_<m>.model
+     *        and named parameters. Authoritative when present (works on restart
+     *        too, since it does not depend on the particle file). Returns true
+     *        if a material block was found and the table was built.
+     */
+    bool build_material_table_from_input();
 
     /**
      * @brief Applies the constitutive model using an incremental (delta‑strain)

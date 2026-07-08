@@ -269,11 +269,6 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
     real_data_names.push_back("jacobian");
     real_data_names.push_back("pressure");
     real_data_names.push_back("vol_init");
-    real_data_names.push_back("E");
-    real_data_names.push_back("nu");
-    real_data_names.push_back("Bulk_modulus");
-    real_data_names.push_back("Gama_pressure");
-    real_data_names.push_back("Dynamic_viscosity");
     real_data_names.push_back("yacceleration");
 
 #if USE_TEMP
@@ -288,6 +283,11 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
     real_data_names.push_back("heat_source");
 
 #endif
+
+    // Generic internal state variables (ADR-0001 Phase 2). One name per slot so
+    // real_data_names.size() == realData::count (required by the plotfile writer).
+    for (int s = 0; s < EXAGOOP_NISV; ++s)
+        real_data_names.push_back(amrex::Concatenate("isv_", s, 1));
 
     // Integer data fields
     int_data_names.push_back("phase");
@@ -311,11 +311,16 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
     writeflags_real[realData::vol_init] = 1;
 
     // Optional material properties
-    writeflags_real[realData::E] = 0;
-    writeflags_real[realData::nu] = 0;
-    writeflags_real[realData::Bulk_modulus] = 0;
-    writeflags_real[realData::Gama_pressure] = 0;
-    writeflags_real[realData::Dynamic_viscosity] = 0;
+    // Material parameters are no longer per-particle (ADR-0001 Phase 3).
+
+    // Generic ISV block: not written by default (runtime state). A model may
+    // opt-in to output a specific slot (e.g. damage) by setting its flag to 1.
+    for (int s = 0; s < EXAGOOP_NISV; ++s)
+        writeflags_real[realData::isv + s] = 0;
+    // Output isv[0] (equivalent plastic strain for Johnson-Cook) and isv[7]
+    // (damage) for visualization/validation.
+    writeflags_real[realData::isv + 0] = 1;
+    writeflags_real[realData::isv + 7] = 1;
 
 #if USE_TEMP
     writeflags_real[realData::temperature] = 1;
@@ -473,11 +478,6 @@ void MPMParticleContainer::writeCheckpointFile(
     real_data_names.push_back("jacobian");
     real_data_names.push_back("pressure");
     real_data_names.push_back("vol_init");
-    real_data_names.push_back("E");
-    real_data_names.push_back("nu");
-    real_data_names.push_back("Bulk_modulus");
-    real_data_names.push_back("Gama_pressure");
-    real_data_names.push_back("Dynamic_viscosity");
     real_data_names.push_back("yacceleration");
 
 #if USE_TEMP
@@ -489,6 +489,11 @@ void MPMParticleContainer::writeCheckpointFile(
     real_data_names.push_back("heat_flux_2");
     real_data_names.push_back("heat_source");
 #endif
+
+    // Generic internal state variables (ADR-0001 Phase 2): checkpointed so
+    // runtime model history survives restart. One name per slot.
+    for (int s = 0; s < EXAGOOP_NISV; ++s)
+        real_data_names.push_back(amrex::Concatenate("isv_", s, 1));
 
     amrex::Vector<std::string> int_data_names;
     int_data_names.push_back("phase");
