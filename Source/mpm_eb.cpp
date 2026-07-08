@@ -510,6 +510,44 @@ void init_eb(const Geometry &geom,
             }
         }
 
+        RigidMotion motion;
+        {
+            std::string mtype = "static";
+            pp_body.query("motion_type", mtype);
+            if (mtype == "static")
+                motion.type = MOTION_STATIC;
+            else if (mtype == "translate")
+                motion.type = MOTION_TRANSLATE;
+            else if (mtype == "rotate")
+                motion.type = MOTION_ROTATE;
+            else if (mtype == "udf")
+                motion.type = MOTION_UDF;
+            else
+                amrex::Abort("LevelSetBody '" + name +
+                             "': unknown motion_type '" + mtype +
+                             "'. Valid: static, translate, rotate, udf.");
+
+            std::vector<amrex::Real> mc(AMREX_SPACEDIM, 0.0);
+            if (pp_body.queryarr("motion_center", mc))
+                for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                    motion.center[d] = mc[d];
+
+            std::vector<amrex::Real> mv(AMREX_SPACEDIM, 0.0);
+            if (pp_body.queryarr("motion_vel", mv))
+                for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                    motion.vel[d] = mv[d];
+
+            std::vector<amrex::Real> mw;
+            if (pp_body.queryarr("motion_omega", mw))
+            {
+                if (mw.size() == 1) // 2D convention: single z-component
+                    motion.omega[2] = mw[0];
+                else
+                    for (std::size_t d = 0; d < mw.size() && d < 3; ++d)
+                        motion.omega[d] = mw[d];
+            }
+        }
+
         LevelSetBody body;
         body.name = name;
         body.lsphi = body_lsphi;
@@ -517,6 +555,7 @@ void init_eb(const Geometry &geom,
         body.mom_bc_type = mom_bc;
         body.wall_mu = wall_mu;
         body.wall_vel = wall_vel;
+        body.motion = motion;
 
         std::string temp_bc = "adiabatic";
         pp_body.query("temp_bc_type", temp_bc);
@@ -539,10 +578,14 @@ void init_eb(const Geometry &geom,
         body.h_conv = h_conv;
         body.T_inf = T_inf_val;
 
+        const char *mtype_str[] = {"static", "translate", "rotate", "udf"};
         amrex::Print() << "  [EB] Body '" << name
                        << "': levelset_mom=" << mom_bc
                        << "  lset_wall_mu=" << wall_mu
-                       << "  temp_bc_type=" << temp_bc << "\n";
+                       << "  temp_bc_type=" << temp_bc
+                       << "  motion=" << mtype_str[motion.type] << "  vel=("
+                       << motion.vel[0] << "," << motion.vel[1]
+                       << ")  omega_z=" << motion.omega[2] << "\n";
 
         ls_bodies.push_back(std::move(body));
     }
@@ -560,6 +603,102 @@ void init_eb(const Geometry &geom,
         std::string pltname = "ebplt_" + body.name;
         WriteSingleLevelPlotfile(specs.blevset_output_folder + pltname, plotmf,
                                  {"phi"}, geom_ls, 0.0, 0);
+    }
+}
+
+// ============================================================
+// Level-set transport (moving level set, Stage 1).
+// Solves d(phi)/dt + v . grad(phi) = 0 on each moving body's refined nodal
+// grid with first-order upwind + explicit Euler. v = rigid-body velocity.
+// ============================================================
+void advance_levelset_bodies(const Geometry &geom,
+                             amrex::Real time,
+                             amrex::Real dt)
+{
+    for (auto &body : ls_bodies)
+    {
+        const RigidMotion motion = body.motion;
+        if (motion.type == MOTION_STATIC)
+            continue;
+
+        Geometry geom_ls = refined_geom(geom, body.ls_refinement);
+        const auto plo = geom_ls.ProbLoArray();
+        const auto dx = geom_ls.CellSizeArray();
+
+        Box nddom = amrex::surroundingNodes(geom_ls.Domain());
+        amrex::GpuArray<int, AMREX_SPACEDIM> nlo, nhi;
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        {
+            nlo[d] = nddom.smallEnd(d);
+            nhi[d] = nddom.bigEnd(d);
+        }
+
+        MultiFab &phi = *body.lsphi;
+        phi.FillBoundary(geom_ls.periodicity());
+
+        MultiFab phi_old(phi.boxArray(), phi.DistributionMap(), 1,
+                         phi.nGrowVect());
+        MultiFab::Copy(phi_old, phi, 0, 0, 1, phi.nGrowVect());
+
+        const amrex::Real t = time;
+
+        for (MFIter mfi(phi); mfi.isValid(); ++mfi)
+        {
+            const Box &nbx = mfi.validbox();
+            Array4<amrex::Real> pn = phi.array(mfi);
+            Array4<amrex::Real const> po = phi_old.const_array(mfi);
+
+            amrex::ParallelFor(
+                nbx,
+                [=] AMREX_GPU_DEVICE(AMREX_D_DECL(int i, int j, int k)) noexcept
+                {
+#if AMREX_SPACEDIM == 2
+                    const int k = 0;
+#endif
+                    amrex::Real xn[AMREX_SPACEDIM] = {AMREX_D_DECL(
+                        plo[XDIR] + i * dx[XDIR], plo[YDIR] + j * dx[YDIR],
+                        plo[ZDIR] + k * dx[ZDIR])};
+
+                    amrex::Real v[AMREX_SPACEDIM];
+                    motion.wall_velocity(xn, t, v);
+
+                    amrex::Real adv = 0.0;
+                    {
+                        int im = amrex::max(i - 1, nlo[XDIR]);
+                        int ip = amrex::min(i + 1, nhi[XDIR]);
+                        amrex::Real g =
+                            (v[XDIR] > 0.0)
+                                ? (po(i, j, k) - po(im, j, k)) / dx[XDIR]
+                                : (po(ip, j, k) - po(i, j, k)) / dx[XDIR];
+                        adv += v[XDIR] * g;
+                    }
+#if AMREX_SPACEDIM >= 2
+                    {
+                        int jm = amrex::max(j - 1, nlo[YDIR]);
+                        int jp = amrex::min(j + 1, nhi[YDIR]);
+                        amrex::Real g =
+                            (v[YDIR] > 0.0)
+                                ? (po(i, j, k) - po(i, jm, k)) / dx[YDIR]
+                                : (po(i, jp, k) - po(i, j, k)) / dx[YDIR];
+                        adv += v[YDIR] * g;
+                    }
+#endif
+#if AMREX_SPACEDIM == 3
+                    {
+                        int km = amrex::max(k - 1, nlo[ZDIR]);
+                        int kp = amrex::min(k + 1, nhi[ZDIR]);
+                        amrex::Real g =
+                            (v[ZDIR] > 0.0)
+                                ? (po(i, j, k) - po(i, j, km)) / dx[ZDIR]
+                                : (po(i, j, kp) - po(i, j, k)) / dx[ZDIR];
+                        adv += v[ZDIR] * g;
+                    }
+#endif
+                    pn(i, j, k) = po(i, j, k) - dt * adv;
+                });
+        }
+
+        phi.FillBoundary(geom_ls.periodicity());
     }
 }
 

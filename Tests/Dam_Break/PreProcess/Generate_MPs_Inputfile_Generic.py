@@ -576,10 +576,12 @@ def generate_particle_chunks(
         cx = xmin + ix * dx
         cy = ymin + iy * dy
         cz = zmin + iz * dz
-        CX, CY, CZ = np.meshgrid(cx, cy, cz, indexing="ij")
-        PX = CX[:, :, :, None] + offsets[0][None, None, None, :] * dx
-        PY = CY[:, :, :, None] + offsets[1][None, None, None, :] * dy
-        PZ = CZ[:, :, :, None] + offsets[2][None, None, None, :] * dz
+        CX, CY, CZ = np.meshgrid(cx, cy, cz, indexing="ij")        
+        OX, OY, OZ = np.meshgrid(offsets[0], offsets[1], offsets[2],
+                                 indexing="ij")
+        PX = CX[:, :, :, None, None, None] + OX[None, None, None, :, :, :] * dx
+        PY = CY[:, :, :, None, None, None] + OY[None, None, None, :, :, :] * dy
+        PZ = CZ[:, :, :, None, None, None] + OZ[None, None, None, :, :, :] * dz
         PX = PX.ravel()
         PY = PY.ravel()
         PZ = PZ.ravel()

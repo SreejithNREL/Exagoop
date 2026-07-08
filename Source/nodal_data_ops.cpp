@@ -128,7 +128,8 @@ void backup_current_temperature(MultiFab &nodaldata)
  */
 void nodal_levelset_bcs(MultiFab &nodaldata,
                         const Geometry &geom,
-                        amrex::Real & /*dt*/)
+                        amrex::Real & /*dt*/,
+                        amrex::Real time)
 {
     const auto plo = geom.ProbLoArray();
     const auto dx = geom.CellSizeArray();
@@ -142,7 +143,10 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
 
         const int bc_int = body.mom_bc_int();
         const amrex::Real wmu = body.wall_mu;
-        const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> wvel = body.wall_vel;
+        const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> wvel_const =
+            body.wall_vel;
+        const RigidMotion motion = body.motion;
+        const amrex::Real t = time;
 
         MultiFab lsphi_coarse(nodaldata.boxArray(), nodaldata.DistributionMap(),
                               1,  // ncomp
@@ -193,6 +197,11 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
                     for (int d = 0; d < AMREX_SPACEDIM; d++)
                         normaldir[d] /= gradmag;
 
+                    amrex::Real wvel[AMREX_SPACEDIM];
+                    motion.wall_velocity(xp, t, wvel);
+                    for (int d = 0; d < AMREX_SPACEDIM; d++)
+                        wvel[d] += wvel_const[d];
+
                     amrex::Real relvel_in[AMREX_SPACEDIM];
                     amrex::Real relvel_out[AMREX_SPACEDIM];
                     for (int d = 0; d < AMREX_SPACEDIM; d++)
@@ -234,7 +243,8 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
  */
 void nodal_levelset_bcs_temperature(MultiFab &nodaldata,
                                     const Geometry &geom,
-                                    bool dirichlet_only)
+                                    bool dirichlet_only,
+                                    amrex::Real time)
 {
     const auto plo = geom.ProbLoArray();
     const auto dx = geom.CellSizeArray();
@@ -259,6 +269,8 @@ void nodal_levelset_bcs_temperature(MultiFab &nodaldata,
         const amrex::Real heat_flux_v = body.heat_flux;
         const amrex::Real h_conv_v = body.h_conv;
         const amrex::Real T_inf_v = body.T_inf;
+        amrex::ignore_unused(
+            time); // field moves in domain frame; sampled in place
 
         MultiFab lsphi_coarse(nodaldata.boxArray(), nodaldata.DistributionMap(),
                               1, 1);
@@ -286,6 +298,8 @@ void nodal_levelset_bcs_temperature(MultiFab &nodaldata,
                         plo[XDIR] + i * dx[XDIR], plo[YDIR] + j * dx[YDIR],
                         plo[ZDIR] + k * dx[ZDIR])};
 
+                    // Field is transported in the domain frame; sample in
+                    // place.
                     amrex::Real lsval =
                         get_levelset_value(lsarr, plo, dx, xp, /*lsref=*/1);
 

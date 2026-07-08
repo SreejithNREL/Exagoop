@@ -226,9 +226,11 @@ void MPMParticleContainer::moveParticles(
     amrex::Real wall_vel_lo[AMREX_SPACEDIM * AMREX_SPACEDIM],
     amrex::Real wall_vel_hi[AMREX_SPACEDIM * AMREX_SPACEDIM],
     amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM> udf_wall_vel_lo_dev,
-    amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM> udf_wall_vel_hi_dev)
+    amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM> udf_wall_vel_hi_dev,
+    amrex::Real time)
 {
     BL_PROFILE("MPMParticleContainer::moveParticles");
+    const amrex::Real t = time;
 
     const int lev = 0;
     const auto plo = Geom(lev).ProbLoArray();
@@ -245,11 +247,13 @@ void MPMParticleContainer::moveParticles(
     amrex::GpuArray<int, EXAGOOP_MAX_LS_BODIES> body_refs;
     amrex::GpuArray<int, EXAGOOP_MAX_LS_BODIES> body_bcs;
     amrex::GpuArray<amrex::Real, EXAGOOP_MAX_LS_BODIES> body_mus;
+    amrex::GpuArray<RigidMotion, EXAGOOP_MAX_LS_BODIES> body_motions;
     for (int b = 0; b < num_bodies; ++b)
     {
         body_refs[b] = 1;
         body_bcs[b] = mpm_ebtools::ls_bodies[b].mom_bc_int();
         body_mus[b] = mpm_ebtools::ls_bodies[b].wall_mu;
+        body_motions[b] = mpm_ebtools::ls_bodies[b].motion;
     }
 
     amrex::Vector<amrex::MultiFab> lsphi_coarse(num_bodies);
@@ -376,6 +380,14 @@ void MPMParticleContainer::moveParticles(
                         for (int d = 0; d < AMREX_SPACEDIM; ++d)
                             normaldir[d] /= (gradmag + TINYVAL);
 
+                        amrex::Real wvel[AMREX_SPACEDIM];
+                        body_motions[hit_body].wall_velocity(xp, t, wvel);
+                        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                        {
+                            relvel_in[d] -= wvel[d];
+                            relvel_out[d] = relvel_in[d];
+                        }
+
                         int modify_pos =
                             applybc(relvel_in, relvel_out, body_mus[hit_body],
                                     normaldir, body_bcs[hit_body]);
@@ -389,7 +401,8 @@ void MPMParticleContainer::moveParticles(
                         }
                         for (int d = 0; d < AMREX_SPACEDIM; ++d)
                         {
-                            p.rdata(realData::xvel + d) = relvel_out[d];
+                            p.rdata(realData::xvel + d) =
+                                relvel_out[d] + wvel[d];
                         }
                     }
                 }

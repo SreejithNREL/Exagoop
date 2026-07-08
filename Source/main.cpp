@@ -88,6 +88,14 @@ int main(int argc, char *argv[])
             Redistribute_Fill_Update(specs, mpm_pc, steps);
 
             dt = mpm_pc.Calculate_time_step(specs);
+            // Check and limit dt if there is a moving level set
+            dt = Calculate_time_step_movinglevset(geom, dt);
+
+#if USE_EB
+            // Advance level set field
+            if (mpm_ebtools::using_levelset_geometry)
+                mpm_ebtools::advance_levelset_bodies(geom, time, dt);
+#endif
 
             Reset_Nodaldata_to_Zero(nodaldata, ng_cells_nodaldata);
 
@@ -112,7 +120,7 @@ int main(int argc, char *argv[])
 #if USE_TEMP
                 G2P_Temperature(specs, mpm_pc, nodaldata, 1, 1, dt);
 #endif
-                Update_MP_Positions(specs, mpm_pc, dt); // step 19
+                Update_MP_Positions(specs, mpm_pc, dt, time); // step 19
             }
 
             // mpm_pc.updateNeighbors();
@@ -136,7 +144,7 @@ int main(int argc, char *argv[])
                 G2P_Temperature(specs, mpm_pc, nodaldata, 0, 1, dt);
 #endif
 
-                Update_MP_Positions(specs, mpm_pc, dt); // step 18
+                Update_MP_Positions(specs, mpm_pc, dt, time); // step 18
             }
 
             Redistribute_Fill_Update(specs, mpm_pc, steps);

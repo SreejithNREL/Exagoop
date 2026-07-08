@@ -38,6 +38,122 @@ using namespace amrex;
 
 constexpr int EXAGOOP_MAX_LS_BODIES = 8; // Maximum number of level set bodies
 
+// ============================================================
+// Rigid-body motion of a level-set body (moving level set, v1).
+//
+// The stored lsphi field is treated as the body's shape in its own
+// *reference frame*. At BC-application time we map a query point x (domain
+// coordinates, time t) back into that frame via to_body_frame(), sample the
+// stored phi there, and use wall_velocity() = V + omega x (x - center) for the
+// wall-frame momentum BC. This is exact for rigid motion and needs no
+// rebuild/redistancing. See Docs/moving_levelset_design.md.
+// ============================================================
+enum MotionType
+{
+    MOTION_STATIC = 0,    // fixed body (default; identical to legacy behaviour)
+    MOTION_TRANSLATE = 1, // c(t) = c0 + V t,  R = I
+    MOTION_ROTATE = 2,    // rotate about center by theta = omega_z t (z-axis)
+    MOTION_UDF = 3        // trajectory from user function (placeholder in v1)
+};
+
+struct RigidMotion
+{
+    int type = MOTION_STATIC;
+    amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> center = {
+        AMREX_D_DECL(0.0, 0.0, 0.0)}; // rotation pivot c0
+    amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> vel = {
+        AMREX_D_DECL(0.0, 0.0, 0.0)}; // linear velocity V (m/s)
+    amrex::GpuArray<amrex::Real, 3> omega = {
+        0.0, 0.0, 0.0}; // angular velocity (rad/s); only z used in 2D
+
+    /**
+     * @brief Map a domain-frame query point x at time t back to the body
+     *        reference frame (xb), where the stored lsphi is defined.
+     */
+    AMREX_GPU_HOST_DEVICE
+    void
+    to_body_frame(const amrex::Real *x, amrex::Real t, amrex::Real *xb) const
+    {
+        if (type == MOTION_TRANSLATE)
+        {
+            for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                xb[d] = x[d] - vel[d] * t;
+        }
+        else if (type == MOTION_ROTATE)
+        {
+            const amrex::Real th = omega[2] * t;
+            const amrex::Real c = std::cos(th);
+            const amrex::Real s = std::sin(th);
+            const amrex::Real rx = x[XDIR] - center[XDIR];
+            const amrex::Real ry = x[YDIR] - center[YDIR];
+            // inverse rotation R(-th) about the z-axis through center
+            xb[XDIR] = center[XDIR] + (c * rx + s * ry);
+            xb[YDIR] = center[YDIR] + (-s * rx + c * ry);
+#if AMREX_SPACEDIM == 3
+            xb[ZDIR] = x[ZDIR];
+#endif
+        }
+        else // MOTION_STATIC or MOTION_UDF (v1 placeholder: identity)
+        {
+            for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                xb[d] = x[d];
+        }
+    }
+
+    /**
+     * @brief Rotate a body-frame vector (e.g. grad(phi_ref)) into the domain
+     *        frame: v_domain = R(theta) v_body. Identity for static/translate.
+     *        Needed so the interface normal and nodal velocity share a frame.
+     */
+    AMREX_GPU_HOST_DEVICE
+    void rotate_to_domain(amrex::Real *v, amrex::Real t) const
+    {
+        if (type == MOTION_ROTATE)
+        {
+            const amrex::Real th = omega[2] * t;
+            const amrex::Real c = std::cos(th);
+            const amrex::Real s = std::sin(th);
+            const amrex::Real bx = v[XDIR];
+            const amrex::Real by = v[YDIR];
+            v[XDIR] = c * bx - s * by;
+            v[YDIR] = s * bx + c * by;
+        }
+    }
+
+    /**
+     * @brief Rigid-body wall velocity at domain-frame point x, time t:
+     *        wv = V + omega x (x - center).
+     */
+    AMREX_GPU_HOST_DEVICE
+    void wall_velocity(const amrex::Real *x,
+                       amrex::Real /*t*/,
+                       amrex::Real *wv) const
+    {
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+            wv[d] = 0.0;
+
+        if (type == MOTION_TRANSLATE)
+        {
+            for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                wv[d] = vel[d];
+        }
+        else if (type == MOTION_ROTATE)
+        {
+            const amrex::Real rx = x[XDIR] - center[XDIR];
+            const amrex::Real ry = x[YDIR] - center[YDIR];
+#if AMREX_SPACEDIM == 2
+            wv[XDIR] = -omega[2] * ry;
+            wv[YDIR] = omega[2] * rx;
+#else
+            const amrex::Real rz = x[ZDIR] - center[ZDIR];
+            wv[XDIR] = omega[1] * rz - omega[2] * ry;
+            wv[YDIR] = omega[2] * rx - omega[0] * rz;
+            wv[ZDIR] = omega[0] * ry - omega[1] * rx;
+#endif
+        }
+    }
+};
+
 // Each body has its own level set data structure. Using a struct to group all
 // quantities
 struct LevelSetBody
@@ -52,6 +168,8 @@ struct LevelSetBody
     amrex::GpuArray<amrex::Real, AMREX_SPACEDIM>
         wall_vel = // in case wall velocity is specified
         {AMREX_D_DECL(0.0, 0.0, 0.0)};
+
+    RigidMotion motion; // prescribed rigid motion (default: static)
 
     /**
      * @brief Maps the string mom_bc_type to the integer BC_* constant
@@ -157,6 +275,18 @@ void init_eb(const Geometry &geom,
              const BoxArray &ba,
              const DistributionMapping &dm,
              MPMspecs &specs);
+
+/**
+ * @brief Advances each moving level-set body one step by solving the transport
+ *        equation  d(phi)/dt + v . grad(phi) = 0  on the (refined) nodal grid,
+ *        with v = V + omega x (x - c) the rigid-body velocity. First-order
+ *        upwind in space, explicit Euler in time. The field evolves in the
+ *        DOMAIN frame, so the BC kernels sample phi at each node's own
+ * location. Static bodies are skipped.
+ */
+void advance_levelset_bodies(const amrex::Geometry &geom,
+                             amrex::Real time,
+                             amrex::Real dt);
 } // namespace mpm_ebtools
 #endif // USE_EB
 
@@ -285,6 +415,63 @@ get_levelset_grad(amrex::Array4<amrex::Real> phi,
                          basisvalder(d, offset, idx, ptxyz, problo, ls_dx,
                                      order_pseudo, periodic_pseudo, lo, hi);
     }
+}
+
+/**
+ * @brief Computes the time step bounds when using moving level sets.
+ *
+ * The level set update should not move beyond dx in a single time step.
+ *
+ * @param[in]  geom    Geometry
+ * @param[in]  dt  	   dt obtained after CFL condition
+ * @param[out] dt      minimum of level set dt
+ */
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real
+Calculate_time_step_movinglevset(Geometry &geom, amrex::Real dt)
+{
+#if USE_EB
+    if (mpm_ebtools::using_levelset_geometry)
+    {
+        const auto dxa = geom.CellSizeArray();
+        const auto problo = geom.ProbLoArray();
+        const auto probhi = geom.ProbHiArray();
+        amrex::Real dxmin = dxa[0];
+        for (int d = 1; d < AMREX_SPACEDIM; ++d)
+            dxmin = amrex::min(dxmin, dxa[d]);
+
+        amrex::Real vmax = 0.0;
+        for (const auto &body : mpm_ebtools::ls_bodies)
+        {
+            const RigidMotion &m = body.motion;
+            if (m.type == MOTION_TRANSLATE)
+            {
+                amrex::Real s = 0.0;
+                for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                    s += m.vel[d] * m.vel[d];
+                vmax = amrex::max(vmax, std::sqrt(s));
+            }
+            else if (m.type == MOTION_ROTATE)
+            {
+
+                amrex::Real rx =
+                    amrex::max(amrex::Math::abs(probhi[XDIR] - m.center[XDIR]),
+                               amrex::Math::abs(problo[XDIR] - m.center[XDIR]));
+                amrex::Real ry =
+                    amrex::max(amrex::Math::abs(probhi[YDIR] - m.center[YDIR]),
+                               amrex::Math::abs(problo[YDIR] - m.center[YDIR]));
+                amrex::Real Rmax = std::sqrt(rx * rx + ry * ry);
+                vmax = amrex::max(vmax, amrex::Math::abs(m.omega[2]) * Rmax);
+            }
+        }
+
+        if (vmax > 0.0)
+            dt = amrex::min(dt, 0.5 * dxmin / vmax);
+    }
+    return dt;
+
+#else
+    return dt;
+#endif
 }
 
 #endif // _MPM_EB_H_

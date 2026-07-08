@@ -62,7 +62,8 @@ void G2P_Temperature(MPMspecs &specs,
                      amrex::Real dt);
 void Update_MP_Positions(MPMspecs &specs,
                          MPMParticleContainer &mpm_pc,
-                         amrex::Real dt);
+                         amrex::Real dt,
+                         amrex::Real time = 0.0);
 void Update_MP_Volume(MPMParticleContainer &mpm_pc);
 void Calculate_MP_Stress_Strain(MPMspecs &specs,
                                 MPMParticleContainer &mpm_pc,
