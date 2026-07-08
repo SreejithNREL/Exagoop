@@ -63,11 +63,8 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
                     Cs = std::sqrt(mat[cm].p[FluidP::bulk] /
                                    p.rdata(realData::density));
                 }
-                else if (mat[cm].model == CModel::ELASTIC ||
-                         mat[cm].model == CModel::JOHNSON_COOK)
+                else if (mat[cm].model == CModel::ELASTIC)
                 {
-                    // Elastic dilatational wave speed (JC uses E/nu at slots
-                    // 0,1, same as elastic).
                     const amrex::Real Emod = mat[cm].p[ElasticP::E];
                     const amrex::Real nu = mat[cm].p[ElasticP::nu];
                     amrex::Real lambda =
@@ -75,6 +72,29 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
                     amrex::Real mu = Emod / (2.0 * (1 + nu));
                     Cs = std::sqrt((lambda + 2.0 * mu) /
                                    p.rdata(realData::density));
+                }
+                else if (mat[cm].model == CModel::JOHNSON_COOK)
+                {
+                    // Deviatoric (elastic shear) wave speed from E/nu ...
+                    const amrex::Real Emod = mat[cm].p[JCP::E];
+                    const amrex::Real nu = mat[cm].p[JCP::nu];
+                    const amrex::Real rho = p.rdata(realData::density);
+                    amrex::Real lambda =
+                        Emod * nu / ((1 + nu) * (1 - 2.0 * nu));
+                    amrex::Real mu = Emod / (2.0 * (1 + nu));
+                    amrex::Real cs_el = std::sqrt((lambda + 2.0 * mu) / rho);
+                    // ... plus the Mie-Gruneisen bulk sound speed, which
+                    // stiffens under compression (Hugoniot denominator
+                    // 1 - S(eta-1) -> 0). This keeps dt conservative as the
+                    // material is compressed, avoiding an EOS-driven overshoot.
+                    const amrex::Real rho0 = mat[cm].p[JCP::rho0];
+                    const amrex::Real c0 = mat[cm].p[JCP::c0];
+                    const amrex::Real Sa = mat[cm].p[JCP::Salpha];
+                    amrex::Real eta = (rho0 > 0.0) ? rho / rho0 : 1.0;
+                    amrex::Real denom = 1.0 - Sa * (eta - 1.0);
+                    denom = amrex::max(denom, amrex::Real(0.1));
+                    amrex::Real cs_eos = c0 / (denom * denom);
+                    Cs = amrex::max(cs_el, cs_eos);
                 }
 
                 // Dimension‑aware velocity magnitude
