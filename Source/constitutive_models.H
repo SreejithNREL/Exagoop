@@ -87,7 +87,7 @@ enum
 // by pointer in device kernels.
 struct MaterialParams
 {
-    int model = CModel::ELASTIC;
+    int model = CModel::ELASTIC;			//Elastic by default
     amrex::Real p[MAX_MODEL_PARAMS] = {0.0};
 };
 

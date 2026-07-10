@@ -314,13 +314,12 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
     // Material parameters are no longer per-particle (ADR-0001 Phase 3).
 
     // Generic ISV block: not written by default (runtime state). A model may
-    // opt-in to output a specific slot (e.g. damage) by setting its flag to 1.
+    // opt-in to output a specific slot by setting its flag to 1.
     for (int s = 0; s < EXAGOOP_NISV; ++s)
         writeflags_real[realData::isv + s] = 0;
-    // Output isv[0] (equivalent plastic strain for Johnson-Cook) and isv[7]
-    // (damage) for visualization/validation.
+    // isv[0] = Johnson-Cook equivalent plastic strain (0 for models that don't
+    // use it). Add isv[JC_ISV::damage] here once JC damage (JC-3) is enabled.
     writeflags_real[realData::isv + 0] = 1;
-    writeflags_real[realData::isv + 7] = 1;
 
 #if USE_TEMP
     writeflags_real[realData::temperature] = 1;

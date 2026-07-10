@@ -241,10 +241,19 @@ void MPMParticleContainer::apply_constitutive_model(
                     }
                     else if (mp.model == CModel::JOHNSON_COOK)
                     {
-                        // Deformation gradient (row-major 3x3) from storage.
-                        amrex::Real F[9];
-                        for (int c = 0; c < 9; ++c)
-                            F[c] = p.rdata(realData::deformation_gradient + c);
+                        // Deformation gradient storage is DIM x DIM row-major
+                        // (stride AMREX_SPACEDIM). Expand into a full row-major
+                        // 3x3 (out-of-plane component = 1 for the plane case)
+                        // for the 3x3 polar decomposition. In 3D this is the
+                        // identity mapping; in 2D it places F correctly instead
+                        // of reading a singular matrix.
+                        amrex::Real F[9] = {1.0, 0.0, 0.0, 0.0, 1.0,
+                                            0.0, 0.0, 0.0, 1.0};
+                        for (int r = 0; r < AMREX_SPACEDIM; ++r)
+                            for (int c = 0; c < AMREX_SPACEDIM; ++c)
+                                F[r * 3 + c] = p.rdata(
+                                    realData::deformation_gradient +
+                                    r * AMREX_SPACEDIM + c);
 
                         // Per-particle state from the ISV block.
                         amrex::Real ep = p.rdata(realData::isv + JC_ISV::ep);
