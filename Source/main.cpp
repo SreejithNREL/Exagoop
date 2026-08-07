@@ -101,7 +101,16 @@ int main(int argc, char *argv[])
 #if USE_EB
             // Advance level set field
             if (mpm_ebtools::using_levelset_geometry)
+            {
                 mpm_ebtools::advance_levelset_bodies(geom, time, dt);
+                // Periodically redistance to undo the upwind transport's
+                // numerical diffusion, keeping the moving tool interface sharp
+                // so the particle contact push-out stays accurate.
+                if (specs.levset_reinit_interval > 0 &&
+                    (steps % specs.levset_reinit_interval == 0))
+                    mpm_ebtools::reinitialize_levelset_bodies(
+                        geom, specs.levset_reinit_iters);
+            }
 #endif
 
             Reset_Nodaldata_to_Zero(nodaldata, ng_cells_nodaldata);

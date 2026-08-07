@@ -274,28 +274,21 @@ void MPMParticleContainer::moveParticles(
     amrex::GpuArray<RigidMotion, EXAGOOP_MAX_LS_BODIES> body_motions;
     for (int b = 0; b < num_bodies; ++b)
     {
-        body_refs[b] = 1;
+        // Sample the refined level-set directly (no average-down). This keeps
+        // the tool interface at ls_refinement resolution for the particle
+        // push-out, giving a thinner contact band and a sharper tip normal.
+        // get_levelset_value/grad rescale the node spacing by this factor.
+        body_refs[b] = mpm_ebtools::ls_bodies[b].ls_refinement;
         body_bcs[b] = mpm_ebtools::ls_bodies[b].mom_bc_int();
         body_mus[b] = mpm_ebtools::ls_bodies[b].wall_mu;
         body_motions[b] = mpm_ebtools::ls_bodies[b].motion;
     }
 
-    amrex::Vector<amrex::MultiFab> lsphi_coarse(num_bodies);
     if (using_levsets)
     {
         for (int b = 0; b < num_bodies; ++b)
-        {
-            int lsref = mpm_ebtools::ls_bodies[b].ls_refinement;
-            amrex::BoxArray coarse_ba =
-                mpm_ebtools::ls_bodies[b].lsphi->boxArray();
-            coarse_ba.coarsen(lsref);
-            lsphi_coarse[b].define(
-                coarse_ba, mpm_ebtools::ls_bodies[b].lsphi->DistributionMap(),
-                1, 1);
-            amrex::average_down_nodal(*mpm_ebtools::ls_bodies[b].lsphi,
-                                      lsphi_coarse[b], amrex::IntVect(lsref));
-            lsphi_coarse[b].FillBoundary(Geom(lev).periodicity());
-        }
+            mpm_ebtools::ls_bodies[b].lsphi->FillBoundary(
+                Geom(lev).periodicity());
     }
 #endif
 
@@ -339,7 +332,7 @@ void MPMParticleContainer::moveParticles(
         if (using_levsets)
         {
             for (int b = 0; b < num_bodies; ++b)
-                body_arrs[b] = lsphi_coarse[b].array(mfi);
+                body_arrs[b] = mpm_ebtools::ls_bodies[b].lsphi->array(mfi);
         }
 #endif
 

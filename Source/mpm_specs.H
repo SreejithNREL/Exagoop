@@ -157,6 +157,16 @@ class MPMspecs
     int levset_output = 0;
     int levset_gridratio = 1;
     Real levset_smoothfactor = 1.0;
+    // Moving level-set redistancing (Russo-Smereka subcell, interface
+    // preserving): reinitialise every N steps with M pseudo-time iterations
+    // (interval > 0 enables). OFF by default: while it roughly halves tool
+    // penetration, sharpening the interface stiffens the contact and pries a
+    // layered (deforming) material into non-physical gaps near the tool. Enable
+    // for cases where minimising penetration matters more than that artifact
+    // (e.g. a rigid indenter into a bulk solid). Too-aggressive settings
+    // (small interval, many iters) can also destabilise the push-out.
+    int levset_reinit_interval = 0;
+    int levset_reinit_iters = 2;
     int external_loads_present = 0.0;
     int fixed_timestep =
         0; // Use fixed time step provided by user if this flag is 1
@@ -383,6 +393,8 @@ class MPMspecs
         pp.query("levset_output", levset_output);
         pp.query("levset_smoothfactor", levset_smoothfactor);
         pp.query("levset_gridratio", levset_gridratio);
+        pp.query("levset_reinit_interval", levset_reinit_interval);
+        pp.query("levset_reinit_iters", levset_reinit_iters);
 
         pp.query("external_loads", external_loads_present);
         if (external_loads_present)

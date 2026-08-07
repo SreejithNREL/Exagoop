@@ -317,9 +317,10 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
     // opt-in to output a specific slot by setting its flag to 1.
     for (int s = 0; s < EXAGOOP_NISV; ++s)
         writeflags_real[realData::isv + s] = 0;
-    // isv[0] = Johnson-Cook equivalent plastic strain (0 for models that don't
-    // use it). Add isv[JC_ISV::damage] here once JC damage (JC-3) is enabled.
+    // isv[0] = Johnson-Cook equivalent plastic strain, isv[7] = JC damage
+    // (0 for models that don't use them).
     writeflags_real[realData::isv + 0] = 1;
+    writeflags_real[realData::isv + JC_ISV::damage] = 1;
 
 #if USE_TEMP
     writeflags_real[realData::temperature] = 1;

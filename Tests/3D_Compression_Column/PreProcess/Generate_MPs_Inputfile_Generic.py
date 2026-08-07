@@ -1706,6 +1706,12 @@ def write_inputs_file(
                 _mat += [(f"mpm.material_{_m}.model", "johnson_cook")]
                 _mat += [(f"mpm.material_{_m}.{_k}",
                           str(constitutive_model[_k])) for _k in _jc_keys]
+                # Optional Johnson-Cook damage parameters (JC-3); emitted only
+                # when present so non-damage runs stay backward compatible.
+                for _dk in ("JC_D1", "JC_D2", "JC_D3", "JC_D4", "JC_D5"):
+                    if _dk in constitutive_model:
+                        _mat += [(f"mpm.material_{_m}.{_dk}",
+                                  str(constitutive_model[_dk]))]
             elif _m == _cmid and _cmt == "fluid":
                 _gama = constitutive_model.get("Gama_pressure",
                         constitutive_model.get("Gamma_pressure", 0.0))

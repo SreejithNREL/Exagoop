@@ -13,7 +13,7 @@
 // particle's intData::constitutive_model id -- not duplicated on every particle.
 // Each model interprets its own parameter slots (see the *P namespaces below).
 // ============================================================
-constexpr int MAX_MODEL_PARAMS = 16;
+constexpr int MAX_MODEL_PARAMS = 24;
 
 // Constitutive-model type ids (must match the cm_id / intData::constitutive_model
 // convention used in the input: 0 = elastic, 1 = Newtonian fluid,
@@ -68,6 +68,12 @@ enum
     Salpha = 12,   // Hugoniot slope (EOS)
     Gamma0 = 13,   // Gruneisen Gamma (EOS)
     rho0 = 14,     // reference density
+    // Johnson-Cook damage parameters (JC-3). All zero -> damage disabled.
+    D1 = 15,       // initial failure strain
+    D2 = 16,       // exponential factor
+    D3 = 17,       // triaxiality sensitivity
+    D4 = 18,       // strain-rate sensitivity
+    D5 = 19,       // temperature sensitivity
     count
 };
 }
@@ -352,6 +358,9 @@ johnson_cook_stress_update(
     amrex::Real T,         amrex::Real Tr,    amrex::Real Tm,
     amrex::Real chi,
     amrex::Real c0,        amrex::Real Salpha, amrex::Real Gamma0,
+    amrex::Real Dd1,       amrex::Real Dd2,   amrex::Real Dd3,
+    amrex::Real Dd4,       amrex::Real Dd5,
+    amrex::Real       &damage,
     amrex::Real dt)
 {
     heat_src_out = amrex::Real(0.0);
@@ -420,20 +429,21 @@ johnson_cook_stress_update(
     amrex::Real sigma_f = amrex::max(
         strain_fac * rate_fac * temp_fac, amrex::Real(0.0));
 
+    amrex::Real dep = amrex::Real(0.0);   // plastic strain increment this step
+    amrex::Real ep_dot = amrex::Real(0.0);
     if (seq_trial <= sigma_f || seq_trial < amrex::Real(1e-30))
     {
         for (int c = 0; c < NCOMP_TENSOR; ++c) sdev_ur[c] = strial[c];
     }
     else
     {
-        amrex::Real dep = amrex::max(
+        dep = amrex::max(
             (seq_trial - sigma_f) / (amrex::Real(3.0) * G), amrex::Real(0.0));
         ep += dep;
         amrex::Real scale = sigma_f / seq_trial;
         for (int c = 0; c < NCOMP_TENSOR; ++c)
             sdev_ur[c] = scale * strial[c];
-        amrex::Real ep_dot = (dt > amrex::Real(0.0)) ?
-                             dep / dt : amrex::Real(0.0);
+        ep_dot = (dt > amrex::Real(0.0)) ? dep / dt : amrex::Real(0.0);
         heat_src_out = chi * sigma_f * ep_dot;
     }
 
@@ -441,6 +451,52 @@ johnson_cook_stress_update(
                       rho / rho0 : amrex::Real(1.0);
     pressure = mie_gruneisen_eos(eta, rho0, c0, Salpha, Gamma0,
                                  amrex::Real(0.0));
+
+    // --- Johnson-Cook damage (JC-3) ---------------------------------------
+    // Opt-in: only active when the failure model is parameterised (D1 or D2).
+    // Failure strain  eps_f = [D1 + D2 exp(D3 sigma*)][1 + D4 ln(edot*)]
+    //                          [1 + D5 T*], with triaxiality sigma* = sigma_m/svm.
+    // Once accumulated damage D = sum(dep/eps_f) reaches 1 the particle fails:
+    // deviatoric stress is removed and only compressive pressure is retained,
+    // so failed material separates instead of carrying tension/shear.
+    if ((Dd1 > amrex::Real(0.0) || Dd2 > amrex::Real(0.0)) &&
+        damage < amrex::Real(1.0))
+    {
+        if (dep > amrex::Real(0.0))
+        {
+            // von Mises after return ~ sigma_f (flow stress); guard tiny values.
+            amrex::Real svm = amrex::max(sigma_f, amrex::Real(1e-12));
+            // Mean (tensile-positive) stress = -pressure (pressure is
+            // compression-positive here). Triaxiality sigma* = sigma_m/svm.
+            amrex::Real triax = (-pressure) / svm;
+            amrex::Real fac_t = Dd1 + Dd2 * std::exp(Dd3 * triax);
+
+            amrex::Real fac_r = amrex::Real(1.0);
+            if (Dd4 != amrex::Real(0.0) && eps_dot_0 > amrex::Real(0.0))
+            {
+                amrex::Real edn = amrex::max(ep_dot / eps_dot_0, amrex::Real(1e-12));
+                fac_r = amrex::Real(1.0) + Dd4 * std::log(edn);
+            }
+            amrex::Real fac_T = amrex::Real(1.0);
+            if (Dd5 != amrex::Real(0.0) && (Tm - Tr) > amrex::Real(0.0))
+            {
+                amrex::Real Ts = (T - Tr) / (Tm - Tr);
+                Ts = amrex::max(amrex::Real(0.0), amrex::min(amrex::Real(1.0), Ts));
+                fac_T = amrex::Real(1.0) + Dd5 * Ts;
+            }
+            amrex::Real eps_f = fac_t * fac_r * fac_T;
+            if (eps_f > amrex::Real(1e-12))
+                damage += dep / eps_f;
+        }
+    }
+
+    if (damage >= amrex::Real(1.0))
+    {
+        damage = amrex::Real(1.0);
+        for (int c = 0; c < NCOMP_TENSOR; ++c) sdev_ur[c] = amrex::Real(0.0);
+        // Retain compression only (no tensile stress) so chips separate.
+        if (pressure < amrex::Real(0.0)) pressure = amrex::Real(0.0);
+    }
 
     amrex::Real sigma_ur[3][3];
     sigma_ur[0][0] = sdev_ur[XX] - pressure;

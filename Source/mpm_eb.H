@@ -287,6 +287,17 @@ void init_eb(const Geometry &geom,
 void advance_levelset_bodies(const amrex::Geometry &geom,
                              amrex::Real time,
                              amrex::Real dt);
+
+/**
+ * @brief Reinitialises (redistances) each moving body's level-set back to a
+ *        signed distance function (|grad phi| = 1) without moving the zero
+ *        contour. Counteracts the numerical diffusion of the first-order
+ *        upwind transport, which otherwise softens the tool interface over
+ *        long runs and degrades the particle contact push-out. Sussman PDE
+ *        (d phi/d tau = sign(phi0)(1 - |grad phi|)) with a Godunov upwind
+ *        Hamiltonian; n_iters pseudo-time steps. Static bodies are skipped.
+ */
+void reinitialize_levelset_bodies(const amrex::Geometry &geom, int n_iters);
 } // namespace mpm_ebtools
 #endif // USE_EB
 

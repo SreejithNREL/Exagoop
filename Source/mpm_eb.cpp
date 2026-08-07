@@ -370,6 +370,36 @@ static MultiFab *build_analytic_levelset(const std::string &name,
         amrex::Abort("wedge_hopper geometry is only implemented in 3D");
 #endif
     }
+    else if (geom_type == "wedge")
+    {
+        // 2D cutting-tool wedge: the solid is the intersection of two
+        // half-spaces (rake face and flank face) meeting at the tool tip.
+        // Both planes pass through wedge_tip; wedge_normal1/2 are the OUTWARD
+        // normals of the two faces (point away from the solid). Moving via the
+        // usual motion_* keys turns this into an advancing cutting tool.
+        std::vector<amrex::Real> tip_v(AMREX_SPACEDIM, 0.0);
+        std::vector<amrex::Real> n1_v(AMREX_SPACEDIM, 0.0);
+        std::vector<amrex::Real> n2_v(AMREX_SPACEDIM, 0.0);
+        n1_v[0] = 1.0;
+        n2_v[1] = -1.0;
+        pp.getarr("wedge_tip", tip_v);
+        pp.getarr("wedge_normal1", n1_v);
+        pp.getarr("wedge_normal2", n2_v);
+        amrex::RealArray tip, n1, n2;
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        {
+            tip[d] = tip_v[d];
+            n1[d] = n1_v[d];
+            n2[d] = n2_v[d];
+        }
+        // PlaneIF(point, normal, fluid_inside=false): solid on the side the
+        // normal points toward. Intersection keeps the region solid in BOTH.
+        EB2::PlaneIF face1(tip, n1, false);
+        EB2::PlaneIF face2(tip, n2, false);
+        auto wedge = EB2::makeIntersection(face1, face2);
+        auto shop = EB2::makeShop(wedge);
+        EB2::Build(shop, geom_ls, req_coarsen, 10);
+    }
     else
     {
         EB2::Build(geom_ls, req_coarsen, 10);
@@ -696,6 +726,180 @@ void advance_levelset_bodies(const Geometry &geom,
 #endif
                     pn(i, j, k) = po(i, j, k) - dt * adv;
                 });
+        }
+
+        phi.FillBoundary(geom_ls.periodicity());
+    }
+}
+
+// ============================================================
+// Level-set reinitialization (redistancing) — restore |grad phi| = 1.
+// Sussman PDE  d phi/d tau + sign(phi0)(|grad phi| - 1) = 0  with a first-order
+// Godunov upwind Hamiltonian, held fixed at the zero contour by the frozen
+// sign(phi0). A few pseudo-time steps repair the field near the interface.
+// ============================================================
+void reinitialize_levelset_bodies(const Geometry &geom, int n_iters)
+{
+    for (auto &body : ls_bodies)
+    {
+        if (body.motion.type == MOTION_STATIC)
+            continue;
+
+        Geometry geom_ls = refined_geom(geom, body.ls_refinement);
+        const auto dx = geom_ls.CellSizeArray();
+        amrex::Real dxmin = dx[0];
+        for (int d = 1; d < AMREX_SPACEDIM; ++d)
+            dxmin = amrex::min(dxmin, dx[d]);
+        const amrex::Real dtau = amrex::Real(0.5) * dxmin;
+        const amrex::Real eps = dxmin; // smoothed-sign width
+
+        Box nddom = amrex::surroundingNodes(geom_ls.Domain());
+        amrex::GpuArray<int, AMREX_SPACEDIM> nlo, nhi;
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        {
+            nlo[d] = nddom.smallEnd(d);
+            nhi[d] = nddom.bigEnd(d);
+        }
+
+        MultiFab &phi = *body.lsphi;
+
+        // Frozen field at entry: defines the zero contour and the subcell
+        // distance used by the Russo-Smereka interface-preserving correction.
+        MultiFab phi0(phi.boxArray(), phi.DistributionMap(), 1, phi.nGrowVect());
+        MultiFab::Copy(phi0, phi, 0, 0, 1, phi.nGrowVect());
+        phi0.FillBoundary(geom_ls.periodicity());
+
+        for (int it = 0; it < n_iters; ++it)
+        {
+            phi.FillBoundary(geom_ls.periodicity());
+            MultiFab phi_old(phi.boxArray(), phi.DistributionMap(), 1,
+                             phi.nGrowVect());
+            MultiFab::Copy(phi_old, phi, 0, 0, 1, phi.nGrowVect());
+
+            for (MFIter mfi(phi); mfi.isValid(); ++mfi)
+            {
+                const Box &nbx = mfi.validbox();
+                Array4<amrex::Real> pn = phi.array(mfi);
+                Array4<amrex::Real const> po = phi_old.const_array(mfi);
+                Array4<amrex::Real const> p0 = phi0.const_array(mfi);
+
+                amrex::ParallelFor(
+                    nbx,
+                    [=] AMREX_GPU_DEVICE(AMREX_D_DECL(int i, int j, int k)) noexcept
+                    {
+#if AMREX_SPACEDIM == 2
+                        const int k = 0;
+#endif
+                        const amrex::Real s0 = p0(i, j, k);
+                        const amrex::Real phic = po(i, j, k);
+
+                        const int im = amrex::max(i - 1, nlo[XDIR]);
+                        const int ip = amrex::min(i + 1, nhi[XDIR]);
+                        const amrex::Real s0xm = p0(im, j, k);
+                        const amrex::Real s0xp = p0(ip, j, k);
+#if AMREX_SPACEDIM >= 2
+                        const int jm = amrex::max(j - 1, nlo[YDIR]);
+                        const int jp = amrex::min(j + 1, nhi[YDIR]);
+                        const amrex::Real s0ym = p0(i, jm, k);
+                        const amrex::Real s0yp = p0(i, jp, k);
+#endif
+#if AMREX_SPACEDIM == 3
+                        const int km = amrex::max(k - 1, nlo[ZDIR]);
+                        const int kp = amrex::min(k + 1, nhi[ZDIR]);
+                        const amrex::Real s0zm = p0(i, j, km);
+                        const amrex::Real s0zp = p0(i, j, kp);
+#endif
+                        // Is this node adjacent to the zero contour in phi0?
+                        bool nearIF = (s0 == amrex::Real(0.0)) ||
+                                      (s0 * s0xm < amrex::Real(0.0)) ||
+                                      (s0 * s0xp < amrex::Real(0.0));
+#if AMREX_SPACEDIM >= 2
+                        nearIF = nearIF || (s0 * s0ym < amrex::Real(0.0)) ||
+                                 (s0 * s0yp < amrex::Real(0.0));
+#endif
+#if AMREX_SPACEDIM == 3
+                        nearIF = nearIF || (s0 * s0zm < amrex::Real(0.0)) ||
+                                 (s0 * s0zp < amrex::Real(0.0));
+#endif
+
+                        if (nearIF)
+                        {
+                            // Russo-Smereka: relax phi toward the subcell
+                            // distance D computed from the frozen phi0, so the
+                            // zero contour (and any sharp corner) stays fixed.
+                            amrex::Real g0x = amrex::Real(0.5) * (s0xp - s0xm);
+                            amrex::Real g0sq = g0x * g0x;
+#if AMREX_SPACEDIM >= 2
+                            amrex::Real g0y = amrex::Real(0.5) * (s0yp - s0ym);
+                            g0sq += g0y * g0y;
+#endif
+#if AMREX_SPACEDIM == 3
+                            amrex::Real g0z = amrex::Real(0.5) * (s0zp - s0zm);
+                            g0sq += g0z * g0z;
+#endif
+                            // Floor at ~half a cell: |grad phi0|~1 for a signed
+                            // distance, so the central difference is ~dx. This
+                            // bounds D and avoids blow-up where the central
+                            // difference cancels at a sharp corner.
+                            amrex::Real grad0 = amrex::max(
+                                std::sqrt(g0sq), amrex::Real(0.5) * dxmin);
+                            amrex::Real D = dxmin * s0 / grad0; // subcell dist
+                            amrex::Real sgn = (s0 > amrex::Real(0.0))
+                                                  ? amrex::Real(1.0)
+                                                  : ((s0 < amrex::Real(0.0))
+                                                         ? amrex::Real(-1.0)
+                                                         : amrex::Real(0.0));
+                            pn(i, j, k) =
+                                phic - (dtau / dxmin) *
+                                           (sgn * amrex::Math::abs(phic) - D);
+                        }
+                        else
+                        {
+                            // Godunov upwind |grad phi|, branch by sign of phi0.
+                            const bool pos = (s0 > amrex::Real(0.0));
+                            amrex::Real g2 = amrex::Real(0.0);
+                            {
+                                amrex::Real a = (phic - po(im, j, k)) / dx[XDIR];
+                                amrex::Real b = (po(ip, j, k) - phic) / dx[XDIR];
+                                amrex::Real ap = amrex::max(a, amrex::Real(0.0));
+                                amrex::Real bm = amrex::min(b, amrex::Real(0.0));
+                                amrex::Real am = amrex::min(a, amrex::Real(0.0));
+                                amrex::Real bp = amrex::max(b, amrex::Real(0.0));
+                                g2 += pos ? amrex::max(ap * ap, bm * bm)
+                                          : amrex::max(am * am, bp * bp);
+                            }
+#if AMREX_SPACEDIM >= 2
+                            {
+                                amrex::Real a = (phic - po(i, jm, k)) / dx[YDIR];
+                                amrex::Real b = (po(i, jp, k) - phic) / dx[YDIR];
+                                amrex::Real ap = amrex::max(a, amrex::Real(0.0));
+                                amrex::Real bm = amrex::min(b, amrex::Real(0.0));
+                                amrex::Real am = amrex::min(a, amrex::Real(0.0));
+                                amrex::Real bp = amrex::max(b, amrex::Real(0.0));
+                                g2 += pos ? amrex::max(ap * ap, bm * bm)
+                                          : amrex::max(am * am, bp * bp);
+                            }
+#endif
+#if AMREX_SPACEDIM == 3
+                            {
+                                amrex::Real a = (phic - po(i, j, km)) / dx[ZDIR];
+                                amrex::Real b = (po(i, j, kp) - phic) / dx[ZDIR];
+                                amrex::Real ap = amrex::max(a, amrex::Real(0.0));
+                                amrex::Real bm = amrex::min(b, amrex::Real(0.0));
+                                amrex::Real am = amrex::min(a, amrex::Real(0.0));
+                                amrex::Real bp = amrex::max(b, amrex::Real(0.0));
+                                g2 += pos ? amrex::max(ap * ap, bm * bm)
+                                          : amrex::max(am * am, bp * bp);
+                            }
+#endif
+                            const amrex::Real gradmag = std::sqrt(g2);
+                            const amrex::Real S =
+                                s0 / std::sqrt(s0 * s0 + eps * eps);
+                            pn(i, j, k) =
+                                phic - dtau * S * (gradmag - amrex::Real(1.0));
+                        }
+                    });
+            }
         }
 
         phi.FillBoundary(geom_ls.periodicity());

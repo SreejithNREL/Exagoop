@@ -99,7 +99,7 @@ const std::vector<ModelInfo> &model_registry()
          // slot order must match JCP:: in constitutive_models.H
          {"E", "nu", "JC_A", "JC_B", "JC_n", "JC_C", "JC_m", "JC_eps_dot_0",
           "JC_Tr", "JC_Tm", "JC_chi", "JC_c0", "JC_Salpha", "JC_Gamma0",
-          "density"}},
+          "density", "JC_D1", "JC_D2", "JC_D3", "JC_D4", "JC_D5"}},
     };
     return reg;
 }
@@ -133,8 +133,11 @@ bool MPMParticleContainer::build_material_table_from_input()
             amrex::Abort("Unknown material model '" + model + "' for " + prefix);
 
         table[m].model = info->id;
+        // Params are read optionally; MaterialParams defaults every slot to 0.
+        // This keeps trailing parameters (e.g. Johnson-Cook damage D1..D5)
+        // opt-in and backward-compatible with input files that omit them.
         for (std::size_t s = 0; s < info->param_names.size(); ++s)
-            ppm.get(info->param_names[s], table[m].p[s]);
+            ppm.query(info->param_names[s], table[m].p[s]);
     }
     build_material_table(table);
     return true;
@@ -257,6 +260,8 @@ void MPMParticleContainer::apply_constitutive_model(
 
                         // Per-particle state from the ISV block.
                         amrex::Real ep = p.rdata(realData::isv + JC_ISV::ep);
+                        amrex::Real dmg =
+                            p.rdata(realData::isv + JC_ISV::damage);
                         amrex::Real sdev[NCOMP_TENSOR];
                         for (int c = 0; c < NCOMP_TENSOR; ++c)
                             sdev[c] =
@@ -276,10 +281,13 @@ void MPMParticleContainer::apply_constitutive_model(
                             mp.p[JCP::m], mp.p[JCP::eps_dot_0], Tcur,
                             mp.p[JCP::Tr], mp.p[JCP::Tm], mp.p[JCP::chi],
                             mp.p[JCP::c0], mp.p[JCP::Salpha], mp.p[JCP::Gamma0],
+                            mp.p[JCP::D1], mp.p[JCP::D2], mp.p[JCP::D3],
+                            mp.p[JCP::D4], mp.p[JCP::D5], dmg,
                             dt);
 
                         // Persist state.
                         p.rdata(realData::isv + JC_ISV::ep) = ep;
+                        p.rdata(realData::isv + JC_ISV::damage) = dmg;
                         for (int c = 0; c < NCOMP_TENSOR; ++c)
                             p.rdata(realData::isv + JC_ISV::sdev + c) = sdev[c];
                         p.rdata(realData::pressure) = press;
