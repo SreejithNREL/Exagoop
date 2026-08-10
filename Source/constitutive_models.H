@@ -37,7 +37,7 @@ linear_elastic(amrex::Real eps[NCOMP_TENSOR],
     // 2D plane stress/strain case
     sigma[XX] = const1 * ((1 - v) * eps[XX] + v * eps[YY]);
     sigma[YY] = const1 * ((1 - v) * eps[YY] + v * eps[XX]);
-    sigma[ZZ] = 0.0; // out-of-plane stress often set to 0 in plane stress
+    sigma[ZZ] = v*(sigma[XX]+sigma[YY]);
     sigma[XY] = const2 * eps[XY];
     sigma[XZ] = sigma[YZ] = 0.0;
 
@@ -84,7 +84,7 @@ linear_elastic_delta(amrex::Real delta_eps[NCOMP_TENSOR],
     // 2D elasticity (plane stress assumption)
     delta_sigma[XX] = const1 * ((1 - v) * delta_eps[XX] + v * delta_eps[YY]);
     delta_sigma[YY] = const1 * ((1 - v) * delta_eps[YY] + v * delta_eps[XX]);
-    delta_sigma[ZZ] = 0.0;
+    delta_sigma[ZZ] = v*(delta_sigma[XX]+delta_sigma[YY]);
     delta_sigma[XY] = const2 * delta_eps[XY];
     delta_sigma[XZ] = delta_sigma[YZ] = 0.0;
 
@@ -136,7 +136,7 @@ Newtonian_Fluid(amrex::Real epsdot[NCOMP_TENSOR],
         2.0 * dyn_visc * (epsdot[XX] - one_by_two * trace_epsdot) - pressure;
     sigma[YY] =
         2.0 * dyn_visc * (epsdot[YY] - one_by_two * trace_epsdot) - pressure;
-    sigma[ZZ] = 0.0;
+    sigma[ZZ] = 2*dyn_visc*(epsdot[ZZ]-trace_epsdot/3.0)-pressure;
     sigma[XY] = 2.0 * dyn_visc * epsdot[XY];
     sigma[XZ] = sigma[YZ] = 0.0;
 
@@ -227,7 +227,7 @@ neo_hookean(amrex::Real sigma[NCOMP_TENSOR],
 
 #if (AMREX_SPACEDIM == 1)
     sigma[XX] = muJ * (B[XX] - 1.0) + vol;
-    sigma[YY] = sigma[ZZ] = 0.0;
+    sigma[YY] = sigma[ZZ] = vol;
     sigma[XY] = sigma[XZ] = sigma[YZ] = 0.0;
 
 #elif (AMREX_SPACEDIM == 2)
@@ -235,7 +235,7 @@ neo_hookean(amrex::Real sigma[NCOMP_TENSOR],
     // 0
     sigma[XX] = muJ * (B[XX] - 1.0) + vol;
     sigma[YY] = muJ * (B[YY] - 1.0) + vol;
-    sigma[ZZ] = 0.0; // NOT zero under plane strain
+    sigma[ZZ] = vol; // NOT zero under plane strain
     sigma[XY] = muJ * B[XY];
     sigma[XZ] = sigma[YZ] = 0.0;
 
