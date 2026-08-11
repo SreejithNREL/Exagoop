@@ -34,3 +34,14 @@ Developer_Tools/sweep_results.json
 
 build_matrix_*.json
 build_matrix_*.txt
+
+.clangd
+.cproject
+.externalToolBuilders/
+Build_Gnumake/.fuse_hidden00000b0300000001
+Developer_Tools/SETUP.md
+Developer_Tools/__pycache__/
+Docs/adr/
+Docs/eclipse_setup_guide.md
+Docs/moving_levelset_design.md
+clangformat.sh
