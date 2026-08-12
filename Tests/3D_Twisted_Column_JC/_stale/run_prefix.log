@@ -1,0 +1,81 @@
+### chunk start 05:19:25 resume=Solution/checkpoint_files/3D_Twisted_Column_JC/chk000000
+Initializing AMReX (26.05-42-g12f9a543b2e7)...
+AMReX (26.05-42-g12f9a543b2e7) initialized
+
+ ===============================================================
+                  Welcome to EXAGOOP MPM Solver
+           Developed by SAMSers: Hari, Sree and Marc at NREL
+ -----------------------------------------------------------------
+ ExaGOOP Git commit: 8d258f7
+ AMReX   Git commit: 12f9a543b
+ Build: Release | GPU: None  | MPI: OFF | OpenMP: OFF  | Precision: double
+ Compiler: GCC 11.4.0
+ Hostname: claude
+ Run started: 2026-08-11 05:19:25 UTC
+ ===============================================================
+
+
+ Setting up problem variables------------------------------> Done
+ Acquiring particle data (restarting from checkpoint file)->Restarting from checkpoint Solution/checkpoint_files/3D_Twisted_Column_JC/chk000000
+
+ Acquiring particle data (restarting from checkpoint file)->
+ Creating output folders...................................
+    Creating particle folder: ./Solution/particle_files/...
+    Creating grid folder: ./Solution/particle_files/.......
+    Creating check point folder: ./Solution/particle_files/
+    Creating ascii folder: ./Solution/particle_files/......
+ Calculating initial strainrates and stresses--------------> Done
+ Updating phase field--------------------------------------> Done
+ Calculating initial heat flux-----------------------------> Done
+ Writing outputs at step, time:0, 0
+
+ ================================================================================================
+ Timestepping begins
+ ================================================================================================
+ Iteration:         30,	Time: 0.0020182689,	Dt = 6.44397e-05,	 Time/Iter = 0.2358689170
+ Iteration:         63,	Time: 0.0040538285,	Dt = 5.92761e-05,	 Time/Iter = 0.2328781250
+
+ Writing outputs at step, time:80, 0.004984290312
+ Iteration:         99,	Time: 0.0061055735,	Dt = 5.51619e-05,	 Time/Iter = 0.2419767920
+ Iteration:        137,	Time: 0.0081539515,	Dt = 5.30024e-05,	 Time/Iter = 0.2402564580
+### chunk end 05:20:05 rc=0
+### chunk start 05:20:10 resume=Solution/checkpoint_files/3D_Twisted_Column_JC/chk000001
+Initializing AMReX (26.05-42-g12f9a543b2e7)...
+AMReX (26.05-42-g12f9a543b2e7) initialized
+
+ ===============================================================
+                  Welcome to EXAGOOP MPM Solver
+           Developed by SAMSers: Hari, Sree and Marc at NREL
+ -----------------------------------------------------------------
+ ExaGOOP Git commit: 8d258f7
+ AMReX   Git commit: 12f9a543b
+ Build: Release | GPU: None  | MPI: OFF | OpenMP: OFF  | Precision: double
+ Compiler: GCC 11.4.0
+ Hostname: claude
+ Run started: 2026-08-11 05:20:10 UTC
+ ===============================================================
+
+
+ Setting up problem variables------------------------------> Done
+ Acquiring particle data (restarting from checkpoint file)->Restarting from checkpoint Solution/checkpoint_files/3D_Twisted_Column_JC/chk000001
+
+ Acquiring particle data (restarting from checkpoint file)->
+ Creating output folders...................................
+    Creating particle folder: ./Solution/particle_files/...
+    Creating grid folder: ./Solution/particle_files/.......
+    Creating check point folder: ./Solution/particle_files/
+    Creating ascii folder: ./Solution/particle_files/......
+ Calculating initial strainrates and stresses--------------> Done
+ Updating phase field--------------------------------------> Done
+ Calculating initial heat flux-----------------------------> Done
+ Writing outputs at step, time:80, 0.004984290312
+
+ ================================================================================================
+ Timestepping begins
+ ================================================================================================
+ Iteration:        117,	Time: 0.0070288583,	Dt = 5.39153e-05,	 Time/Iter = 0.2451315830
+ Iteration:        155,	Time: 0.0090458560,	Dt = 5.25183e-05,	 Time/Iter = 0.2426024170
+
+ Writing outputs at step, time:174, 0.009985578848
+ Iteration:        194,	Time: 0.0110697827,	Dt = 5.11900e-05,	 Time/Iter = 0.2464991660
+### chunk end 05:20:50 rc=0

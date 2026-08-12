@@ -1,0 +1,421 @@
+### chunk start 06:02:16 resume=<none>
+Initializing AMReX (26.05-42-g12f9a543b2e7)...
+AMReX (26.05-42-g12f9a543b2e7) initialized
+
+ ===============================================================
+                  Welcome to EXAGOOP MPM Solver
+           Developed by SAMSers: Hari, Sree and Marc at NREL
+ -----------------------------------------------------------------
+ ExaGOOP Git commit: 8d258f7
+ AMReX   Git commit: 12f9a543b
+ Build: Release | GPU: None  | MPI: OFF | OpenMP: OFF  | Precision: double
+ Compiler: GCC 11.4.0
+ Hostname: claude
+ Run started: 2026-08-11 06:02:16 UTC
+ ===============================================================
+
+
+ Setting up problem variables------------------------------> Done
+ Acquiring particle data (Reading from particle file)......
+    Took 00H 00M 00S 037ms to read-------------------------> Done
+ Creating output folders...................................
+    Creating particle folder: ./Solution/particle_files/...
+    Creating grid folder: ./Solution/particle_files/.......
+    Creating check point folder: ./Solution/particle_files/
+    Creating ascii folder: ./Solution/particle_files/......
+ Calculating initial strainrates and stresses--------------> Done
+ Updating phase field--------------------------------------> Done
+ Calculating initial heat flux-----------------------------> Done
+ Writing outputs at step, time:0, 0
+
+ ================================================================================================
+ Timestepping begins
+ ================================================================================================
+ Iteration:         29,	Time: 0.0020327087,	Dt = 7.00109e-05,	 Time/Iter = 0.2234462500
+ Iteration:         58,	Time: 0.0040630899,	Dt = 7.00171e-05,	 Time/Iter = 0.2243739580
+
+ Writing outputs at step, time:72, 0.004973343343
+ Iteration:         87,	Time: 0.0060937338,	Dt = 7.00270e-05,	 Time/Iter = 0.2240616250
+ Iteration:        116,	Time: 0.0081246592,	Dt = 7.00364e-05,	 Time/Iter = 0.2238900000
+
+ Writing outputs at step, time:143, 0.009945704004
+ Iteration:        145,	Time: 0.0101558359,	Dt = 7.00442e-05,	 Time/Iter = 0.2306936250
+### chunk end 06:02:56 rc=0
+### chunk start 06:03:04 resume=Solution/checkpoint_files/3D_Twisted_Column_JC/chk000002
+Initializing AMReX (26.05-42-g12f9a543b2e7)...
+AMReX (26.05-42-g12f9a543b2e7) initialized
+
+ ===============================================================
+                  Welcome to EXAGOOP MPM Solver
+           Developed by SAMSers: Hari, Sree and Marc at NREL
+ -----------------------------------------------------------------
+ ExaGOOP Git commit: 8d258f7
+ AMReX   Git commit: 12f9a543b
+ Build: Release | GPU: None  | MPI: OFF | OpenMP: OFF  | Precision: double
+ Compiler: GCC 11.4.0
+ Hostname: claude
+ Run started: 2026-08-11 06:03:04 UTC
+ ===============================================================
+
+
+ Setting up problem variables------------------------------> Done
+ Acquiring particle data (restarting from checkpoint file)->Restarting from checkpoint Solution/checkpoint_files/3D_Twisted_Column_JC/chk000002
+
+ Acquiring particle data (restarting from checkpoint file)->
+ Creating output folders...................................
+    Creating particle folder: ./Solution/particle_files/...
+    Creating grid folder: ./Solution/particle_files/.......
+    Creating check point folder: ./Solution/particle_files/
+    Creating ascii folder: ./Solution/particle_files/......
+ Calculating initial strainrates and stresses--------------> Done
+ Updating phase field--------------------------------------> Done
+ Calculating initial heat flux-----------------------------> Done
+ Writing outputs at step, time:143, 0.009945704004
+
+ ================================================================================================
+ Timestepping begins
+ ================================================================================================
+ Iteration:        172,	Time: 0.0119770657,	Dt = 7.00496e-05,	 Time/Iter = 0.2400008760
+ Iteration:        201,	Time: 0.0140085665,	Dt = 7.00534e-05,	 Time/Iter = 0.2254210410
+
+ Writing outputs at step, time:215, 0.01491926933
+ Iteration:        230,	Time: 0.0160401520,	Dt = 7.00556e-05,	 Time/Iter = 0.2251188750
+ Iteration:        259,	Time: 0.0180717863,	Dt = 7.00568e-05,	 Time/Iter = 0.2254960420
+
+ Writing outputs at step, time:286, 0.01989326818
+ Iteration:        288,	Time: 0.0201034391,	Dt = 7.00570e-05,	 Time/Iter = 0.2212391250
+### chunk end 06:03:46 rc=0
+### chunk start 06:03:50 resume=Solution/checkpoint_files/3D_Twisted_Column_JC/chk000004
+Initializing AMReX (26.05-42-g12f9a543b2e7)...
+AMReX (26.05-42-g12f9a543b2e7) initialized
+
+ ===============================================================
+                  Welcome to EXAGOOP MPM Solver
+           Developed by SAMSers: Hari, Sree and Marc at NREL
+ -----------------------------------------------------------------
+ ExaGOOP Git commit: 8d258f7
+ AMReX   Git commit: 12f9a543b
+ Build: Release | GPU: None  | MPI: OFF | OpenMP: OFF  | Precision: double
+ Compiler: GCC 11.4.0
+ Hostname: claude
+ Run started: 2026-08-11 06:03:50 UTC
+ ===============================================================
+
+
+ Setting up problem variables------------------------------> Done
+ Acquiring particle data (restarting from checkpoint file)->Restarting from checkpoint Solution/checkpoint_files/3D_Twisted_Column_JC/chk000004
+
+ Acquiring particle data (restarting from checkpoint file)->
+ Creating output folders...................................
+    Creating particle folder: ./Solution/particle_files/...
+    Creating grid folder: ./Solution/particle_files/.......
+    Creating check point folder: ./Solution/particle_files/
+    Creating ascii folder: ./Solution/particle_files/......
+ Calculating initial strainrates and stresses--------------> Done
+ Updating phase field--------------------------------------> Done
+ Calculating initial heat flux-----------------------------> Done
+ Writing outputs at step, time:286, 0.01989326818
+
+ ================================================================================================
+ Timestepping begins
+ ================================================================================================
+ Iteration:        315,	Time: 0.0219249108,	Dt = 7.00561e-05,	 Time/Iter = 0.2253347920
+ Iteration:        344,	Time: 0.0239565104,	Dt = 7.00540e-05,	 Time/Iter = 0.2260451250
+
+ Writing outputs at step, time:358, 0.0248672043
+ Iteration:        373,	Time: 0.0259880349,	Dt = 7.00511e-05,	 Time/Iter = 0.2255626660
+ Iteration:        402,	Time: 0.0280194652,	Dt = 7.00476e-05,	 Time/Iter = 0.2255953330
+
+ Writing outputs at step, time:429, 0.02984065853
+ Iteration:        431,	Time: 0.0300507908,	Dt = 7.00440e-05,	 Time/Iter = 0.2264068750
+### chunk end 06:04:32 rc=0
+### chunk start 06:04:37 resume=Solution/checkpoint_files/3D_Twisted_Column_JC/chk000006
+Initializing AMReX (26.05-42-g12f9a543b2e7)...
+AMReX (26.05-42-g12f9a543b2e7) initialized
+
+ ===============================================================
+                  Welcome to EXAGOOP MPM Solver
+           Developed by SAMSers: Hari, Sree and Marc at NREL
+ -----------------------------------------------------------------
+ ExaGOOP Git commit: 8d258f7
+ AMReX   Git commit: 12f9a543b
+ Build: Release | GPU: None  | MPI: OFF | OpenMP: OFF  | Precision: double
+ Compiler: GCC 11.4.0
+ Hostname: claude
+ Run started: 2026-08-11 06:04:37 UTC
+ ===============================================================
+
+
+ Setting up problem variables------------------------------> Done
+ Acquiring particle data (restarting from checkpoint file)->Restarting from checkpoint Solution/checkpoint_files/3D_Twisted_Column_JC/chk000006
+
+ Acquiring particle data (restarting from checkpoint file)->
+ Creating output folders...................................
+    Creating particle folder: ./Solution/particle_files/...
+    Creating grid folder: ./Solution/particle_files/.......
+    Creating check point folder: ./Solution/particle_files/
+    Creating ascii folder: ./Solution/particle_files/......
+ Calculating initial strainrates and stresses--------------> Done
+ Updating phase field--------------------------------------> Done
+ Calculating initial heat flux-----------------------------> Done
+ Writing outputs at step, time:429, 0.02984065853
+
+ ================================================================================================
+ Timestepping begins
+ ================================================================================================
+ Iteration:        458,	Time: 0.0318718866,	Dt = 7.00406e-05,	 Time/Iter = 0.2280316250
+ Iteration:        487,	Time: 0.0339030135,	Dt = 7.00373e-05,	 Time/Iter = 0.2340474170
+
+ Writing outputs at step, time:501, 0.03481348792
+ Iteration:        516,	Time: 0.0359340470,	Dt = 7.00342e-05,	 Time/Iter = 0.2270750420
+ Iteration:        545,	Time: 0.0379649946,	Dt = 7.00314e-05,	 Time/Iter = 0.2272372500
+
+ Writing outputs at step, time:572, 0.03978577742
+ Iteration:        574,	Time: 0.0399958637,	Dt = 7.00287e-05,	 Time/Iter = 0.2295040840
+### chunk end 06:05:19 rc=0
+### chunk start 06:05:25 resume=Solution/checkpoint_files/3D_Twisted_Column_JC/chk000008
+Initializing AMReX (26.05-42-g12f9a543b2e7)...
+AMReX (26.05-42-g12f9a543b2e7) initialized
+
+ ===============================================================
+                  Welcome to EXAGOOP MPM Solver
+           Developed by SAMSers: Hari, Sree and Marc at NREL
+ -----------------------------------------------------------------
+ ExaGOOP Git commit: 8d258f7
+ AMReX   Git commit: 12f9a543b
+ Build: Release | GPU: None  | MPI: OFF | OpenMP: OFF  | Precision: double
+ Compiler: GCC 11.4.0
+ Hostname: claude
+ Run started: 2026-08-11 06:05:25 UTC
+ ===============================================================
+
+
+ Setting up problem variables------------------------------> Done
+ Acquiring particle data (restarting from checkpoint file)->Restarting from checkpoint Solution/checkpoint_files/3D_Twisted_Column_JC/chk000008
+
+ Acquiring particle data (restarting from checkpoint file)->
+ Creating output folders...................................
+    Creating particle folder: ./Solution/particle_files/...
+    Creating grid folder: ./Solution/particle_files/.......
+    Creating check point folder: ./Solution/particle_files/
+    Creating ascii folder: ./Solution/particle_files/......
+ Calculating initial strainrates and stresses--------------> Done
+ Updating phase field--------------------------------------> Done
+ Calculating initial heat flux-----------------------------> Done
+ Writing outputs at step, time:572, 0.03978577742
+
+ ================================================================================================
+ Timestepping begins
+ ================================================================================================
+ Iteration:        601,	Time: 0.0418165754,	Dt = 7.00263e-05,	 Time/Iter = 0.2326976670
+ Iteration:        630,	Time: 0.0438473028,	Dt = 7.00239e-05,	 Time/Iter = 0.2293975420
+
+ Writing outputs at step, time:644, 0.04475760566
+ Iteration:        659,	Time: 0.0458779589,	Dt = 7.00215e-05,	 Time/Iter = 0.2266889580
+ Iteration:        688,	Time: 0.0479085457,	Dt = 7.00191e-05,	 Time/Iter = 0.2301355830
+
+ Writing outputs at step, time:715, 0.04972901461
+ Iteration:        717,	Time: 0.0499390653,	Dt = 7.00168e-05,	 Time/Iter = 0.2328880830
+### chunk end 06:06:07 rc=0
+### chunk start 06:06:15 resume=Solution/checkpoint_files/3D_Twisted_Column_JC/chk000010
+Initializing AMReX (26.05-42-g12f9a543b2e7)...
+AMReX (26.05-42-g12f9a543b2e7) initialized
+
+ ===============================================================
+                  Welcome to EXAGOOP MPM Solver
+           Developed by SAMSers: Hari, Sree and Marc at NREL
+ -----------------------------------------------------------------
+ ExaGOOP Git commit: 8d258f7
+ AMReX   Git commit: 12f9a543b
+ Build: Release | GPU: None  | MPI: OFF | OpenMP: OFF  | Precision: double
+ Compiler: GCC 11.4.0
+ Hostname: claude
+ Run started: 2026-08-11 06:06:15 UTC
+ ===============================================================
+
+
+ Setting up problem variables------------------------------> Done
+ Acquiring particle data (restarting from checkpoint file)->Restarting from checkpoint Solution/checkpoint_files/3D_Twisted_Column_JC/chk000010
+
+ Acquiring particle data (restarting from checkpoint file)->
+ Creating output folders...................................
+    Creating particle folder: ./Solution/particle_files/...
+    Creating grid folder: ./Solution/particle_files/.......
+    Creating check point folder: ./Solution/particle_files/
+    Creating ascii folder: ./Solution/particle_files/......
+ Calculating initial strainrates and stresses--------------> Done
+ Updating phase field--------------------------------------> Done
+ Calculating initial heat flux-----------------------------> Done
+ Writing outputs at step, time:715, 0.04972901461
+
+ ================================================================================================
+ Timestepping begins
+ ================================================================================================
+ Iteration:        744,	Time: 0.0517594743,	Dt = 7.00148e-05,	 Time/Iter = 0.2300231670
+ Iteration:        773,	Time: 0.0537898713,	Dt = 7.00127e-05,	 Time/Iter = 0.2295111670
+
+ Writing outputs at step, time:787, 0.0547000293
+ Iteration:        802,	Time: 0.0558202074,	Dt = 7.00106e-05,	 Time/Iter = 0.2293680840
+ Iteration:        831,	Time: 0.0578504889,	Dt = 7.00089e-05,	 Time/Iter = 0.2300914170
+
+ Writing outputs at step, time:858, 0.05967070146
+ Iteration:        860,	Time: 0.0598807238,	Dt = 7.00074e-05,	 Time/Iter = 0.2326475420
+### chunk end 06:06:57 rc=0
+### chunk start 06:07:02 resume=Solution/checkpoint_files/3D_Twisted_Column_JC/chk000012
+Initializing AMReX (26.05-42-g12f9a543b2e7)...
+AMReX (26.05-42-g12f9a543b2e7) initialized
+
+ ===============================================================
+                  Welcome to EXAGOOP MPM Solver
+           Developed by SAMSers: Hari, Sree and Marc at NREL
+ -----------------------------------------------------------------
+ ExaGOOP Git commit: 8d258f7
+ AMReX   Git commit: 12f9a543b
+ Build: Release | GPU: None  | MPI: OFF | OpenMP: OFF  | Precision: double
+ Compiler: GCC 11.4.0
+ Hostname: claude
+ Run started: 2026-08-11 06:07:02 UTC
+ ===============================================================
+
+
+ Setting up problem variables------------------------------> Done
+ Acquiring particle data (restarting from checkpoint file)->Restarting from checkpoint Solution/checkpoint_files/3D_Twisted_Column_JC/chk000012
+
+ Acquiring particle data (restarting from checkpoint file)->
+ Creating output folders...................................
+    Creating particle folder: ./Solution/particle_files/...
+    Creating grid folder: ./Solution/particle_files/.......
+    Creating check point folder: ./Solution/particle_files/
+    Creating ascii folder: ./Solution/particle_files/......
+ Calculating initial strainrates and stresses--------------> Done
+ Updating phase field--------------------------------------> Done
+ Calculating initial heat flux-----------------------------> Done
+ Writing outputs at step, time:858, 0.05967070146
+
+ ================================================================================================
+ Timestepping begins
+ ================================================================================================
+ Iteration:        887,	Time: 0.0617008991,	Dt = 7.00062e-05,	 Time/Iter = 0.2324254580
+ Iteration:        916,	Time: 0.0637310618,	Dt = 7.00050e-05,	 Time/Iter = 0.2307160830
+
+ Writing outputs at step, time:930, 0.06464112382
+ Iteration:        945,	Time: 0.0657611911,	Dt = 7.00039e-05,	 Time/Iter = 0.2311610000
+ Iteration:        974,	Time: 0.0677912860,	Dt = 7.00026e-05,	 Time/Iter = 0.2312342500
+
+ Writing outputs at step, time:1001, 0.06961133688
+ Iteration:       1003,	Time: 0.0698213403,	Dt = 7.00011e-05,	 Time/Iter = 0.2293138330
+### chunk end 06:07:44 rc=0
+### chunk start 06:07:49 resume=Solution/checkpoint_files/3D_Twisted_Column_JC/chk000014
+Initializing AMReX (26.05-42-g12f9a543b2e7)...
+AMReX (26.05-42-g12f9a543b2e7) initialized
+
+ ===============================================================
+                  Welcome to EXAGOOP MPM Solver
+           Developed by SAMSers: Hari, Sree and Marc at NREL
+ -----------------------------------------------------------------
+ ExaGOOP Git commit: 8d258f7
+ AMReX   Git commit: 12f9a543b
+ Build: Release | GPU: None  | MPI: OFF | OpenMP: OFF  | Precision: double
+ Compiler: GCC 11.4.0
+ Hostname: claude
+ Run started: 2026-08-11 06:07:49 UTC
+ ===============================================================
+
+
+ Setting up problem variables------------------------------> Done
+ Acquiring particle data (restarting from checkpoint file)->Restarting from checkpoint Solution/checkpoint_files/3D_Twisted_Column_JC/chk000014
+
+ Acquiring particle data (restarting from checkpoint file)->
+ Creating output folders...................................
+    Creating particle folder: ./Solution/particle_files/...
+    Creating grid folder: ./Solution/particle_files/.......
+    Creating check point folder: ./Solution/particle_files/
+    Creating ascii folder: ./Solution/particle_files/......
+ Calculating initial strainrates and stresses--------------> Done
+ Updating phase field--------------------------------------> Done
+ Calculating initial heat flux-----------------------------> Done
+ Writing outputs at step, time:1001, 0.06961133688
+
+ ================================================================================================
+ Timestepping begins
+ ================================================================================================
+ Iteration:       1030,	Time: 0.0716413440,	Dt = 6.99993e-05,	 Time/Iter = 0.2334436670
+ Iteration:       1059,	Time: 0.0736712898,	Dt = 6.99970e-05,	 Time/Iter = 0.2326706250
+
+ Writing outputs at step, time:1073, 0.07458124322
+ Iteration:       1088,	Time: 0.0757011657,	Dt = 6.99945e-05,	 Time/Iter = 0.2340242510
+ Iteration:       1117,	Time: 0.0777309658,	Dt = 6.99918e-05,	 Time/Iter = 0.2368950420
+
+ Writing outputs at step, time:1144, 0.07955071826
+ Iteration:       1146,	Time: 0.0797606854,	Dt = 6.99890e-05,	 Time/Iter = 0.2317849580
+### chunk end 06:08:31 rc=0
+### chunk start 06:08:37 resume=Solution/checkpoint_files/3D_Twisted_Column_JC/chk000016
+Initializing AMReX (26.05-42-g12f9a543b2e7)...
+AMReX (26.05-42-g12f9a543b2e7) initialized
+
+ ===============================================================
+                  Welcome to EXAGOOP MPM Solver
+           Developed by SAMSers: Hari, Sree and Marc at NREL
+ -----------------------------------------------------------------
+ ExaGOOP Git commit: 8d258f7
+ AMReX   Git commit: 12f9a543b
+ Build: Release | GPU: None  | MPI: OFF | OpenMP: OFF  | Precision: double
+ Compiler: GCC 11.4.0
+ Hostname: claude
+ Run started: 2026-08-11 06:08:37 UTC
+ ===============================================================
+
+
+ Setting up problem variables------------------------------> Done
+ Acquiring particle data (restarting from checkpoint file)->Restarting from checkpoint Solution/checkpoint_files/3D_Twisted_Column_JC/chk000016
+
+ Acquiring particle data (restarting from checkpoint file)->
+ Creating output folders...................................
+    Creating particle folder: ./Solution/particle_files/...
+    Creating grid folder: ./Solution/particle_files/.......
+    Creating check point folder: ./Solution/particle_files/
+    Creating ascii folder: ./Solution/particle_files/......
+ Calculating initial strainrates and stresses--------------> Done
+ Updating phase field--------------------------------------> Done
+ Calculating initial heat flux-----------------------------> Done
+ Writing outputs at step, time:1144, 0.07955071826
+
+ ================================================================================================
+ Timestepping begins
+ ================================================================================================
+ Iteration:       1173,	Time: 0.0815803600,	Dt = 6.99862e-05,	 Time/Iter = 0.2296762920
+ Iteration:       1202,	Time: 0.0836099172,	Dt = 6.99833e-05,	 Time/Iter = 0.2334626660
+
+ Writing outputs at step, time:1216, 0.08451969172
+ Iteration:       1231,	Time: 0.0856393915,	Dt = 6.99805e-05,	 Time/Iter = 0.2333048750
+ Iteration:       1260,	Time: 0.0876687833,	Dt = 6.99776e-05,	 Time/Iter = 0.2336690420
+
+ Writing outputs at step, time:1287, 0.08948816665
+ Iteration:       1289,	Time: 0.0896980911,	Dt = 6.99747e-05,	 Time/Iter = 0.2427885830
+
+Simulation run time = 37.35331127
+ Writing outputs at step, time:1294, 0.09004796307
+Unused ParmParse Variables:
+  [TOP]::mpm.E_autogen(nvals = 1)  :: [1e6]
+  [TOP]::mpm.Gama_pres_autogen(nvals = 1)  :: [7]
+  [TOP]::mpm.bulkmod_autogen(nvals = 1)  :: [2e6]
+  [TOP]::mpm.constmodel_autogen(nvals = 1)  :: [0]
+  [TOP]::mpm.dens_autogen(nvals = 1)  :: [1.0]
+  [TOP]::mpm.do_calculate_minmaxpos(nvals = 1)  :: [0]
+  [TOP]::mpm.do_calculate_mwa_velcomp(nvals = 1)  :: [0]
+  [TOP]::mpm.do_calculate_mwa_velmag(nvals = 1)  :: [0]
+  [TOP]::mpm.do_calculate_tke_tse(nvals = 1)  :: [0]
+  [TOP]::mpm.extforce(nvals = 3)  :: [0.0, 0.0, 0.0]
+  [TOP]::mpm.force_slab_hi(nvals = 3)  :: [1.0, 1.0, 1.0]
+  [TOP]::mpm.force_slab_lo(nvals = 3)  :: [0.0, 0.0, 0.0]
+  [TOP]::mpm.maxcoords_autogen(nvals = 3)  :: [1.0, 1.0, 1.0]
+  [TOP]::mpm.mincoords_autogen(nvals = 3)  :: [0.0, 0.0, 0.0]
+  [TOP]::mpm.multi_part_per_cell_autogen(nvals = 1)  :: [1]
+  [TOP]::mpm.nu_autogen(nvals = 1)  :: [0.3]
+  [TOP]::mpm.timestep(nvals = 1)  :: [1e-05]
+  [TOP]::mpm.vel_autogen(nvals = 3)  :: [0.0, 0.0, 0.0]
+  [TOP]::mpm.visc_autogen(nvals = 1)  :: [0.001]
+  [TOP]::mpm.write_diag_output_time(nvals = 1)  :: [0.15]
+
+AMReX (26.05-42-g12f9a543b2e7) finalized
+### chunk end 06:09:17 rc=0

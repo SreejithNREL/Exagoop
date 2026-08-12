@@ -1,0 +1,105 @@
+{
+  "_comment": "Plate under gravitational compression - Nguyen et al., Sect. 10.3.3, Fig. 10.23, Table 10.3. Units: mm, ms, kg  =>  stress in GPa, energy in J, power in kW (J/ms).",
+  "dimensions": 2,
+  "grid": {
+    "xmin": -5.0,
+    "xmax": 15.0,
+    "nx": 80,
+    "ymin": -2.5,
+    "ymax": 13.5,
+    "ny": 64
+  },
+  "ppc": [2, 2],
+  "bodies": [
+    {
+      "shape": {
+        "type": "rectangle",
+        "xmin": 0.0,
+        "xmax": 10.0,
+        "ymin": 0.0,
+        "ymax": 10.0
+      },
+      "constitutive_model": {
+        "type": "johnson_cook",
+        "density": 8.94e-6,
+        "E": 115.0,
+        "nu": 0.31,
+        "JC_A": 0.065,
+        "JC_B": 0.356,
+        "JC_n": 0.37,
+        "JC_C": 0.0,
+        "JC_m": 0.0,
+        "JC_eps_dot_0": 1.0e-3,
+        "JC_Tr": 0.0,
+        "JC_Tm": 1600.0,
+        "JC_chi": 0.9,
+        "JC_c0": 3586.0,
+        "JC_Salpha": 1.50,
+        "JC_Gamma0": 0.0
+      },
+      "initial_velocity": {"type": "uniform", "vx": 0.0, "vy": 0.0},
+      "temperature": {
+        "enabled": true,
+        "type": "uniform",
+        "T": 0.0,
+        "spheat": 384.0,
+        "thermcond": 3.86e-4,
+        "heatsrc": 0.0
+      }
+    }
+  ],
+  "CFL": 0.2,
+  "alpha_pic_flip": 0.99,
+  "order_scheme": 3,
+  "stress_update_scheme": "MUSL",
+  "output_tag": "2D_Plate_Under_Gravity",
+  "input_filename": "Inputs_2D_Plate_Under_Gravity.inp",
+  "output_format": "ascii",
+  "materialpoint_filename": "mpm_particles.dat",
+  "plot_to_check": false,
+  "build_with_hdf": false,
+  "build_system": "gnumake",
+  "use_mpi": false,
+  "use_cuda": false,
+  "use_hip": false,
+  "use_omp": false,
+  "use_sycl": false,
+  "use_eb": true,
+  "use_temp": true,
+  "simulation": {
+    "final_time": 0.2,
+    "max_steps": 5000000,
+    "screen_output_time": 0.005,
+    "write_output_time": 0.01,
+    "num_redist": 1,
+    "fixed_timestep": 0,
+    "timestep": 1.0e-5
+  },
+  "gravity": [0.0, -5000.0, 0.0],
+  "boundary_conditions": {
+    "xlo": {"mom": "slip", "temp": {"type": "adiabatic"}},
+    "xhi": {"mom": "slip", "temp": {"type": "adiabatic"}},
+    "ylo": {"mom": "noslip", "temp": {"type": "adiabatic"}},
+    "yhi": {"mom": "slip", "temp": {"type": "adiabatic"}}
+  },
+  "levelset_bodies": [
+    {
+      "name": "pedestal",
+      "geom_type": "box",
+      "box_lo": [-2.5, -2.5],
+      "box_hi": [12.5, 0.0],
+      "box_has_fluid_inside": false,
+      "ls_refinement": 2,
+      "levelset_mom": "noslipwall",
+      "temp_bc_type": "adiabatic"
+    }
+  ],
+  "diagnostics": {
+    "print_diagnostics": 0,
+    "do_calculate_tke_tse": 0,
+    "do_calculate_mwa_velcomp": 0,
+    "do_calculate_mwa_velmag": 0,
+    "do_calculate_minmaxpos": 0,
+    "write_diag_output_time": 0.01
+  }
+}

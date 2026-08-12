@@ -1,0 +1,44 @@
+{
+  "_comment": "Square plate with thermal and mechanical loadings - Nguyen et al. Sect. 10.3.3, Fig. 10.21, Table 10.2 (after Tao et al. 2016). SI units (m, s, kg, K). THERMAL HALF ONLY: ExaGOOP has no thermo-elastic (thermal expansion) coupling, so the mechanical response of Fig. 10.22(b) cannot be reproduced. With no gravity, no external load and no thermal strain, the material stays at rest and the thermal problem runs on a static grid - which is exactly Fig. 10.22(a).",
+  "dimensions": 2,
+  "grid": {"xmin": 0.0, "xmax": 0.2, "nx": 20, "ymin": 0.0, "ymax": 0.2, "ny": 20},
+  "ppc": [2, 2],
+  "periodic": [0, 0],
+  "bodies": [
+    {
+      "shape": {"type": "rectangle", "xmin": 0.0, "xmax": 0.2, "ymin": 0.0, "ymax": 0.2},
+      "constitutive_model": {"type": "elastic", "E": 70.0e9, "nu": 0.33, "density": 2100.0},
+      "initial_velocity": {"type": "uniform", "vx": 0.0, "vy": 0.0},
+      "temperature": {
+        "enabled": true, "type": "uniform",
+        "T": 20.0, "spheat": 50.0, "thermcond": 500.0, "heatsrc": 0.0
+      }
+    }
+  ],
+  "CFL": 0.2,
+  "alpha_pic_flip": 1.0,
+  "order_scheme": 1,
+  "stress_update_scheme": "MUSL",
+  "output_tag": "2D_Square_Plate_ThermoMech",
+  "input_filename": "Inputs_2D_Square_Plate_ThermoMech.inp",
+  "output_format": "ascii",
+  "materialpoint_filename": "mpm_particles.dat",
+  "plot_to_check": false, "build_with_hdf": false, "build_system": "gnumake",
+  "use_mpi": false, "use_cuda": false, "use_hip": false, "use_omp": false,
+  "use_sycl": false, "use_eb": false, "use_temp": true,
+  "simulation": {
+    "final_time": 10.0, "max_steps": 5000000,
+    "screen_output_time": 1.0, "write_output_time": 0.2,
+    "num_redist": 1, "fixed_timestep": 1, "timestep": 2.0e-3
+  },
+  "gravity": [0.0, 0.0, 0.0],
+  "boundary_conditions": {
+    "xlo": {"mom": "slip", "temp": {"type": "adiabatic"}},
+    "xhi": {"mom": "slip", "temp": {"type": "convective", "h": 2000.0, "T_inf": 30.0}},
+    "ylo": {"mom": "slip", "temp": {"type": "heatflux", "flux": 5000.0}},
+    "yhi": {"mom": "slip", "temp": {"type": "convective", "h": 2000.0, "T_inf": 30.0}}
+  },
+  "diagnostics": {"print_diagnostics": 0, "do_calculate_tke_tse": 0,
+    "do_calculate_mwa_velcomp": 0, "do_calculate_mwa_velmag": 0,
+    "do_calculate_minmaxpos": 0, "write_diag_output_time": 1.0}
+}

@@ -1,0 +1,152 @@
+{
+  "_comment": "Twisted column - Nguyen et al., Sect. 10.3.3, Fig. 10.26 (setup), Table 10.3 (same material as the plate case), Figs. 10.27/10.28 (results). Units: mm, ms, kg => stress in GPa, energy in J. Column 100 mm long, 10x10 mm square section, fixed at z=0, top surface z=100 driven at omega = 2*pi rad/ms (one turn per ms, 3 turns in 3 ms).",
+  "dimensions": 3,
+  "grid": {
+    "xmin": -9.0,
+    "xmax": 9.0,
+    "nx": 18,
+    "ymin": -9.0,
+    "ymax": 9.0,
+    "ny": 18,
+    "zmin": 0.0,
+    "zmax": 100.0,
+    "nz": 100
+  },
+  "ppc": [
+    2,
+    2,
+    2
+  ],
+  "periodic": [
+    0,
+    0,
+    0
+  ],
+  "bodies": [
+    {
+      "shape": {
+        "type": "block",
+        "xmin": -5.0,
+        "xmax": 5.0,
+        "ymin": -5.0,
+        "ymax": 5.0,
+        "zmin": 0.0,
+        "zmax": 100.0
+      },
+      "constitutive_model": {
+        "type": "johnson_cook",
+        "density": 8.94e-06,
+        "E": 115.0,
+        "nu": 0.31,
+        "JC_A": 0.065,
+        "JC_B": 0.356,
+        "JC_n": 0.37,
+        "JC_C": 0.0,
+        "JC_m": 0.0,
+        "JC_eps_dot_0": 0.001,
+        "JC_Tr": 0.0,
+        "JC_Tm": 1600.0,
+        "JC_chi": 0.9,
+        "JC_c0": 3586.0,
+        "JC_Salpha": 1.5,
+        "JC_Gamma0": 0.0
+      },
+      "initial_velocity": {
+        "type": "uniform",
+        "vx": 0.0,
+        "vy": 0.0,
+        "vz": 0.0
+      },
+      "temperature": {
+        "enabled": true,
+        "type": "uniform",
+        "T": 0.0,
+        "spheat": 384.0,
+        "thermcond": 0.000386,
+        "heatsrc": 0.0
+      }
+    }
+  ],
+  "CFL": 0.3,
+  "alpha_pic_flip": 0.99,
+  "order_scheme": 3,
+  "stress_update_scheme": "MUSL",
+  "output_tag": "3D_Twisted_Column_JC",
+  "input_filename": "Inputs_3D_Twisted_Column_JC.inp",
+  "output_format": "ascii",
+  "materialpoint_filename": "mpm_particles.dat",
+  "plot_to_check": false,
+  "build_with_hdf": false,
+  "build_system": "gnumake",
+  "use_mpi": false,
+  "use_cuda": false,
+  "use_hip": false,
+  "use_omp": false,
+  "use_sycl": false,
+  "use_eb": false,
+  "use_temp": true,
+  "simulation": {
+    "final_time": 3.0,
+    "max_steps": 10000000,
+    "screen_output_time": 0.01,
+    "write_output_time": 0.15,
+    "num_redist": 1,
+    "fixed_timestep": 0,
+    "timestep": 1e-05
+  },
+  "gravity": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "boundary_conditions": {
+    "xlo": {
+      "mom": "slip",
+      "temp": {
+        "type": "adiabatic"
+      }
+    },
+    "xhi": {
+      "mom": "slip",
+      "temp": {
+        "type": "adiabatic"
+      }
+    },
+    "ylo": {
+      "mom": "slip",
+      "temp": {
+        "type": "adiabatic"
+      }
+    },
+    "yhi": {
+      "mom": "slip",
+      "temp": {
+        "type": "adiabatic"
+      }
+    },
+    "zlo": {
+      "mom": "noslip",
+      "temp": {
+        "type": "adiabatic"
+      }
+    },
+    "zhi": {
+      "mom": {
+        "type": "noslip",
+        "udf_lib": "./UDF/libwall_twist.so",
+        "udf_func": "wall_vel_twist"
+      },
+      "temp": {
+        "type": "adiabatic"
+      }
+    }
+  },
+  "diagnostics": {
+    "print_diagnostics": 0,
+    "do_calculate_tke_tse": 0,
+    "do_calculate_mwa_velcomp": 0,
+    "do_calculate_mwa_velmag": 0,
+    "do_calculate_minmaxpos": 0,
+    "write_diag_output_time": 0.15
+  }
+}

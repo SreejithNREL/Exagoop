@@ -905,7 +905,19 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
                             amrex::Real hc = is_lo ? h_lo_g[d] : h_hi_g[d];
                             amrex::Real Tinf =
                                 is_lo ? Tinf_lo_g[d] : Tinf_hi_g[d];
-                            amrex::Real Bi = hc * dx_g[d];
+                            // Robin condition k dT/dn = h (T_inf - T) gives
+                            //   T_node = (T_nb + Bi T_inf) / (1 + Bi),
+                            //   Bi = h dx / k        <-- the /k was MISSING.
+                            // Without it Bi is k times too large (a factor of
+                            // 500 for k = 500 W/m/K), which collapses the
+                            // convective BC to Dirichlet T = T_inf. The bug was
+                            // invisible in 1D_Heat_Conduction_Convective
+                            // because that case uses k = 1.
+                            amrex::Real mk_c = arr(nodeid, MASS_CONDUCTIVITY);
+                            amrex::Real m_c = arr(nodeid, MASS_INDEX);
+                            amrex::Real k_node_c =
+                                (m_c > shunya) ? mk_c / m_c : eka;
+                            amrex::Real Bi = hc * dx_g[d] / k_node_c;
                             arr(nodeid, TEMPERATURE) =
                                 (arr(nb, TEMPERATURE) + Bi * Tinf) / (1.0 + Bi);
                             bc_applied = true;

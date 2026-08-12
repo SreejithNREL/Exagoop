@@ -1,0 +1,523 @@
+### chunk start 04:46:39  resume_from=Solution/checkpoint_files/2D_Plate_Under_Gravity/chk000002
+Initializing AMReX (26.05-42-g12f9a543b2e7)...
+AMReX (26.05-42-g12f9a543b2e7) initialized
+
+ ===============================================================
+                  Welcome to EXAGOOP MPM Solver
+           Developed by SAMSers: Hari, Sree and Marc at NREL
+ -----------------------------------------------------------------
+ ExaGOOP Git commit: 8d258f7
+ AMReX   Git commit: 12f9a543b
+ Build: Release | GPU: None  | MPI: OFF | OpenMP: OFF  | Precision: double
+ Compiler: GCC 11.4.0
+ Hostname: claude
+ Run started: 2026-08-11 04:46:39 UTC
+ ===============================================================
+
+
+ Setting up problem variables------------------------------> Done[EB] Body 'pedestal' — analytic geometry: box
+  [EB] Body 'pedestal': levelset_mom=noslipwall  lset_wall_mu=0  temp_bc_type=adiabatic  motion=static  vel=(0,0)  omega_z=0
+
+ Acquiring particle data (restarting from checkpoint file)->Restarting from checkpoint Solution/checkpoint_files/2D_Plate_Under_Gravity/chk000002
+
+ Acquiring particle data (restarting from checkpoint file)->
+ Creating output folders...................................
+    Creating particle folder: ./Solution/particle_files/...
+    Creating grid folder: ./Solution/particle_files/.......
+    Creating check point folder: ./Solution/particle_files/
+    Creating ascii folder: ./Solution/particle_files/......
+ Calculating initial strainrates and stresses--------------> Done
+ Updating phase field--------------------------------------> Done
+ Calculating initial heat flux-----------------------------> Done
+ Writing outputs at step, time:1717, 0.02000112949
+
+ ================================================================================================
+ Timestepping begins
+ ================================================================================================
+ Iteration:       2148,	Time: 0.0250087786,	Dt = 1.15870e-05,	 Time/Iter = 0.0206646250
+
+ Writing outputs at step, time:2579, 0.02999642092
+ Iteration:       2580,	Time: 0.0300196395,	Dt = 1.16093e-05,	 Time/Iter = 0.0223080420
+ Iteration:       3011,	Time: 0.0350250611,	Dt = 1.16241e-05,	 Time/Iter = 0.0220668750
+### chunk end   04:47:15 rc=0
+### chunk start 04:47:40  resume_from=Solution/checkpoint_files/2D_Plate_Under_Gravity/chk000003
+Initializing AMReX (26.05-42-g12f9a543b2e7)...
+AMReX (26.05-42-g12f9a543b2e7) initialized
+
+ ===============================================================
+                  Welcome to EXAGOOP MPM Solver
+           Developed by SAMSers: Hari, Sree and Marc at NREL
+ -----------------------------------------------------------------
+ ExaGOOP Git commit: 8d258f7
+ AMReX   Git commit: 12f9a543b
+ Build: Release | GPU: None  | MPI: OFF | OpenMP: OFF  | Precision: double
+ Compiler: GCC 11.4.0
+ Hostname: claude
+ Run started: 2026-08-11 04:47:40 UTC
+ ===============================================================
+
+
+ Setting up problem variables------------------------------> Done[EB] Body 'pedestal' — analytic geometry: box
+  [EB] Body 'pedestal': levelset_mom=noslipwall  lset_wall_mu=0  temp_bc_type=adiabatic  motion=static  vel=(0,0)  omega_z=0
+
+ Acquiring particle data (restarting from checkpoint file)->Restarting from checkpoint Solution/checkpoint_files/2D_Plate_Under_Gravity/chk000003
+
+ Acquiring particle data (restarting from checkpoint file)->
+ Creating output folders...................................
+    Creating particle folder: ./Solution/particle_files/...
+    Creating grid folder: ./Solution/particle_files/.......
+    Creating check point folder: ./Solution/particle_files/
+    Creating ascii folder: ./Solution/particle_files/......
+ Calculating initial strainrates and stresses--------------> Done
+ Updating phase field--------------------------------------> Done
+ Calculating initial heat flux-----------------------------> Done
+ Writing outputs at step, time:2579, 0.02999642092
+
+ ================================================================================================
+ Timestepping begins
+ ================================================================================================
+ Iteration:       3010,	Time: 0.0350018277,	Dt = 1.16241e-05,	 Time/Iter = 0.0235288750
+
+ Writing outputs at step, time:3441, 0.03999809007
+ Iteration:       3441,	Time: 0.0400096974,	Dt = 1.16074e-05,	 Time/Iter = 0.4759752500
+ Iteration:       3872,	Time: 0.0450160750,	Dt = 1.16383e-05,	 Time/Iter = 0.0234610000
+### chunk end   04:48:16 rc=0
+### chunk start 04:48:21  resume_from=Solution/checkpoint_files/2D_Plate_Under_Gravity/chk000004
+Initializing AMReX (26.05-42-g12f9a543b2e7)...
+AMReX (26.05-42-g12f9a543b2e7) initialized
+
+ ===============================================================
+                  Welcome to EXAGOOP MPM Solver
+           Developed by SAMSers: Hari, Sree and Marc at NREL
+ -----------------------------------------------------------------
+ ExaGOOP Git commit: 8d258f7
+ AMReX   Git commit: 12f9a543b
+ Build: Release | GPU: None  | MPI: OFF | OpenMP: OFF  | Precision: double
+ Compiler: GCC 11.4.0
+ Hostname: claude
+ Run started: 2026-08-11 04:48:21 UTC
+ ===============================================================
+
+
+ Setting up problem variables------------------------------> Done[EB] Body 'pedestal' — analytic geometry: box
+  [EB] Body 'pedestal': levelset_mom=noslipwall  lset_wall_mu=0  temp_bc_type=adiabatic  motion=static  vel=(0,0)  omega_z=0
+
+ Acquiring particle data (restarting from checkpoint file)->Restarting from checkpoint Solution/checkpoint_files/2D_Plate_Under_Gravity/chk000004
+
+ Acquiring particle data (restarting from checkpoint file)->
+ Creating output folders...................................
+    Creating particle folder: ./Solution/particle_files/...
+    Creating grid folder: ./Solution/particle_files/.......
+    Creating check point folder: ./Solution/particle_files/
+    Creating ascii folder: ./Solution/particle_files/......
+ Calculating initial strainrates and stresses--------------> Done
+ Updating phase field--------------------------------------> Done
+ Calculating initial heat flux-----------------------------> Done
+ Writing outputs at step, time:3441, 0.03999809007
+
+ ================================================================================================
+ Timestepping begins
+ ================================================================================================
+ Iteration:       3872,	Time: 0.0450044676,	Dt = 1.16383e-05,	 Time/Iter = 0.0231825410
+
+ Writing outputs at step, time:4302, 0.05000385672
+ Iteration:       4302,	Time: 0.0500155264,	Dt = 1.16697e-05,	 Time/Iter = 0.4805175830
+ Iteration:       4731,	Time: 0.0550249532,	Dt = 1.16856e-05,	 Time/Iter = 0.0232742910
+### chunk end   04:48:57 rc=0
+### chunk start 04:49:18  resume_from=Solution/checkpoint_files/2D_Plate_Under_Gravity/chk000005
+Initializing AMReX (26.05-42-g12f9a543b2e7)...
+AMReX (26.05-42-g12f9a543b2e7) initialized
+
+ ===============================================================
+                  Welcome to EXAGOOP MPM Solver
+           Developed by SAMSers: Hari, Sree and Marc at NREL
+ -----------------------------------------------------------------
+ ExaGOOP Git commit: 8d258f7
+ AMReX   Git commit: 12f9a543b
+ Build: Release | GPU: None  | MPI: OFF | OpenMP: OFF  | Precision: double
+ Compiler: GCC 11.4.0
+ Hostname: claude
+ Run started: 2026-08-11 04:49:18 UTC
+ ===============================================================
+
+
+ Setting up problem variables------------------------------> Done[EB] Body 'pedestal' — analytic geometry: box
+  [EB] Body 'pedestal': levelset_mom=noslipwall  lset_wall_mu=0  temp_bc_type=adiabatic  motion=static  vel=(0,0)  omega_z=0
+
+ Acquiring particle data (restarting from checkpoint file)->Restarting from checkpoint Solution/checkpoint_files/2D_Plate_Under_Gravity/chk000005
+
+ Acquiring particle data (restarting from checkpoint file)->
+ Creating output folders...................................
+    Creating particle folder: ./Solution/particle_files/...
+    Creating grid folder: ./Solution/particle_files/.......
+    Creating check point folder: ./Solution/particle_files/
+    Creating ascii folder: ./Solution/particle_files/......
+ Calculating initial strainrates and stresses--------------> Done
+ Updating phase field--------------------------------------> Done
+ Calculating initial heat flux-----------------------------> Done
+ Writing outputs at step, time:4302, 0.05000385672
+
+ ================================================================================================
+ Timestepping begins
+ ================================================================================================
+ Iteration:       4731,	Time: 0.0550132835,	Dt = 1.16856e-05,	 Time/Iter = 0.0237117080
+
+ Writing outputs at step, time:5159, 0.06000280799
+ Iteration:       5159,	Time: 0.0600144941,	Dt = 1.16861e-05,	 Time/Iter = 0.4732865420
+ Iteration:       5587,	Time: 0.0650187789,	Dt = 1.16951e-05,	 Time/Iter = 0.0246303330
+### chunk end   04:49:54 rc=0
+### chunk start 04:50:16  resume_from=Solution/checkpoint_files/2D_Plate_Under_Gravity/chk000006
+Initializing AMReX (26.05-42-g12f9a543b2e7)...
+AMReX (26.05-42-g12f9a543b2e7) initialized
+
+ ===============================================================
+                  Welcome to EXAGOOP MPM Solver
+           Developed by SAMSers: Hari, Sree and Marc at NREL
+ -----------------------------------------------------------------
+ ExaGOOP Git commit: 8d258f7
+ AMReX   Git commit: 12f9a543b
+ Build: Release | GPU: None  | MPI: OFF | OpenMP: OFF  | Precision: double
+ Compiler: GCC 11.4.0
+ Hostname: claude
+ Run started: 2026-08-11 04:50:16 UTC
+ ===============================================================
+
+
+ Setting up problem variables------------------------------> Done[EB] Body 'pedestal' — analytic geometry: box
+  [EB] Body 'pedestal': levelset_mom=noslipwall  lset_wall_mu=0  temp_bc_type=adiabatic  motion=static  vel=(0,0)  omega_z=0
+
+ Acquiring particle data (restarting from checkpoint file)->Restarting from checkpoint Solution/checkpoint_files/2D_Plate_Under_Gravity/chk000006
+
+ Acquiring particle data (restarting from checkpoint file)->
+ Creating output folders...................................
+    Creating particle folder: ./Solution/particle_files/...
+    Creating grid folder: ./Solution/particle_files/.......
+    Creating check point folder: ./Solution/particle_files/
+    Creating ascii folder: ./Solution/particle_files/......
+ Calculating initial strainrates and stresses--------------> Done
+ Updating phase field--------------------------------------> Done
+ Calculating initial heat flux-----------------------------> Done
+ Writing outputs at step, time:5159, 0.06000280799
+
+ ================================================================================================
+ Timestepping begins
+ ================================================================================================
+ Iteration:       5587,	Time: 0.0650070929,	Dt = 1.16951e-05,	 Time/Iter = 0.0243174170
+
+ Writing outputs at step, time:6015, 0.06999900228
+ Iteration:       6015,	Time: 0.0700106894,	Dt = 1.16872e-05,	 Time/Iter = 0.4749274590
+ Iteration:       6443,	Time: 0.0750140467,	Dt = 1.16932e-05,	 Time/Iter = 0.0230517920
+
+ Writing outputs at step, time:6870, 0.07999527977
+ Iteration:       6871,	Time: 0.0800186612,	Dt = 1.16907e-05,	 Time/Iter = 0.0244705420
+### chunk end   04:50:58 rc=0
+### chunk start 04:51:08  resume_from=Solution/checkpoint_files/2D_Plate_Under_Gravity/chk000008
+Initializing AMReX (26.05-42-g12f9a543b2e7)...
+AMReX (26.05-42-g12f9a543b2e7) initialized
+
+ ===============================================================
+                  Welcome to EXAGOOP MPM Solver
+           Developed by SAMSers: Hari, Sree and Marc at NREL
+ -----------------------------------------------------------------
+ ExaGOOP Git commit: 8d258f7
+ AMReX   Git commit: 12f9a543b
+ Build: Release | GPU: None  | MPI: OFF | OpenMP: OFF  | Precision: double
+ Compiler: GCC 11.4.0
+ Hostname: claude
+ Run started: 2026-08-11 04:51:08 UTC
+ ===============================================================
+
+
+ Setting up problem variables------------------------------> Done[EB] Body 'pedestal' — analytic geometry: box
+  [EB] Body 'pedestal': levelset_mom=noslipwall  lset_wall_mu=0  temp_bc_type=adiabatic  motion=static  vel=(0,0)  omega_z=0
+
+ Acquiring particle data (restarting from checkpoint file)->Restarting from checkpoint Solution/checkpoint_files/2D_Plate_Under_Gravity/chk000008
+
+ Acquiring particle data (restarting from checkpoint file)->
+ Creating output folders...................................
+    Creating particle folder: ./Solution/particle_files/...
+    Creating grid folder: ./Solution/particle_files/.......
+    Creating check point folder: ./Solution/particle_files/
+    Creating ascii folder: ./Solution/particle_files/......
+ Calculating initial strainrates and stresses--------------> Done
+ Updating phase field--------------------------------------> Done
+ Calculating initial heat flux-----------------------------> Done
+ Writing outputs at step, time:6870, 0.07999527977
+
+ ================================================================================================
+ Timestepping begins
+ ================================================================================================
+ Iteration:       7298,	Time: 0.0849983881,	Dt = 1.16914e-05,	 Time/Iter = 0.0234035420
+
+ Writing outputs at step, time:7726, 0.08999122785
+ Iteration:       7726,	Time: 0.0900029215,	Dt = 1.16936e-05,	 Time/Iter = 0.4753600420
+ Iteration:       8154,	Time: 0.0950067857,	Dt = 1.16897e-05,	 Time/Iter = 0.0232219590
+
+ Writing outputs at step, time:8581, 0.09998748942
+ Iteration:       8582,	Time: 0.1000108750,	Dt = 1.16928e-05,	 Time/Iter = 0.0238234170
+### chunk end   04:51:50 rc=0
+### chunk start 04:52:08  resume_from=Solution/checkpoint_files/2D_Plate_Under_Gravity/chk000010
+Initializing AMReX (26.05-42-g12f9a543b2e7)...
+AMReX (26.05-42-g12f9a543b2e7) initialized
+
+ ===============================================================
+                  Welcome to EXAGOOP MPM Solver
+           Developed by SAMSers: Hari, Sree and Marc at NREL
+ -----------------------------------------------------------------
+ ExaGOOP Git commit: 8d258f7
+ AMReX   Git commit: 12f9a543b
+ Build: Release | GPU: None  | MPI: OFF | OpenMP: OFF  | Precision: double
+ Compiler: GCC 11.4.0
+ Hostname: claude
+ Run started: 2026-08-11 04:52:08 UTC
+ ===============================================================
+
+
+ Setting up problem variables------------------------------> Done[EB] Body 'pedestal' — analytic geometry: box
+  [EB] Body 'pedestal': levelset_mom=noslipwall  lset_wall_mu=0  temp_bc_type=adiabatic  motion=static  vel=(0,0)  omega_z=0
+
+ Acquiring particle data (restarting from checkpoint file)->Restarting from checkpoint Solution/checkpoint_files/2D_Plate_Under_Gravity/chk000010
+
+ Acquiring particle data (restarting from checkpoint file)->
+ Creating output folders...................................
+    Creating particle folder: ./Solution/particle_files/...
+    Creating grid folder: ./Solution/particle_files/.......
+    Creating check point folder: ./Solution/particle_files/
+    Creating ascii folder: ./Solution/particle_files/......
+ Calculating initial strainrates and stresses--------------> Done
+ Updating phase field--------------------------------------> Done
+ Calculating initial heat flux-----------------------------> Done
+ Writing outputs at step, time:8581, 0.09998748942
+
+ ================================================================================================
+ Timestepping begins
+ ================================================================================================
+ Iteration:       9009,	Time: 0.1049918351,	Dt = 1.16915e-05,	 Time/Iter = 0.0229736670
+
+ Writing outputs at step, time:9437, 0.1099837092
+ Iteration:       9437,	Time: 0.1099953995,	Dt = 1.16903e-05,	 Time/Iter = 0.3881706250
+### chunk end   04:52:36 rc=0
+### chunk start 04:53:22  resume_from=Solution/checkpoint_files/2D_Plate_Under_Gravity/chk000011
+Initializing AMReX (26.05-42-g12f9a543b2e7)...
+AMReX (26.05-42-g12f9a543b2e7) initialized
+
+ ===============================================================
+                  Welcome to EXAGOOP MPM Solver
+           Developed by SAMSers: Hari, Sree and Marc at NREL
+ -----------------------------------------------------------------
+ ExaGOOP Git commit: 8d258f7
+ AMReX   Git commit: 12f9a543b
+ Build: Release | GPU: None  | MPI: OFF | OpenMP: OFF  | Precision: double
+ Compiler: GCC 11.4.0
+ Hostname: claude
+ Run started: 2026-08-11 04:53:22 UTC
+ ===============================================================
+
+
+ Setting up problem variables------------------------------> Done[EB] Body 'pedestal' — analytic geometry: box
+  [EB] Body 'pedestal': levelset_mom=noslipwall  lset_wall_mu=0  temp_bc_type=adiabatic  motion=static  vel=(0,0)  omega_z=0
+
+ Acquiring particle data (restarting from checkpoint file)->Restarting from checkpoint Solution/checkpoint_files/2D_Plate_Under_Gravity/chk000011
+
+ Acquiring particle data (restarting from checkpoint file)->
+ Creating output folders...................................
+    Creating particle folder: ./Solution/particle_files/...
+    Creating grid folder: ./Solution/particle_files/.......
+    Creating check point folder: ./Solution/particle_files/
+    Creating ascii folder: ./Solution/particle_files/......
+ Calculating initial strainrates and stresses--------------> Done
+ Updating phase field--------------------------------------> Done
+ Calculating initial heat flux-----------------------------> Done
+ Writing outputs at step, time:9437, 0.1099837092
+
+ ================================================================================================
+ Timestepping begins
+ ================================================================================================
+ Iteration:       9865,	Time: 0.1149877603,	Dt = 1.16909e-05,	 Time/Iter = 0.0231340840
+
+ Writing outputs at step, time:10293, 0.1199796015
+ Iteration:      10293,	Time: 0.1199912924,	Dt = 1.16909e-05,	 Time/Iter = 0.4715482920
+### chunk end   04:53:48 rc=0
+### chunk start 04:54:16  resume_from=Solution/checkpoint_files/2D_Plate_Under_Gravity/chk000012
+Initializing AMReX (26.05-42-g12f9a543b2e7)...
+AMReX (26.05-42-g12f9a543b2e7) initialized
+
+ ===============================================================
+                  Welcome to EXAGOOP MPM Solver
+           Developed by SAMSers: Hari, Sree and Marc at NREL
+ -----------------------------------------------------------------
+ ExaGOOP Git commit: 8d258f7
+ AMReX   Git commit: 12f9a543b
+ Build: Release | GPU: None  | MPI: OFF | OpenMP: OFF  | Precision: double
+ Compiler: GCC 11.4.0
+ Hostname: claude
+ Run started: 2026-08-11 04:54:16 UTC
+ ===============================================================
+
+
+ Setting up problem variables------------------------------> Done[EB] Body 'pedestal' — analytic geometry: box
+  [EB] Body 'pedestal': levelset_mom=noslipwall  lset_wall_mu=0  temp_bc_type=adiabatic  motion=static  vel=(0,0)  omega_z=0
+
+ Acquiring particle data (restarting from checkpoint file)->Restarting from checkpoint Solution/checkpoint_files/2D_Plate_Under_Gravity/chk000012
+
+ Acquiring particle data (restarting from checkpoint file)->
+ Creating output folders...................................
+    Creating particle folder: ./Solution/particle_files/...
+    Creating grid folder: ./Solution/particle_files/.......
+    Creating check point folder: ./Solution/particle_files/
+    Creating ascii folder: ./Solution/particle_files/......
+ Calculating initial strainrates and stresses--------------> Done
+ Updating phase field--------------------------------------> Done
+ Calculating initial heat flux-----------------------------> Done
+ Writing outputs at step, time:10293, 0.1199796015
+
+ ================================================================================================
+ Timestepping begins
+ ================================================================================================
+ Iteration:      10721,	Time: 0.1249834210,	Dt = 1.16926e-05,	 Time/Iter = 0.0231806250
+
+ Writing outputs at step, time:11149, 0.1299757499
+ Iteration:      11149,	Time: 0.1299874404,	Dt = 1.16905e-05,	 Time/Iter = 0.4840353760
+ Iteration:      11577,	Time: 0.1349916968,	Dt = 1.16926e-05,	 Time/Iter = 0.0232942500
+
+ Writing outputs at step, time:12004, 0.1399733318
+ Iteration:      12005,	Time: 0.1399967220,	Dt = 1.16951e-05,	 Time/Iter = 0.0238828750
+### chunk end   04:54:58 rc=0
+### chunk start 04:55:02  resume_from=Solution/checkpoint_files/2D_Plate_Under_Gravity/chk000014
+Initializing AMReX (26.05-42-g12f9a543b2e7)...
+AMReX (26.05-42-g12f9a543b2e7) initialized
+
+ ===============================================================
+                  Welcome to EXAGOOP MPM Solver
+           Developed by SAMSers: Hari, Sree and Marc at NREL
+ -----------------------------------------------------------------
+ ExaGOOP Git commit: 8d258f7
+ AMReX   Git commit: 12f9a543b
+ Build: Release | GPU: None  | MPI: OFF | OpenMP: OFF  | Precision: double
+ Compiler: GCC 11.4.0
+ Hostname: claude
+ Run started: 2026-08-11 04:55:02 UTC
+ ===============================================================
+
+
+ Setting up problem variables------------------------------> Done[EB] Body 'pedestal' — analytic geometry: box
+  [EB] Body 'pedestal': levelset_mom=noslipwall  lset_wall_mu=0  temp_bc_type=adiabatic  motion=static  vel=(0,0)  omega_z=0
+
+ Acquiring particle data (restarting from checkpoint file)->Restarting from checkpoint Solution/checkpoint_files/2D_Plate_Under_Gravity/chk000014
+
+ Acquiring particle data (restarting from checkpoint file)->
+ Creating output folders...................................
+    Creating particle folder: ./Solution/particle_files/...
+    Creating grid folder: ./Solution/particle_files/.......
+    Creating check point folder: ./Solution/particle_files/
+    Creating ascii folder: ./Solution/particle_files/......
+ Calculating initial strainrates and stresses--------------> Done
+ Updating phase field--------------------------------------> Done
+ Calculating initial heat flux-----------------------------> Done
+ Writing outputs at step, time:12004, 0.1399733318
+
+ ================================================================================================
+ Timestepping begins
+ ================================================================================================
+ Iteration:      12432,	Time: 0.1449786725,	Dt = 1.16957e-05,	 Time/Iter = 0.0232561670
+
+ Writing outputs at step, time:12860, 0.1499728718
+ Iteration:      12860,	Time: 0.1499845676,	Dt = 1.16957e-05,	 Time/Iter = 0.4729877080
+ Iteration:      13288,	Time: 0.1549910148,	Dt = 1.16973e-05,	 Time/Iter = 0.0234537920
+
+ Writing outputs at step, time:13715, 0.159974401
+ Iteration:      13716,	Time: 0.1599978003,	Dt = 1.16996e-05,	 Time/Iter = 0.0238583750
+### chunk end   04:55:44 rc=0
+### chunk start 04:55:47  resume_from=Solution/checkpoint_files/2D_Plate_Under_Gravity/chk000016
+Initializing AMReX (26.05-42-g12f9a543b2e7)...
+AMReX (26.05-42-g12f9a543b2e7) initialized
+
+ ===============================================================
+                  Welcome to EXAGOOP MPM Solver
+           Developed by SAMSers: Hari, Sree and Marc at NREL
+ -----------------------------------------------------------------
+ ExaGOOP Git commit: 8d258f7
+ AMReX   Git commit: 12f9a543b
+ Build: Release | GPU: None  | MPI: OFF | OpenMP: OFF  | Precision: double
+ Compiler: GCC 11.4.0
+ Hostname: claude
+ Run started: 2026-08-11 04:55:47 UTC
+ ===============================================================
+
+
+ Setting up problem variables------------------------------> Done[EB] Body 'pedestal' — analytic geometry: box
+  [EB] Body 'pedestal': levelset_mom=noslipwall  lset_wall_mu=0  temp_bc_type=adiabatic  motion=static  vel=(0,0)  omega_z=0
+
+ Acquiring particle data (restarting from checkpoint file)->Restarting from checkpoint Solution/checkpoint_files/2D_Plate_Under_Gravity/chk000016
+
+ Acquiring particle data (restarting from checkpoint file)->
+ Creating output folders...................................
+    Creating particle folder: ./Solution/particle_files/...
+    Creating grid folder: ./Solution/particle_files/.......
+    Creating check point folder: ./Solution/particle_files/
+    Creating ascii folder: ./Solution/particle_files/......
+ Calculating initial strainrates and stresses--------------> Done
+ Updating phase field--------------------------------------> Done
+ Calculating initial heat flux-----------------------------> Done
+ Writing outputs at step, time:13715, 0.159974401
+
+ ================================================================================================
+ Timestepping begins
+ ================================================================================================
+ Iteration:      14143,	Time: 0.1649815994,	Dt = 1.16997e-05,	 Time/Iter = 0.0233259590
+
+ Writing outputs at step, time:14571, 0.1699773424
+ Iteration:      14571,	Time: 0.1699890409,	Dt = 1.16985e-05,	 Time/Iter = 0.4720724580
+ Iteration:      14999,	Time: 0.1749965061,	Dt = 1.16997e-05,	 Time/Iter = 0.0229902910
+
+ Writing outputs at step, time:15426, 0.1799804006
+ Iteration:      15427,	Time: 0.1800038038,	Dt = 1.17018e-05,	 Time/Iter = 0.0239640420
+### chunk end   04:56:29 rc=0
+### chunk start 04:56:34  resume_from=Solution/checkpoint_files/2D_Plate_Under_Gravity/chk000018
+Initializing AMReX (26.05-42-g12f9a543b2e7)...
+AMReX (26.05-42-g12f9a543b2e7) initialized
+
+ ===============================================================
+                  Welcome to EXAGOOP MPM Solver
+           Developed by SAMSers: Hari, Sree and Marc at NREL
+ -----------------------------------------------------------------
+ ExaGOOP Git commit: 8d258f7
+ AMReX   Git commit: 12f9a543b
+ Build: Release | GPU: None  | MPI: OFF | OpenMP: OFF  | Precision: double
+ Compiler: GCC 11.4.0
+ Hostname: claude
+ Run started: 2026-08-11 04:56:34 UTC
+ ===============================================================
+
+
+ Setting up problem variables------------------------------> Done[EB] Body 'pedestal' — analytic geometry: box
+  [EB] Body 'pedestal': levelset_mom=noslipwall  lset_wall_mu=0  temp_bc_type=adiabatic  motion=static  vel=(0,0)  omega_z=0
+
+ Acquiring particle data (restarting from checkpoint file)->Restarting from checkpoint Solution/checkpoint_files/2D_Plate_Under_Gravity/chk000018
+
+ Acquiring particle data (restarting from checkpoint file)->
+ Creating output folders...................................
+    Creating particle folder: ./Solution/particle_files/...
+    Creating grid folder: ./Solution/particle_files/.......
+    Creating check point folder: ./Solution/particle_files/
+    Creating ascii folder: ./Solution/particle_files/......
+ Calculating initial strainrates and stresses--------------> Done
+ Updating phase field--------------------------------------> Done
+ Calculating initial heat flux-----------------------------> Done
+ Writing outputs at step, time:15426, 0.1799804006
+
+ ================================================================================================
+ Timestepping begins
+ ================================================================================================
+ Iteration:      15854,	Time: 0.1849874173,	Dt = 1.16965e-05,	 Time/Iter = 0.0234381250
+
+ Writing outputs at step, time:16282, 0.1899823688
+ Iteration:      16282,	Time: 0.1899940642,	Dt = 1.16954e-05,	 Time/Iter = 0.4697706250
+ Iteration:      16710,	Time: 0.1950002325,	Dt = 1.16985e-05,	 Time/Iter = 0.0233251670
+
+ Writing outputs at step, time:17137, 0.1999824253
+ Iteration:      17138,	Time: 0.2000058168,	Dt = 1.16960e-05,	 Time/Iter = 0.0249747090
+
+Simulation run time = 41.34306231
+ Writing outputs at step, time:17138, 0.2000058168
+### chunk end   04:57:16 rc=0
