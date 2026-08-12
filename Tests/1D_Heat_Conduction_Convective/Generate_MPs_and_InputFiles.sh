@@ -1,1 +1,1 @@
-python3 ./PreProcess/Generate_MPs_Inputfile_Generic.py --config ./PreProcess/config.json
+python ./PreProcess/Generate_MPs_Inputfile_Generic.py --config ./PreProcess/config.json

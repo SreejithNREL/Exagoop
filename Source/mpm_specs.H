@@ -489,15 +489,15 @@ class MPMspecs
         auto bc_temp_str_to_int = [](const std::string &s) -> int
         {
             if (s == "periodic")
-                return 0;
+                return BC_TEMP_PERIODIC;
             if (s == "dirichlet")
-                return 1;
+                return BC_TEMP_ISOTHERMAL;
             if (s == "adiabatic")
-                return 2;
+                return BC_TEMP_ADIABATIC;
             if (s == "heatflux")
-                return 3;
+                return BC_TEMP_USERFLUX;
             if (s == "convective")
-                return 4;
+                return BC_TEMP_CONVECTION;
             amrex::Abort("\nUnknown temperature BC type: " + s);
             return -1;
         };
@@ -517,10 +517,13 @@ class MPMspecs
             if (pp.query(face_lo_temp_keys[d].c_str(), bc_temp_str))
             {
                 bclo_temp[d] = bc_temp_str_to_int(bc_temp_str);
+                amrex::Print()<<"\n bc low string = "<<face_lo_temp_keys[d].c_str()<<" "<<bc_temp_str<<" "<<bclo_temp[d]<<" "<<d<<"\n";
             }
             if (pp.query(face_hi_temp_keys[d].c_str(), bc_temp_str))
             {
                 bchi_temp[d] = bc_temp_str_to_int(bc_temp_str);
+                amrex::Print()<<"\n bc hi string = "<<face_hi_temp_keys[d].c_str()<<" "<<bc_temp_str<<" "<<bchi_temp[d]<<" "<<BC_TEMP_CONVECTION<<" "<<d<<"\n";
+                //amrex::Abort("\n Force exiting");
             }
 
             ParmParse pp_lo_temp(face_lo_temp_ns[d]);

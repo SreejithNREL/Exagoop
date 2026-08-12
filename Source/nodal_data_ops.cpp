@@ -855,13 +855,20 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
                         int bc_type = is_lo ? bclo[d] : bchi[d];
                         int sign = is_lo ? 1 : -1;
 
+                        if(d==0 and is_hi==true)
+                          {
+                            //amrex::Print()<<"\n At d = "<<d<<" is_hi  = "<<is_hi;
+                          }
+
                         if (bc_type == BC_TEMP_PERIODIC)
                         {
+                            //amrex::Print()<<"\n Periodic bc used: "<<nodeid[d]<<" dim = "<<d;
                             // Periodic. Do nothing
                             bc_applied = true;
                         }
                         else if (bc_type == BC_TEMP_ISOTHERMAL)
                         {
+                            //amrex::Print()<<"\n isot bc used: "<<nodeid[d]<<" dim = "<<d;
                             amrex::Real Tw =
                                 is_lo ? T_wall_lo_g[d] : T_wall_hi_g[d];
                             arr(nodeid, TEMPERATURE) = Tw;
@@ -869,16 +876,17 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
                         }
                         else if (bc_type == BC_TEMP_ADIABATIC)
                         {
-                            if (!bc_applied)
-                            {
+                            //amrex::Print()<<"\n adiab bc used: "<<nodeid[d]<<" dim = "<<d;
+
                                 IntVect nb = nodeid;
                                 nb[d] += sign;
                                 arr(nodeid, TEMPERATURE) = arr(nb, TEMPERATURE);
                                 bc_applied = true;
-                            }
+
                         }
                         else if (bc_type == BC_TEMP_USERFLUX)
                         {
+                            //amrex::Print()<<"\n flux bc used: "<<nodeid[d]<<" dim = "<<d;
                             IntVect nb = nodeid;
                             nb[d] += sign;
                             amrex::Real q = is_lo ? flux_lo_g[d] : flux_hi_g[d];
@@ -891,15 +899,22 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
                         }
                         else if (bc_type == BC_TEMP_CONVECTION)
                         {
+                            //amrex::Print()<<"\n Convection bc used: "<<nodeid[d]<<" dim = "<<d;
                             IntVect nb = nodeid;
                             nb[d] += sign;
                             amrex::Real hc = is_lo ? h_lo_g[d] : h_hi_g[d];
                             amrex::Real Tinf =
                                 is_lo ? Tinf_lo_g[d] : Tinf_hi_g[d];
+                            //amrex::Print()<<"\n Tinf = "<<Tinf<<" "<<hc;
                             amrex::Real Bi = hc * dx_g[d];
                             arr(nodeid, TEMPERATURE) =
                                 (arr(nb, TEMPERATURE) + Bi * Tinf) / (1.0 + Bi);
-                            bc_applied = true;
+                            amrex::Print()<<"\n arr(nodeid, TEMPERATURE) = "<<arr(nodeid, TEMPERATURE)<<" "<<Bi<<" "<<Tinf;
+                            //bc_applied = true;
+                        }
+                        else{
+                            amrex::Print()<<"\n Incorrect bctype = "<<nodeid[d]<<" dim = "<<d<<" bctype = "<<bc_type;
+                            amrex::Abort();
                         }
                     }
                 }
