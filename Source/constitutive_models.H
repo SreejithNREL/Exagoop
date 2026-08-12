@@ -37,7 +37,7 @@ linear_elastic(amrex::Real eps[NCOMP_TENSOR],
     // 2D plane stress/strain case
     sigma[XX] = const1 * ((1 - v) * eps[XX] + v * eps[YY]);
     sigma[YY] = const1 * ((1 - v) * eps[YY] + v * eps[XX]);
-    sigma[ZZ] = 0.0; // out-of-plane stress often set to 0 in plane stress
+    sigma[ZZ] = v * (sigma[XX] + sigma[YY]);
     sigma[XY] = const2 * eps[XY];
     sigma[XZ] = sigma[YZ] = 0.0;
 
@@ -84,7 +84,7 @@ linear_elastic_delta(amrex::Real delta_eps[NCOMP_TENSOR],
     // 2D elasticity (plane stress assumption)
     delta_sigma[XX] = const1 * ((1 - v) * delta_eps[XX] + v * delta_eps[YY]);
     delta_sigma[YY] = const1 * ((1 - v) * delta_eps[YY] + v * delta_eps[XX]);
-    delta_sigma[ZZ] = 0.0;
+    delta_sigma[ZZ] = v * (delta_sigma[XX] + delta_sigma[YY]);
     delta_sigma[XY] = const2 * delta_eps[XY];
     delta_sigma[XZ] = delta_sigma[YZ] = 0.0;
 
@@ -136,7 +136,7 @@ Newtonian_Fluid(amrex::Real epsdot[NCOMP_TENSOR],
         2.0 * dyn_visc * (epsdot[XX] - one_by_two * trace_epsdot) - pressure;
     sigma[YY] =
         2.0 * dyn_visc * (epsdot[YY] - one_by_two * trace_epsdot) - pressure;
-    sigma[ZZ] = 0.0;
+    sigma[ZZ] = 2 * dyn_visc * (epsdot[ZZ] - trace_epsdot / 3.0) - pressure;
     sigma[XY] = 2.0 * dyn_visc * epsdot[XY];
     sigma[XZ] = sigma[YZ] = 0.0;
 
@@ -155,6 +155,97 @@ Newtonian_Fluid(amrex::Real epsdot[NCOMP_TENSOR],
     sigma[XY] = 2.0 * dyn_visc * epsdot[XY];
     sigma[XZ] = 2.0 * dyn_visc * epsdot[XZ];
     sigma[YZ] = 2.0 * dyn_visc * epsdot[YZ];
+#endif
+}
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+left_cauchy_green(const amrex::Real F[NCOMP_FULLTENSOR],
+                  amrex::Real b[NCOMP_TENSOR])
+{
+    constexpr int d = AMREX_SPACEDIM; // stride into F, NOT 3
+
+    auto row_dot = [&](int i, int j)
+    {
+        amrex::Real s = amrex::Real(0.0);
+        for (int k = 0; k < d; ++k)
+            s += F[i * d + k] * F[j * d + k];
+        return s;
+    };
+
+    b[XX] = row_dot(0, 0);
+#if (AMREX_SPACEDIM >= 2)
+    b[YY] = row_dot(1, 1);
+    b[XY] = row_dot(0, 1);
+#endif
+#if (AMREX_SPACEDIM == 3)
+    b[ZZ] = row_dot(2, 2);
+    b[XZ] = row_dot(0, 2);
+    b[YZ] = row_dot(1, 2);
+#endif
+}
+
+/**
+ * @brief Computes Cauchy stress for a neo-hooken solid
+ *
+ * Implements compressible neo-hookean elasticity in 1D, 2D, or 3D depending on
+ * AMREX_SPACEDIM. Uses Young’s modulus (E) and Poisson’s ratio (v) to form
+ * the constitutive matrix and multiplies it by the strain tensor eps[].
+ *
+ * @param eps    Strain tensor components
+ * @param sigma  Output stress tensor components
+ * @param E      Young’s modulus
+ * @param v      Poisson’s ratio
+ */
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+neo_hookean(amrex::Real sigma[NCOMP_TENSOR],
+            const amrex::Real F[NCOMP_FULLTENSOR],
+            amrex::Real E,
+            amrex::Real v)
+{
+    amrex::Real mu = E / (two * (eka + v));                     // shear modulus
+    amrex::Real lambda = E * v / ((eka + v) * (eka - two * v)); // first Lamé
+
+    amrex::Real B[NCOMP_TENSOR];
+    left_cauchy_green(F, B); // B = F Fᵀ
+
+    // Jacobian
+    amrex::Real detF = 0.0;
+#if (AMREX_SPACEDIM == 1)
+    detF = F[0];
+#elif (AMREX_SPACEDIM == 2)
+    detF = F[0] * F[3] - F[1] * F[2];
+#else
+    detF = F[0] * (F[4] * F[8] - F[5] * F[7]) -
+           F[1] * (F[3] * F[8] - F[5] * F[6]) +
+           F[2] * (F[3] * F[7] - F[4] * F[6]);
+#endif
+    detF = amrex::max(detF, amrex::Real(1.e-12)); // NaN guard
+
+    const amrex::Real vol = lambda * std::log(detF) / detF; // λ ln(J)/J
+    const amrex::Real muJ = mu / detF;                      // μ/J
+
+#if (AMREX_SPACEDIM == 1)
+    sigma[XX] = muJ * (B[XX] - 1.0) + vol;
+    sigma[YY] = sigma[ZZ] = vol;
+    sigma[XY] = sigma[XZ] = sigma[YZ] = 0.0;
+
+#elif (AMREX_SPACEDIM == 2)
+    // plane strain: F_zz = 1 implicit, so b_zz = 1 → out-of-plane deviatoric =
+    // 0
+    sigma[XX] = muJ * (B[XX] - 1.0) + vol;
+    sigma[YY] = muJ * (B[YY] - 1.0) + vol;
+    sigma[ZZ] = vol; // NOT zero under plane strain
+    sigma[XY] = muJ * B[XY];
+    sigma[XZ] = sigma[YZ] = 0.0;
+
+#elif (AMREX_SPACEDIM == 3)
+    sigma[XX] = muJ * (B[XX] - 1.0) + vol;
+    sigma[YY] = muJ * (B[YY] - 1.0) + vol;
+    sigma[ZZ] = muJ * (B[ZZ] - 1.0) + vol;
+    sigma[XY] = muJ * B[XY];
+    sigma[XZ] = muJ * B[XZ];
+    sigma[YZ] = muJ * B[YZ];
 #endif
 }
 
