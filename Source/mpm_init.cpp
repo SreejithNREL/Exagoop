@@ -178,7 +178,6 @@ void Initialise_Domain(MPMspecs &specs,
     }
     else if (specs.order_scheme == 2)
     {
-        amrex::Print() << "\n Yes the order is 2";
         ng_cells_nodaldata = 3;
 
         // Set directional order-scheme based on periodicity and grid size

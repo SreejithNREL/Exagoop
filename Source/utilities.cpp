@@ -247,8 +247,8 @@ void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
         amrex::Vector<int> bchi_dirichlet(AMREX_SPACEDIM, 0);
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
         {
-            bclo_dirichlet[d] = (specs.bclo_temp[d] == 1) ? 1 : 0;
-            bchi_dirichlet[d] = (specs.bchi_temp[d] == 1) ? 1 : 0;
+            bclo_dirichlet[d] = specs.bclo_temp[d];
+            bchi_dirichlet[d] = specs.bchi_temp[d];
         }
         nodal_bcs_temperature(
             geom, nodaldata, bclo_dirichlet.data(), bchi_dirichlet.data(),
@@ -520,7 +520,6 @@ void Initialise_Diagnostic_Streams(MPMspecs &specs)
 
     if (specs.do_calculate_mwa_velmag)
     {
-        amrex::Print() << "\n Diag vel mag";
         std::string fullfilename =
             specs.diagnostic_output_folder + "/" + specs.file_mwa_velmag;
         if (amrex::ParallelDescriptor::IOProcessor())

@@ -94,6 +94,7 @@
     0.0,
     0.0
   ],
+  "density": 1.0,
   "boundary_conditions": {
     "xlo": {
       "mom": "periodic"
