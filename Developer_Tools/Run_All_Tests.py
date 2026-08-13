@@ -2843,7 +2843,7 @@ def _run_parameter_sweeps():
 
         if test_name == "1D_Axial_Bar_Vibration":
             print('Nothing to do')
-            Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg)
+            #Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg)
         elif test_name == "1D_Heat_Conduction":
             print('Nothing to do')
             Run_ParameterSweep_1D_HeatConduction(cfg)
@@ -2858,13 +2858,13 @@ def _run_parameter_sweeps():
             Run_ParameterSweep_2D_HeatConduction(cfg)
         elif test_name == "2D_Heat_Conduction_Cylinder_Dirichlet":
             print('Nothing to do')
-            #Run_ParameterSweep_2D_HeatConduction_Cylinder_Dirichlet(cfg)
+            Run_ParameterSweep_2D_HeatConduction_Cylinder_Dirichlet(cfg)
         elif test_name == "Dam_Break":
             print('Nothing to do')
-            Run_ParameterSweep_Dambreak(cfg)
+            #Run_ParameterSweep_Dambreak(cfg)
         elif test_name == "Elastic_disk_collision":
             print('Nothing to do')
-            Run_ParameterSweep_EDC(cfg)
+            #Run_ParameterSweep_EDC(cfg)
 
     # Save results
     _sweep_results_path = os.path.join(ROOT, "sweep_results.json")
