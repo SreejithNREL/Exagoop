@@ -9,8 +9,8 @@
     "ny": 4
   },
   "ppc": [
-    1,
-    1
+    2,
+    2
   ],
   "bodies": [
     {
@@ -38,7 +38,7 @@
   "density": 1.0,
   "CFL": 0.1,
   "alpha_pic_flip": 1.0,
-  "order_scheme": 1,
+  "order_scheme": 2,
   "stress_update_scheme": "MUSL",
   "output_tag": "1D_Heat_Conduction_Convective_npcx2_ord2_susMUSL_USEHDFTrue_OFORMhdf5_MPI=True_CUDAFalse_HIPFalse_OMPFalse_SYCLFalse_EBFalse_TEMPTrue_BuildSystemgnumake_9af11f",
   "input_filename": "Inputs_1DHeatConduction_Convective.inp",
