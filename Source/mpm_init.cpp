@@ -812,6 +812,19 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
             p.rdata(realData::Dynamic_viscosity) =
                 extra_data.at("Dynamic_viscosity")[local_i];
         }
+        else if (cm_id[local_i] == 2)
+        {
+            p.rdata(realData::E) = extra_data.at("E")[local_i];
+            p.rdata(realData::nu) = extra_data.at("nu")[local_i];
+            p.rdata(realData::Bulk_modulus) = 0.0;
+            p.rdata(realData::Gama_pressure) = 0.0;
+            p.rdata(realData::Dynamic_viscosity) = 0.0;
+        }
+        else
+        {
+            amrex::Abort("\nUnknown constitutive model encountered in "
+                         "InitParticlesFromHDF5.\n");
+        }
 
 #if USE_TEMP
         p.rdata(realData::temperature) = extra_data.at("T")[local_i];

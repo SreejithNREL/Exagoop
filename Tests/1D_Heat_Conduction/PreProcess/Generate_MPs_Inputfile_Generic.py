@@ -260,7 +260,13 @@ def generate_particle_chunks(
             "Gamma_pressure": constitutive_model["Gamma_pressure"],
             "Dynamic_viscosity": constitutive_model["Dynamic_viscosity"],
         }
-        cm_id = 1    
+        cm_id = 1 
+    elif cm_type == "neohookean":
+        cm_extra = {
+            "E": constitutive_model["E"],
+            "nu": constitutive_model["nu"],
+        }
+        cm_id = 2   
     else:
         # Generic fallback for custom models
         cm_extra = {k: v for k, v in constitutive_model.items() if k != "type"}

@@ -202,7 +202,7 @@ void MPMParticleContainer::apply_constitutive_model_delta(
 
                 if (p.idata(intData::phase) == 0)
                 {
-                    amrex::Real delta_strain[NCOMP_TENSOR];
+                    amrex::Real delta_strain[NCOMP_TENSOR] = {};
                     amrex::Real delta_stress[NCOMP_TENSOR];
 
                     // Accumulate strain from current strainrate
@@ -254,6 +254,11 @@ void MPMParticleContainer::apply_constitutive_model_delta(
                         amrex::Abort(
                             "\nDelta strain model for weakly compressible "
                             "fluids not implemented yet.");
+                    }
+                    else if (p.idata(intData::constitutive_model) == 2)
+                    {
+                        amrex::Abort("\nDelta strain model for neo hookean "
+                                     "model not implemented yet.");
                     }
 
                     // Accumulate stress with delta contribution
