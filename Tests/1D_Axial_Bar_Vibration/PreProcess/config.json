@@ -38,6 +38,7 @@
       }
     }
   ],
+  "density": 1.0,
   "CFL": 0.1,
   "alpha_pic_flip": 1.0,
   "order_scheme": 1,

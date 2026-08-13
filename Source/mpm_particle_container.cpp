@@ -69,6 +69,7 @@ void MPMParticleContainer::apply_constitutive_model(
                     amrex::Real strainrate[NCOMP_TENSOR];
                     amrex::Real strain[NCOMP_TENSOR];
                     amrex::Real stress[NCOMP_TENSOR];
+                    amrex::Real deformation_gradient[NCOMP_FULLTENSOR];
 
                     // Update strain from strainrate
                     for (int d = 0; d < NCOMP_TENSOR; ++d)
@@ -94,6 +95,13 @@ void MPMParticleContainer::apply_constitutive_model(
                         strain[d] = p.rdata(realData::strain + d);
                     }
 
+                    // Get deformation gradient from particle data
+                    for (int comp = 0; comp < NCOMP_FULLTENSOR; ++comp)
+                    {
+                        deformation_gradient[comp] =
+                            p.rdata(realData::deformation_gradient + comp);
+                    }
+
                     if (p.idata(intData::constitutive_model) == 0)
                     {
                         // Elastic solid
@@ -114,6 +122,13 @@ void MPMParticleContainer::apply_constitutive_model(
                         Newtonian_Fluid(strainrate, stress,
                                         p.rdata(realData::Dynamic_viscosity),
                                         p.rdata(realData::pressure));
+                    }
+                    else if (p.idata(intData::constitutive_model) == 2)
+                    {
+                        // Neo-Hookean solid
+                        neo_hookean(stress, deformation_gradient,
+                                    p.rdata(realData::E),
+                                    p.rdata(realData::nu));
                     }
 
                     // Write back stress
@@ -187,7 +202,7 @@ void MPMParticleContainer::apply_constitutive_model_delta(
 
                 if (p.idata(intData::phase) == 0)
                 {
-                    amrex::Real delta_strain[NCOMP_TENSOR];
+                    amrex::Real delta_strain[NCOMP_TENSOR] = {};
                     amrex::Real delta_stress[NCOMP_TENSOR];
 
                     // Accumulate strain from current strainrate
@@ -239,6 +254,11 @@ void MPMParticleContainer::apply_constitutive_model_delta(
                         amrex::Abort(
                             "\nDelta strain model for weakly compressible "
                             "fluids not implemented yet.");
+                    }
+                    else if (p.idata(intData::constitutive_model) == 2)
+                    {
+                        amrex::Abort("\nDelta strain model for neo hookean "
+                                     "model not implemented yet.");
                     }
 
                     // Accumulate stress with delta contribution

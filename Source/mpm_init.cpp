@@ -178,7 +178,6 @@ void Initialise_Domain(MPMspecs &specs,
     }
     else if (specs.order_scheme == 2)
     {
-        amrex::Print() << "\n Yes the order is 2";
         ng_cells_nodaldata = 3;
 
         // Set directional order-scheme based on periodicity and grid size
@@ -813,6 +812,19 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
             p.rdata(realData::Dynamic_viscosity) =
                 extra_data.at("Dynamic_viscosity")[local_i];
         }
+        else if (cm_id[local_i] == 2)
+        {
+            p.rdata(realData::E) = extra_data.at("E")[local_i];
+            p.rdata(realData::nu) = extra_data.at("nu")[local_i];
+            p.rdata(realData::Bulk_modulus) = 0.0;
+            p.rdata(realData::Gama_pressure) = 0.0;
+            p.rdata(realData::Dynamic_viscosity) = 0.0;
+        }
+        else
+        {
+            amrex::Abort("\nUnknown constitutive model encountered in "
+                         "InitParticlesFromHDF5.\n");
+        }
 
 #if USE_TEMP
         p.rdata(realData::temperature) = extra_data.at("T")[local_i];
@@ -1066,8 +1078,19 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
                 safe_read(ifs, p.rdata(realData::Dynamic_viscosity),
                           "Error reading Dynamic_viscosity");
             }
+            else if (p.idata(intData::constitutive_model) == 2)
+            {
+                safe_read(ifs, p.rdata(realData::E), "Error reading E");
+                safe_read(ifs, p.rdata(realData::nu), "Error reading nu");
+                p.rdata(realData::Bulk_modulus) = 0.0;
+                p.rdata(realData::Gama_pressure) = 0.0;
+                p.rdata(realData::Dynamic_viscosity) = 0.0;
+            }
             else
             {
+                amrex::Print() << "Error: Constitutive model ID "
+                               << p.idata(intData::constitutive_model)
+                               << " is not recognized.\n";
                 amrex::Abort("Incorrect constitutive model");
             }
 
