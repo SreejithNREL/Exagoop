@@ -517,13 +517,19 @@ class MPMspecs
             if (pp.query(face_lo_temp_keys[d].c_str(), bc_temp_str))
             {
                 bclo_temp[d] = bc_temp_str_to_int(bc_temp_str);
-                amrex::Print()<<"\n bc low string = "<<face_lo_temp_keys[d].c_str()<<" "<<bc_temp_str<<" "<<bclo_temp[d]<<" "<<d<<"\n";
+                amrex::Print()
+                    << "\n bc low string = " << face_lo_temp_keys[d].c_str()
+                    << " " << bc_temp_str << " " << bclo_temp[d] << " " << d
+                    << "\n";
             }
             if (pp.query(face_hi_temp_keys[d].c_str(), bc_temp_str))
             {
                 bchi_temp[d] = bc_temp_str_to_int(bc_temp_str);
-                amrex::Print()<<"\n bc hi string = "<<face_hi_temp_keys[d].c_str()<<" "<<bc_temp_str<<" "<<bchi_temp[d]<<" "<<BC_TEMP_CONVECTION<<" "<<d<<"\n";
-                //amrex::Abort("\n Force exiting");
+                amrex::Print()
+                    << "\n bc hi string = " << face_hi_temp_keys[d].c_str()
+                    << " " << bc_temp_str << " " << bchi_temp[d] << " "
+                    << BC_TEMP_CONVECTION << " " << d << "\n";
+                // amrex::Abort("\n Force exiting");
             }
 
             ParmParse pp_lo_temp(face_lo_temp_ns[d]);

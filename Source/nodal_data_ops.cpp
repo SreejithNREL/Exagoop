@@ -857,7 +857,7 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
 
                         if (bc_type == BC_TEMP_PERIODIC)
                         {
-                            bc_applied = true;	// Periodic. Do nothing
+                            bc_applied = true; // Periodic. Do nothing
                         }
                         else if (bc_type == BC_TEMP_ISOTHERMAL)
                         {
