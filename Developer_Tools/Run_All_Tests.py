@@ -302,7 +302,7 @@ def Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg):
         config["use_sycl"] = use_sycl
         config["use_eb"] = use_eb
         config["use_temp"] = use_temp
-        
+        config["density"] = 1.0
         config["output_tag"] = output_tag
         
         # 3. Write updated config.json
@@ -527,6 +527,7 @@ def Run_ParameterSweep_1D_HeatConduction(cfg):
         config["use_sycl"] = use_sycl
         config["use_eb"] = use_eb
         config["use_temp"] = use_temp
+        config["density"] = 1.0
 
         # Auto-tag       
         config["output_tag"] = output_tag
@@ -730,6 +731,7 @@ def Run_ParameterSweep_1D_HeatConduction_HeatFlux(cfg):
         config["use_sycl"] = use_sycl
         config["use_eb"] = use_eb
         config["use_temp"] = use_temp
+        config["density"] = 1.0
 
         # Auto-tag       
         config["output_tag"] = output_tag
@@ -936,6 +938,7 @@ def Run_ParameterSweep_1D_HeatConduction_Convective(cfg):
         config["use_sycl"] = use_sycl
         config["use_eb"] = use_eb
         config["use_temp"] = use_temp
+        config["density"] = 1.0
 
         # Auto-tag       
         config["output_tag"] = output_tag
@@ -1145,6 +1148,7 @@ def Run_ParameterSweep_2D_HeatConduction(cfg):
         config["use_temp"] = use_temp
         # Auto-tag
         config["output_tag"] = output_tag
+        config["density"] = 1.0
 
         # 3. Write updated config.json
         with open(os.path.join(test_dir, "./PreProcess/config.json"), "w") as f:
@@ -1355,6 +1359,7 @@ def Run_ParameterSweep_2D_HeatConduction_Cylinder_Dirichlet(cfg):
         config["use_eb"] = use_eb
         config["use_temp"] = use_temp
         config["output_tag"] = output_tag
+        config["density"] = 1.0
 
         # 3. Write updated config.json
         with open(os.path.join(test_dir, "./PreProcess/config.json"), "w") as f:
@@ -1561,6 +1566,7 @@ def Run_ParameterSweep_Dambreak(cfg):
         config["use_sycl"] = use_sycl
         config["use_eb"] = use_eb
         config["use_temp"] = use_temp
+        config["density"] = 997.0
 
         # Auto-tag       
         config["output_tag"] = output_tag
@@ -1768,6 +1774,7 @@ def Run_ParameterSweep_EDC(cfg):
         config["use_temp"] = use_temp
         # Auto-tag       
         config["output_tag"] = output_tag
+        config["density"] = 997.0
 
         # 3. Write updated config.json
         with open(os.path.join(test_dir, "./PreProcess/config.json"), "w") as f:
@@ -2511,7 +2518,7 @@ TEST_CASES = {
             "build_with_hdf": [True],
             "output_format": ["hdf5"],
             "filename_prefix": ["mpm_particles"],            
-            "build_system": ["gnumake","cmake"],
+            "build_system": ["cmake"],
             "use_mpi": [True],
             "use_cuda": [False],
             "use_hip": [False],
@@ -2539,7 +2546,7 @@ TEST_CASES = {
             "build_with_hdf": [True],
             "output_format": ["hdf5"],
             "filename_prefix": ["mpm_particles"],            
-            "build_system": ["gnumake","cmake"],
+            "build_system": ["cmake"],
             "use_mpi": [True],
             "use_cuda": [False],
             "use_hip": [False],
@@ -2564,7 +2571,7 @@ TEST_CASES = {
             "build_with_hdf": [True],
             "output_format": ["hdf5"],
             "filename_prefix": ["mpm_particles"],            
-            "build_system": ["gnumake","cmake"],
+            "build_system": ["gnumake"],
             "use_mpi": [True],
             "use_cuda": [False],
             "use_hip": [False],
@@ -2584,12 +2591,12 @@ TEST_CASES = {
         "parameter_space": {
             "dimension": [2],
             "np_per_cell_x": [2],            
-            "order_scheme": [1],            
+            "order_scheme": [2],            
             "stress_update_scheme": ["MUSL"],
             "build_with_hdf": [True],
             "output_format": ["hdf5"],
             "filename_prefix": ["mpm_particles"],            
-            "build_system": ["gnumake","cmake"],
+            "build_system": ["gnumake"],
             "use_mpi": [True],
             "use_cuda": [False],
             "use_hip": [False],
@@ -2613,7 +2620,7 @@ TEST_CASES = {
             "build_with_hdf": [True],
             "output_format": ["hdf5"],
             "filename_prefix": ["mpm_particles"],            
-            "build_system": ["gnumake","cmake"],
+            "build_system": ["gnumake"],
             "use_mpi": [True],
             "use_cuda": [False],
             "use_hip": [False],
@@ -2663,7 +2670,7 @@ TEST_CASES = {
             "build_with_hdf": [True],
             "output_format": ["hdf5"],
             "filename_prefix": ["mpm_particles"],            
-            "build_system": ["cmake","gnumake"],
+            "build_system": ["cmake"],
             "use_mpi": [True],
             "use_cuda": [False],
             "use_hip": [False],
@@ -2688,7 +2695,7 @@ TEST_CASES = {
             "build_with_hdf": [True],
             "output_format": ["hdf5"],
             "filename_prefix": ["mpm_particles"],            
-            "build_system": ["cmake","gnumake"],
+            "build_system": ["cmake"],
             "use_mpi": [True],
             "use_cuda": [False],
             "use_hip": [False],
@@ -2839,16 +2846,16 @@ def _run_parameter_sweeps():
             #Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg)
         elif test_name == "1D_Heat_Conduction":
             print('Nothing to do')
-            #Run_ParameterSweep_1D_HeatConduction(cfg)
+            Run_ParameterSweep_1D_HeatConduction(cfg)
         elif test_name == "1D_Heat_Conduction_HeatFlux":
             print('Nothing to do')
-            #Run_ParameterSweep_1D_HeatConduction_HeatFlux(cfg)
+            Run_ParameterSweep_1D_HeatConduction_HeatFlux(cfg)
         elif test_name == "1D_Heat_Conduction_Convective":
             print('Nothing to do')
-            #Run_ParameterSweep_1D_HeatConduction_Convective(cfg)
+            Run_ParameterSweep_1D_HeatConduction_Convective(cfg)
         elif test_name == "2D_Heat_Conduction":
             print('Nothing to do')
-            #Run_ParameterSweep_2D_HeatConduction(cfg)
+            Run_ParameterSweep_2D_HeatConduction(cfg)
         elif test_name == "2D_Heat_Conduction_Cylinder_Dirichlet":
             print('Nothing to do')
             Run_ParameterSweep_2D_HeatConduction_Cylinder_Dirichlet(cfg)

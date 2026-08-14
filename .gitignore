@@ -36,3 +36,5 @@ Developer_Tools/sweep_results.json
 build_matrix_*.json
 build_matrix_*.txt
 clangformat.sh
+Tests/**/PreProcess/__pycache__/*
+sweep_results.json

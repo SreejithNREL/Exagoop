@@ -225,45 +225,18 @@ void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
                                  amrex::Real t,
                                  bool dirichlet_only)
 {
-    if (!dirichlet_only)
-    {
-        nodal_bcs_temperature(
-            geom, nodaldata, specs.bclo_temp.data(), specs.bchi_temp.data(),
-            specs.bc_temp_T_wall_lo.data(), specs.bc_temp_T_wall_hi.data(),
-            specs.bc_temp_flux_lo.data(), specs.bc_temp_flux_hi.data(),
-            specs.bc_temp_h_lo.data(), specs.bc_temp_h_hi.data(),
-            specs.bc_temp_Tinf_lo.data(), specs.bc_temp_Tinf_hi.data());
-        compute_udf_temp_at_nodes(geom, specs, t);
-        apply_udf_nodal_bcs_temperature(geom, nodaldata, specs);
+    nodal_bcs_temperature(
+        geom, nodaldata, specs.bclo_temp.data(), specs.bchi_temp.data(),
+        specs.bc_temp_T_wall_lo.data(), specs.bc_temp_T_wall_hi.data(),
+        specs.bc_temp_flux_lo.data(), specs.bc_temp_flux_hi.data(),
+        specs.bc_temp_h_lo.data(), specs.bc_temp_h_hi.data(),
+        specs.bc_temp_Tinf_lo.data(), specs.bc_temp_Tinf_hi.data());
+    compute_udf_temp_at_nodes(geom, specs, t);
+    apply_udf_nodal_bcs_temperature(geom, nodaldata, specs);
 #if USE_EB
-        if (mpm_ebtools::using_levelset_geometry)
-            nodal_levelset_bcs_temperature(nodaldata, geom,
-                                           /*dirichlet_only=*/false);
+    if (mpm_ebtools::using_levelset_geometry)
+        nodal_levelset_bcs_temperature(nodaldata, geom, dirichlet_only);
 #endif
-    }
-    else
-    {
-        amrex::Vector<int> bclo_dirichlet(AMREX_SPACEDIM, 0);
-        amrex::Vector<int> bchi_dirichlet(AMREX_SPACEDIM, 0);
-        for (int d = 0; d < AMREX_SPACEDIM; ++d)
-        {
-            bclo_dirichlet[d] = (specs.bclo_temp[d] == 1) ? 1 : 0;
-            bchi_dirichlet[d] = (specs.bchi_temp[d] == 1) ? 1 : 0;
-        }
-        nodal_bcs_temperature(
-            geom, nodaldata, bclo_dirichlet.data(), bchi_dirichlet.data(),
-            specs.bc_temp_T_wall_lo.data(), specs.bc_temp_T_wall_hi.data(),
-            specs.bc_temp_flux_lo.data(), specs.bc_temp_flux_hi.data(),
-            specs.bc_temp_h_lo.data(), specs.bc_temp_h_hi.data(),
-            specs.bc_temp_Tinf_lo.data(), specs.bc_temp_Tinf_hi.data());
-        compute_udf_temp_at_nodes(geom, specs, t);
-        apply_udf_nodal_bcs_temperature(geom, nodaldata, specs);
-#if USE_EB
-        if (mpm_ebtools::using_levelset_geometry)
-            nodal_levelset_bcs_temperature(nodaldata, geom,
-                                           /*dirichlet_only=*/true);
-#endif
-    }
 }
 #endif
 
@@ -520,7 +493,6 @@ void Initialise_Diagnostic_Streams(MPMspecs &specs)
 
     if (specs.do_calculate_mwa_velmag)
     {
-        amrex::Print() << "\n Diag vel mag";
         std::string fullfilename =
             specs.diagnostic_output_folder + "/" + specs.file_mwa_velmag;
         if (amrex::ParallelDescriptor::IOProcessor())

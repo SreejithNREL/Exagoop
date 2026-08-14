@@ -60,7 +60,8 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
                     Cs = std::sqrt(p.rdata(realData::Bulk_modulus) /
                                    p.rdata(realData::density));
                 }
-                else if (p.idata(intData::constitutive_model) == 0)
+                else if (p.idata(intData::constitutive_model) == 0 or
+                         p.idata(intData::constitutive_model) == 2)
                 {
 
                     amrex::Real lambda = p.rdata(realData::E) *
@@ -71,6 +72,11 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
                                      (2.0 * (1 + p.rdata(realData::nu)));
                     Cs = std::sqrt((lambda + 2.0 * mu) /
                                    p.rdata(realData::density));
+                }
+                else
+                {
+                    amrex::Abort("\nInvalid constitutive model. dt approaching "
+                                 "infinity.\n");
                 }
 
                 // Dimension‑aware velocity magnitude

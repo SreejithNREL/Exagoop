@@ -70,10 +70,11 @@
       }
     }
   ],
+  "density": 997.0,
   "CFL": 0.1,
   "order_scheme": 1,
   "stress_update_scheme": "MUSL",
-  "output_tag": "Elastic_disk_collision__dim2_npcx4_ord1_susMUSL_USEHDFTrue_OFORMhdf5_MPI=True_CUDAFalse_HIPFalse_OMPFalse_SYCLFalse_EBFalse_TEMPFalse_BuildSystemgnumake_34471f",
+  "output_tag": "Elastic_disk_collision__dim2_npcx4_ord1_susMUSL_USEHDFTrue_OFORMhdf5_MPI=True_CUDAFalse_HIPFalse_OMPFalse_SYCLFalse_EBFalse_TEMPFalse_BuildSystemcmake_22c3e0",
   "input_filename": "Inputs_ElasticDiskCollision.inp",
   "output_format": "hdf5",
   "materialpoint_filename": "mpm_particles.h5",
@@ -93,6 +94,7 @@
     0.0,
     0.0
   ],
+  "density": 1.0,
   "boundary_conditions": {
     "xlo": {
       "mom": "periodic"
@@ -116,7 +118,7 @@
     "write_diag_output_time": 0.01
   },
   "build_with_hdf": true,
-  "build_system": "gnumake",
+  "build_system": "cmake",
   "use_mpi": true,
   "use_cuda": false,
   "use_hip": false,

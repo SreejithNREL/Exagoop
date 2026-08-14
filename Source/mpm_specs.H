@@ -489,15 +489,15 @@ class MPMspecs
         auto bc_temp_str_to_int = [](const std::string &s) -> int
         {
             if (s == "periodic")
-                return 0;
+                return BC_TEMP_PERIODIC;
             if (s == "dirichlet")
-                return 1;
+                return BC_TEMP_ISOTHERMAL;
             if (s == "adiabatic")
-                return 2;
+                return BC_TEMP_ADIABATIC;
             if (s == "heatflux")
-                return 3;
+                return BC_TEMP_USERFLUX;
             if (s == "convective")
-                return 4;
+                return BC_TEMP_CONVECTION;
             amrex::Abort("\nUnknown temperature BC type: " + s);
             return -1;
         };

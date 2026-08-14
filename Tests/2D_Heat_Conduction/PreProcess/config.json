@@ -35,11 +35,12 @@
       }
     }
   ],
+  "density": 1.0,
   "CFL": 0.1,
   "alpha_pic_flip": 1.0,
   "order_scheme": 1,
   "stress_update_scheme": "MUSL",
-  "output_tag": "2D_Heat_Conduction_npcx2_ord1_susMUSL_USEHDFTrue_OFORMhdf5_MPI=True_CUDAFalse_HIPFalse_OMPFalse_SYCLFalse_EBFalse_TEMPTrue_BuildSystemcmake_a09896",
+  "output_tag": "2D_Heat_Conduction_npcx2_ord1_susMUSL_USEHDFTrue_OFORMhdf5_MPI=True_CUDAFalse_HIPFalse_OMPFalse_SYCLFalse_EBFalse_TEMPTrue_BuildSystemgnumake_180bec",
   "input_filename": "Inputs_2DHeatConduction.inp",
   "output_format": "ascii",
   "materialpoint_filename": "mpm_particles.dat",

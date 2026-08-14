@@ -857,8 +857,7 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
 
                         if (bc_type == BC_TEMP_PERIODIC)
                         {
-                            // Periodic. Do nothing
-                            bc_applied = true;
+                            bc_applied = true; // Periodic. Do nothing
                         }
                         else if (bc_type == BC_TEMP_ISOTHERMAL)
                         {
@@ -894,9 +893,12 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
                             IntVect nb = nodeid;
                             nb[d] += sign;
                             amrex::Real hc = is_lo ? h_lo_g[d] : h_hi_g[d];
+                            amrex::Real mk = arr(nodeid, MASS_CONDUCTIVITY);
+                            amrex::Real m = arr(nodeid, MASS_INDEX);
                             amrex::Real Tinf =
                                 is_lo ? Tinf_lo_g[d] : Tinf_hi_g[d];
-                            amrex::Real Bi = hc * dx_g[d];
+                            amrex::Real k_node = (m > shunya) ? mk / m : eka;
+                            amrex::Real Bi = hc * dx_g[d] / k_node;
                             arr(nodeid, TEMPERATURE) =
                                 (arr(nb, TEMPERATURE) + Bi * Tinf) / (1.0 + Bi);
                             bc_applied = true;
@@ -1431,7 +1433,10 @@ void apply_udf_nodal_bcs_temperature(const amrex::Geometry &geom,
                         nb[dir] += sign;
                         amrex::Real hc = val0;
                         amrex::Real Tinf = val1;
-                        amrex::Real Bi = hc * dx_g[dir];
+                        amrex::Real mk = arr(nodeid, MASS_CONDUCTIVITY);
+                        amrex::Real m = arr(nodeid, MASS_INDEX);
+                        amrex::Real k_node = (m > shunya) ? mk / m : eka;
+                        amrex::Real Bi = hc * dx_g[dir] / k_node;
                         arr(nodeid, TEMPERATURE) =
                             (arr(nb, TEMPERATURE) + Bi * Tinf) / (eka + Bi);
                     }
