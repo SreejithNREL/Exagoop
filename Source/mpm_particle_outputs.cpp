@@ -289,6 +289,9 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
 
 #endif
 
+    for (int s = 0; s < EXAGOOP_NISV; ++s)
+        real_data_names.push_back(amrex::Concatenate("isv_", s, 1));
+
     // Integer data fields
     int_data_names.push_back("phase");
     int_data_names.push_back("rigid_body_id");
@@ -311,11 +314,12 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
     writeflags_real[realData::vol_init] = 1;
 
     // Optional material properties
-    writeflags_real[realData::E] = 0;
-    writeflags_real[realData::nu] = 0;
-    writeflags_real[realData::Bulk_modulus] = 0;
-    writeflags_real[realData::Gama_pressure] = 0;
-    writeflags_real[realData::Dynamic_viscosity] = 0;
+    for (int s = 0; s < EXAGOOP_NISV; ++s)
+        writeflags_real[realData::isv + s] = 0;
+    // isv[0] = Johnson-Cook equivalent plastic strain, isv[7] = JC damage
+    // (0 for models that don't use them).
+    writeflags_real[realData::isv + 0] = 1;
+    writeflags_real[realData::isv + JC_ISV::damage] = 1;
 
 #if USE_TEMP
     writeflags_real[realData::temperature] = 1;
@@ -489,6 +493,9 @@ void MPMParticleContainer::writeCheckpointFile(
     real_data_names.push_back("heat_flux_2");
     real_data_names.push_back("heat_source");
 #endif
+
+    for (int s = 0; s < EXAGOOP_NISV; ++s)
+        real_data_names.push_back(amrex::Concatenate("isv_", s, 1));
 
     amrex::Vector<std::string> int_data_names;
     int_data_names.push_back("phase");

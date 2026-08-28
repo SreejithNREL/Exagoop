@@ -66,12 +66,14 @@ void CalculateInterpolationError(const amrex::Geometry geom,
 
 void nodal_levelset_bcs(amrex::MultiFab &nodaldata,
                         const amrex::Geometry &geom,
-                        amrex::Real &dt);
+                        amrex::Real &dt,
+                        amrex::Real time);
 
 #if USE_TEMP
 void nodal_levelset_bcs_temperature(amrex::MultiFab &nodaldata,
                                     const amrex::Geometry &geom,
-                                    bool dirichlet_only);
+                                    bool dirichlet_only,
+                                    amrex::Real time);
 #endif
 
 void Create_Output_Directories(MPMspecs &specs);

@@ -14,6 +14,8 @@ typedef void (*TempUDFFuncPtr)(double, double, double, double, double *);
 
 using namespace amrex;
 
+constexpr int EXAGOOP_NISV = 8;
+
 struct realData
 {
     enum
@@ -39,25 +41,20 @@ struct realData
         density = 36,              // 33
         jacobian = 37,             // 34
         pressure = 38,             // 35
-        vol_init = 39,             // 36
-        E = 40,                    // 37
-        nu = 41,                   // 38
-        Bulk_modulus = 42,         // 39
-        Gama_pressure = 43,        // 40
-        Dynamic_viscosity = 44,    // 41
+        vol_init = 39,             // 36        // (MPMParticleContainer::m_material_table).
         yacceleration =
-            45, // 45	This is for storing the acceleration of each particle in
+            40, // This is for storing the acceleration of each particle in
                 // the y-direction. This variable is not generic and used only
                 // for the spring-mass and membrane simulations only
 #if USE_TEMP
-        temperature = 46,
-        specific_heat = 47,        // specific heat used in temperature equation
-        thermal_conductivity = 48, // For now, treated as a scalar
-        heat_flux = 49,            // AMREX_SPACEDIM size
-        heat_source = 52,          // Used in the temperature equation
+        temperature,               // follows yacceleration
+        specific_heat,             // specific heat used in temperature equation
+        thermal_conductivity,      // treated as a scalar
+        heat_flux,                 // AMREX_SPACEDIM size (reserves 3 slots)
+        heat_source = heat_flux + 3, // Used in the temperature equation
 #endif
-        count
-
+        isv,
+        count = isv + EXAGOOP_NISV
     };
 };
 
@@ -192,7 +189,10 @@ class MPMspecs
     Vector<Real> autogen_vel;
     int autogen_multi_part_per_cell = 1;
     Real autogen_dens = 1000.0;
-    int autogen_constmodel = 1;
+
+    const std::string autogen_materialname = "";
+
+    int autogen_constmodel = 0;
     Real autogen_E = 1e9;
     Real autogen_nu = 0.1;
     Real autogen_bulkmod = 0.0;
@@ -310,13 +310,9 @@ class MPMspecs
             pp.get("mincoords_autogen", autogen_mincoords);
             pp.get("maxcoords_autogen", autogen_maxcoords);
             pp.getarr("vel_autogen", autogen_vel);
+            pp.query("material_name_autogen",autogen_materialname);
             pp.query("constmodel_autogen", autogen_constmodel);
             pp.query("dens_autogen", autogen_dens);
-            pp.query("E_autogen", autogen_E);
-            pp.query("nu_autogen", autogen_nu);
-            pp.query("bulkmod_autogen", autogen_bulkmod);
-            pp.query("Gama_pres_autogen", autogen_Gama_pres);
-            pp.query("visc_autogen", autogen_visc);
             pp.queryarr("ppc", autogen_ppc);
 #if USE_TEMP
             pp.query("T_autogen", autogen_T);

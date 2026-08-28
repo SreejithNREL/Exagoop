@@ -793,38 +793,17 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
 
         p.idata(intData::constitutive_model) = static_cast<int>(cm_id[local_i]);
 
-        if (cm_id[local_i] == 0)
-        {
-            p.rdata(realData::E) = extra_data.at("E")[local_i];
-            p.rdata(realData::nu) = extra_data.at("nu")[local_i];
-            p.rdata(realData::Bulk_modulus) = 0.0;
-            p.rdata(realData::Gama_pressure) = 0.0;
-            p.rdata(realData::Dynamic_viscosity) = 0.0;
-        }
-        else if (cm_id[local_i] == 1)
-        {
-            p.rdata(realData::E) = 0.0;
-            p.rdata(realData::nu) = 0.0;
-            p.rdata(realData::Bulk_modulus) =
-                extra_data.at("Bulk_modulus")[local_i];
-            p.rdata(realData::Gama_pressure) =
-                extra_data.at("Gamma_pressure")[local_i];
-            p.rdata(realData::Dynamic_viscosity) =
-                extra_data.at("Dynamic_viscosity")[local_i];
-        }
-        else if (cm_id[local_i] == 2)
-        {
-            p.rdata(realData::E) = extra_data.at("E")[local_i];
-            p.rdata(realData::nu) = extra_data.at("nu")[local_i];
-            p.rdata(realData::Bulk_modulus) = 0.0;
-            p.rdata(realData::Gama_pressure) = 0.0;
-            p.rdata(realData::Dynamic_viscosity) = 0.0;
-        }
-        else
-        {
-            amrex::Abort("\nUnknown constitutive model encountered in "
-                         "InitParticlesFromHDF5.\n");
-        }
+        const int cmv = static_cast<int>(cm_id[local_i]);
+        if (cmv == 0)
+            record_material_elastic(cmv, extra_data.at("E")[local_i],
+                                    extra_data.at("nu")[local_i]);
+        else if (cmv == 1)
+            record_material_fluid(cmv, extra_data.at("Bulk_modulus")[local_i],
+                                  extra_data.at("Gamma_pressure")[local_i],
+                                  extra_data.at("Dynamic_viscosity")[local_i]);
+        else if (cmv == 2)
+        	record_material_neohookean(cmv, extra_data.at("E")[local_i],
+                                    extra_data.at("nu")[local_i]);
 
 #if USE_TEMP
         p.rdata(realData::temperature) = extra_data.at("T")[local_i];
@@ -870,6 +849,9 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
             p.rdata(realData::strain + comp) = 0.0;
             p.rdata(realData::stress + comp) = 0.0;
         }
+
+        for (int s = 0; s < EXAGOOP_NISV; ++s)
+            p.rdata(realData::isv + s) = 0.0;
 
         host_particles.push_back(p);
 
@@ -1059,32 +1041,28 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
             safe_read(ifs, p.idata(intData::constitutive_model),
                       "Error reading constitutive_model");
 
-            if (p.idata(intData::constitutive_model) == 0)
+            const int cmv = p.idata(intData::constitutive_model);
+            if (cmv == 0)
             {
-                safe_read(ifs, p.rdata(realData::E), "Error reading E");
-                safe_read(ifs, p.rdata(realData::nu), "Error reading nu");
-                p.rdata(realData::Bulk_modulus) = 0.0;
-                p.rdata(realData::Gama_pressure) = 0.0;
-                p.rdata(realData::Dynamic_viscosity) = 0.0;
+                amrex::Real Eval, nuval;
+                safe_read(ifs, Eval, "Error reading E");
+                safe_read(ifs, nuval, "Error reading nu");
+                record_material_elastic(cmv, Eval, nuval);
             }
-            else if (p.idata(intData::constitutive_model) == 1)
+            else if (cmv == 1)
             {
-                p.rdata(realData::E) = 0.0;
-                p.rdata(realData::nu) = 0.0;
-                safe_read(ifs, p.rdata(realData::Bulk_modulus),
-                          "Error reading Bulk_modulus");
-                safe_read(ifs, p.rdata(realData::Gama_pressure),
-                          "Error reading Gama_pressure");
-                safe_read(ifs, p.rdata(realData::Dynamic_viscosity),
-                          "Error reading Dynamic_viscosity");
+                amrex::Real bulkval, gamaval, viscval;
+                safe_read(ifs, bulkval, "Error reading Bulk_modulus");
+                safe_read(ifs, gamaval, "Error reading Gama_pressure");
+                safe_read(ifs, viscval, "Error reading Dynamic_viscosity");
+                record_material_fluid(cmv, bulkval, gamaval, viscval);
             }
-            else if (p.idata(intData::constitutive_model) == 2)
+            else if (cmv == 2)
             {
-                safe_read(ifs, p.rdata(realData::E), "Error reading E");
-                safe_read(ifs, p.rdata(realData::nu), "Error reading nu");
-                p.rdata(realData::Bulk_modulus) = 0.0;
-                p.rdata(realData::Gama_pressure) = 0.0;
-                p.rdata(realData::Dynamic_viscosity) = 0.0;
+            	amrex::Real Eval, nuval;
+            	safe_read(ifs, Eval, "Error reading E");
+            	safe_read(ifs, nuval, "Error reading nu");
+            	record_material_neohookean(cmv, Eval, nuval);
             }
             else
             {
@@ -1144,6 +1122,9 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
                 p.rdata(realData::strain + comp) = 0.0;
                 p.rdata(realData::stress + comp) = 0.0;
             }
+
+            for (int s = 0; s < EXAGOOP_NISV; ++s)
+                p.rdata(realData::isv + s) = 0.0;
 
             host_particles.push_back(p);
         }
@@ -1453,13 +1434,12 @@ MPMParticleContainer::generate_particle(amrex::Real coords[AMREX_SPACEDIM],
         p.rdata(realData::xvel + d) = vel[d];
     }
 
-    // Constitutive model and material properties
+
     p.idata(intData::constitutive_model) = constmodel;
-    p.rdata(realData::E) = E;
-    p.rdata(realData::nu) = nu;
-    p.rdata(realData::Bulk_modulus) = bulkmod;
-    p.rdata(realData::Gama_pressure) = Gama_pres;
-    p.rdata(realData::Dynamic_viscosity) = visc;
+    if (constmodel == 0)
+        record_material_elastic(constmodel, E, nu);
+    else if (constmodel == 1)
+        record_material_fluid(constmodel, bulkmod, Gama_pres, visc);
 
     // Volume, mass, and state variables
     p.rdata(realData::volume) = vol;

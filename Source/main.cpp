@@ -60,6 +60,9 @@ int main(int argc, char *argv[])
 
         Initialise_Material_Points(specs, mpm_pc, steps, time, output_it);
 
+        if (!mpm_pc.build_material_table_from_input())
+            mpm_pc.upload_material_table();
+
         Create_Output_Directories(specs);
 
         Initialise_Diagnostic_Streams(specs);
@@ -107,7 +110,6 @@ int main(int argc, char *argv[])
 
             if (specs.stress_update_scheme == 0)
             {
-                // Algo 1, step 18, 20, 21, 23 Vacoeboil;s paper
                 G2P_Momentum(specs, mpm_pc, nodaldata, 1, 1, dt);
 #if USE_TEMP
                 G2P_Temperature(specs, mpm_pc, nodaldata, 1, 1, dt);
@@ -119,13 +121,9 @@ int main(int argc, char *argv[])
 
             if (specs.stress_update_scheme == 1)
             {
-                // Algo 2, 19
                 G2P_Momentum(specs, mpm_pc, nodaldata, 1, 0, dt);
-                // 20
                 P2G_Momentum(specs, mpm_pc, nodaldata, 0, 1, 0);
-                // 21
                 Apply_Nodal_BCs(geom, nodaldata, specs, dt, time);
-                // 25
                 G2P_Momentum(specs, mpm_pc, nodaldata, 0, 1, dt);
 
 #if USE_TEMP

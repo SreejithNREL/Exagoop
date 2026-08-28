@@ -5,6 +5,7 @@
 #include <AMReX_NeighborParticles.H>
 #include <mpm_specs.H>
 #include <constants.H>
+#include <constitutive_models.H>
 // clang-format on
 
 class MPMParticleContainer
@@ -157,7 +158,8 @@ class MPMParticleContainer
                        amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM>
                            udf_wall_vel_lo_dev,
                        amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM>
-                           udf_wall_vel_hi_dev);
+                           udf_wall_vel_hi_dev,
+                       amrex::Real time);
 
     /**
      * @brief Updates particle volume, density, and Jacobian from the
@@ -526,6 +528,26 @@ class MPMParticleContainer
      */
     void apply_constitutive_model(const amrex::Real &dt,
                                   amrex::Real applied_strainrate);
+
+    amrex::Gpu::DeviceVector<MaterialParams> m_material_table; // device
+    amrex::Vector<MaterialParams> m_host_material_table;       // host accumulator
+
+    /**
+     * @brief Uploads the per-model parameter table to the device. Indexed by
+     *        cm_id. Call once after the host table is fully populated.
+     */
+    void build_material_table(const amrex::Vector<MaterialParams> &host_table);
+    void record_material_elastic(int cm, amrex::Real E, amrex::Real nu);
+    void record_material_fluid(int cm, amrex::Real bulk, amrex::Real gama,
+                               amrex::Real visc);
+    void record_material_neohookean(int cm, amrex::Real E, amrex::Real nu);
+
+    /**
+     * @brief MPI-completes the host material table and uploads it to the
+     *        device. Call once after all particles/materials are read.
+     */
+    void upload_material_table();
+    bool build_material_table_from_input();
 
     /**
      * @brief Applies the constitutive model using an incremental (delta‑strain)

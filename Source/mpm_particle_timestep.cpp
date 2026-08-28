@@ -47,6 +47,8 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
     const Geometry &geom = Geom(lev);
     const auto dx = geom.CellSizeArray();
 
+    const MaterialParams *mat = m_material_table.dataPtr();
+
     using PType = typename MPMParticleContainer::SuperParticleType;
     amrex::Real dt = amrex::ReduceMin(
         *this,
@@ -55,21 +57,19 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
             if (p.idata(intData::phase) == 0)
             {
                 amrex::Real Cs = 0.0;
-                if (p.idata(intData::constitutive_model) == 1)
+                const int cm = p.idata(intData::constitutive_model);
+                if (mat[cm].model == ConstitutiveModel::FLUID)
                 {
-                    Cs = std::sqrt(p.rdata(realData::Bulk_modulus) /
+                    Cs = std::sqrt(mat[cm].p[FluidP::bulk] /
                                    p.rdata(realData::density));
                 }
-                else if (p.idata(intData::constitutive_model) == 0 or
-                         p.idata(intData::constitutive_model) == 2)
+                else if (mat[cm].model == ConstitutiveModel::ELASTIC)
                 {
-
-                    amrex::Real lambda = p.rdata(realData::E) *
-                                         p.rdata(realData::nu) /
-                                         ((1 + p.rdata(realData::nu)) *
-                                          (1 - 2.0 * p.rdata(realData::nu)));
-                    amrex::Real mu = p.rdata(realData::E) /
-                                     (2.0 * (1 + p.rdata(realData::nu)));
+                    const amrex::Real Emod = mat[cm].p[ElasticP::E];
+                    const amrex::Real nu = mat[cm].p[ElasticP::nu];
+                    amrex::Real lambda =
+                        Emod * nu / ((1 + nu) * (1 - 2.0 * nu));
+                    amrex::Real mu = Emod / (2.0 * (1 + nu));
                     Cs = std::sqrt((lambda + 2.0 * mu) /
                                    p.rdata(realData::density));
                 }
@@ -232,9 +232,11 @@ void MPMParticleContainer::moveParticles(
     amrex::Real wall_vel_lo[AMREX_SPACEDIM * AMREX_SPACEDIM],
     amrex::Real wall_vel_hi[AMREX_SPACEDIM * AMREX_SPACEDIM],
     amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM> udf_wall_vel_lo_dev,
-    amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM> udf_wall_vel_hi_dev)
+    amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM> udf_wall_vel_hi_dev,
+    amrex::Real time)
 {
     BL_PROFILE("MPMParticleContainer::moveParticles");
+    const amrex::Real t = time;
 
     const int lev = 0;
     const auto plo = Geom(lev).ProbLoArray();

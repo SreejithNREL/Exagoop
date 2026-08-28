@@ -128,7 +128,8 @@ void backup_current_temperature(MultiFab &nodaldata)
  */
 void nodal_levelset_bcs(MultiFab &nodaldata,
                         const Geometry &geom,
-                        amrex::Real & /*dt*/)
+                        amrex::Real & /*dt*/,
+                        amrex::Real time)
 {
     const auto plo = geom.ProbLoArray();
     const auto dx = geom.CellSizeArray();
@@ -234,7 +235,8 @@ void nodal_levelset_bcs(MultiFab &nodaldata,
  */
 void nodal_levelset_bcs_temperature(MultiFab &nodaldata,
                                     const Geometry &geom,
-                                    bool dirichlet_only)
+                                    bool dirichlet_only,
+                                    amrex::Real time)
 {
     const auto plo = geom.ProbLoArray();
     const auto dx = geom.CellSizeArray();

@@ -5,6 +5,98 @@
 #include <AMReX.H>
 // clang-format on
 
+//Number of max constitutive model parameters
+constexpr int MAX_MODEL_PARAMS = 24;
+
+//Namespace for constitutive models (not materials)
+namespace ConstitutiveModel
+{
+enum
+{
+    ELASTIC = 0,
+    FLUID = 1,
+	NEOHOOKEAN = 2,
+    JOHNSON_COOK = 3
+};
+}
+
+// Per-model parameter layout within MaterialParams::p[].
+namespace ElasticP
+{
+enum
+{
+    E = 0,
+    nu = 1,
+    count
+};
+}
+namespace FluidP
+{
+enum
+{
+    bulk = 0,  // bulk modulus
+    gama = 1,  // EoS exponent (Gamma)
+    visc = 2,  // dynamic viscosity
+    count
+};
+}
+namespace NeoHookeanP
+{
+enum
+{
+    E = 0,
+    nu = 1,
+    count
+};
+}
+// Johnson-Cook (+ Mie-Gruneisen EOS) parameters
+namespace JCP
+{
+enum
+{
+    E = 0,
+    nu = 1,
+    A = 2,         // JC_A yield stress
+    B = 3,         // JC_B hardening modulus
+    n = 4,         // JC_n hardening exponent
+    C = 5,         // JC_C strain-rate sensitivity
+    m = 6,         // JC_m thermal softening exponent
+    eps_dot_0 = 7, // reference plastic strain rate
+    Tr = 8,        // reference temperature
+    Tm = 9,        // melting temperature
+    chi = 10,      // Taylor-Quinney fraction
+    c0 = 11,       // bulk sound speed (EOS)
+    Salpha = 12,   // Hugoniot slope (EOS)
+    Gamma0 = 13,   // Gruneisen Gamma (EOS)
+    rho0 = 14,     // reference density
+    // Johnson-Cook damage parameters (JC-3). Damages disabled
+    D1 = 15,       // initial failure strain
+    D2 = 16,       // exponential factor
+    D3 = 17,       // triaxiality sensitivity
+    D4 = 18,       // strain-rate sensitivity
+    D5 = 19,       // temperature sensitivity
+    count
+};
+}
+// Johnson-Cook per-particle internal state variables, stored in realData::isv.
+namespace JC_ISV
+{
+enum
+{
+    ep = 0,       // equivalent plastic strain
+    sdev = 1,     // un-rotated deviatoric stress, 6 Voigt comps (sdev..sdev+5)
+    damage = 7,   // accumulated JC damage (Phase JC-3)
+    count
+};
+}
+
+//Each instance of a material used in the simulation: For example, polysulfone and steel are elastic, but will have different structs
+struct MaterialParams
+{
+    int model = ConstitutiveModel::ELASTIC;			//Elastic by default
+    amrex::Real p[MAX_MODEL_PARAMS] = {0.0};
+};
+
 /**
  * @brief Computes Cauchy stress for a linear elastic solid.
  *
