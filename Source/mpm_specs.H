@@ -7,6 +7,7 @@
 #include <AMReX_GpuContainers.H>
 #include <constants.H>
 #include <mpm_udf_loader.H>
+#include <constitutive_models.H>
 // clang-format on
 
 typedef void (*WallVelUDFFuncPtr)(double, double, double, double, double *);
@@ -29,7 +30,7 @@ struct realData
         zvel_prime = 6,
         // For stress, strain and strainrate variables, we have 6 components
         // irrespective of AMREX_SPACEDIM. in 1D we use only the first
-        // component, in 2D we use only the first 3 components etc.
+        // component, in 2D we use only the first 3 components and for 3D all variables are used
         strainrate = 7, // 4
         strain = 13,    // 10
         stress = 19,    // 16
@@ -39,15 +40,10 @@ struct realData
         volume = 34,               // 31
         mass = 35,                 // 32
         density = 36,              // 33
-        jacobian = 37,             // 34
-        pressure = 38,             // 35
-        vol_init = 39,             // 36        // (MPMParticleContainer::m_material_table).
-        yacceleration =
-            40, // This is for storing the acceleration of each particle in
-                // the y-direction. This variable is not generic and used only
-                // for the spring-mass and membrane simulations only
+        jacobian = 37,             // 34        
+        vol_init = 38,             // 36        // (MPMParticleContainer::m_device_material_table).        
 #if USE_TEMP
-        temperature,               // follows yacceleration
+        temperature,               // follows vol_init
         specific_heat,             // specific heat used in temperature equation
         thermal_conductivity,      // treated as a scalar
         heat_flux,                 // AMREX_SPACEDIM size (reserves 3 slots)
@@ -64,7 +60,7 @@ struct intData
     {
         phase = 0,
         rigid_body_id,
-        constitutive_model,
+		material_indx,		//index of the material as it appears in the material table        
         count
     };
 };
@@ -219,6 +215,28 @@ class MPMspecs
     amrex::Gpu::DeviceVector<amrex::Real> udf_wall_vel_nodes_hi[AMREX_SPACEDIM];
 
     ~MPMspecs() = default;
+	amrex::Vector<MaterialParams> material_table;
+
+	static void parse_material_block(const std::string &prefix,
+	                                     MaterialParams &mp, int mat_id)
+	    {
+	        const auto &reg = Get_Constitutive_Model_Registry();
+	        amrex::ParmParse ppm(prefix.c_str());
+
+	        std::string model;
+	        ppm.get("model", model);
+
+	        const ConstitutiveModelInfo *info = nullptr;
+	        for (const auto &mi : reg)
+	            if (model == mi.name) { info = &mi; break; }
+	        if (info == nullptr)
+	            amrex::Abort("Unknown constitutive model '" + model + "' for " + prefix);
+
+	        mp.model       = info->id;
+	        mp.material_id = mat_id;
+	        for (std::size_t s = 0; s < info->param_names.size(); ++s)
+	            ppm.query(info->param_names[s], mp.p[s]);
+	    }
 
     void read_mpm_specs()
     {
@@ -307,11 +325,20 @@ class MPMspecs
         }
         else
         {
+			
+			//Capture the single material now
+			//For now lets assume only one material will be declared in input
+			/*Here is how the autogen block should appear in the input file
+			mpm.material_autogen_0.model="ELASTIC"	//as they appear in ConstitutiveModel namespace
+			*/
+			
+
+			material_table.resize(1);   // one material for autogen
+			parse_material_block("mpm.material_autogen_0", material_table[0], 0);
+			
             pp.get("mincoords_autogen", autogen_mincoords);
             pp.get("maxcoords_autogen", autogen_maxcoords);
-            pp.getarr("vel_autogen", autogen_vel);
-            pp.query("material_name_autogen",autogen_materialname);
-            pp.query("constmodel_autogen", autogen_constmodel);
+            pp.getarr("vel_autogen", autogen_vel);            
             pp.query("dens_autogen", autogen_dens);
             pp.queryarr("ppc", autogen_ppc);
 #if USE_TEMP

@@ -47,7 +47,7 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
     const Geometry &geom = Geom(lev);
     const auto dx = geom.CellSizeArray();
 
-    const MaterialParams *mat = m_material_table.dataPtr();
+    const MaterialParams *mat = m_device_material_table.dataPtr();
 
     using PType = typename MPMParticleContainer::SuperParticleType;
     amrex::Real dt = amrex::ReduceMin(
@@ -57,27 +57,34 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
             if (p.idata(intData::phase) == 0)
             {
                 amrex::Real Cs = 0.0;
-                const int cm = p.idata(intData::constitutive_model);
-                if (mat[cm].model == ConstitutiveModel::FLUID)
+                const int matrl_idx = p.idata(intData::material_indx);
+                if (mat[matrl_idx].model == ConstitutiveModel::FLUID)
                 {
-                    Cs = std::sqrt(mat[cm].p[FluidP::bulk] /
+                    Cs = std::sqrt(mat[matrl_idx].p[FluidP::bulk] /
                                    p.rdata(realData::density));
                 }
-                else if (mat[cm].model == ConstitutiveModel::ELASTIC)
+                else if (mat[matrl_idx].model == ConstitutiveModel::ELASTIC)
                 {
-                    const amrex::Real Emod = mat[cm].p[ElasticP::E];
-                    const amrex::Real nu = mat[cm].p[ElasticP::nu];
-                    amrex::Real lambda =
-                        Emod * nu / ((1 + nu) * (1 - 2.0 * nu));
+                    const amrex::Real Emod = mat[matrl_idx].p[ElasticP::E];
+                    const amrex::Real nu = mat[matrl_idx].p[ElasticP::nu];
+                    amrex::Real lambda = Emod * nu / ((1 + nu) * (1 - 2.0 * nu));
                     amrex::Real mu = Emod / (2.0 * (1 + nu));
                     Cs = std::sqrt((lambda + 2.0 * mu) /
                                    p.rdata(realData::density));
                 }
-                else
-                {
-                    amrex::Abort("\nInvalid constitutive model. dt approaching "
-                                 "infinity.\n");
+                else if (mat[matrl_idx].model == ConstitutiveModel::NEOHOOKEAN)
+				{
+					const amrex::Real Emod = mat[matrl_idx].p[ElasticP::E];
+					const amrex::Real nu = mat[matrl_idx].p[ElasticP::nu];
+					amrex::Real lambda = Emod * nu / ((1 + nu) * (1 - 2.0 * nu));
+					amrex::Real mu = Emod / (2.0 * (1 + nu));
+					Cs = std::sqrt((lambda + 2.0 * mu) /p.rdata(realData::density));
                 }
+				else 
+				{
+					amrex::Abort("\nInvalid constitutive model. dt approaching "
+						"infinity.\n");
+				}
 
                 // Dimension‑aware velocity magnitude
                 amrex::Real velmag = 0.0;

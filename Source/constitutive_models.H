@@ -15,7 +15,7 @@ enum
 {
     ELASTIC = 0,
     FLUID = 1,
-	NEOHOOKEAN = 2,
+    NEOHOOKEAN = 2,
     JOHNSON_COOK = 3
 };
 }
@@ -37,6 +37,7 @@ enum
     bulk = 0,  // bulk modulus
     gama = 1,  // EoS exponent (Gamma)
     visc = 2,  // dynamic viscosity
+	p_inf = 3, // free stream pressure
     count
 };
 }
@@ -69,7 +70,7 @@ enum
     Salpha = 12,   // Hugoniot slope (EOS)
     Gamma0 = 13,   // Gruneisen Gamma (EOS)
     rho0 = 14,     // reference density
-    // Johnson-Cook damage parameters (JC-3). Damages disabled
+    // Johnson-Cook damage parameters. Damages disabled
     D1 = 15,       // initial failure strain
     D2 = 16,       // exponential factor
     D3 = 17,       // triaxiality sensitivity
@@ -89,13 +90,44 @@ enum
     count
 };
 }
+namespace Fluid_ISV
+{
+enum
+{       
+    pressure = 0,   // pressure is unique to fluid, and also evolves with solution. Hence storing it in ISV
+    count
+};
+}
 
 //Each instance of a material used in the simulation: For example, polysulfone and steel are elastic, but will have different structs
 struct MaterialParams
 {
+    int material_id=-1;						//Each material has a unique id
     int model = ConstitutiveModel::ELASTIC;			//Elastic by default
     amrex::Real p[MAX_MODEL_PARAMS] = {0.0};
 };
+
+
+namespace
+{
+struct ConstitutiveModelInfo
+{
+    const char *name;
+    int id;
+    std::vector<const char *> param_names; // in slot order
+};
+const std::vector<ConstitutiveModelInfo> &Get_Constitutive_Model_Registry()
+{
+    static const std::vector<ConstitutiveModelInfo> reg =
+    {
+        {"elastic",      ConstitutiveModel::ELASTIC,      {"E", "nu"}},
+        {"fluid",        ConstitutiveModel::FLUID,        {"Bulk_modulus", "Gama_pressure", "Dynamic_viscosity"}},
+	{"neohookean",   ConstitutiveModel::NEOHOOKEAN,   {"E", "nu"}},
+        {"johnson_cook", ConstitutiveModel::JOHNSON_COOK, {"E", "nu", "JC_A", "JC_B", "JC_n", "JC_C", "JC_m", "JC_eps_dot_0", "JC_Tr", "JC_Tm", "JC_chi", "JC_c0", "JC_Salpha", "JC_Gamma0", "density", "JC_D1", "JC_D2", "JC_D3", "JC_D4", "JC_D5"}},
+    };
+    return reg;
+}
+} // namespace
 
 /**
  * @brief Computes Cauchy stress for a linear elastic solid.

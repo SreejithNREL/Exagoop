@@ -29,7 +29,7 @@ ifeq ($(UNAME), Darwin)
     HDF5_HOME := $(shell brew --prefix hdf5-mpi 2>/dev/null || brew --prefix hdf5 2>/dev/null)
   endif
 
-  USE_HDF5                = TRUE
+  USE_HDF5                = FALSE
 
 endif  # Darwin
 

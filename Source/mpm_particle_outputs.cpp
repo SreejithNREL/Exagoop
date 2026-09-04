@@ -273,8 +273,7 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
     real_data_names.push_back("nu");
     real_data_names.push_back("Bulk_modulus");
     real_data_names.push_back("Gama_pressure");
-    real_data_names.push_back("Dynamic_viscosity");
-    real_data_names.push_back("yacceleration");
+    real_data_names.push_back("Dynamic_viscosity");    
 
 #if USE_TEMP
     // Thermal fields
@@ -299,7 +298,7 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
 
     // Flags: mark which fields to write
     writeflags_int[intData::phase] = 1;
-    writeflags_int[intData::constitutive_model] = 1;
+    writeflags_int[intData::material_indx] = 1;
     writeflags_int[intData::rigid_body_id] = 1;
 
     writeflags_real[realData::radius] = 1;
@@ -310,7 +309,7 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
 
     writeflags_real[realData::mass] = 1;
     writeflags_real[realData::jacobian] = 1;
-    writeflags_real[realData::pressure] = 1;
+    writeflags_real[realData::isv+Fluid_ISV::pressure] = 1;
     writeflags_real[realData::vol_init] = 1;
 
     // Optional material properties
@@ -481,8 +480,7 @@ void MPMParticleContainer::writeCheckpointFile(
     real_data_names.push_back("nu");
     real_data_names.push_back("Bulk_modulus");
     real_data_names.push_back("Gama_pressure");
-    real_data_names.push_back("Dynamic_viscosity");
-    real_data_names.push_back("yacceleration");
+    real_data_names.push_back("Dynamic_viscosity");    
 
 #if USE_TEMP
     real_data_names.push_back("temperature");

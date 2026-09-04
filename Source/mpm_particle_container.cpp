@@ -40,27 +40,27 @@ using namespace amrex;
  * @return None.
  */
 
-void MPMParticleContainer::build_material_table(
+void MPMParticleContainer::copy_to_device_material_table(
     const amrex::Vector<MaterialParams> &host_table)
 {
-    m_material_table.resize(host_table.size());
+    m_device_material_table.resize(host_table.size());
     amrex::Gpu::copy(amrex::Gpu::hostToDevice, host_table.begin(),
-                     host_table.end(), m_material_table.begin());
+                     host_table.end(), m_device_material_table.begin());
 }
 
-void MPMParticleContainer::record_material_elastic(int cm, amrex::Real E,
+void MPMParticleContainer::record_new_material_elastic(int material_id, amrex::Real E,
                                                    amrex::Real nu)
 {
-    if (cm < 0)
+    if (material_id < 0)
         return;
-    if (cm >= static_cast<int>(m_host_material_table.size()))
-        m_host_material_table.resize(cm + 1);
-    m_host_material_table[cm].model = ConstitutiveModel::ELASTIC;
-    m_host_material_table[cm].p[ElasticP::E] = E;
-    m_host_material_table[cm].p[ElasticP::nu] = nu;
+    if (material_id >= static_cast<int>(m_host_material_table.size()))
+        m_host_material_table.resize(material_id + 1);
+    m_host_material_table[material_id].model = ConstitutiveModel::ELASTIC;
+    m_host_material_table[material_id].p[ElasticP::E] = E;
+    m_host_material_table[material_id].p[ElasticP::nu] = nu;
 }
 
-void MPMParticleContainer::record_material_neohookean(int cm, amrex::Real E,
+void MPMParticleContainer::record_new_material_neohookean(int cm, amrex::Real E,
                                                    amrex::Real nu)
 {
     if (cm < 0)
@@ -72,7 +72,7 @@ void MPMParticleContainer::record_material_neohookean(int cm, amrex::Real E,
     m_host_material_table[cm].p[NeoHookeanP::nu] = nu;
 }
 
-void MPMParticleContainer::record_material_fluid(int cm, amrex::Real bulk,
+void MPMParticleContainer::record_new_material_fluid(int cm, amrex::Real bulk,
                                                  amrex::Real gama,
                                                  amrex::Real visc)
 {
@@ -86,27 +86,8 @@ void MPMParticleContainer::record_material_fluid(int cm, amrex::Real bulk,
     m_host_material_table[cm].p[FluidP::visc] = visc;
 }
 
-namespace
-{
-struct ModelInfo
-{
-    const char *name;
-    int id;
-    std::vector<const char *> param_names; // in slot order
-};
-const std::vector<ModelInfo> &model_registry()
-{
-    static const std::vector<ModelInfo> reg =
-    {
-        {"elastic",      ConstitutiveModel::ELASTIC,      {"E", "nu"}},
-        {"fluid",        ConstitutiveModel::FLUID,        {"Bulk_modulus", "Gama_pressure", "Dynamic_viscosity"}},
-		{"neohookean",   ConstitutiveModel::NEOHOOKEAN,   {"E", "nu"}},
-        {"johnson_cook", ConstitutiveModel::JOHNSON_COOK, {"E", "nu", "JC_A", "JC_B", "JC_n", "JC_C", "JC_m", "JC_eps_dot_0", "JC_Tr", "JC_Tm", "JC_chi", "JC_c0", "JC_Salpha", "JC_Gamma0",
-          "density", "JC_D1", "JC_D2", "JC_D3", "JC_D4", "JC_D5"}},
-    };
-    return reg;
-}
-} // namespace
+
+
 
 bool MPMParticleContainer::build_material_table_from_input()
 {
@@ -116,7 +97,7 @@ bool MPMParticleContainer::build_material_table_from_input()
     if (nmat <= 0)
         return false;
 
-    const auto &reg = model_registry();
+    const auto &reg = Get_Constitutive_Model_Registry();
     amrex::Vector<MaterialParams> table(nmat);
     for (int m = 0; m < nmat; ++m)
     {
@@ -125,7 +106,7 @@ bool MPMParticleContainer::build_material_table_from_input()
         std::string model;
         ppm.get("model", model);
 
-        const ModelInfo *info = nullptr;
+        const ConstitutiveModelInfo *info = nullptr;
         for (const auto &mi : reg)
             if (model == mi.name)
             {
@@ -133,13 +114,13 @@ bool MPMParticleContainer::build_material_table_from_input()
                 break;
             }
         if (info == nullptr)
-            amrex::Abort("Unknown material model '" + model + "' for " + prefix);
+            amrex::Abort("Unknown constitutive model '" + model + "' for " + prefix);
 
         table[m].model = info->id;
         for (std::size_t s = 0; s < info->param_names.size(); ++s)
             ppm.query(info->param_names[s], table[m].p[s]);
     }
-    build_material_table(table);
+    copy_to_device_material_table(table);
     return true;
 }
 
@@ -157,7 +138,7 @@ void MPMParticleContainer::upload_material_table()
                 m_host_material_table[m].p[s]);
     }
 #endif
-    build_material_table(m_host_material_table);
+    copy_to_device_material_table(m_host_material_table);
 }
 
 void MPMParticleContainer::apply_constitutive_model(
@@ -166,7 +147,7 @@ void MPMParticleContainer::apply_constitutive_model(
     const int lev = 0;
     auto &plev = GetParticles(lev);
 
-    const MaterialParams *mat = m_material_table.dataPtr();
+    const MaterialParams *mat = m_device_material_table.dataPtr();
 
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
@@ -219,38 +200,23 @@ void MPMParticleContainer::apply_constitutive_model(
 
                     for (int comp = 0; comp < NCOMP_FULLTENSOR; ++comp)
                     {
-                    	deformation_gradient[comp] =
-                    			p.rdata(realData::deformation_gradient + comp);
+                    	deformation_gradient[comp] = p.rdata(realData::deformation_gradient + comp);
                     }
 
-                    const int cm = p.idata(intData::constitutive_model);
-                    const MaterialParams &mp = mat[cm];
+                    const int material_idx = p.idata(intData::material_indx);
+                    const MaterialParams &mp = mat[material_idx];
                     if (mp.model == ConstitutiveModel::ELASTIC)
-                    {
-                        // Elastic solid
-                        linear_elastic(strain, stress, mp.p[ElasticP::E],
-                                       mp.p[ElasticP::nu]);
+                    {                        
+                        linear_elastic(strain, stress, mp.p[ElasticP::E],mp.p[ElasticP::nu]);
                     }
                     else if (mp.model == ConstitutiveModel::FLUID)
                     {
-                        // Viscous fluid with approximate EoS
-                        const amrex::Real p_inf = 0.0;
-                        p.rdata(realData::pressure) =
-                            mp.p[FluidP::bulk] *
-                                (std::pow(1.0 / p.rdata(realData::jacobian),
-                                          mp.p[FluidP::gama]) -
-                                 1.0) +
-                            p_inf;
-
-                        Newtonian_Fluid(strainrate, stress, mp.p[FluidP::visc],
-                                        p.rdata(realData::pressure));
+                        p.rdata(realData::isv+Fluid_ISV::pressure) = mp.p[FluidP::bulk] * (std::pow(1.0 / p.rdata(realData::jacobian), mp.p[FluidP::gama]) - 1.0) + mp.p[FluidP::p_inf];
+                        Newtonian_Fluid(strainrate, stress, mp.p[FluidP::visc], p.rdata(realData::isv+Fluid_ISV::pressure));
                     }
                     else if (mp.model == ConstitutiveModel::NEOHOOKEAN)
-                    {
-                        // Neo-Hookean solid
-                        neo_hookean(stress, deformation_gradient,
-                        		mp.p[NeoHookeanP::E],
-								mp.p[NeoHookeanP::nu]);
+                    {                        
+                        neo_hookean(stress, deformation_gradient, mp.p[NeoHookeanP::E], mp.p[NeoHookeanP::nu]);
                     }
 
                     // Write back stress
@@ -303,7 +269,7 @@ void MPMParticleContainer::apply_constitutive_model_delta(
     const int lev = 0;
     auto &plev = GetParticles(lev);
 
-    const MaterialParams *mat = m_material_table.dataPtr();
+    const MaterialParams *mat = m_device_material_table.dataPtr();
 
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
@@ -366,21 +332,22 @@ void MPMParticleContainer::apply_constitutive_model_delta(
 #endif
 
                     // Constitutive response for delta update
-                    const int cm = p.idata(intData::constitutive_model);
-                    if (mat[cm].model == ConstitutiveModel::ELASTIC)
+					const int material_idx = p.idata(intData::material_indx);
+					const MaterialParams &mp = mat[material_idx];
+                    if (mp.model == ConstitutiveModel::ELASTIC)
                     {
                         // Elastic solid: linear operator on delta_strain
                         linear_elastic_delta(delta_strain, delta_stress,
-                                             mat[cm].p[ElasticP::E],
-                                             mat[cm].p[ElasticP::nu]);
+                                             mp.p[ElasticP::E],
+                                             mp.p[ElasticP::nu]);
                     }
-                    else if (mat[cm].model == ConstitutiveModel::FLUID)
+                    else if (mp.model == ConstitutiveModel::FLUID)
                     {
                         amrex::Abort(
                             "\nDelta strain model for weakly compressible "
                             "fluids not implemented yet.");
                     }
-                    else if (p.idata(intData::constitutive_model) == 2)
+                    else if (mp.model == ConstitutiveModel::NEOHOOKEAN)
                     {
                         amrex::Abort("\nDelta strain model for neo hookean "
                                      "model not implemented yet.");

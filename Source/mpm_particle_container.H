@@ -111,12 +111,7 @@ class MPMParticleContainer
                   Real vel[AMREX_SPACEDIM],
                   int ppc[AMREX_SPACEDIM],
                   Real dens,
-                  int constmodel,
-                  Real E,
-                  Real nu,
-                  Real bulkMod,
-                  Real Gama_pres,
-                  Real visc,
+                  int material_id,                  
 #if USE_TEMP
                   amrex::Real T,
                   amrex::Real thermcond,
@@ -529,18 +524,18 @@ class MPMParticleContainer
     void apply_constitutive_model(const amrex::Real &dt,
                                   amrex::Real applied_strainrate);
 
-    amrex::Gpu::DeviceVector<MaterialParams> m_material_table; // device
+    amrex::Gpu::DeviceVector<MaterialParams> m_device_material_table; // device
     amrex::Vector<MaterialParams> m_host_material_table;       // host accumulator
 
     /**
      * @brief Uploads the per-model parameter table to the device. Indexed by
      *        cm_id. Call once after the host table is fully populated.
      */
-    void build_material_table(const amrex::Vector<MaterialParams> &host_table);
-    void record_material_elastic(int cm, amrex::Real E, amrex::Real nu);
-    void record_material_fluid(int cm, amrex::Real bulk, amrex::Real gama,
+    void copy_to_device_material_table(const amrex::Vector<MaterialParams> &host_table);
+    void record_new_material_elastic(int cm, amrex::Real E, amrex::Real nu);
+    void record_new_material_fluid(int cm, amrex::Real bulk, amrex::Real gama,
                                amrex::Real visc);
-    void record_material_neohookean(int cm, amrex::Real E, amrex::Real nu);
+    void record_new_material_neohookean(int cm, amrex::Real E, amrex::Real nu);
 
     /**
      * @brief MPI-completes the host material table and uploads it to the
@@ -615,12 +610,7 @@ class MPMParticleContainer
                                    amrex::Real vel[AMREX_SPACEDIM],
                                    amrex::Real dens,
                                    amrex::Real vol,
-                                   int constmodel,
-                                   amrex::Real E,
-                                   amrex::Real nu,
-                                   amrex::Real bulkmod,
-                                   amrex::Real Gama_pres,
-                                   amrex::Real visc
+                                   int material_idx                                   
 #if USE_TEMP
                                    ,
                                    amrex::Real T,
