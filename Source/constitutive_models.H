@@ -3,6 +3,9 @@
 // clang-format off
 #include<constants.H>
 #include <AMReX.H>
+#include <algorithm>
+#include <string>
+#include <vector>
 // clang-format on
 
 //Number of max constitutive model parameters
@@ -99,6 +102,10 @@ enum
 };
 }
 
+// Developed note: Add every Xxx_ISV::count here when a new model with history is added.
+constexpr int EXAGOOP_NISV =
+    std::max({static_cast<int>(Fluid_ISV::count), static_cast<int>(JC_ISV::count)});
+
 //Each instance of a material used in the simulation: For example, polysulfone and steel are elastic, but will have different structs
 struct MaterialParams
 {
@@ -114,18 +121,80 @@ struct ConstitutiveModelInfo
 {
     const char *name;
     int id;
-    std::vector<const char *> param_names; // in slot order
+    std::vector<const char *> param_names; 
+    int n_required;
+    std::vector<const char *> isv_names;
+    bool kernel_implemented;
 };
+
 const std::vector<ConstitutiveModelInfo> &Get_Constitutive_Model_Registry()
 {
     static const std::vector<ConstitutiveModelInfo> reg =
     {
-        {"elastic",      ConstitutiveModel::ELASTIC,      {"E", "nu"}},
-        {"fluid",        ConstitutiveModel::FLUID,        {"Bulk_modulus", "Gama_pressure", "Dynamic_viscosity"}},
-	{"neohookean",   ConstitutiveModel::NEOHOOKEAN,   {"E", "nu"}},
-        {"johnson_cook", ConstitutiveModel::JOHNSON_COOK, {"E", "nu", "JC_A", "JC_B", "JC_n", "JC_C", "JC_m", "JC_eps_dot_0", "JC_Tr", "JC_Tm", "JC_chi", "JC_c0", "JC_Salpha", "JC_Gamma0", "density", "JC_D1", "JC_D2", "JC_D3", "JC_D4", "JC_D5"}},
+        {"elastic",      ConstitutiveModel::ELASTIC,
+            {"E", "nu"}, 2,
+            {}, true},
+        {"fluid",        ConstitutiveModel::FLUID,
+            {"Bulk_modulus", "Gamma_pressure", "Dynamic_viscosity", "p_inf"}, 3,
+            {"pressure"}, true},
+        {"neohookean",   ConstitutiveModel::NEOHOOKEAN,
+            {"E", "nu"}, 2,
+            {}, true},
+        {"johnson_cook", ConstitutiveModel::JOHNSON_COOK,
+            {"E", "nu", "JC_A", "JC_B", "JC_n", "JC_C", "JC_m", "JC_eps_dot_0",
+             "JC_Tr", "JC_Tm", "JC_chi", "JC_c0", "JC_Salpha", "JC_Gamma0",
+             "density", "JC_D1", "JC_D2", "JC_D3", "JC_D4", "JC_D5"}, 15,
+            {"eq_plastic_strain", "sdev_0", "sdev_1", "sdev_2", "sdev_3",
+             "sdev_4", "sdev_5", "damage"}, false},
     };
     return reg;
+}
+
+// Expected parameter / ISV slot counts per model, from the enums.
+inline int Expected_Param_Count(int model)
+{
+    switch (model)
+    {
+    case ConstitutiveModel::ELASTIC:      return ElasticP::count;
+    case ConstitutiveModel::FLUID:        return FluidP::count;
+    case ConstitutiveModel::NEOHOOKEAN:   return NeoHookeanP::count;
+    case ConstitutiveModel::JOHNSON_COOK: return JCP::count;
+    default:                              return -1;
+    }
+}
+inline int Expected_ISV_Count(int model)
+{
+    switch (model)
+    {
+    case ConstitutiveModel::ELASTIC:      return 0;
+    case ConstitutiveModel::FLUID:        return Fluid_ISV::count;
+    case ConstitutiveModel::NEOHOOKEAN:   return 0;
+    case ConstitutiveModel::JOHNSON_COOK: return JC_ISV::count;
+    default:                              return -1;
+    }
+}
+
+inline void Validate_Constitutive_Model_Registry()
+{
+    for (const auto &mi : Get_Constitutive_Model_Registry())
+    {
+        const int np = static_cast<int>(mi.param_names.size());
+        const int ni = static_cast<int>(mi.isv_names.size());
+        if (np != Expected_Param_Count(mi.id))
+            amrex::Abort(std::string("Constitutive model registry: '") + mi.name +
+                         "' lists " + std::to_string(np) + " parameters but its "
+                         "XxxP enum has " + std::to_string(Expected_Param_Count(mi.id)));
+        if (ni != Expected_ISV_Count(mi.id))
+            amrex::Abort(std::string("Constitutive model registry: '") + mi.name +
+                         "' lists " + std::to_string(ni) + " ISV names but its "
+                         "Xxx_ISV enum has " + std::to_string(Expected_ISV_Count(mi.id)));
+        if (mi.n_required < 0 || mi.n_required > np)
+            amrex::Abort(std::string("Constitutive model registry: '") + mi.name +
+                         "' has an invalid n_required");
+        if (np > MAX_MODEL_PARAMS || ni > EXAGOOP_NISV)
+            amrex::Abort(std::string("Constitutive model registry: '") + mi.name +
+                         "' exceeds MAX_MODEL_PARAMS or EXAGOOP_NISV");
+    }
 }
 } // namespace
 

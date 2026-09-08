@@ -38,3 +38,6 @@ build_matrix_*.txt
 clangformat.sh
 Tests/**/PreProcess/__pycache__/*
 sweep_results.json
+Tests/**/PostProcess/__pycache__/
+Tools/PostProcess/__pycache__/
+Tools/PreProcess/__pycache__/

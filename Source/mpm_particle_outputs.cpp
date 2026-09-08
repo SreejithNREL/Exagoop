@@ -205,10 +205,11 @@ void MPMParticleContainer::writeAsciiFiles(std::string prefix_particlefilename,
  * Fields written include:
  *   - radius, velocity, velocity', strainrate, strain, stress
  *   - deformation gradient
- *   - volume, mass, density, jacobian, pressure, vol_init
- *   - material properties (optional)
+ *   - volume, mass, density, jacobian, vol_init
  *   - thermal fields (if enabled)
- *   - integer fields: phase, rigid_body_id, constitutive_model
+ *   - internal state variables isv_0..isv_{EXAGOOP_NISV-1} (meaning depends on
+ *     the particle's material, see the materials table)
+ *   - integer fields: phase, rigid_body_id, material_indx
  *
  * @param[in] prefix_particlefilename   Base filename prefix.
  * @param[in] num_of_digits_in_filenames  Number of digits for index formatting.
@@ -228,73 +229,8 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
     Vector<int> writeflags_real(realData::count, 1);
     Vector<int> writeflags_int(intData::count, 0);
 
-    Vector<std::string> real_data_names;
-    Vector<std::string> int_data_names;
-
-    real_data_names.push_back("radius");
-
-    real_data_names.push_back("xvel");
-    real_data_names.push_back("yvel");
-    real_data_names.push_back("zvel");
-
-    real_data_names.push_back("xvel_prime");
-    real_data_names.push_back("yvel_prime");
-    real_data_names.push_back("zvel_prime");
-
-    // Strainrate, strain, stress tensors (NCOMP_TENSOR entries)
-    for (int c = 0; c < NCOMP_TENSOR; ++c)
-    {
-        real_data_names.push_back(amrex::Concatenate("strainrate_", c, 1));
-    }
-    for (int c = 0; c < NCOMP_TENSOR; ++c)
-    {
-        real_data_names.push_back(amrex::Concatenate("strain_", c, 1));
-    }
-    for (int c = 0; c < NCOMP_TENSOR; ++c)
-    {
-        real_data_names.push_back(amrex::Concatenate("stress_", c, 1));
-    }
-
-    // Deformation gradient (NCOMP_FULLTENSOR entries)
-    for (int c = 0; c < NCOMP_FULLTENSOR; ++c)
-    {
-        real_data_names.push_back(
-            amrex::Concatenate("deformation_gradient_", c, 1));
-    }
-
-    // Scalar material properties
-    real_data_names.push_back("volume");
-    real_data_names.push_back("mass");
-    real_data_names.push_back("density");
-    real_data_names.push_back("jacobian");
-    real_data_names.push_back("pressure");
-    real_data_names.push_back("vol_init");
-    real_data_names.push_back("E");
-    real_data_names.push_back("nu");
-    real_data_names.push_back("Bulk_modulus");
-    real_data_names.push_back("Gama_pressure");
-    real_data_names.push_back("Dynamic_viscosity");    
-
-#if USE_TEMP
-    // Thermal fields
-    real_data_names.push_back("temperature");
-    real_data_names.push_back("specific_heat");
-    real_data_names.push_back("thermal_conductivity");
-    for (int d = 0; d < 3; ++d)
-    {
-        real_data_names.push_back(amrex::Concatenate("heat_flux_", d, 1));
-    }
-    real_data_names.push_back("heat_source");
-
-#endif
-
-    for (int s = 0; s < EXAGOOP_NISV; ++s)
-        real_data_names.push_back(amrex::Concatenate("isv_", s, 1));
-
-    // Integer data fields
-    int_data_names.push_back("phase");
-    int_data_names.push_back("rigid_body_id");
-    int_data_names.push_back("constitutive_model");
+    Vector<std::string> real_data_names = realData_names();
+    Vector<std::string> int_data_names = intData_names();
 
     // Flags: mark which fields to write
     writeflags_int[intData::phase] = 1;
@@ -309,16 +245,13 @@ void MPMParticleContainer::writeParticles(std::string prefix_particlefilename,
 
     writeflags_real[realData::mass] = 1;
     writeflags_real[realData::jacobian] = 1;
-    writeflags_real[realData::isv+Fluid_ISV::pressure] = 1;
     writeflags_real[realData::vol_init] = 1;
 
-    // Optional material properties
-    for (int s = 0; s < EXAGOOP_NISV; ++s)
-        writeflags_real[realData::isv + s] = 0;
-    // isv[0] = Johnson-Cook equivalent plastic strain, isv[7] = JC damage
-    // (0 for models that don't use them).
-    writeflags_real[realData::isv + 0] = 1;
-    writeflags_real[realData::isv + JC_ISV::damage] = 1;
+    {
+        const int n_isv_used = num_isv_slots_used();
+        for (int s = 0; s < EXAGOOP_NISV; ++s)
+            writeflags_real[realData::isv + s] = (s < n_isv_used) ? 1 : 0;
+    }
 
 #if USE_TEMP
     writeflags_real[realData::temperature] = 1;
@@ -400,14 +333,14 @@ void MPMParticleContainer::WriteHeader(
  * Real fields include:
  *   - radius, velocity, velocity', strainrate, strain, stress
  *   - deformation gradient
- *   - volume, mass, density, jacobian, pressure, vol_init
- *   - material properties
+ *   - volume, mass, density, jacobian, vol_init
  *   - thermal fields (if enabled)
+ *   - internal state variables isv_0..isv_{EXAGOOP_NISV-1}
  *
  * Integer fields include:
  *   - phase
- *   - constitutive_model
  *   - rigid_body_id
+ *   - material_indx
  *
  * @param[in] prefix_particlefilename   Base prefix for checkpoint directory.
  * @param[in] num_of_digits_in_filenames  Number of digits for index formatting.
@@ -437,68 +370,8 @@ void MPMParticleContainer::writeCheckpointFile(
     WriteHeader(checkpointname, /*is_checkpoint=*/true, cur_time, nstep,
                 EB_generate_max_level, output_it);
 
-    amrex::Vector<std::string> real_data_names;
-
-    real_data_names.push_back("radius");
-
-    real_data_names.push_back("xvel");
-    real_data_names.push_back("yvel");
-    real_data_names.push_back("zvel");
-    real_data_names.push_back("xvel_prime");
-    real_data_names.push_back("yvel_prime");
-    real_data_names.push_back("zvel_prime");
-
-    // Strainrate, strain, stress tensors
-    for (int c = 0; c < NCOMP_TENSOR; ++c)
-    {
-        real_data_names.push_back(amrex::Concatenate("strainrate_", c, 1));
-    }
-    for (int c = 0; c < NCOMP_TENSOR; ++c)
-    {
-        real_data_names.push_back(amrex::Concatenate("strain_", c, 1));
-    }
-    for (int c = 0; c < NCOMP_TENSOR; ++c)
-    {
-        real_data_names.push_back(amrex::Concatenate("stress_", c, 1));
-    }
-
-    // Deformation gradient
-    for (int c = 0; c < NCOMP_FULLTENSOR; ++c)
-    {
-        real_data_names.push_back(
-            amrex::Concatenate("deformation_gradient_", c, 1));
-    }
-
-    // Material properties
-    real_data_names.push_back("volume");
-    real_data_names.push_back("mass");
-    real_data_names.push_back("density");
-    real_data_names.push_back("jacobian");
-    real_data_names.push_back("pressure");
-    real_data_names.push_back("vol_init");
-    real_data_names.push_back("E");
-    real_data_names.push_back("nu");
-    real_data_names.push_back("Bulk_modulus");
-    real_data_names.push_back("Gama_pressure");
-    real_data_names.push_back("Dynamic_viscosity");    
-
-#if USE_TEMP
-    real_data_names.push_back("temperature");
-    real_data_names.push_back("specific_heat");
-    real_data_names.push_back("thermal_conductivity");
-    real_data_names.push_back("heat_flux_0");
-    real_data_names.push_back("heat_flux_1");
-    real_data_names.push_back("heat_flux_2");
-    real_data_names.push_back("heat_source");
-#endif
-
-    for (int s = 0; s < EXAGOOP_NISV; ++s)
-        real_data_names.push_back(amrex::Concatenate("isv_", s, 1));
-
-    amrex::Vector<std::string> int_data_names;
-    int_data_names.push_back("phase");
-    int_data_names.push_back("constitutive_model");
-    int_data_names.push_back("rigid_body_id");
+    amrex::Vector<std::string> real_data_names = realData_names();
+    amrex::Vector<std::string> int_data_names = intData_names();
 
     Checkpoint(checkpointname, "particles", /*is_checkpoint=*/true,
                real_data_names, int_data_names);

@@ -525,24 +525,46 @@ class MPMParticleContainer
                                   amrex::Real applied_strainrate);
 
     amrex::Gpu::DeviceVector<MaterialParams> m_device_material_table; // device
-    amrex::Vector<MaterialParams> m_host_material_table;       // host accumulator
+    amrex::Vector<MaterialParams> m_host_material_table;              // host
+
+    /** @brief Uploads the host material table to the device. */
+    void copy_to_device_material_table(
+        const amrex::Vector<MaterialParams> &host_table);
 
     /**
-     * @brief Uploads the per-model parameter table to the device. Indexed by
-     *        cm_id. Call once after the host table is fully populated.
+     * @brief Largest number of ISV slots used by any material in the table
+     *        (0 for elastic/neo-Hookean only, 1 with a fluid, 8 with JC).
      */
-    void copy_to_device_material_table(const amrex::Vector<MaterialParams> &host_table);
-    void record_new_material_elastic(int cm, amrex::Real E, amrex::Real nu);
-    void record_new_material_fluid(int cm, amrex::Real bulk, amrex::Real gama,
-                               amrex::Real visc);
-    void record_new_material_neohookean(int cm, amrex::Real E, amrex::Real nu);
+    int num_isv_slots_used() const;
+
+    /** @brief Number of materials in the table (0 before it is built). */
+    int num_materials() const
+    {
+        return static_cast<int>(m_host_material_table.size());
+    }
 
     /**
-     * @brief MPI-completes the host material table and uploads it to the
-     *        device. Call once after all particles/materials are read.
+     * @brief Aborts unless every phase-0 particle's material_indx lies in
+     *        [0, num_materials()). Call once after particles are created,
+     *        read, or restored.
      */
-    void upload_material_table();
-    bool build_material_table_from_input();
+    void validate_material_indices();
+
+    /**
+     * @brief Builds the material table from the input file
+     *        (mpm.num_materials, mpm.material_<id>.model / parameters) and
+     *        uploads it to the device. Called once, before any particle
+     *        exists. Aborts on a missing or malformed block.
+     */
+    void build_material_table_from_input();
+
+    /**
+     * @brief Writes the material table as a human-readable sidecar
+     *        (id, model, parameter names/values, ISV slot names) so that
+     *        plotfile columns isv_k / material_indx can be interpreted in
+     *        post-processing. I/O rank only.
+     */
+    void write_material_table(const std::string &filename) const;
 
     /**
      * @brief Applies the constitutive model using an incremental (delta‑strain)

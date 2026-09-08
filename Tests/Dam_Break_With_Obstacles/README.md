@@ -81,10 +81,10 @@ Choose the desired configuration and run:
 
 ```bash
 # For the default (sphere obstacle):
-python3 PreProcess/Generate_MPs_Inputfile_Generic.py --config PreProcess/config.json
+python3 ../../Tools/Preprocess/Generate_MPs_Inputfile_Generic.py --config PreProcess/config.json
 
 # For the box obstacle:
-python3 PreProcess/Generate_MPs_Inputfile_Generic.py --config PreProcess/config_box_obstacle.json
+python3 ../../Tools/Preprocess/Generate_MPs_Inputfile_Generic.py --config PreProcess/config_box_obstacle.json
 ```
 
 ### Step 2 – Build and run ExaGOOP

@@ -10,12 +10,12 @@
 #include <constitutive_models.H>
 // clang-format on
 
+constexpr int MPM_PARTICLE_FILE_FORMAT_VERSION = 2;
+
 typedef void (*WallVelUDFFuncPtr)(double, double, double, double, double *);
 typedef void (*TempUDFFuncPtr)(double, double, double, double, double *);
 
 using namespace amrex;
-
-constexpr int EXAGOOP_NISV = 8;
 
 struct realData
 {
@@ -64,6 +64,54 @@ struct intData
         count
     };
 };
+
+inline amrex::Vector<std::string> realData_names()
+{
+    amrex::Vector<std::string> n;
+    n.push_back("radius");
+    n.push_back("xvel");
+    n.push_back("yvel");
+    n.push_back("zvel");
+    n.push_back("xvel_prime");
+    n.push_back("yvel_prime");
+    n.push_back("zvel_prime");
+    for (int c = 0; c < NCOMP_TENSOR; ++c)
+        n.push_back(amrex::Concatenate("strainrate_", c, 1));
+    for (int c = 0; c < NCOMP_TENSOR; ++c)
+        n.push_back(amrex::Concatenate("strain_", c, 1));
+    for (int c = 0; c < NCOMP_TENSOR; ++c)
+        n.push_back(amrex::Concatenate("stress_", c, 1));
+    for (int c = 0; c < NCOMP_FULLTENSOR; ++c)
+        n.push_back(amrex::Concatenate("deformation_gradient_", c, 1));
+    n.push_back("volume");
+    n.push_back("mass");
+    n.push_back("density");
+    n.push_back("jacobian");
+    n.push_back("vol_init");
+#if USE_TEMP
+    n.push_back("temperature");
+    n.push_back("specific_heat");
+    n.push_back("thermal_conductivity");
+    for (int d = 0; d < 3; ++d)
+        n.push_back(amrex::Concatenate("heat_flux_", d, 1));
+    n.push_back("heat_source");
+#endif
+    for (int s = 0; s < EXAGOOP_NISV; ++s)
+        n.push_back(amrex::Concatenate("isv_", s, 1));
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        static_cast<int>(n.size()) == realData::count,
+        "realData_names() out of sync with realData enum");
+    return n;
+}
+
+inline amrex::Vector<std::string> intData_names()
+{
+    amrex::Vector<std::string> n = {"phase", "rigid_body_id", "material_indx"};
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        static_cast<int>(n.size()) == intData::count,
+        "intData_names() out of sync with intData enum");
+    return n;
+}
 
 class MPMspecs
 {
@@ -186,14 +234,6 @@ class MPMspecs
     int autogen_multi_part_per_cell = 1;
     Real autogen_dens = 1000.0;
 
-    const std::string autogen_materialname = "";
-
-    int autogen_constmodel = 0;
-    Real autogen_E = 1e9;
-    Real autogen_nu = 0.1;
-    Real autogen_bulkmod = 0.0;
-    Real autogen_Gama_pres = 1.4;
-    Real autogen_visc = 0.001;
     Vector<int> autogen_ppc;
 
     Real autogen_T = 0.001;
@@ -215,28 +255,6 @@ class MPMspecs
     amrex::Gpu::DeviceVector<amrex::Real> udf_wall_vel_nodes_hi[AMREX_SPACEDIM];
 
     ~MPMspecs() = default;
-	amrex::Vector<MaterialParams> material_table;
-
-	static void parse_material_block(const std::string &prefix,
-	                                     MaterialParams &mp, int mat_id)
-	    {
-	        const auto &reg = Get_Constitutive_Model_Registry();
-	        amrex::ParmParse ppm(prefix.c_str());
-
-	        std::string model;
-	        ppm.get("model", model);
-
-	        const ConstitutiveModelInfo *info = nullptr;
-	        for (const auto &mi : reg)
-	            if (model == mi.name) { info = &mi; break; }
-	        if (info == nullptr)
-	            amrex::Abort("Unknown constitutive model '" + model + "' for " + prefix);
-
-	        mp.model       = info->id;
-	        mp.material_id = mat_id;
-	        for (std::size_t s = 0; s < info->param_names.size(); ++s)
-	            ppm.query(info->param_names[s], mp.p[s]);
-	    }
 
     void read_mpm_specs()
     {
@@ -325,17 +343,6 @@ class MPMspecs
         }
         else
         {
-			
-			//Capture the single material now
-			//For now lets assume only one material will be declared in input
-			/*Here is how the autogen block should appear in the input file
-			mpm.material_autogen_0.model="ELASTIC"	//as they appear in ConstitutiveModel namespace
-			*/
-			
-
-			material_table.resize(1);   // one material for autogen
-			parse_material_block("mpm.material_autogen_0", material_table[0], 0);
-			
             pp.get("mincoords_autogen", autogen_mincoords);
             pp.get("maxcoords_autogen", autogen_maxcoords);
             pp.getarr("vel_autogen", autogen_vel);            

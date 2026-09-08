@@ -26,6 +26,7 @@ For a head-on collision of two disks the qualitative expectation is:
 | Initial velocity (body 1) | $(+0.1, +0.1)$ m/s (uniform) |
 | Initial velocity (body 2) | $(-0.1, -0.1)$ m/s (uniform) |
 | Constitutive model | Linear elastic, $E = 1000$ Pa, $\nu = 0.3$ |
+| Density | $\rho = 1000$ kg/m³ (so $c = \sqrt{E/\rho} = 1$ m/s and $v/c = 0.1$; with $\rho = 1$ the disks behave almost rigidly) |
 | Stress update scheme | MUSL |
 | Order scheme | 1 |
 | PIC/FLIP blending | Pure FLIP ($\alpha = 1.0$) |

@@ -70,11 +70,10 @@
       }
     }
   ],
-  "density": 997.0,
   "CFL": 0.1,
   "order_scheme": 1,
   "stress_update_scheme": "MUSL",
-  "output_tag": "Elastic_disk_collision__dim2_npcx4_ord1_susMUSL_USEHDFTrue_OFORMhdf5_MPI=True_CUDAFalse_HIPFalse_OMPFalse_SYCLFalse_EBFalse_TEMPFalse_BuildSystemcmake_22c3e0",
+  "output_tag": "Elastic_disk_collision__dim2_npcx4_ord1_susMUSL_USEHDFTrue_OFORMhdf5_MPI_True_CUDAFalse_HIPFalse_OMPFalse_SYCLFalse_EBFalse_TEMPFalse_BuildSystemcmake_22c3e0",
   "input_filename": "Inputs_ElasticDiskCollision.inp",
   "output_format": "hdf5",
   "materialpoint_filename": "mpm_particles.h5",
@@ -94,7 +93,7 @@
     0.0,
     0.0
   ],
-  "density": 1.0,
+  "density": 1000.0,
   "boundary_conditions": {
     "xlo": {
       "mom": "periodic"

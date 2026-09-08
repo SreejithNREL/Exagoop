@@ -60,10 +60,8 @@ int main(int argc, char *argv[])
 
         Initialise_Material_Points(specs, mpm_pc, steps, time, output_it);
 
-        if (!mpm_pc.build_material_table_from_input())
-            mpm_pc.upload_material_table();
-
         Create_Output_Directories(specs);
+        mpm_pc.write_material_table("./Solution/materials.txt");
 
         Initialise_Diagnostic_Streams(specs);
 
