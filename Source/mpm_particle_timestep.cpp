@@ -73,18 +73,20 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
                                    p.rdata(realData::density));
                 }
                 else if (mat[matrl_idx].model == ConstitutiveModel::NEOHOOKEAN)
-				{
-					const amrex::Real Emod = mat[matrl_idx].p[ElasticP::E];
-					const amrex::Real nu = mat[matrl_idx].p[ElasticP::nu];
-					amrex::Real lambda = Emod * nu / ((1 + nu) * (1 - 2.0 * nu));
-					amrex::Real mu = Emod / (2.0 * (1 + nu));
-					Cs = std::sqrt((lambda + 2.0 * mu) /p.rdata(realData::density));
+                {
+                    // small-strain wave speed as the CFL estimate
+                    const amrex::Real Emod = mat[matrl_idx].p[NeoHookeanP::E];
+                    const amrex::Real nu = mat[matrl_idx].p[NeoHookeanP::nu];
+                    amrex::Real lambda = Emod * nu / ((1 + nu) * (1 - 2.0 * nu));
+                    amrex::Real mu = Emod / (2.0 * (1 + nu));
+                    Cs = std::sqrt((lambda + 2.0 * mu) /
+                                   p.rdata(realData::density));
                 }
-				else 
-				{
-					amrex::Abort("\nInvalid constitutive model. dt approaching "
-						"infinity.\n");
-				}
+                else
+                {
+                    amrex::Abort("\nInvalid constitutive model. dt approaching "
+                                 "infinity.\n");
+                }
 
                 // Dimension‑aware velocity magnitude
                 amrex::Real velmag = 0.0;
@@ -239,11 +241,9 @@ void MPMParticleContainer::moveParticles(
     amrex::Real wall_vel_lo[AMREX_SPACEDIM * AMREX_SPACEDIM],
     amrex::Real wall_vel_hi[AMREX_SPACEDIM * AMREX_SPACEDIM],
     amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM> udf_wall_vel_lo_dev,
-    amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM> udf_wall_vel_hi_dev,
-    amrex::Real time)
+    amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM> udf_wall_vel_hi_dev)
 {
     BL_PROFILE("MPMParticleContainer::moveParticles");
-    const amrex::Real t = time;
 
     const int lev = 0;
     const auto plo = Geom(lev).ProbLoArray();

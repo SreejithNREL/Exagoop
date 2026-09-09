@@ -46,7 +46,7 @@
   "CFL": 0.1,
   "order_scheme": 1,
   "stress_update_scheme": "MUSL",
-  "output_tag": "Dam_Break__dim2_npcx1_ord1_susMUSL_USEHDFTrue_OFORMhdf5_MPI_True_CUDAFalse_HIPFalse_OMPFalse_SYCLFalse_EBFalse_TEMPFalse_BuildSystemcmake_4f5515",
+  "output_tag": "Dam_Break__dim2_npcx1_ord1_susMUSL_USEHDFTrue_OFORMhdf5_MPI=True_CUDAFalse_HIPFalse_OMPFalse_SYCLFalse_EBFalse_TEMPFalse_BuildSystemcmake_4f5515",
   "input_filename": "Inputs_DamBreak.inp",
   "output_format": "hdf5",
   "materialpoint_filename": "mpm_particles.h5",

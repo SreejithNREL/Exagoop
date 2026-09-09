@@ -196,7 +196,7 @@ void Apply_Nodal_BCs(amrex::Geometry &geom,
 #if USE_EB
     if (mpm_ebtools::using_levelset_geometry)
     {
-        nodal_levelset_bcs(nodaldata, geom, dt, t);
+        nodal_levelset_bcs(nodaldata, geom, dt);
     }
 #endif
 
@@ -235,7 +235,7 @@ void Apply_Nodal_BCs_Temperature(amrex::Geometry &geom,
     apply_udf_nodal_bcs_temperature(geom, nodaldata, specs);
 #if USE_EB
     if (mpm_ebtools::using_levelset_geometry)
-        nodal_levelset_bcs_temperature(nodaldata, geom, dirichlet_only, t);
+        nodal_levelset_bcs_temperature(nodaldata, geom, dirichlet_only);
 #endif
 }
 #endif
@@ -314,8 +314,7 @@ void G2P_Temperature(MPMspecs &specs,
 
 void Update_MP_Positions(MPMspecs &specs,
                          MPMParticleContainer &mpm_pc,
-                         amrex::Real dt,
-                         amrex::Real time)
+                         amrex::Real dt)
 {
     amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM> udf_lo_ptrs,
         udf_hi_ptrs;
@@ -331,7 +330,7 @@ void Update_MP_Positions(MPMspecs &specs,
     mpm_pc.moveParticles(dt, specs.bclo.data(), specs.bchi.data(),
                          specs.wall_mu_lo.data(), specs.wall_mu_hi.data(),
                          specs.wall_vel_lo.data(), specs.wall_vel_hi.data(),
-                         udf_lo_ptrs, udf_hi_ptrs, time);
+                         udf_lo_ptrs, udf_hi_ptrs);
 }
 
 /**

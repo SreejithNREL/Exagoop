@@ -40,7 +40,7 @@ enum
     bulk = 0,  // bulk modulus
     gama = 1,  // EoS exponent (Gamma)
     visc = 2,  // dynamic viscosity
-	p_inf = 3, // free stream pressure
+    p_inf = 3, // free-stream pressure (optional, default 0)
     count
 };
 }
@@ -96,7 +96,7 @@ enum
 namespace Fluid_ISV
 {
 enum
-{       
+{
     pressure = 0,   // pressure is unique to fluid, and also evolves with solution. Hence storing it in ISV
     count
 };
@@ -109,8 +109,8 @@ constexpr int EXAGOOP_NISV =
 //Each instance of a material used in the simulation: For example, polysulfone and steel are elastic, but will have different structs
 struct MaterialParams
 {
-    int material_id=-1;						//Each material has a unique id
-    int model = ConstitutiveModel::ELASTIC;			//Elastic by default
+    int material_id = -1;                   // unique id == mpm.material_<id>
+    int model = ConstitutiveModel::ELASTIC; // ConstitutiveModel enum
     amrex::Real p[MAX_MODEL_PARAMS] = {0.0};
 };
 
@@ -121,7 +121,7 @@ struct ConstitutiveModelInfo
 {
     const char *name;
     int id;
-    std::vector<const char *> param_names; 
+    std::vector<const char *> param_names;
     int n_required;
     std::vector<const char *> isv_names;
     bool kernel_implemented;

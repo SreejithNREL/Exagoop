@@ -159,7 +159,7 @@ void MPMParticleContainer::validate_material_indices()
 
     int imin = amrex::ReduceMin(
         *this, lev,
-        [=] AMREX_GPU_DEVICE(const PType &p) noexcept -> int
+        [=] AMREX_GPU_HOST_DEVICE(const PType &p) noexcept -> int
         {
             return (p.idata(intData::phase) == 0)
                        ? p.idata(intData::material_indx)
@@ -167,7 +167,7 @@ void MPMParticleContainer::validate_material_indices()
         });
     int imax = amrex::ReduceMax(
         *this, lev,
-        [=] AMREX_GPU_DEVICE(const PType &p) noexcept -> int
+        [=] AMREX_GPU_HOST_DEVICE(const PType &p) noexcept -> int
         {
             return (p.idata(intData::phase) == 0)
                        ? p.idata(intData::material_indx)
@@ -241,22 +241,28 @@ void MPMParticleContainer::apply_constitutive_model(
 
                     for (int comp = 0; comp < NCOMP_FULLTENSOR; ++comp)
                     {
-                    	deformation_gradient[comp] = p.rdata(realData::deformation_gradient + comp);
+                        deformation_gradient[comp] =
+                            p.rdata(realData::deformation_gradient + comp);
                     }
 
                     const int material_idx = p.idata(intData::material_indx);
                     const MaterialParams &mp = mat[material_idx];
                     if (mp.model == ConstitutiveModel::ELASTIC)
-                    {                        
+                    {
                         linear_elastic(strain, stress, mp.p[ElasticP::E],mp.p[ElasticP::nu]);
                     }
                     else if (mp.model == ConstitutiveModel::FLUID)
                     {
-                        p.rdata(realData::isv+Fluid_ISV::pressure) = mp.p[FluidP::bulk] * (std::pow(1.0 / p.rdata(realData::jacobian), mp.p[FluidP::gama]) - 1.0) + mp.p[FluidP::p_inf];
-                        Newtonian_Fluid(strainrate, stress, mp.p[FluidP::visc], p.rdata(realData::isv+Fluid_ISV::pressure));
+                        // Weakly compressible EOS: p = K[(1/J)^gamma - 1] + p_inf
+                        amrex::Real &pres = p.rdata(isv_slot(Fluid_ISV::pressure));
+                        pres = mp.p[FluidP::bulk] *
+                                   (std::pow(1.0 / p.rdata(realData::jacobian),
+                                             mp.p[FluidP::gama]) - 1.0) +
+                               mp.p[FluidP::p_inf];
+                        Newtonian_Fluid(strainrate, stress, mp.p[FluidP::visc], pres);
                     }
                     else if (mp.model == ConstitutiveModel::NEOHOOKEAN)
-                    {                        
+                    {
                         neo_hookean(stress, deformation_gradient, mp.p[NeoHookeanP::E], mp.p[NeoHookeanP::nu]);
                     }
                     else
@@ -338,7 +344,7 @@ void MPMParticleContainer::apply_constitutive_model_delta(
 
                 if (p.idata(intData::phase) == 0)
                 {
-                    amrex::Real delta_strain[NCOMP_TENSOR];
+                    amrex::Real delta_strain[NCOMP_TENSOR] = {};
                     amrex::Real delta_stress[NCOMP_TENSOR];
 
                     // Accumulate strain from current strainrate
@@ -378,8 +384,8 @@ void MPMParticleContainer::apply_constitutive_model_delta(
 #endif
 
                     // Constitutive response for delta update
-					const int material_idx = p.idata(intData::material_indx);
-					const MaterialParams &mp = mat[material_idx];
+                    const int material_idx = p.idata(intData::material_indx);
+                    const MaterialParams &mp = mat[material_idx];
                     if (mp.model == ConstitutiveModel::ELASTIC)
                     {
                         // Elastic solid: linear operator on delta_strain

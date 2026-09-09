@@ -40,8 +40,8 @@ struct realData
         volume = 34,               // 31
         mass = 35,                 // 32
         density = 36,              // 33
-        jacobian = 37,             // 34        
-        vol_init = 38,             // 36        // (MPMParticleContainer::m_device_material_table).        
+        jacobian = 37,             // 34
+        vol_init = 38,             // 36
 #if USE_TEMP
         temperature,               // follows vol_init
         specific_heat,             // specific heat used in temperature equation
@@ -54,13 +54,18 @@ struct realData
     };
 };
 
+// realData index of per-model internal-state-variable slot k (k from
+// Fluid_ISV / JC_ISV / ...). Takes an int so that mixing the two anonymous
+// enums does not trigger C++20's deprecated enum-enum arithmetic.
+constexpr int isv_slot(int k) { return realData::isv + k; }
+
 struct intData
 {
     enum
     {
         phase = 0,
         rigid_body_id,
-		material_indx,		//index of the material as it appears in the material table        
+        material_indx, // index into the material table (mpm.material_<id>)
         count
     };
 };
@@ -345,7 +350,7 @@ class MPMspecs
         {
             pp.get("mincoords_autogen", autogen_mincoords);
             pp.get("maxcoords_autogen", autogen_maxcoords);
-            pp.getarr("vel_autogen", autogen_vel);            
+            pp.getarr("vel_autogen", autogen_vel);
             pp.query("dens_autogen", autogen_dens);
             pp.queryarr("ppc", autogen_ppc);
 #if USE_TEMP

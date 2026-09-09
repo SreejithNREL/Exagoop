@@ -111,7 +111,7 @@ class MPMParticleContainer
                   Real vel[AMREX_SPACEDIM],
                   int ppc[AMREX_SPACEDIM],
                   Real dens,
-                  int material_id,                  
+                  int material_id,
 #if USE_TEMP
                   amrex::Real T,
                   amrex::Real thermcond,
@@ -153,8 +153,7 @@ class MPMParticleContainer
                        amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM>
                            udf_wall_vel_lo_dev,
                        amrex::GpuArray<const amrex::Real *, AMREX_SPACEDIM>
-                           udf_wall_vel_hi_dev,
-                       amrex::Real time);
+                           udf_wall_vel_hi_dev);
 
     /**
      * @brief Updates particle volume, density, and Jacobian from the
@@ -632,7 +631,7 @@ class MPMParticleContainer
                                    amrex::Real vel[AMREX_SPACEDIM],
                                    amrex::Real dens,
                                    amrex::Real vol,
-                                   int material_idx                                   
+                                   int material_idx
 #if USE_TEMP
                                    ,
                                    amrex::Real T,

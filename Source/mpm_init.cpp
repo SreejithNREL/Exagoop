@@ -545,7 +545,7 @@ void Initialise_Material_Points(MPMspecs &specs,
         auto io_time_start = amrex::second();
         mpm_pc.InitParticles(specs.autogen_mincoords, specs.autogen_maxcoords,
                              specs.autogen_vel.data(), specs.autogen_ppc.data(),
-                             specs.autogen_dens, 0,									//For now only one material is allowed in autogen mode                             
+                             specs.autogen_dens, /*material_id=*/0,
 #if USE_TEMP
                              specs.autogen_T, specs.autogen_thermcond,
                              specs.autogen_cp, specs.autogen_heatsrc,
@@ -842,7 +842,7 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
 
         p.rdata(realData::jacobian) = 1.0;
         p.rdata(realData::vol_init) = p.rdata(realData::volume);
-        p.rdata(realData::isv + Fluid_ISV::pressure) = 0.0;
+        p.rdata(isv_slot(Fluid_ISV::pressure)) = 0.0;
 
         for (int comp = 0; comp < NCOMP_FULLTENSOR; ++comp)
             p.rdata(realData::deformation_gradient + comp) = 0.0;
@@ -1109,7 +1109,7 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
 
             p.rdata(realData::jacobian) = 1.0;
             p.rdata(realData::vol_init) = p.rdata(realData::volume);
-            p.rdata(realData::isv+Fluid_ISV::pressure) = 0.0;
+            p.rdata(isv_slot(Fluid_ISV::pressure)) = 0.0;
 
             // deformation gradient init
             for (int comp = 0; comp < NCOMP_FULLTENSOR; ++comp)
@@ -1189,7 +1189,7 @@ void MPMParticleContainer::InitParticles(
     amrex::Real vel[AMREX_SPACEDIM],
     int ppc[AMREX_SPACEDIM],
     amrex::Real dens,
-    int material_id,    
+    int material_id,
 #if USE_TEMP
     amrex::Real T,
     amrex::Real thermcond,
@@ -1391,7 +1391,7 @@ MPMParticleContainer::generate_particle(amrex::Real coords[AMREX_SPACEDIM],
                                         amrex::Real vel[AMREX_SPACEDIM],
                                         amrex::Real dens,
                                         amrex::Real vol,
-                                        int material_idx                                        
+                                        int material_idx
 #if USE_TEMP
                                         ,
                                         amrex::Real T,
@@ -1435,7 +1435,7 @@ MPMParticleContainer::generate_particle(amrex::Real coords[AMREX_SPACEDIM],
     p.rdata(realData::volume) = vol;
     p.rdata(realData::mass) = dens * vol;
     p.rdata(realData::jacobian) = 1.0;
-    p.rdata(realData::isv+Fluid_ISV::pressure) = 0.0;
+    p.rdata(isv_slot(Fluid_ISV::pressure)) = 0.0;
     p.rdata(realData::vol_init) = vol;
 
 #if USE_TEMP
