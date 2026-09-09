@@ -7,6 +7,7 @@
 /paper/
 
 Docs/sphinx/manual/_build/
+Docs/*.md
 
 Tests/*/mpm_particles.dat
 Tests/*/Backtrace.*
