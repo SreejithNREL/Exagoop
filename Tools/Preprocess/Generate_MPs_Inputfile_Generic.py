@@ -822,6 +822,7 @@ def write_inputs_file(
     particle_filename: str,
     out_filename: str = "Inputs_MPM.inp",
     autogen: dict = None,       # None -> read particle file; dict -> mpm.use_autogen = 1
+    periodic: list = None,      # per-direction periodicity flags (default: none)
     simulation: dict = None,
     gravity: list = None,
     boundary_conditions: dict = None,
@@ -840,13 +841,17 @@ def write_inputs_file(
         # ---------------------------------------------------------
         # Geometry
         # ---------------------------------------------------------
+        # Periodicity per direction from config "periodic" (default: none).
+        per = list(periodic) if periodic is not None else [0] * dimensions
+        per = [int(bool(v)) for v in per[:dimensions]] + [0] * (dimensions - len(per))
+        per_str = " ".join(str(v) for v in per)
         if dimensions == 1:
             write_block(f, [
                 ("mpm.prob_lo", f"{grid['xmin']} 0.0 0.0    # Lower corner"),
                 ("mpm.prob_hi", f"{grid['xmax']} 0.0 0.0    # Upper corner"),
                 ("mpm.ncells", f"{grid['nx']} 0 0"),
                 ("mpm.max_grid_size", "16"),
-                ("mpm.is_it_periodic", "0"),
+                ("mpm.is_it_periodic", per_str),
             ], comment="Geometry Parameters")
         elif dimensions == 2:
             write_block(f, [
@@ -854,7 +859,7 @@ def write_inputs_file(
                 ("mpm.prob_hi", f"{grid['xmax']} {grid['ymax']} 0.0    # Upper corner"),
                 ("mpm.ncells", f"{grid['nx']} {grid['ny']} 0"),
                 ("mpm.max_grid_size", "16"),
-                ("mpm.is_it_periodic", "0 0"),
+                ("mpm.is_it_periodic", per_str),
             ], comment="Geometry Parameters")
         else:
             write_block(f, [
@@ -862,7 +867,7 @@ def write_inputs_file(
                 ("mpm.prob_hi", f"{grid['xmax']} {grid['ymax']} {grid['zmax']}    # Upper corner"),
                 ("mpm.ncells", f"{grid['nx']} {grid['ny']} {grid['nz']}"),
                 ("mpm.max_grid_size", f"{grid['nx'] + 1}"),
-                ("mpm.is_it_periodic", "0 0 1"),
+                ("mpm.is_it_periodic", per_str),
             ], comment="Geometry Parameters")
 
         # AMR
@@ -980,7 +985,22 @@ def write_inputs_file(
         for face in faces:
             fc = bcs.get(face, {})
             if "mom" in fc:
-                bc_entries.append((f"mpm.bc_{face}_mom", fc["mom"]))
+                m = fc["mom"]
+                if isinstance(m, dict):
+                    # {"type": "noslip"|"slip"|..., optional "udf_lib"/"udf_func"
+                    #  (wall-velocity UDF, see Tools/GNUmakefile.udf), "wall_vel",
+                    #  "wall_mu"}
+                    bc_entries.append((f"mpm.bc_{face}_mom", m["type"]))
+                    if "udf_lib" in m:
+                        bc_entries.append((f"mpm.bc_{face}_mom.udf_lib", f'"{m["udf_lib"]}"'))
+                    if "udf_func" in m:
+                        bc_entries.append((f"mpm.bc_{face}_mom.udf_func", f'"{m["udf_func"]}"'))
+                    if "wall_vel" in m:
+                        bc_entries.append((f"mpm.bc_{face}_mom.wall_vel", " ".join(str(v) for v in m["wall_vel"])))
+                    if "wall_mu" in m:
+                        bc_entries.append((f"mpm.bc_{face}_mom.wall_mu", str(m["wall_mu"])))
+                else:
+                    bc_entries.append((f"mpm.bc_{face}_mom", m))
         for face in faces:
             fc = bcs.get(face, {})
             if "temp" in fc:
@@ -1209,6 +1229,21 @@ def main():
     with open(args.config, "r") as f:
         cfg = json.load(f)
 
+    # User modules (velocity / temperature UDFs) are given relative to the
+    # TEST directory (the parent of PreProcess/), so the generator can be run
+    # from anywhere. Absolute paths are used as-is.
+    test_dir = os.path.dirname(os.path.dirname(os.path.abspath(args.config)))
+
+    def resolve_module(path):
+        if os.path.isabs(path):
+            return path
+        cand = os.path.normpath(os.path.join(test_dir, path))
+        if os.path.exists(cand):
+            return cand
+        if os.path.exists(path):          # legacy: relative to the cwd
+            return os.path.abspath(path)
+        die(f"user module '{path}' not found (looked in {test_dir} and the current directory)")
+
     dimensions = cfg["dimensions"]
     alpha_pic_flip = cfg.get("alpha_pic_flip", 1.0)
 
@@ -1311,7 +1346,7 @@ def main():
                 def velocity_function(x, y, z):
                     return vx0, vy0, vz0
             else:
-                spec = importlib.util.spec_from_file_location("user_vel", vel_cfg["module"])
+                spec = importlib.util.spec_from_file_location("user_vel", resolve_module(vel_cfg["module"]))
                 user_vel = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(user_vel)
                 velocity_function = getattr(user_vel, vel_cfg["function"])
@@ -1329,7 +1364,7 @@ def main():
                 def temperature_function(x, y, z):
                     return T0, sp0, k0, q0
             else:
-                spec = importlib.util.spec_from_file_location("user_temp", temp_cfg["module"])
+                spec = importlib.util.spec_from_file_location("user_temp", resolve_module(temp_cfg["module"]))
                 user_temp = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(user_temp)
                 temperature_function = getattr(user_temp, temp_cfg["function"])
@@ -1391,6 +1426,7 @@ def main():
         particle_filename=particle_file,
         out_filename=input_filename,
         autogen=autogen,
+        periodic=cfg.get("periodic", None),
         simulation=cfg.get("simulation", {}),
         gravity=cfg.get("gravity", [0.0, 0.0, 0.0]),
         boundary_conditions=cfg.get("boundary_conditions", {}),

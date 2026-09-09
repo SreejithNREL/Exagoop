@@ -1,0 +1,37 @@
+{
+  "dimensions": 2,
+  "grid": { "xmin": 0.0, "xmax": 1.0, "nx": 50, "ymin": 0.0, "ymax": 1.4, "ny": 70 },
+  "ppc": [2, 2],
+  "bodies": [
+    {
+      "_comment": "material 0: one rock block with a vertical blind crack from the base; mouth half-width 0.04 (2 cells), tip at y=0.55",
+      "shape": { "type": "block_with_slot", "xmin": 0.06, "xmax": 0.94, "ymin": 0.0, "ymax": 1.0,
+                 "x_center": 0.50, "y_mouth": 0.0, "y_tip": 0.55, "halfwidth": 0.04,
+                 "roughness": { "amp": [0.010, 0.006], "waves": [2.0, 5.0], "phase_left": [0.0, 1.0], "phase_right": [0.9, 2.6] } },
+      "constitutive_model": { "type": "elastic", "E": 1000.0, "nu": 0.3 },
+      "density": 1000.0,
+      "initial_velocity": { "type": "uniform", "vx": 0.0, "vy": 0.0 },
+      "temperature": { "enabled": false, "type": "uniform", "T": 0.0, "spheat": 1.0, "thermcond": 1.0, "heatsrc": 0.0 }
+    },
+    {
+      "_comment": "material 1: heavy platen, displacement control",
+      "shape": { "type": "rectangle", "xmin": 0.06, "xmax": 0.94, "ymin": 1.00, "ymax": 1.12 },
+      "constitutive_model": { "type": "elastic", "E": 1.0e5, "nu": 0.25 },
+      "density": 1.0e8,
+      "initial_velocity": { "type": "uniform", "vx": 0.0, "vy": -0.005 },
+      "temperature": { "enabled": false, "type": "uniform", "T": 0.0, "spheat": 1.0, "thermcond": 1.0, "heatsrc": 0.0 }
+    }
+  ],
+  "CFL": 0.1, "order_scheme": 1, "stress_update_scheme": "MUSL", "alpha_pic_flip": 0.95,
+  "output_tag": "2D_Vertical_Blind_Crack_coarse",
+  "input_filename": "Inputs_VerticalBlindCrack.inp",
+  "output_format": "ascii", "materialpoint_filename": "mpm_particles.dat", "plot_to_check": false,
+  "simulation": { "final_time": 25.0, "max_steps": 5000000, "screen_output_time": 0.1, "write_output_time": 0.5,
+                  "num_redist": 10, "fixed_timestep": 0, "timestep": 1e-4 },
+  "gravity": [0.0, 0.0, 0.0], "density": 1000.0,
+  "boundary_conditions": { "xlo": { "mom": "slip" }, "xhi": { "mom": "slip" }, "ylo": { "mom": "noslip" }, "yhi": { "mom": "slip" } },
+  "diagnostics": { "print_diagnostics": 1, "do_calculate_tke_tse": 1, "do_calculate_mwa_velcomp": 0,
+                   "do_calculate_mwa_velmag": 0, "do_calculate_minmaxpos": 1, "write_diag_output_time": 0.1 },
+  "build_with_hdf": false, "build_system": "gnumake", "use_mpi": true, "use_cuda": false, "use_hip": false,
+  "use_omp": false, "use_sycl": false, "use_eb": false, "use_temp": false
+}

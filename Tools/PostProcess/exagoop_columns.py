@@ -21,7 +21,7 @@ Usage (from a test's PostProcess script):
 # Slot pool for per-model internal state variables; EXAGOOP_NISV in
 # Source/constitutive_models.H. isv_0.. meaning depends on the particle's
 # material: see Solution/materials.txt of the run.
-EXAGOOP_NISV = 8
+EXAGOOP_NISV = 9
 
 NCOMP_TENSOR = 6
 NCOMP_FULLTENSOR = 9

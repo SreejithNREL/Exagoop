@@ -273,6 +273,52 @@ void MPMParticleContainer::apply_constitutive_model(
                                     mp.p[NeoHookeanP::E],
                                     mp.p[NeoHookeanP::nu]);
                     }
+                    else if (mp.model == ConstitutiveModel::JOHNSON_COOK)
+                    {
+                        amrex::Real F[9] = {1.0, 0.0, 0.0, 0.0, 1.0,
+                                            0.0, 0.0, 0.0, 1.0};
+                        for (int r = 0; r < AMREX_SPACEDIM; ++r)
+                            for (int c = 0; c < AMREX_SPACEDIM; ++c)
+                                F[r * 3 + c] = p.rdata(
+                                    realData::deformation_gradient +
+                                    r * AMREX_SPACEDIM + c);
+
+                        // Per-particle state from the ISV block.
+                        amrex::Real ep = p.rdata(isv_slot(JC_ISV::ep));
+                        amrex::Real dmg = p.rdata(isv_slot(JC_ISV::damage));
+                        amrex::Real sdev[NCOMP_TENSOR];
+                        for (int c = 0; c < NCOMP_TENSOR; ++c)
+                            sdev[c] = p.rdata(isv_slot(JC_ISV::sdev + c));
+
+                        amrex::Real press = 0.0, hsrc = 0.0;
+#if USE_TEMP
+                        const amrex::Real Tcur =
+                            p.rdata(realData::temperature);
+#else
+                        const amrex::Real Tcur = mp.p[JCP::Tr];
+#endif
+                        johnson_cook_stress_update(
+                            F, strainrate, sdev, ep, stress, press, hsrc,
+                            p.rdata(realData::density), mp.p[JCP::rho0],
+                            mp.p[JCP::E], mp.p[JCP::nu], mp.p[JCP::A],
+                            mp.p[JCP::B], mp.p[JCP::n], mp.p[JCP::C],
+                            mp.p[JCP::m], mp.p[JCP::eps_dot_0], Tcur,
+                            mp.p[JCP::Tr], mp.p[JCP::Tm], mp.p[JCP::chi],
+                            mp.p[JCP::c0], mp.p[JCP::Salpha],
+                            mp.p[JCP::Gamma0], mp.p[JCP::D1], mp.p[JCP::D2],
+                            mp.p[JCP::D3], mp.p[JCP::D4], mp.p[JCP::D5], dmg,
+                            dt);
+
+                        // Persist state.
+                        p.rdata(isv_slot(JC_ISV::ep)) = ep;
+                        p.rdata(isv_slot(JC_ISV::damage)) = dmg;
+                        for (int c = 0; c < NCOMP_TENSOR; ++c)
+                            p.rdata(isv_slot(JC_ISV::sdev + c)) = sdev[c];
+                        p.rdata(isv_slot(JC_ISV::pressure)) = press;
+#if USE_TEMP
+                        p.rdata(realData::heat_source) = hsrc;
+#endif
+                    }
                     else
                     {
                         for (int d = 0; d < NCOMP_TENSOR; ++d)
@@ -411,6 +457,12 @@ void MPMParticleContainer::apply_constitutive_model_delta(
                     {
                         amrex::Abort("\nDelta strain model for neo hookean "
                                      "model not implemented yet.");
+                    }
+                    else if (mp.model == ConstitutiveModel::JOHNSON_COOK)
+                    {
+                        amrex::Abort("\nDelta strain model for Johnson-Cook "
+                                     "not implemented (use the total-strain "
+                                     "path).");
                     }
                     else
                     {

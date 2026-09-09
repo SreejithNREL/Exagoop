@@ -84,6 +84,24 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
                     Cs = std::sqrt((lambda + 2.0 * mu) /
                                    p.rdata(realData::density));
                 }
+                else if (mat[matrl_idx].model == ConstitutiveModel::JOHNSON_COOK)
+                {
+                    const amrex::Real Emod = mat[matrl_idx].p[JCP::E];
+                    const amrex::Real nu = mat[matrl_idx].p[JCP::nu];
+                    const amrex::Real rho = p.rdata(realData::density);
+                    amrex::Real lambda =
+                        Emod * nu / ((1 + nu) * (1 - 2.0 * nu));
+                    amrex::Real mu = Emod / (2.0 * (1 + nu));
+                    amrex::Real cs_el = std::sqrt((lambda + 2.0 * mu) / rho);
+                    const amrex::Real rho0 = mat[matrl_idx].p[JCP::rho0];
+                    const amrex::Real c0 = mat[matrl_idx].p[JCP::c0];
+                    const amrex::Real Sa = mat[matrl_idx].p[JCP::Salpha];
+                    amrex::Real eta = (rho0 > 0.0) ? rho / rho0 : 1.0;
+                    amrex::Real denom = 1.0 - Sa * (eta - 1.0);
+                    denom = amrex::max(denom, amrex::Real(0.1));
+                    amrex::Real cs_eos = c0 / (denom * denom);
+                    Cs = amrex::max(cs_el, cs_eos);
+                }
                 else
                 {
                     amrex::Abort("\nInvalid constitutive model. dt approaching "

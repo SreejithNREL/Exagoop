@@ -868,13 +868,17 @@ void nodal_bcs_temperature(const amrex::Geometry geom,
                         }
                         else if (bc_type == BC_TEMP_ADIABATIC)
                         {
-                            if (!bc_applied)
-                            {
-                                IntVect nb = nodeid;
-                                nb[d] += sign;
-                                arr(nodeid, TEMPERATURE) = arr(nb, TEMPERATURE);
-                                bc_applied = true;
-                            }
+                            // Adiabatic (q.n = 0) is the NATURAL boundary
+                            // condition of the weak form: the boundary term
+                            // \oint (q.n) N_I dA vanishes, and the face node's
+                            // update assembled from particles inside the domain
+                            // already contains no incoming flux. Nothing to
+                            // enforce. (The former overwrite
+                            // T_face = T_neighbour discarded the face node's
+                            // own energy balance; with a heat source next to
+                            // the face this fed a growing two-row +/-
+                            // temperature oscillation.)
+                            bc_applied = true;
                         }
                         else if (bc_type == BC_TEMP_USERFLUX)
                         {
