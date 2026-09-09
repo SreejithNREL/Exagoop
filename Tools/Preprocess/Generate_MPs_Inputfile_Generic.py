@@ -1224,13 +1224,17 @@ def main():
     matpt_filename = cfg["materialpoint_filename"]
     plot_to_check = cfg["plot_to_check"]
     CFL = cfg["CFL"]
-    # Particle (mass) density: per body ("density" inside the body block)
-    # overriding the top-level "density". Distinct from any material
-    # parameter named density (e.g. Johnson-Cook rho0).
     density = cfg.get("density", None)
 
-    # user choice: "ascii" or "hdf5"
-    output_format = cfg.get("output_format", "hdf5").lower()
+    build_with_hdf = cfg.get("build_with_hdf", None)
+    output_format = cfg.get("output_format", None)
+    if output_format is None:
+        output_format = "hdf5" if (build_with_hdf is None or build_with_hdf) else "ascii"
+    output_format = output_format.lower()
+    if build_with_hdf is not None and output_format != ("hdf5" if build_with_hdf else "ascii"):
+        die(f"output_format '{output_format}' contradicts build_with_hdf={build_with_hdf}: "
+            f"a USE_HDF5={'TRUE' if build_with_hdf else 'FALSE'} build reads only "
+            f"{'.h5' if build_with_hdf else '.dat'} particle files")
     ext = os.path.splitext(matpt_filename)[1].lower()
     if (output_format == "hdf5" and ext != ".h5") or (output_format == "ascii" and ext != ".dat"):
         die(f"output_format '{output_format}' does not match materialpoint_filename "
@@ -1245,6 +1249,19 @@ def main():
             "initial_velocity": cfg["initial_velocity"],
             "temperature": cfg["temperature"],
         }]
+
+    use_temp = cfg.get("use_temp", None)
+    if use_temp is None:
+        use_temp = any(b["temperature"].get("enabled", False) for b in bodies)
+    for bi, body in enumerate(bodies):
+        en = body["temperature"].get("enabled", False)
+        if use_temp and not en:
+            die(f"body {bi}: use_temp is true (USE_TEMP build) but this body has "
+                f"temperature.enabled=false; every body must provide T, spheat, "
+                f"thermcond and heatsrc")
+        if not use_temp and en:
+            die(f"body {bi}: temperature.enabled=true but use_temp is false "
+                f"(non-USE_TEMP build); the thermal values could never be used")
 
     # One material per body; material id == body index.
     for bi, body in enumerate(bodies):
@@ -1283,7 +1300,7 @@ def main():
             shape_cfg = body["shape"]
             vel_cfg = body["initial_velocity"]
             temp_cfg = body["temperature"]
-            enable_temperature = temp_cfg.get("enabled", False)
+            enable_temperature = use_temp   # schema is uniform across bodies
 
             # Velocity function
             if vel_cfg["type"] == "uniform":
@@ -1370,7 +1387,7 @@ def main():
         stress_update_scheme=stress_update_scheme,
         output_tag=output_tag,
         materials=materials,
-        enable_temperature=bodies[0]["temperature"]["enabled"],
+        enable_temperature=use_temp,
         particle_filename=particle_file,
         out_filename=input_filename,
         autogen=autogen,
