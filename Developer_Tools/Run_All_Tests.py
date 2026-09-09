@@ -273,7 +273,7 @@ def Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg):
         print(f"\n--- Case: dim={dim}, npcx={npcx}, ord={order}, flip={flip}, sus={sus}, CFL={cfl} Built with HDF={bwh}, Output format={of}, MPI={use_mpi}, CUDA={use_cuda}, HIP={use_hip}, OMP={use_omp}, SYCL={use_sycl}, EB={use_eb}, TEMP={use_temp}, Build System={build_system}")
 
         # Build auto-tag
-        desc = f"{test_name}_dim{dim}_npcx{npcx}_ord{order}_flip{flip}_sus{sus}_CFL{cfl}_USEHDF{bwh}_OFORM{of}_MPI={use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
+        desc = f"{test_name}_dim{dim}_npcx{npcx}_ord{order}_flip{flip}_sus{sus}_CFL{cfl}_USEHDF{bwh}_OFORM{of}_MPI_{use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
         output_tag = make_auto_tag_from_params(desc)
 
         # 1. Load template config
@@ -376,8 +376,7 @@ def Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg):
 
         # Generate inputs
         run_cmd(
-            f'"{_PYTHON}" ./PreProcess/Generate_MPs_Inputfile_Generic.py'
-            f' --config ./PreProcess/config.json',
+            f'bash Generate_MPs_and_InputFiles.sh',
             cwd=test_dir,
         )
         
@@ -501,7 +500,7 @@ def Run_ParameterSweep_1D_HeatConduction(cfg):
         print(f"\n--- Case: npcx={npcx}, ord={order}, sus={sus} , MPI={use_mpi}, CUDA={use_cuda}, HIP={use_hip}, OMP={use_omp}, SYCL={use_sycl}, EB={use_eb}, TEMP={use_temp}, Build System={build_system}")
 
         # Build auto-tag
-        desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI={use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
+        desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI_{use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
         output_tag = make_auto_tag_from_params(desc)
 
         # 1. Load template config
@@ -603,8 +602,7 @@ def Run_ParameterSweep_1D_HeatConduction(cfg):
 
         # Generate inputs
         run_cmd(
-            f'"{_PYTHON}" ./PreProcess/Generate_MPs_Inputfile_Generic.py'
-            f' --config ./PreProcess/config.json',
+            f'bash Generate_MPs_and_InputFiles.sh',
             cwd=test_dir,
         )
         
@@ -705,7 +703,7 @@ def Run_ParameterSweep_1D_HeatConduction_HeatFlux(cfg):
         print(f"\n--- Case: npcx={npcx}, ord={order}, sus={sus} , MPI={use_mpi}, CUDA={use_cuda}, HIP={use_hip}, OMP={use_omp}, SYCL={use_sycl}, EB={use_eb}, TEMP={use_temp}, Build System={build_system}")
 
         # Build auto-tag
-        desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI={use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
+        desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI_{use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
         output_tag = make_auto_tag_from_params(desc)
 
         # 1. Load template config
@@ -806,9 +804,9 @@ def Run_ParameterSweep_1D_HeatConduction_HeatFlux(cfg):
             sys.exit(1)
 
         # Generate inputs
+        
         run_cmd(
-            f'"{_PYTHON}" ./PreProcess/Generate_MPs_Inputfile_Generic.py'
-            f' --config ./PreProcess/config.json',
+            f'bash Generate_MPs_and_InputFiles.sh',
             cwd=test_dir,
         )
         
@@ -912,7 +910,7 @@ def Run_ParameterSweep_1D_HeatConduction_Convective(cfg):
         print(f"\n--- Case: npcx={npcx}, ord={order}, sus={sus}  , MPI={use_mpi}, CUDA={use_cuda}, HIP={use_hip}, OMP={use_omp}, SYCL={use_sycl}, EB={use_eb}, TEMP={use_temp}, Build System={build_system}")
 
         # Build auto-tag
-        desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI={use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
+        desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI_{use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
         output_tag = make_auto_tag_from_params(desc)
 
         # 1. Load template config
@@ -1014,8 +1012,7 @@ def Run_ParameterSweep_1D_HeatConduction_Convective(cfg):
 
         # Generate inputs
         run_cmd(
-            f'"{_PYTHON}" ./PreProcess/Generate_MPs_Inputfile_Generic.py'
-            f' --config ./PreProcess/config.json',
+            f'bash Generate_MPs_and_InputFiles.sh',
             cwd=test_dir,
         )
         
@@ -1119,7 +1116,7 @@ def Run_ParameterSweep_2D_HeatConduction(cfg):
         print(f"\n--- Case: npcx={npcx}, ord={order}, sus={sus} , MPI={use_mpi}, CUDA={use_cuda}, HIP={use_hip}, OMP={use_omp}, SYCL={use_sycl}, EB={use_eb}, TEMP={use_temp}, Build System={build_system}")
 
         # Build auto-tag
-        desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI={use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
+        desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI_{use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
         output_tag = make_auto_tag_from_params(desc)
         
         
@@ -1221,8 +1218,7 @@ def Run_ParameterSweep_2D_HeatConduction(cfg):
 
         # Generate inputs
         run_cmd(
-            f'"{_PYTHON}" ./PreProcess/Generate_MPs_Inputfile_Generic.py'
-            f' --config ./PreProcess/config.json',
+            f'bash Generate_MPs_and_InputFiles.sh',
             cwd=test_dir,
         )
         
@@ -1331,7 +1327,7 @@ def Run_ParameterSweep_2D_HeatConduction_Cylinder_Dirichlet(cfg):
         print(f"\n--- Case: npcx={npcx}, ord={order}, sus={sus} , MPI={use_mpi}, CUDA={use_cuda}, HIP={use_hip}, OMP={use_omp}, SYCL={use_sycl}, EB={use_eb}, TEMP={use_temp}, Build System={build_system}")
 
         # Build auto-tag
-        desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI={use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
+        desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI_{use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
         output_tag = make_auto_tag_from_params(desc)
         
         
@@ -1434,8 +1430,7 @@ def Run_ParameterSweep_2D_HeatConduction_Cylinder_Dirichlet(cfg):
 
         # Generate inputs
         run_cmd(
-            f'"{_PYTHON}" ./PreProcess/Generate_MPs_Inputfile_Generic.py'
-            f' --config ./PreProcess/config.json',
+            f'bash Generate_MPs_and_InputFiles.sh',
             cwd=test_dir,
         )
         
@@ -1538,7 +1533,7 @@ def Run_ParameterSweep_Dambreak(cfg):
         print(f"\n--- Case:  npcx={npcx}, ord={order}, sus={sus} , MPI={use_mpi}, CUDA={use_cuda}, HIP={use_hip}, OMP={use_omp}, SYCL={use_sycl}, EB={use_eb}, TEMP={use_temp}, Build System={build_system}")
 
         # Build auto-tag
-        desc = f"{test_name}__dim{dim}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI={use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
+        desc = f"{test_name}__dim{dim}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI_{use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
         output_tag = make_auto_tag_from_params(desc)
 
         # Update generator script
@@ -1642,8 +1637,7 @@ def Run_ParameterSweep_Dambreak(cfg):
 
         # Generate inputs
         run_cmd(
-            f'"{_PYTHON}" ./PreProcess/Generate_MPs_Inputfile_Generic.py'
-            f' --config ./PreProcess/config.json',
+            f'bash Generate_MPs_and_InputFiles.sh',
             cwd=test_dir,
         )
         
@@ -1745,7 +1739,7 @@ def Run_ParameterSweep_EDC(cfg):
         print(f"\n--- Case:  npcx={npcx}, ord={order}, sus={sus} , MPI={use_mpi}, CUDA={use_cuda}, HIP={use_hip}, OMP={use_omp}, SYCL={use_sycl}, EB={use_eb}, TEMP={use_temp}, Build System={build_system}")
 
         # Build auto-tag
-        desc = f"{test_name}__dim{dim}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI={use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
+        desc = f"{test_name}__dim{dim}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI_{use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
         output_tag = make_auto_tag_from_params(desc)
 
         # Update generator script
@@ -1774,7 +1768,7 @@ def Run_ParameterSweep_EDC(cfg):
         config["use_temp"] = use_temp
         # Auto-tag       
         config["output_tag"] = output_tag
-        config["density"] = 997.0
+        config["density"] = 1000.0  # Sulsky disk benchmark: E=1000, nu=0.3, rho=1000
 
         # 3. Write updated config.json
         with open(os.path.join(test_dir, "./PreProcess/config.json"), "w") as f:
@@ -1847,10 +1841,9 @@ def Run_ParameterSweep_EDC(cfg):
 
         # Generate inputs
         run_cmd(
-            f'"{_PYTHON}" ./PreProcess/Generate_MPs_Inputfile_Generic.py'
-            f' --config ./PreProcess/config.json',
+            f'bash Generate_MPs_and_InputFiles.sh',
             cwd=test_dir,
-        )       
+        )      
         
         if(just_compile_dont_run==False):
             if(use_mpi and use_cuda):
@@ -2843,7 +2836,7 @@ def _run_parameter_sweeps():
 
         if test_name == "1D_Axial_Bar_Vibration":
             print('Nothing to do')
-            #Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg)
+            Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg)
         elif test_name == "1D_Heat_Conduction":
             print('Nothing to do')
             Run_ParameterSweep_1D_HeatConduction(cfg)
@@ -2861,10 +2854,10 @@ def _run_parameter_sweeps():
             Run_ParameterSweep_2D_HeatConduction_Cylinder_Dirichlet(cfg)
         elif test_name == "Dam_Break":
             print('Nothing to do')
-            #Run_ParameterSweep_Dambreak(cfg)
+            Run_ParameterSweep_Dambreak(cfg)
         elif test_name == "Elastic_disk_collision":
             print('Nothing to do')
-            #Run_ParameterSweep_EDC(cfg)
+            Run_ParameterSweep_EDC(cfg)
 
     # Save results
     _sweep_results_path = os.path.join(ROOT, "sweep_results.json")

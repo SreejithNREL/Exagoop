@@ -7,7 +7,10 @@
 #include <AMReX_GpuContainers.H>
 #include <constants.H>
 #include <mpm_udf_loader.H>
+#include <constitutive_models.H>
 // clang-format on
+
+constexpr int MPM_PARTICLE_FILE_FORMAT_VERSION = 2;
 
 typedef void (*WallVelUDFFuncPtr)(double, double, double, double, double *);
 typedef void (*TempUDFFuncPtr)(double, double, double, double, double *);
@@ -27,7 +30,8 @@ struct realData
         zvel_prime = 6,
         // For stress, strain and strainrate variables, we have 6 components
         // irrespective of AMREX_SPACEDIM. in 1D we use only the first
-        // component, in 2D we use only the first 3 components etc.
+        // component, in 2D we use only the first 3 components and for 3D all
+        // variables are used
         strainrate = 7, // 4
         strain = 13,    // 10
         stress = 19,    // 16
@@ -38,28 +42,26 @@ struct realData
         mass = 35,                 // 32
         density = 36,              // 33
         jacobian = 37,             // 34
-        pressure = 38,             // 35
-        vol_init = 39,             // 36
-        E = 40,                    // 37
-        nu = 41,                   // 38
-        Bulk_modulus = 42,         // 39
-        Gama_pressure = 43,        // 40
-        Dynamic_viscosity = 44,    // 41
-        yacceleration =
-            45, // 45	This is for storing the acceleration of each particle in
-                // the y-direction. This variable is not generic and used only
-                // for the spring-mass and membrane simulations only
+        vol_init = 38,             // 36
 #if USE_TEMP
-        temperature = 46,
-        specific_heat = 47,        // specific heat used in temperature equation
-        thermal_conductivity = 48, // For now, treated as a scalar
-        heat_flux = 49,            // AMREX_SPACEDIM size
-        heat_source = 52,          // Used in the temperature equation
+        temperature,          // follows vol_init
+        specific_heat,        // specific heat used in temperature equation
+        thermal_conductivity, // treated as a scalar
+        heat_flux,            // AMREX_SPACEDIM size (reserves 3 slots)
+        heat_source = heat_flux + 3, // Used in the temperature equation
 #endif
-        count
-
+        isv,
+        count = isv + EXAGOOP_NISV
     };
 };
+
+// realData index of per-model internal-state-variable slot k (k from
+// Fluid_ISV / JC_ISV / ...). Takes an int so that mixing the two anonymous
+// enums does not trigger C++20's deprecated enum-enum arithmetic.
+constexpr int isv_slot(int k)
+{
+    return realData::isv + k;
+}
 
 struct intData
 {
@@ -67,10 +69,58 @@ struct intData
     {
         phase = 0,
         rigid_body_id,
-        constitutive_model,
+        material_indx, // index into the material table (mpm.material_<id>)
         count
     };
 };
+
+inline amrex::Vector<std::string> realData_names()
+{
+    amrex::Vector<std::string> n;
+    n.push_back("radius");
+    n.push_back("xvel");
+    n.push_back("yvel");
+    n.push_back("zvel");
+    n.push_back("xvel_prime");
+    n.push_back("yvel_prime");
+    n.push_back("zvel_prime");
+    for (int c = 0; c < NCOMP_TENSOR; ++c)
+        n.push_back(amrex::Concatenate("strainrate_", c, 1));
+    for (int c = 0; c < NCOMP_TENSOR; ++c)
+        n.push_back(amrex::Concatenate("strain_", c, 1));
+    for (int c = 0; c < NCOMP_TENSOR; ++c)
+        n.push_back(amrex::Concatenate("stress_", c, 1));
+    for (int c = 0; c < NCOMP_FULLTENSOR; ++c)
+        n.push_back(amrex::Concatenate("deformation_gradient_", c, 1));
+    n.push_back("volume");
+    n.push_back("mass");
+    n.push_back("density");
+    n.push_back("jacobian");
+    n.push_back("vol_init");
+#if USE_TEMP
+    n.push_back("temperature");
+    n.push_back("specific_heat");
+    n.push_back("thermal_conductivity");
+    for (int d = 0; d < 3; ++d)
+        n.push_back(amrex::Concatenate("heat_flux_", d, 1));
+    n.push_back("heat_source");
+#endif
+    for (int s = 0; s < EXAGOOP_NISV; ++s)
+        n.push_back(amrex::Concatenate("isv_", s, 1));
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        static_cast<int>(n.size()) == realData::count,
+        "realData_names() out of sync with realData enum");
+    return n;
+}
+
+inline amrex::Vector<std::string> intData_names()
+{
+    amrex::Vector<std::string> n = {"phase", "rigid_body_id", "material_indx"};
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        static_cast<int>(n.size()) == intData::count,
+        "intData_names() out of sync with intData enum");
+    return n;
+}
 
 class MPMspecs
 {
@@ -192,12 +242,7 @@ class MPMspecs
     Vector<Real> autogen_vel;
     int autogen_multi_part_per_cell = 1;
     Real autogen_dens = 1000.0;
-    int autogen_constmodel = 1;
-    Real autogen_E = 1e9;
-    Real autogen_nu = 0.1;
-    Real autogen_bulkmod = 0.0;
-    Real autogen_Gama_pres = 1.4;
-    Real autogen_visc = 0.001;
+
     Vector<int> autogen_ppc;
 
     Real autogen_T = 0.001;
@@ -310,13 +355,7 @@ class MPMspecs
             pp.get("mincoords_autogen", autogen_mincoords);
             pp.get("maxcoords_autogen", autogen_maxcoords);
             pp.getarr("vel_autogen", autogen_vel);
-            pp.query("constmodel_autogen", autogen_constmodel);
             pp.query("dens_autogen", autogen_dens);
-            pp.query("E_autogen", autogen_E);
-            pp.query("nu_autogen", autogen_nu);
-            pp.query("bulkmod_autogen", autogen_bulkmod);
-            pp.query("Gama_pres_autogen", autogen_Gama_pres);
-            pp.query("visc_autogen", autogen_visc);
             pp.queryarr("ppc", autogen_ppc);
 #if USE_TEMP
             pp.query("T_autogen", autogen_T);

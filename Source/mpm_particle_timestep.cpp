@@ -47,6 +47,8 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
     const Geometry &geom = Geom(lev);
     const auto dx = geom.CellSizeArray();
 
+    const MaterialParams *mat = m_device_material_table.dataPtr();
+
     using PType = typename MPMParticleContainer::SuperParticleType;
     amrex::Real dt = amrex::ReduceMin(
         *this,
@@ -55,21 +57,30 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
             if (p.idata(intData::phase) == 0)
             {
                 amrex::Real Cs = 0.0;
-                if (p.idata(intData::constitutive_model) == 1)
+                const int matrl_idx = p.idata(intData::material_indx);
+                if (mat[matrl_idx].model == ConstitutiveModel::FLUID)
                 {
-                    Cs = std::sqrt(p.rdata(realData::Bulk_modulus) /
+                    Cs = std::sqrt(mat[matrl_idx].p[FluidP::bulk] /
                                    p.rdata(realData::density));
                 }
-                else if (p.idata(intData::constitutive_model) == 0 or
-                         p.idata(intData::constitutive_model) == 2)
+                else if (mat[matrl_idx].model == ConstitutiveModel::ELASTIC)
                 {
-
-                    amrex::Real lambda = p.rdata(realData::E) *
-                                         p.rdata(realData::nu) /
-                                         ((1 + p.rdata(realData::nu)) *
-                                          (1 - 2.0 * p.rdata(realData::nu)));
-                    amrex::Real mu = p.rdata(realData::E) /
-                                     (2.0 * (1 + p.rdata(realData::nu)));
+                    const amrex::Real Emod = mat[matrl_idx].p[ElasticP::E];
+                    const amrex::Real nu = mat[matrl_idx].p[ElasticP::nu];
+                    amrex::Real lambda =
+                        Emod * nu / ((1 + nu) * (1 - 2.0 * nu));
+                    amrex::Real mu = Emod / (2.0 * (1 + nu));
+                    Cs = std::sqrt((lambda + 2.0 * mu) /
+                                   p.rdata(realData::density));
+                }
+                else if (mat[matrl_idx].model == ConstitutiveModel::NEOHOOKEAN)
+                {
+                    // small-strain wave speed as the CFL estimate
+                    const amrex::Real Emod = mat[matrl_idx].p[NeoHookeanP::E];
+                    const amrex::Real nu = mat[matrl_idx].p[NeoHookeanP::nu];
+                    amrex::Real lambda =
+                        Emod * nu / ((1 + nu) * (1 - 2.0 * nu));
+                    amrex::Real mu = Emod / (2.0 * (1 + nu));
                     Cs = std::sqrt((lambda + 2.0 * mu) /
                                    p.rdata(realData::density));
                 }

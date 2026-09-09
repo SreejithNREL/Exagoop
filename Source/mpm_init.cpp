@@ -473,6 +473,12 @@ void Initialise_Material_Points(MPMspecs &specs,
                                 amrex::Real &time,
                                 int &output_it)
 {
+    // The material table is the single source of truth for constitutive models
+    // and parameters. It is built once and for all from the input file
+    // (mpm.num_materials, mpm.material_<id>.*) before any particle is created,
+    // read, or restored; particles only carry material_indx.
+    mpm_pc.build_material_table_from_input();
+
     if (!specs.restart_checkfile.empty())
     {
         std::string msg =
@@ -534,13 +540,14 @@ void Initialise_Material_Points(MPMspecs &specs,
         std::string msg = "\n Acquiring particle data (using autogen)";
         PrintMessage(msg, print_length, true);
 
+        if (mpm_pc.num_materials() != 1)
+            amrex::Abort("autogen supports a single material; set "
+                         "mpm.num_materials = 1");
+
         auto io_time_start = amrex::second();
         mpm_pc.InitParticles(specs.autogen_mincoords, specs.autogen_maxcoords,
                              specs.autogen_vel.data(), specs.autogen_ppc.data(),
-                             specs.autogen_dens, specs.autogen_constmodel,
-                             specs.autogen_E, specs.autogen_nu,
-                             specs.autogen_bulkmod, specs.autogen_Gama_pres,
-                             specs.autogen_visc,
+                             specs.autogen_dens, /*material_id=*/0,
 #if USE_TEMP
                              specs.autogen_T, specs.autogen_thermcond,
                              specs.autogen_cp, specs.autogen_heatsrc,
@@ -561,6 +568,8 @@ void Initialise_Material_Points(MPMspecs &specs,
     }
 #endif
 
+    mpm_pc.validate_material_indices();
+
     mpm_pc.RedistributeLocal();
     mpm_pc.fillNeighbors();
 }
@@ -569,12 +578,19 @@ void Initialise_Material_Points(MPMspecs &specs,
 /**
  * @brief Initializes particles by reading from an HDF5 particle file.
  *
- * Requires the code to be compiled with @c AMREX_USE_HDF5. The HDF5 file
- * must contain per‑particle datasets for position, radius, density, velocity,
- * constitutive model parameters, deformation gradient, strain, stress, and
- * (if @c USE_TEMP is enabled) thermal fields. Particles are read on the IO
- * processor, assembled into host vectors, and then redistributed across MPI
- * ranks using chunked Redistribute() calls.
+ * Requires the code to be compiled with @c AMREX_USE_HDF5.
+ *
+ * File format (version MPM_PARTICLE_FILE_FORMAT_VERSION = 2), all datasets
+ * at the root group:
+ *   - scalars: @c dim (int), @c number_of_material_points (long),
+ *              @c format_version (int, must equal 2)
+ *   - per-particle (length N): @c phase, @c x [, @c y [, @c z]], @c radius,
+ *     @c density, @c vx [, @c vy [, @c vz]], @c material_id, and for a
+ *     @c USE_TEMP build @c T, @c spheat, @c thermcond, @c heatsrc.
+ * @c material_id indexes the mpm.material_<id> table from the input file; no
+ * material parameters are stored per particle. Files without
+ * @c format_version (v1) are refused. Each rank reads a contiguous hyperslab
+ * of the particle datasets.
  *
  * @param[in]  filename              Path to the HDF5 particle file.
  * @param[out] total_mass            Total mass of MPM (phase=0) particles.
@@ -645,6 +661,34 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
         H5Dclose(dset);
     }
 
+    {
+        H5E_auto2_t old_func;
+        void *old_data;
+        H5Eget_auto2(H5E_DEFAULT, &old_func, &old_data);
+        H5Eset_auto2(H5E_DEFAULT, nullptr, nullptr);
+        hid_t dset = H5Dopen(file_id, "format_version", H5P_DEFAULT);
+        H5Eset_auto2(H5E_DEFAULT, old_func, old_data);
+        if (dset < 0)
+        {
+            amrex::Abort(filename +
+                         ": no 'format_version' dataset. This looks "
+                         "like a legacy (v1) particle file with per-particle "
+                         "material parameters; regenerate it with the current "
+                         "preprocessor.");
+        }
+        int file_version = -1;
+        H5Dread(dset, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,
+                &file_version);
+        H5Dclose(dset);
+        if (file_version != MPM_PARTICLE_FILE_FORMAT_VERSION)
+        {
+            amrex::Abort(filename + ": unsupported format_version " +
+                         std::to_string(file_version) + " (expected " +
+                         std::to_string(MPM_PARTICLE_FILE_FORMAT_VERSION) +
+                         ")");
+        }
+    }
+
     if (ParallelDescriptor::IOProcessor())
     {
         std::string msg = FormatParticleCount(npart);
@@ -699,8 +743,8 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
         H5Dclose(dset);
     };
 
-    amrex::Vector<amrex::Real> x, y, z, vx, vy, vz, radius, density, cm_id,
-        phase;
+    amrex::Vector<amrex::Real> x, y, z, vx, vy, vz, radius, density,
+        material_id, phase;
 
     read_dset("phase", phase);
     read_dset("x", x);
@@ -717,35 +761,15 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
 
     read_dset("radius", radius);
     read_dset("density", density);
-    read_dset("cm_id", cm_id);
+    read_dset("material_id", material_id);
 
-    std::vector<std::string> extra_fields;
-    {
-        hid_t root = H5Gopen(file_id, "/", H5P_DEFAULT);
-        hsize_t nobj;
-        H5Gget_num_objs(root, &nobj);
-
-        for (hsize_t i = 0; i < nobj; ++i)
-        {
-            char name[256];
-            H5Gget_objname_by_idx(root, i, name, sizeof(name));
-            std::string s(name);
-
-            if (s != "x" && s != "y" && s != "z" && s != "vx" && s != "vy" &&
-                s != "vz" && s != "radius" && s != "density" && s != "cm_id" &&
-                s != "dim" && s != "number_of_material_points")
-            {
-                extra_fields.push_back(s);
-            }
-        }
-        H5Gclose(root);
-    }
-
-    std::map<std::string, amrex::Vector<amrex::Real>> extra_data;
-    for (auto &f : extra_fields)
-    {
-        read_dset(f.c_str(), extra_data[f]);
-    }
+#if USE_TEMP
+    amrex::Vector<amrex::Real> T, spheat, thermcond, heatsrc;
+    read_dset("T", T);
+    read_dset("spheat", spheat);
+    read_dset("thermcond", thermcond);
+    read_dset("heatsrc", heatsrc);
+#endif
 
     H5Fclose(file_id);
 
@@ -791,47 +815,14 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
         if (dim == 3)
             p.rdata(realData::xvel + 2) = vz[local_i];
 
-        p.idata(intData::constitutive_model) = static_cast<int>(cm_id[local_i]);
-
-        if (cm_id[local_i] == 0)
-        {
-            p.rdata(realData::E) = extra_data.at("E")[local_i];
-            p.rdata(realData::nu) = extra_data.at("nu")[local_i];
-            p.rdata(realData::Bulk_modulus) = 0.0;
-            p.rdata(realData::Gama_pressure) = 0.0;
-            p.rdata(realData::Dynamic_viscosity) = 0.0;
-        }
-        else if (cm_id[local_i] == 1)
-        {
-            p.rdata(realData::E) = 0.0;
-            p.rdata(realData::nu) = 0.0;
-            p.rdata(realData::Bulk_modulus) =
-                extra_data.at("Bulk_modulus")[local_i];
-            p.rdata(realData::Gama_pressure) =
-                extra_data.at("Gamma_pressure")[local_i];
-            p.rdata(realData::Dynamic_viscosity) =
-                extra_data.at("Dynamic_viscosity")[local_i];
-        }
-        else if (cm_id[local_i] == 2)
-        {
-            p.rdata(realData::E) = extra_data.at("E")[local_i];
-            p.rdata(realData::nu) = extra_data.at("nu")[local_i];
-            p.rdata(realData::Bulk_modulus) = 0.0;
-            p.rdata(realData::Gama_pressure) = 0.0;
-            p.rdata(realData::Dynamic_viscosity) = 0.0;
-        }
-        else
-        {
-            amrex::Abort("\nUnknown constitutive model encountered in "
-                         "InitParticlesFromHDF5.\n");
-        }
+        p.idata(intData::material_indx) =
+            static_cast<int>(material_id[local_i]);
 
 #if USE_TEMP
-        p.rdata(realData::temperature) = extra_data.at("T")[local_i];
-        p.rdata(realData::specific_heat) = extra_data.at("spheat")[local_i];
-        p.rdata(realData::thermal_conductivity) =
-            extra_data.at("thermcond")[local_i];
-        p.rdata(realData::heat_source) = extra_data.at("heatsrc")[local_i];
+        p.rdata(realData::temperature) = T[local_i];
+        p.rdata(realData::specific_heat) = spheat[local_i];
+        p.rdata(realData::thermal_conductivity) = thermcond[local_i];
+        p.rdata(realData::heat_source) = heatsrc[local_i];
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
             p.rdata(realData::heat_flux + d) = 0.0;
 #endif
@@ -854,7 +845,7 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
 
         p.rdata(realData::jacobian) = 1.0;
         p.rdata(realData::vol_init) = p.rdata(realData::volume);
-        p.rdata(realData::pressure) = 0.0;
+        p.rdata(isv_slot(Fluid_ISV::pressure)) = 0.0;
 
         for (int comp = 0; comp < NCOMP_FULLTENSOR; ++comp)
             p.rdata(realData::deformation_gradient + comp) = 0.0;
@@ -870,6 +861,9 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
             p.rdata(realData::strain + comp) = 0.0;
             p.rdata(realData::stress + comp) = 0.0;
         }
+
+        for (int s = 0; s < EXAGOOP_NISV; ++s)
+            p.rdata(realData::isv + s) = 0.0;
 
         host_particles.push_back(p);
 
@@ -923,10 +917,18 @@ inline void safe_read(std::istream &is, T &val, const char *msg)
  * immediately inserted into the AMReX particle tile and Redistribute() is
  * called to spread them across MPI ranks, keeping peak memory usage bounded.
  *
- * The file format is the same as the legacy reader: a @c '#' header line
- * followed by per‑particle lines encoding phase, rigid‑body ID, position,
- * radius, density, velocity, constitutive model parameters, and (if
- * @c USE_TEMP is active) thermal fields.
+ * File format (version MPM_PARTICLE_FILE_FORMAT_VERSION = 2):
+ * @code
+ *   dim: <1|2|3>
+ *   number_of_material_points: <N>
+ *   format_version: 2
+ *   # <column names, free text>
+ *   phase x [y [z]] radius density vx [vy [vz]] material_id [T cp k heatsrc]
+ *   ...
+ * @endcode
+ * The thermal columns are present only when the file was generated for a
+ * @c USE_TEMP build. @c material_id indexes the mpm.material_<id> table
+ * from the input file; no material parameters are stored per particle.
  *
  * @param[in]  filename              Path to the ASCII particle file.
  * @param[out] total_mass            Accumulated mass of MPM (phase=0)
@@ -988,13 +990,33 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
             amrex::Abort("Invalid number_of_material_points");
         }
 
+        std::string label3;
+        int file_version = -1;
+        safe_read(ifs, label3, "Error reading 'format_version:'");
+        if (label3 != "format_version:")
+        {
+            amrex::Abort(filename +
+                         ": expected 'format_version:' at line 3. "
+                         "This looks like a legacy (v1) particle file with "
+                         "per-particle material parameters; regenerate it "
+                         "with the current preprocessor.");
+        }
+        safe_read(ifs, file_version, "Error reading format_version");
+        if (file_version != MPM_PARTICLE_FILE_FORMAT_VERSION)
+        {
+            amrex::Abort(filename + ": unsupported format_version " +
+                         std::to_string(file_version) + " (expected " +
+                         std::to_string(MPM_PARTICLE_FILE_FORMAT_VERSION) +
+                         ")");
+        }
+
         std::string header_line;
-        std::getline(ifs, header_line); // finish line 2
-        std::getline(ifs, header_line); // read line 3
+        std::getline(ifs, header_line); // finish line 3
+        std::getline(ifs, header_line); // read line 4 (column names)
 
         if (header_line.empty() || header_line[0] != '#')
         {
-            amrex::Abort("Expected header line beginning with '#'");
+            amrex::Abort("Expected column-name header line beginning with '#'");
         }
 
         total_mass = 0.0;
@@ -1055,44 +1077,9 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
                           "Error reading velocity");
             }
 
-            // constitutive model
-            safe_read(ifs, p.idata(intData::constitutive_model),
-                      "Error reading constitutive_model");
-
-            if (p.idata(intData::constitutive_model) == 0)
-            {
-                safe_read(ifs, p.rdata(realData::E), "Error reading E");
-                safe_read(ifs, p.rdata(realData::nu), "Error reading nu");
-                p.rdata(realData::Bulk_modulus) = 0.0;
-                p.rdata(realData::Gama_pressure) = 0.0;
-                p.rdata(realData::Dynamic_viscosity) = 0.0;
-            }
-            else if (p.idata(intData::constitutive_model) == 1)
-            {
-                p.rdata(realData::E) = 0.0;
-                p.rdata(realData::nu) = 0.0;
-                safe_read(ifs, p.rdata(realData::Bulk_modulus),
-                          "Error reading Bulk_modulus");
-                safe_read(ifs, p.rdata(realData::Gama_pressure),
-                          "Error reading Gama_pressure");
-                safe_read(ifs, p.rdata(realData::Dynamic_viscosity),
-                          "Error reading Dynamic_viscosity");
-            }
-            else if (p.idata(intData::constitutive_model) == 2)
-            {
-                safe_read(ifs, p.rdata(realData::E), "Error reading E");
-                safe_read(ifs, p.rdata(realData::nu), "Error reading nu");
-                p.rdata(realData::Bulk_modulus) = 0.0;
-                p.rdata(realData::Gama_pressure) = 0.0;
-                p.rdata(realData::Dynamic_viscosity) = 0.0;
-            }
-            else
-            {
-                amrex::Print() << "Error: Constitutive model ID "
-                               << p.idata(intData::constitutive_model)
-                               << " is not recognized.\n";
-                amrex::Abort("Incorrect constitutive model");
-            }
+            // material id: index into the input-file material table
+            safe_read(ifs, p.idata(intData::material_indx),
+                      "Error reading material_id");
 
 #if USE_TEMP
             safe_read(ifs, p.rdata(realData::temperature),
@@ -1126,7 +1113,7 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
 
             p.rdata(realData::jacobian) = 1.0;
             p.rdata(realData::vol_init) = p.rdata(realData::volume);
-            p.rdata(realData::pressure) = 0.0;
+            p.rdata(isv_slot(Fluid_ISV::pressure)) = 0.0;
 
             // deformation gradient init
             for (int comp = 0; comp < NCOMP_FULLTENSOR; ++comp)
@@ -1144,6 +1131,9 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
                 p.rdata(realData::strain + comp) = 0.0;
                 p.rdata(realData::stress + comp) = 0.0;
             }
+
+            for (int s = 0; s < EXAGOOP_NISV; ++s)
+                p.rdata(realData::isv + s) = 0.0;
 
             host_particles.push_back(p);
         }
@@ -1203,12 +1193,7 @@ void MPMParticleContainer::InitParticles(
     amrex::Real vel[AMREX_SPACEDIM],
     int ppc[AMREX_SPACEDIM],
     amrex::Real dens,
-    int constmodel,
-    amrex::Real E,
-    amrex::Real nu,
-    amrex::Real bulkmod,
-    amrex::Real Gama_pres,
-    amrex::Real visc,
+    int material_id,
 #if USE_TEMP
     amrex::Real T,
     amrex::Real thermcond,
@@ -1304,12 +1289,11 @@ void MPMParticleContainer::InitParticles(
 
                 if (inside)
                 {
-                    ParticleType p = generate_particle(
-                        coords, vel, dens, cell_vol, constmodel, E, nu, bulkmod,
-                        Gama_pres, visc
+                    ParticleType p = generate_particle(coords, vel, dens,
+                                                       cell_vol, material_id
 #if USE_TEMP
-                        ,
-                        T, cp, thermcond, heatsrc
+                                                       ,
+                                                       T, cp, thermcond, heatsrc
 #endif
                     );
 
@@ -1350,8 +1334,7 @@ void MPMParticleContainer::InitParticles(
                                 continue;
 
                             ParticleType p = generate_particle(
-                                coords, vel, dens, vol_particle, constmodel, E,
-                                nu, bulkmod, Gama_pres, visc
+                                coords, vel, dens, vol_particle, material_id
 #if USE_TEMP
                                 ,
                                 T, cp, thermcond, heatsrc
@@ -1412,12 +1395,7 @@ MPMParticleContainer::generate_particle(amrex::Real coords[AMREX_SPACEDIM],
                                         amrex::Real vel[AMREX_SPACEDIM],
                                         amrex::Real dens,
                                         amrex::Real vol,
-                                        int constmodel,
-                                        amrex::Real E,
-                                        amrex::Real nu,
-                                        amrex::Real bulkmod,
-                                        amrex::Real Gama_pres,
-                                        amrex::Real visc
+                                        int material_idx
 #if USE_TEMP
                                         ,
                                         amrex::Real T,
@@ -1453,19 +1431,14 @@ MPMParticleContainer::generate_particle(amrex::Real coords[AMREX_SPACEDIM],
         p.rdata(realData::xvel + d) = vel[d];
     }
 
-    // Constitutive model and material properties
-    p.idata(intData::constitutive_model) = constmodel;
-    p.rdata(realData::E) = E;
-    p.rdata(realData::nu) = nu;
-    p.rdata(realData::Bulk_modulus) = bulkmod;
-    p.rdata(realData::Gama_pressure) = Gama_pres;
-    p.rdata(realData::Dynamic_viscosity) = visc;
+    // Material index into the input-file material table (autogen: always 0)
+    p.idata(intData::material_indx) = material_idx;
 
     // Volume, mass, and state variables
     p.rdata(realData::volume) = vol;
     p.rdata(realData::mass) = dens * vol;
     p.rdata(realData::jacobian) = 1.0;
-    p.rdata(realData::pressure) = 0.0;
+    p.rdata(isv_slot(Fluid_ISV::pressure)) = 0.0;
     p.rdata(realData::vol_init) = vol;
 
 #if USE_TEMP

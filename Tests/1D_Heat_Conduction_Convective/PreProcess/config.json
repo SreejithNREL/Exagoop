@@ -40,7 +40,7 @@
   "alpha_pic_flip": 1.0,
   "order_scheme": 2,
   "stress_update_scheme": "MUSL",
-  "output_tag": "1D_Heat_Conduction_Convective_npcx2_ord2_susMUSL_USEHDFTrue_OFORMhdf5_MPI=True_CUDAFalse_HIPFalse_OMPFalse_SYCLFalse_EBFalse_TEMPTrue_BuildSystemgnumake_9af11f",
+  "output_tag": "1D_Heat_Conduction_Convective_npcx2_ord2_susMUSL_USEHDFTrue_OFORMhdf5_MPI_True_CUDAFalse_HIPFalse_OMPFalse_SYCLFalse_EBFalse_TEMPTrue_BuildSystemgnumake_9af11f",
   "input_filename": "Inputs_1DHeatConduction_Convective.inp",
   "output_format": "hdf5",
   "materialpoint_filename": "mpm_particles.h5",

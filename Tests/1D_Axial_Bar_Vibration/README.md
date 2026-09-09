@@ -63,7 +63,7 @@ pip install numpy matplotlib h5py
 bash Generate_MPs_and_InputFiles.sh
 ```
 
-This runs `PreProcess/Generate_MPs_Inputfile_Generic.py --config PreProcess/config.json` and writes `mpm_particles.h5` (particle file) and the ExaGOOP `.inp` file.
+This runs `../../Tools/Preprocess/Generate_MPs_Inputfile_Generic.py --config PreProcess/config.json` and writes `mpm_particles.h5` (particle file) and the ExaGOOP `.inp` file.
 
 ### Step 2 – Build and run ExaGOOP
 

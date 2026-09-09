@@ -52,7 +52,7 @@
       },
       "constitutive_model": {
         "type": "elastic",
-        "E": 1000.0,
+        "E": 10000.0,
         "nu": 0.3
       },
       "initial_velocity": {
@@ -73,14 +73,14 @@
   "CFL": 0.1,
   "order_scheme": 1,
   "stress_update_scheme": "MUSL",
-  "output_tag": "Elastic_disk_collision__dim2_npcx4_ord1_susMUSL_USEHDFTrue_OFORMhdf5_MPI_True_CUDAFalse_HIPFalse_OMPFalse_SYCLFalse_EBFalse_TEMPFalse_BuildSystemcmake_22c3e0",
-  "input_filename": "Inputs_ElasticDiskCollision.inp",
+  "output_tag": "Elastic_disk_collision_two_materials_E1e3_E1e4",
+  "input_filename": "Inputs_ElasticDiskCollision_TwoMaterials.inp",
   "output_format": "hdf5",
-  "materialpoint_filename": "mpm_particles.h5",
+  "materialpoint_filename": "mpm_particles_two_materials.h5",
   "plot_to_check": false,
   "alpha_pic_flip": 1.0,
   "simulation": {
-    "final_time": 3.5,
+    "final_time": 2.0,
     "max_steps": 5000000,
     "screen_output_time": 0.01,
     "write_output_time": 0.1,
