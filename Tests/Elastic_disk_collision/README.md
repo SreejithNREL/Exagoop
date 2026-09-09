@@ -99,3 +99,24 @@ During each collision:
 - The TKE dips and the TSE rises simultaneously, with the sum remaining constant.
 - After separation the disks should recover close to their initial shapes (elastic rebound).
 - For the periodic domain, the disks approach each other again after travelling approximately one domain length, and the energy exchange pattern repeats.
+
+## Two-material variant (regression test for the material table)
+
+`PreProcess/config_two_materials.json` is the same collision with **different
+Young's moduli per disk**: material 0 (disk 1) $E = 1000$ Pa, material 1
+(disk 2) $E = 10000$ Pa, both $\nu = 0.3$. It exercises the generic
+constitutive-model framework: each particle carries only a `material_id`, and
+the parameters come from the `mpm.material_<id>.*` blocks of the input file
+(see `Solution/materials.txt` of the run).
+
+```bash
+./Generate_MPs_and_InputFiles_TwoMaterials.sh
+./ExaGOOP2d.gnu.MPI.ex Inputs_ElasticDiskCollision_TwoMaterials.inp
+python3 PostProcess/validate_two_materials.py
+```
+
+The validator back-solves $E$ per material from the stress/strain pairs in the
+ASCII dump (for linear elasticity $\sigma = C(E,\nu):\varepsilon$ holds exactly
+per particle) and passes only if each body reproduces its own input value to
+round-off. Visually, the soft disk takes almost all of the deformation at
+contact.
