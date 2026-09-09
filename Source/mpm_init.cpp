@@ -473,8 +473,10 @@ void Initialise_Material_Points(MPMspecs &specs,
                                 amrex::Real &time,
                                 int &output_it)
 {
-    // The material table is the single source of truth for constitutive models and parameters. It is built once and for all from the input file
-    // (mpm.num_materials, mpm.material_<id>.*) before any particle is created, read, or restored; particles only carry material_indx.
+    // The material table is the single source of truth for constitutive models
+    // and parameters. It is built once and for all from the input file
+    // (mpm.num_materials, mpm.material_<id>.*) before any particle is created,
+    // read, or restored; particles only carry material_indx.
     mpm_pc.build_material_table_from_input();
 
     if (!specs.restart_checkfile.empty())
@@ -668,7 +670,8 @@ void MPMParticleContainer::InitParticlesFromHDF5(const std::string &filename,
         H5Eset_auto2(H5E_DEFAULT, old_func, old_data);
         if (dset < 0)
         {
-            amrex::Abort(filename + ": no 'format_version' dataset. This looks "
+            amrex::Abort(filename +
+                         ": no 'format_version' dataset. This looks "
                          "like a legacy (v1) particle file with per-particle "
                          "material parameters; regenerate it with the current "
                          "preprocessor.");
@@ -992,7 +995,8 @@ void MPMParticleContainer::InitParticles(const std::string &filename,
         safe_read(ifs, label3, "Error reading 'format_version:'");
         if (label3 != "format_version:")
         {
-            amrex::Abort(filename + ": expected 'format_version:' at line 3. "
+            amrex::Abort(filename +
+                         ": expected 'format_version:' at line 3. "
                          "This looks like a legacy (v1) particle file with "
                          "per-particle material parameters; regenerate it "
                          "with the current preprocessor.");
@@ -1285,11 +1289,11 @@ void MPMParticleContainer::InitParticles(
 
                 if (inside)
                 {
-                    ParticleType p = generate_particle(
-                        coords, vel, dens, cell_vol, material_id
+                    ParticleType p = generate_particle(coords, vel, dens,
+                                                       cell_vol, material_id
 #if USE_TEMP
-                        ,
-                        T, cp, thermcond, heatsrc
+                                                       ,
+                                                       T, cp, thermcond, heatsrc
 #endif
                     );
 
@@ -1426,7 +1430,6 @@ MPMParticleContainer::generate_particle(amrex::Real coords[AMREX_SPACEDIM],
     {
         p.rdata(realData::xvel + d) = vel[d];
     }
-
 
     // Material index into the input-file material table (autogen: always 0)
     p.idata(intData::material_indx) = material_idx;

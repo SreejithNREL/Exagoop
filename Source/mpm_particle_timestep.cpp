@@ -67,7 +67,8 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
                 {
                     const amrex::Real Emod = mat[matrl_idx].p[ElasticP::E];
                     const amrex::Real nu = mat[matrl_idx].p[ElasticP::nu];
-                    amrex::Real lambda = Emod * nu / ((1 + nu) * (1 - 2.0 * nu));
+                    amrex::Real lambda =
+                        Emod * nu / ((1 + nu) * (1 - 2.0 * nu));
                     amrex::Real mu = Emod / (2.0 * (1 + nu));
                     Cs = std::sqrt((lambda + 2.0 * mu) /
                                    p.rdata(realData::density));
@@ -77,7 +78,8 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
                     // small-strain wave speed as the CFL estimate
                     const amrex::Real Emod = mat[matrl_idx].p[NeoHookeanP::E];
                     const amrex::Real nu = mat[matrl_idx].p[NeoHookeanP::nu];
-                    amrex::Real lambda = Emod * nu / ((1 + nu) * (1 - 2.0 * nu));
+                    amrex::Real lambda =
+                        Emod * nu / ((1 + nu) * (1 - 2.0 * nu));
                     amrex::Real mu = Emod / (2.0 * (1 + nu));
                     Cs = std::sqrt((lambda + 2.0 * mu) /
                                    p.rdata(realData::density));

@@ -30,7 +30,8 @@ struct realData
         zvel_prime = 6,
         // For stress, strain and strainrate variables, we have 6 components
         // irrespective of AMREX_SPACEDIM. in 1D we use only the first
-        // component, in 2D we use only the first 3 components and for 3D all variables are used
+        // component, in 2D we use only the first 3 components and for 3D all
+        // variables are used
         strainrate = 7, // 4
         strain = 13,    // 10
         stress = 19,    // 16
@@ -43,10 +44,10 @@ struct realData
         jacobian = 37,             // 34
         vol_init = 38,             // 36
 #if USE_TEMP
-        temperature,               // follows vol_init
-        specific_heat,             // specific heat used in temperature equation
-        thermal_conductivity,      // treated as a scalar
-        heat_flux,                 // AMREX_SPACEDIM size (reserves 3 slots)
+        temperature,          // follows vol_init
+        specific_heat,        // specific heat used in temperature equation
+        thermal_conductivity, // treated as a scalar
+        heat_flux,            // AMREX_SPACEDIM size (reserves 3 slots)
         heat_source = heat_flux + 3, // Used in the temperature equation
 #endif
         isv,
@@ -57,7 +58,10 @@ struct realData
 // realData index of per-model internal-state-variable slot k (k from
 // Fluid_ISV / JC_ISV / ...). Takes an int so that mixing the two anonymous
 // enums does not trigger C++20's deprecated enum-enum arithmetic.
-constexpr int isv_slot(int k) { return realData::isv + k; }
+constexpr int isv_slot(int k)
+{
+    return realData::isv + k;
+}
 
 struct intData
 {

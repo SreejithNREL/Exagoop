@@ -76,7 +76,8 @@ void MPMParticleContainer::build_material_table_from_input()
                 break;
             }
         if (info == nullptr)
-            amrex::Abort("Unknown constitutive model '" + model + "' for " + prefix);
+            amrex::Abort("Unknown constitutive model '" + model + "' for " +
+                         prefix);
 
         if (!info->kernel_implemented)
             amrex::Abort("Constitutive model '" + model + "' (" + prefix +
@@ -249,21 +250,28 @@ void MPMParticleContainer::apply_constitutive_model(
                     const MaterialParams &mp = mat[material_idx];
                     if (mp.model == ConstitutiveModel::ELASTIC)
                     {
-                        linear_elastic(strain, stress, mp.p[ElasticP::E],mp.p[ElasticP::nu]);
+                        linear_elastic(strain, stress, mp.p[ElasticP::E],
+                                       mp.p[ElasticP::nu]);
                     }
                     else if (mp.model == ConstitutiveModel::FLUID)
                     {
-                        // Weakly compressible EOS: p = K[(1/J)^gamma - 1] + p_inf
-                        amrex::Real &pres = p.rdata(isv_slot(Fluid_ISV::pressure));
+                        // Weakly compressible EOS: p = K[(1/J)^gamma - 1] +
+                        // p_inf
+                        amrex::Real &pres =
+                            p.rdata(isv_slot(Fluid_ISV::pressure));
                         pres = mp.p[FluidP::bulk] *
                                    (std::pow(1.0 / p.rdata(realData::jacobian),
-                                             mp.p[FluidP::gama]) - 1.0) +
+                                             mp.p[FluidP::gama]) -
+                                    1.0) +
                                mp.p[FluidP::p_inf];
-                        Newtonian_Fluid(strainrate, stress, mp.p[FluidP::visc], pres);
+                        Newtonian_Fluid(strainrate, stress, mp.p[FluidP::visc],
+                                        pres);
                     }
                     else if (mp.model == ConstitutiveModel::NEOHOOKEAN)
                     {
-                        neo_hookean(stress, deformation_gradient, mp.p[NeoHookeanP::E], mp.p[NeoHookeanP::nu]);
+                        neo_hookean(stress, deformation_gradient,
+                                    mp.p[NeoHookeanP::E],
+                                    mp.p[NeoHookeanP::nu]);
                     }
                     else
                     {
