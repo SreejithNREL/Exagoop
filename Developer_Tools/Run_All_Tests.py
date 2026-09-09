@@ -273,7 +273,7 @@ def Run_ParameterSweep_1D_Axial_Bar_Vibration(cfg):
         print(f"\n--- Case: dim={dim}, npcx={npcx}, ord={order}, flip={flip}, sus={sus}, CFL={cfl} Built with HDF={bwh}, Output format={of}, MPI={use_mpi}, CUDA={use_cuda}, HIP={use_hip}, OMP={use_omp}, SYCL={use_sycl}, EB={use_eb}, TEMP={use_temp}, Build System={build_system}")
 
         # Build auto-tag
-        desc = f"{test_name}_dim{dim}_npcx{npcx}_ord{order}_flip{flip}_sus{sus}_CFL{cfl}_USEHDF{bwh}_OFORM{of}_MPI={use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
+        desc = f"{test_name}_dim{dim}_npcx{npcx}_ord{order}_flip{flip}_sus{sus}_CFL{cfl}_USEHDF{bwh}_OFORM{of}_MPI_{use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
         output_tag = make_auto_tag_from_params(desc)
 
         # 1. Load template config
@@ -500,7 +500,7 @@ def Run_ParameterSweep_1D_HeatConduction(cfg):
         print(f"\n--- Case: npcx={npcx}, ord={order}, sus={sus} , MPI={use_mpi}, CUDA={use_cuda}, HIP={use_hip}, OMP={use_omp}, SYCL={use_sycl}, EB={use_eb}, TEMP={use_temp}, Build System={build_system}")
 
         # Build auto-tag
-        desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI={use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
+        desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI_{use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
         output_tag = make_auto_tag_from_params(desc)
 
         # 1. Load template config
@@ -703,7 +703,7 @@ def Run_ParameterSweep_1D_HeatConduction_HeatFlux(cfg):
         print(f"\n--- Case: npcx={npcx}, ord={order}, sus={sus} , MPI={use_mpi}, CUDA={use_cuda}, HIP={use_hip}, OMP={use_omp}, SYCL={use_sycl}, EB={use_eb}, TEMP={use_temp}, Build System={build_system}")
 
         # Build auto-tag
-        desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI={use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
+        desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI_{use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
         output_tag = make_auto_tag_from_params(desc)
 
         # 1. Load template config
@@ -910,7 +910,7 @@ def Run_ParameterSweep_1D_HeatConduction_Convective(cfg):
         print(f"\n--- Case: npcx={npcx}, ord={order}, sus={sus}  , MPI={use_mpi}, CUDA={use_cuda}, HIP={use_hip}, OMP={use_omp}, SYCL={use_sycl}, EB={use_eb}, TEMP={use_temp}, Build System={build_system}")
 
         # Build auto-tag
-        desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI={use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
+        desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI_{use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
         output_tag = make_auto_tag_from_params(desc)
 
         # 1. Load template config
@@ -1116,7 +1116,7 @@ def Run_ParameterSweep_2D_HeatConduction(cfg):
         print(f"\n--- Case: npcx={npcx}, ord={order}, sus={sus} , MPI={use_mpi}, CUDA={use_cuda}, HIP={use_hip}, OMP={use_omp}, SYCL={use_sycl}, EB={use_eb}, TEMP={use_temp}, Build System={build_system}")
 
         # Build auto-tag
-        desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI={use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
+        desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI_{use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
         output_tag = make_auto_tag_from_params(desc)
         
         
@@ -1327,7 +1327,7 @@ def Run_ParameterSweep_2D_HeatConduction_Cylinder_Dirichlet(cfg):
         print(f"\n--- Case: npcx={npcx}, ord={order}, sus={sus} , MPI={use_mpi}, CUDA={use_cuda}, HIP={use_hip}, OMP={use_omp}, SYCL={use_sycl}, EB={use_eb}, TEMP={use_temp}, Build System={build_system}")
 
         # Build auto-tag
-        desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI={use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
+        desc = f"{test_name}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI_{use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
         output_tag = make_auto_tag_from_params(desc)
         
         
@@ -1533,7 +1533,7 @@ def Run_ParameterSweep_Dambreak(cfg):
         print(f"\n--- Case:  npcx={npcx}, ord={order}, sus={sus} , MPI={use_mpi}, CUDA={use_cuda}, HIP={use_hip}, OMP={use_omp}, SYCL={use_sycl}, EB={use_eb}, TEMP={use_temp}, Build System={build_system}")
 
         # Build auto-tag
-        desc = f"{test_name}__dim{dim}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI={use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
+        desc = f"{test_name}__dim{dim}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI_{use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
         output_tag = make_auto_tag_from_params(desc)
 
         # Update generator script
@@ -1739,7 +1739,7 @@ def Run_ParameterSweep_EDC(cfg):
         print(f"\n--- Case:  npcx={npcx}, ord={order}, sus={sus} , MPI={use_mpi}, CUDA={use_cuda}, HIP={use_hip}, OMP={use_omp}, SYCL={use_sycl}, EB={use_eb}, TEMP={use_temp}, Build System={build_system}")
 
         # Build auto-tag
-        desc = f"{test_name}__dim{dim}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI={use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
+        desc = f"{test_name}__dim{dim}_npcx{npcx}_ord{order}_sus{sus}_USEHDF{bwh}_OFORM{of}_MPI_{use_mpi}_CUDA{use_cuda}_HIP{use_hip}_OMP{use_omp}_SYCL{use_sycl}_EB{use_eb}_TEMP{use_temp}_BuildSystem{build_system}"
         output_tag = make_auto_tag_from_params(desc)
 
         # Update generator script
@@ -1768,7 +1768,7 @@ def Run_ParameterSweep_EDC(cfg):
         config["use_temp"] = use_temp
         # Auto-tag       
         config["output_tag"] = output_tag
-        config["density"] = 997.0
+        config["density"] = 1000.0  # Sulsky disk benchmark: E=1000, nu=0.3, rho=1000
 
         # 3. Write updated config.json
         with open(os.path.join(test_dir, "./PreProcess/config.json"), "w") as f:

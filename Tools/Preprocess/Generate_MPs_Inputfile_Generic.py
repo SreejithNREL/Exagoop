@@ -1231,6 +1231,11 @@ def main():
 
     # user choice: "ascii" or "hdf5"
     output_format = cfg.get("output_format", "hdf5").lower()
+    ext = os.path.splitext(matpt_filename)[1].lower()
+    if (output_format == "hdf5" and ext != ".h5") or (output_format == "ascii" and ext != ".dat"):
+        die(f"output_format '{output_format}' does not match materialpoint_filename "
+            f"'{matpt_filename}' (use .h5 for hdf5, .dat for ascii); the solver picks the "
+            f"reader from the file extension of its build, not from this key")
 
     bodies = cfg.get("bodies")
     if bodies is None:
