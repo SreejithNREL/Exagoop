@@ -5,10 +5,44 @@ import hashlib
 import importlib.util
 from typing import Tuple, Callable, Optional, Dict
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-import h5py
 import os
+# matplotlib and h5py are imported lazily (only needed for HDF5 output and
+# for --plot_to_check) so the ASCII path works on minimal installs.
+
+# Particle-file format written by this script. Must match
+# MPM_PARTICLE_FILE_FORMAT_VERSION in Source/mpm_specs.H.
+PARTICLE_FILE_FORMAT_VERSION = 2
+
+# Constitutive models and their input-file parameter names. Must match the
+# registry in Source/constitutive_models.H (Get_Constitutive_Model_Registry).
+# "required" keys must be present in config.json; "optional" default to 0 in
+# the solver when omitted.
+MODEL_PARAMS = {
+    "elastic":      {"required": ["E", "nu"], "optional": []},
+    "neohookean":   {"required": ["E", "nu"], "optional": []},
+    "fluid":        {"required": ["Bulk_modulus", "Gamma_pressure", "Dynamic_viscosity"],
+                     "optional": ["p_inf"]},
+    "johnson_cook": {"required": ["E", "nu", "JC_A", "JC_B", "JC_n", "JC_C", "JC_m",
+                                  "JC_eps_dot_0", "JC_Tr", "JC_Tm", "JC_chi",
+                                  "JC_c0", "JC_Salpha", "JC_Gamma0", "density"],
+                     "optional": ["JC_D1", "JC_D2", "JC_D3", "JC_D4", "JC_D5"]},
+}
+
+
+def validate_material(cm_cfg: dict, body_index: int) -> None:
+    """Abort with a clear message if a body's constitutive_model block is
+    unknown or misses a required parameter."""
+    t = cm_cfg.get("type")
+    if t not in MODEL_PARAMS:
+        die(f"body {body_index}: unknown constitutive_model type '{t}'. "
+            f"Known: {', '.join(MODEL_PARAMS)}")
+    missing = [k for k in MODEL_PARAMS[t]["required"] if k not in cm_cfg]
+    if missing:
+        die(f"body {body_index} ({t}): missing required parameter(s) {missing}")
+    unknown = [k for k in cm_cfg if k != "type"
+               and k not in MODEL_PARAMS[t]["required"] + MODEL_PARAMS[t]["optional"]]
+    if unknown:
+        die(f"body {body_index} ({t}): unknown parameter(s) {unknown}")
 
 def die(msg: str):
     raise SystemExit(f"[ERROR] {msg}")
@@ -185,7 +219,7 @@ def generate_particle_chunks(
     dimensions,
     grid,
     ppc,
-    constitutive_model,
+    material_id,
     enable_temperature,
     shape_cfg,
     density,
@@ -242,35 +276,8 @@ def generate_particle_chunks(
     dens = density
     phase = 0
 
-    # ------------------------------------------------------------
-    # Constitutive model
-    # ------------------------------------------------------------
-    cm_type = constitutive_model["type"]
-
-    if cm_type == "elastic":
-        cm_extra = {
-            "E": constitutive_model["E"],
-            "nu": constitutive_model["nu"],
-        }
-        cm_id = 0
-    
-    elif cm_type == "fluid":
-        cm_extra = {
-            "Bulk_modulus": constitutive_model["Bulk_modulus"],
-            "Gamma_pressure": constitutive_model["Gamma_pressure"],
-            "Dynamic_viscosity": constitutive_model["Dynamic_viscosity"],
-        }
-        cm_id = 1   
-    elif cm_type == "neohookean":
-        cm_extra = {
-            "E": constitutive_model["E"],
-            "nu": constitutive_model["nu"],
-        }
-        cm_id = 2 
-    else:
-        # Generic fallback for custom models
-        cm_extra = {k: v for k, v in constitutive_model.items() if k != "type"}
-        cm_id = -1
+    # Material id: index into the input-file material table (one per body).
+    material_id = int(material_id)
 
     # ------------------------------------------------------------
     # Block generators
@@ -364,7 +371,7 @@ def generate_particle_chunks(
         "vx": [],
         "radius": [],
         "density": [],
-        "cm_id": [],
+        "material_id": [],
     }
 
     if dimensions >= 2:
@@ -373,9 +380,6 @@ def generate_particle_chunks(
     if dimensions == 3:
         buf["z"] = []
         buf["vz"] = []
-
-    for k in cm_extra.keys():
-        buf[k] = []
 
     if enable_temperature:
         for k in ["T", "spheat", "thermcond", "heatsrc"]:
@@ -436,10 +440,8 @@ def generate_particle_chunks(
                 buf["vx"].append(vx)
                 buf["radius"].append(rad)
                 buf["density"].append(dens)
-                buf["cm_id"].append(cm_id)
+                buf["material_id"].append(material_id)
 
-                for k, v in cm_extra.items():
-                    buf[k].append(v)
 
                 if enable_temperature:
                     buf["T"].append(T0)
@@ -481,10 +483,8 @@ def generate_particle_chunks(
                     buf["vy"].append(vy)
                     buf["radius"].append(rad)
                     buf["density"].append(dens)
-                    buf["cm_id"].append(cm_id)
+                    buf["material_id"].append(material_id)
                 
-                    for k, v in cm_extra.items():
-                        buf[k].append(v)
                 
                     if enable_temperature:
                         buf["T"].append(T0)
@@ -525,10 +525,8 @@ def generate_particle_chunks(
                         buf["vz"].append(vz)
                         buf["radius"].append(rad)
                         buf["density"].append(dens)
-                        buf["cm_id"].append(cm_id)
+                        buf["material_id"].append(material_id)
 
-                        for k, v in cm_extra.items():
-                            buf[k].append(v)
 
                         if enable_temperature:
                             buf["T"].append(T0)
@@ -625,6 +623,10 @@ def read_particles_ascii(filename):
             raise ValueError("Expected 'number_of_material_points:' header")
         npart = int(line.split(":", 1)[1])
 
+        line = f.readline().strip()
+        if not line.startswith("format_version:"):
+            raise ValueError("Expected 'format_version:' header (v2 file)")
+
         # ------------------------------------------------------------
         # Column names
         # ------------------------------------------------------------
@@ -671,6 +673,7 @@ def read_particles_ascii(filename):
 # Read particle data from HDF5
 # ------------------------------------------------------------
 def read_particles_h5(filename):
+    import h5py
     with h5py.File(filename, "r") as h5:
         dim = int(h5["dim"][()])
         x = np.array(h5["x"])
@@ -715,6 +718,7 @@ def plot_1d(x, grid):
 # Plot 2D particles + grid
 # ------------------------------------------------------------
 def plot_2d(x, y, grid):
+    import matplotlib.pyplot as plt
     fig, ax = plt.subplots(figsize=(12, 12))
     ax.scatter(x, y, s=2, c="blue", alpha=0.6)
 
@@ -745,6 +749,7 @@ def plot_2d(x, y, grid):
 # Plot 3D slice
 # ------------------------------------------------------------
 def plot_3d_slice(x, y, z, grid, slice_axis="z", slice_value=None):
+    import matplotlib.pyplot as plt
     if slice_value is None:
         # Default slice: mid-plane
         if slice_axis == "x":
@@ -812,10 +817,11 @@ def write_inputs_file(
     CFL: float,
     stress_update_scheme: str,
     output_tag: str,
-    constitutive_model: dict,
+    materials: list,            # one constitutive_model dict per body, index = material id
     enable_temperature: bool,
     particle_filename: str,
     out_filename: str = "Inputs_MPM.inp",
+    autogen: dict = None,       # None -> read particle file; dict -> mpm.use_autogen = 1
     simulation: dict = None,
     gravity: list = None,
     boundary_conditions: dict = None,
@@ -860,26 +866,54 @@ def write_inputs_file(
             ], comment="Geometry Parameters")
 
         # AMR
-        write_block(f, [
-            ("#restart_checkfile", "\"\""),
-        ], comment="AMR Parameters")
+        # Restart: uncomment and point at a checkpoint directory. The material
+        # blocks below must stay in the file — the table is rebuilt from them.
+        f.write("#-------------------------------------\n")
+        f.write("# Restart (uncomment to restart)\n")
+        f.write("#-------------------------------------\n")
+        f.write("# amr.restart_checkfile = \"./Solution/checkpoint_files/"
+                f"{output_tag}/chk000000\"\n\n")
 
         # Input Material Points
-        write_block(f, [
-            ("mpm.use_autogen",              "0"),
-            ("mpm.mincoords_autogen",        "0.0 0.0 0.0"),
-            ("mpm.maxcoords_autogen",        "1.0 1.0 1.0"),
-            ("mpm.vel_autogen",              "0.0 0.0 0.0"),
-            ("mpm.constmodel_autogen",       "0"),
-            ("mpm.dens_autogen",             "1.0"),
-            ("mpm.E_autogen",                "1e6"),
-            ("mpm.nu_autogen",               "0.3"),
-            ("mpm.bulkmod_autogen",          "2e6"),
-            ("mpm.Gama_pres_autogen",        "7"),
-            ("mpm.visc_autogen",             "0.001"),
-            ("mpm.multi_part_per_cell_autogen", "1"),
-            ("mpm.particle_file",            f"\"{particle_filename}\""),
-        ], comment="Input Material Points")
+        if autogen is None:
+            write_block(f, [
+                ("mpm.use_autogen",  "0"),
+                ("mpm.particle_file", f"\"{particle_filename}\""),
+            ], comment="Input Material Points (read from particle file)")
+        else:
+            lo = autogen["mincoords"] + [0.0] * (3 - len(autogen["mincoords"]))
+            hi = autogen["maxcoords"] + [0.0] * (3 - len(autogen["maxcoords"]))
+            vel = autogen["vel"] + [0.0] * (3 - len(autogen["vel"]))
+            ag = [
+                ("mpm.use_autogen",       "1"),
+                ("mpm.mincoords_autogen", " ".join(str(v) for v in lo[:dimensions])),
+                ("mpm.maxcoords_autogen", " ".join(str(v) for v in hi[:dimensions])),
+                ("mpm.vel_autogen",       " ".join(str(v) for v in vel[:dimensions])),
+                ("mpm.dens_autogen",      str(autogen["density"])),
+                ("mpm.ppc",               " ".join(str(v) for v in autogen["ppc"])),
+                ("mpm.multi_part_per_cell_autogen", "1"),
+            ]
+            if enable_temperature:
+                t = autogen["temperature"]
+                ag += [
+                    ("mpm.T_autogen",         str(t["T"])),
+                    ("mpm.cp_autogen",        str(t["spheat"])),
+                    ("mpm.thermcond_autogen", str(t["thermcond"])),
+                    ("mpm.heatsrc_autogen",   str(t["heatsrc"])),
+                ]
+            write_block(f, ag, comment="Input Material Points (autogen box, single material 0)")
+
+        # Materials: the single source of truth for constitutive models and
+        # their parameters. material id == body index in config.json ==
+        # material_id column of the particle file.
+        mat_entries = [("mpm.num_materials", str(len(materials)))]
+        for mid, cm in enumerate(materials):
+            mtype = cm["type"]
+            mat_entries.append((f"mpm.material_{mid}.model", mtype))
+            for k in MODEL_PARAMS[mtype]["required"] + MODEL_PARAMS[mtype]["optional"]:
+                if k in cm:
+                    mat_entries.append((f"mpm.material_{mid}.{k}", str(cm[k])))
+        write_block(f, mat_entries, comment="Materials (id = body index)")
 
         # Output Parameters
         write_block(f, [
@@ -997,8 +1031,9 @@ def make_auto_tag_from_cfg(cfg: dict) -> str:
     dims = cfg["dimensions"]
     grid = cfg["grid"]
     ppc = cfg["ppc"]
-    cm_type = cfg["constitutive_model"]["type"]
-    temp_enabled = cfg["temperature"]["enabled"]
+    b0 = (cfg.get("bodies") or [cfg])[0]
+    cm_type = b0["constitutive_model"]["type"]
+    temp_enabled = b0["temperature"]["enabled"]
     ord_scheme = cfg["order_scheme"]
     sus_scheme = cfg["stress_update_scheme"]
 
@@ -1029,11 +1064,12 @@ def write_particles_ascii_streaming(filename, chunk_iter, dimensions):
     import numpy as np
 
     # -------------------------------
-    # Open file + placeholder header
+    # Open file + placeholder header (format v2, see Source/mpm_init.cpp)
     # -------------------------------
     f = open(filename, "w")
     f.write(f"dim: {dimensions}\n")
     f.write("number_of_material_points: 0\n")   # patched later
+    f.write(f"format_version: {PARTICLE_FILE_FORMAT_VERSION}\n")
 
     # -------------------------------
     # First chunk
@@ -1047,36 +1083,15 @@ def write_particles_ascii_streaming(filename, chunk_iter, dimensions):
     # Core fields (by dimension)
     # -------------------------------
     if dimensions == 1:
-        core_fields = ["phase", "x", "radius", "density", "vx", "cm_id"]
+        core_fields = ["phase", "x", "radius", "density", "vx", "material_id"]
     elif dimensions == 2:
-        core_fields = ["phase", "x", "y", "radius", "density", "vx", "vy", "cm_id"]
+        core_fields = ["phase", "x", "y", "radius", "density", "vx", "vy", "material_id"]
     else:  # 3D
-        core_fields = ["phase", "x", "y", "z", "radius", "density", "vx", "vy", "vz", "cm_id"]
+        core_fields = ["phase", "x", "y", "z", "radius", "density", "vx", "vy", "vz", "material_id"]
 
-    # -------------------------------
-    # Constitutive model fields
-    # -------------------------------
-    # Convention:
-    #   cm_id = 0 -> elastic: E, nu
-    #   cm_id = 1 -> fluid: Bulk_modulus, Gamma_pressure, Dynamic_viscosity
-    # Future models: just extend this dict.
-    CM_FIELDS = {
-        0: ["E", "nu"],
-        1: ["Bulk_modulus", "Gamma_pressure", "Dynamic_viscosity"],
-    }
-
-    # Assume single cm_id in this file (typical for a run)
-    cm_ids_in_first = np.unique(first_chunk["cm_id"])
-    if len(cm_ids_in_first) == 1:
-        cm_id0 = int(cm_ids_in_first[0])
-    else:
-        # Mixed models: you can refine this later if needed
-        cm_id0 = int(cm_ids_in_first[0])
-
-    model_fields = CM_FIELDS.get(cm_id0, [])
-
-    # Only keep fields that actually exist in the chunk
-    model_fields = [k for k in model_fields if k in first_chunk]
+    # No per-particle material parameters (format v2): the solver takes
+    # them from mpm.material_<material_id>.* in the input file.
+    model_fields = []
 
     # -------------------------------
     # Temperature fields (optional)
@@ -1138,12 +1153,14 @@ def write_particles_hdf5_streaming(filename, chunk_iter, dimensions):
     dimensions: 1, 2, or 3
     """
 
+    import h5py
     # Open file
     h5 = h5py.File(filename, "w")
 
     # Metadata
     h5["dim"] = dimensions
     h5["number_of_material_points"] = 0  # will update later
+    h5["format_version"] = np.int32(PARTICLE_FILE_FORMAT_VERSION)
 
     # Determine dataset names from the first chunk
     first_chunk = next(chunk_iter)
@@ -1207,10 +1224,22 @@ def main():
     matpt_filename = cfg["materialpoint_filename"]
     plot_to_check = cfg["plot_to_check"]
     CFL = cfg["CFL"]
-    density = cfg["density"]
+    density = cfg.get("density", None)
 
-    # user choice: "ascii" or "hdf5"
-    output_format = cfg.get("output_format", "hdf5").lower()
+    build_with_hdf = cfg.get("build_with_hdf", None)
+    output_format = cfg.get("output_format", None)
+    if output_format is None:
+        output_format = "hdf5" if (build_with_hdf is None or build_with_hdf) else "ascii"
+    output_format = output_format.lower()
+    if build_with_hdf is not None and output_format != ("hdf5" if build_with_hdf else "ascii"):
+        die(f"output_format '{output_format}' contradicts build_with_hdf={build_with_hdf}: "
+            f"a USE_HDF5={'TRUE' if build_with_hdf else 'FALSE'} build reads only "
+            f"{'.h5' if build_with_hdf else '.dat'} particle files")
+    ext = os.path.splitext(matpt_filename)[1].lower()
+    if (output_format == "hdf5" and ext != ".h5") or (output_format == "ascii" and ext != ".dat"):
+        die(f"output_format '{output_format}' does not match materialpoint_filename "
+            f"'{matpt_filename}' (use .h5 for hdf5, .dat for ascii); the solver picks the "
+            f"reader from the file extension of its build, not from this key")
 
     bodies = cfg.get("bodies")
     if bodies is None:
@@ -1221,16 +1250,57 @@ def main():
             "temperature": cfg["temperature"],
         }]
 
+    use_temp = cfg.get("use_temp", None)
+    if use_temp is None:
+        use_temp = any(b["temperature"].get("enabled", False) for b in bodies)
+    for bi, body in enumerate(bodies):
+        en = body["temperature"].get("enabled", False)
+        if use_temp and not en:
+            die(f"body {bi}: use_temp is true (USE_TEMP build) but this body has "
+                f"temperature.enabled=false; every body must provide T, spheat, "
+                f"thermcond and heatsrc")
+        if not use_temp and en:
+            die(f"body {bi}: temperature.enabled=true but use_temp is false "
+                f"(non-USE_TEMP build); the thermal values could never be used")
+
+    # One material per body; material id == body index.
+    for bi, body in enumerate(bodies):
+        validate_material(body["constitutive_model"], bi)
+        if "density" not in body and density is None:
+            die(f"body {bi}: no 'density' given (neither in the body nor at top level)")
+    materials = [body["constitutive_model"] for body in bodies]
+
+    # Optional: let the solver generate the particles itself (single box,
+    # single material). The first body's rectangle/box defines the region.
+    use_autogen = bool(cfg.get("use_autogen", False))
+    autogen = None
+    if use_autogen:
+        if len(bodies) != 1:
+            die("use_autogen requires exactly one body")
+        shp = bodies[0]["shape"]
+        if shp["type"] not in ("rectangle", "box"):
+            die("use_autogen requires the body shape to be 'rectangle' (2D) or 'box' (3D)")
+        vel = bodies[0]["initial_velocity"]
+        if vel["type"] != "uniform":
+            die("use_autogen requires a uniform initial_velocity")
+        autogen = {
+            "mincoords": [shp[k] for k in ("xmin", "ymin", "zmin") if k in shp],
+            "maxcoords": [shp[k] for k in ("xmax", "ymax", "zmax") if k in shp],
+            "vel": [vel.get("vx", 0.0), vel.get("vy", 0.0), vel.get("vz", 0.0)],
+            "density": bodies[0].get("density", density),
+            "ppc": list(ppc),
+            "temperature": bodies[0]["temperature"],
+        }
+
     # ---------------------------------------------------------
     # Build a merged chunk iterator over ALL bodies
     # ---------------------------------------------------------
     def merged_chunk_iter():
-        for body in bodies:
+        for body_index, body in enumerate(bodies):
             shape_cfg = body["shape"]
-            cm_cfg = body["constitutive_model"]
             vel_cfg = body["initial_velocity"]
             temp_cfg = body["temperature"]
-            enable_temperature = temp_cfg.get("enabled", False)
+            enable_temperature = use_temp   # schema is uniform across bodies
 
             # Velocity function
             if vel_cfg["type"] == "uniform":
@@ -1269,10 +1339,10 @@ def main():
                 dimensions=dimensions,
                 grid=grid,
                 ppc=ppc,
-                constitutive_model=cm_cfg,
+                material_id=body_index,
                 enable_temperature=enable_temperature,
                 shape_cfg=shape_cfg,
-                density=density,
+                density=body.get("density", density),
                 velocity_function=velocity_function,
                 temperature_function=temperature_function,
                 # you can tune these if needed:
@@ -1286,7 +1356,9 @@ def main():
     # ---------------------------------------------------------
     # Write final particle file (single merged file)
     # ---------------------------------------------------------
-    if output_format == "hdf5":
+    if use_autogen:
+        particle_file = ""   # solver generates the particles
+    elif output_format == "hdf5":
         particle_file = matpt_filename
         write_particles_hdf5_streaming(
             particle_file,
@@ -1314,10 +1386,11 @@ def main():
         CFL=CFL,
         stress_update_scheme=stress_update_scheme,
         output_tag=output_tag,
-        constitutive_model=bodies[0]["constitutive_model"],
-        enable_temperature=bodies[0]["temperature"]["enabled"],
+        materials=materials,
+        enable_temperature=use_temp,
         particle_filename=particle_file,
         out_filename=input_filename,
+        autogen=autogen,
         simulation=cfg.get("simulation", {}),
         gravity=cfg.get("gravity", [0.0, 0.0, 0.0]),
         boundary_conditions=cfg.get("boundary_conditions", {}),
@@ -1339,7 +1412,7 @@ def main():
     
     
 
-    if(plot_to_check):
+    if(plot_to_check and not use_autogen):
         if not os.path.exists(matpt_filename):
             print("Material point file not found.")
             return

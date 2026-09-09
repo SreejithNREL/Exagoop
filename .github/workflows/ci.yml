@@ -60,7 +60,7 @@ jobs:
         working-directory: ./Tests/1D_Axial_Bar_Vibration
         run: |
           cp ../../Build_Gnumake/GNUmakefile .
-          python3 ./PreProcess/Generate_MPs_Inputfile_Generic.py --config ./PreProcess/config.json
+          bash Generate_MPs_and_InputFiles.sh 
 
       - name: Create output directories
         working-directory: ./Tests/1D_Axial_Bar_Vibration
@@ -135,7 +135,7 @@ jobs:
         working-directory: ./Tests/1D_Heat_Conduction
         run: |
           cp ../../Build_Gnumake/GNUmakefile .
-          python3 ./PreProcess/Generate_MPs_Inputfile_Generic.py --config ./PreProcess/config.json
+          bash Generate_MPs_and_InputFiles.sh
 
       - name: Create output directories
         working-directory: ./Tests/1D_Heat_Conduction
@@ -232,7 +232,7 @@ jobs:
         working-directory: ./Tests/2D_Heat_Conduction
         run: |
           cp ../../Build_Gnumake/GNUmakefile .
-          python3 ./PreProcess/Generate_MPs_Inputfile_Generic.py --config ./PreProcess/config.json
+          bash Generate_MPs_and_InputFiles.sh
 
       - name: Create output directories
         working-directory: ./Tests/2D_Heat_Conduction

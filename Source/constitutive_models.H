@@ -3,7 +3,219 @@
 // clang-format off
 #include<constants.H>
 #include <AMReX.H>
+#include <algorithm>
+#include <string>
+#include <vector>
 // clang-format on
+
+// Number of max constitutive model parameters
+constexpr int MAX_MODEL_PARAMS = 24;
+
+// Namespace for constitutive models (not materials)
+namespace ConstitutiveModel
+{
+enum
+{
+    ELASTIC = 0,
+    FLUID = 1,
+    NEOHOOKEAN = 2,
+    JOHNSON_COOK = 3
+};
+}
+
+// Per-model parameter layout within MaterialParams::p[].
+namespace ElasticP
+{
+enum
+{
+    E = 0,
+    nu = 1,
+    count
+};
+}
+namespace FluidP
+{
+enum
+{
+    bulk = 0,  // bulk modulus
+    gama = 1,  // EoS exponent (Gamma)
+    visc = 2,  // dynamic viscosity
+    p_inf = 3, // free-stream pressure (optional, default 0)
+    count
+};
+}
+namespace NeoHookeanP
+{
+enum
+{
+    E = 0,
+    nu = 1,
+    count
+};
+}
+// Johnson-Cook (+ Mie-Gruneisen EOS) parameters
+namespace JCP
+{
+enum
+{
+    E = 0,
+    nu = 1,
+    A = 2,         // JC_A yield stress
+    B = 3,         // JC_B hardening modulus
+    n = 4,         // JC_n hardening exponent
+    C = 5,         // JC_C strain-rate sensitivity
+    m = 6,         // JC_m thermal softening exponent
+    eps_dot_0 = 7, // reference plastic strain rate
+    Tr = 8,        // reference temperature
+    Tm = 9,        // melting temperature
+    chi = 10,      // Taylor-Quinney fraction
+    c0 = 11,       // bulk sound speed (EOS)
+    Salpha = 12,   // Hugoniot slope (EOS)
+    Gamma0 = 13,   // Gruneisen Gamma (EOS)
+    rho0 = 14,     // reference density
+    // Johnson-Cook damage parameters. Damages disabled
+    D1 = 15, // initial failure strain
+    D2 = 16, // exponential factor
+    D3 = 17, // triaxiality sensitivity
+    D4 = 18, // strain-rate sensitivity
+    D5 = 19, // temperature sensitivity
+    count
+};
+}
+// Johnson-Cook per-particle internal state variables, stored in realData::isv.
+namespace JC_ISV
+{
+enum
+{
+    ep = 0,     // equivalent plastic strain
+    sdev = 1,   // un-rotated deviatoric stress, 6 Voigt comps (sdev..sdev+5)
+    damage = 7, // accumulated JC damage (Phase JC-3)
+    count
+};
+}
+namespace Fluid_ISV
+{
+enum
+{
+    pressure = 0, // pressure is unique to fluid, and also evolves with
+                  // solution. Hence storing it in ISV
+    count
+};
+}
+
+// Developed note: Add every Xxx_ISV::count here when a new model with history
+// is added.
+constexpr int EXAGOOP_NISV = std::max(
+    {static_cast<int>(Fluid_ISV::count), static_cast<int>(JC_ISV::count)});
+
+// Each instance of a material used in the simulation: For example, polysulfone
+// and steel are elastic, but will have different structs
+struct MaterialParams
+{
+    int material_id = -1;                   // unique id == mpm.material_<id>
+    int model = ConstitutiveModel::ELASTIC; // ConstitutiveModel enum
+    amrex::Real p[MAX_MODEL_PARAMS] = {0.0};
+};
+
+namespace
+{
+struct ConstitutiveModelInfo
+{
+    const char *name;
+    int id;
+    std::vector<const char *> param_names;
+    int n_required;
+    std::vector<const char *> isv_names;
+    bool kernel_implemented;
+};
+
+const std::vector<ConstitutiveModelInfo> &Get_Constitutive_Model_Registry()
+{
+    static const std::vector<ConstitutiveModelInfo> reg = {
+        {"elastic", ConstitutiveModel::ELASTIC, {"E", "nu"}, 2, {}, true},
+        {"fluid",
+         ConstitutiveModel::FLUID,
+         {"Bulk_modulus", "Gamma_pressure", "Dynamic_viscosity", "p_inf"},
+         3,
+         {"pressure"},
+         true},
+        {"neohookean", ConstitutiveModel::NEOHOOKEAN, {"E", "nu"}, 2, {}, true},
+        {"johnson_cook",
+         ConstitutiveModel::JOHNSON_COOK,
+         {"E",      "nu",    "JC_A",         "JC_B",      "JC_n",
+          "JC_C",   "JC_m",  "JC_eps_dot_0", "JC_Tr",     "JC_Tm",
+          "JC_chi", "JC_c0", "JC_Salpha",    "JC_Gamma0", "density",
+          "JC_D1",  "JC_D2", "JC_D3",        "JC_D4",     "JC_D5"},
+         15,
+         {"eq_plastic_strain", "sdev_0", "sdev_1", "sdev_2", "sdev_3", "sdev_4",
+          "sdev_5", "damage"},
+         false},
+    };
+    return reg;
+}
+
+// Expected parameter / ISV slot counts per model, from the enums.
+inline int Expected_Param_Count(int model)
+{
+    switch (model)
+    {
+    case ConstitutiveModel::ELASTIC:
+        return ElasticP::count;
+    case ConstitutiveModel::FLUID:
+        return FluidP::count;
+    case ConstitutiveModel::NEOHOOKEAN:
+        return NeoHookeanP::count;
+    case ConstitutiveModel::JOHNSON_COOK:
+        return JCP::count;
+    default:
+        return -1;
+    }
+}
+inline int Expected_ISV_Count(int model)
+{
+    switch (model)
+    {
+    case ConstitutiveModel::ELASTIC:
+        return 0;
+    case ConstitutiveModel::FLUID:
+        return Fluid_ISV::count;
+    case ConstitutiveModel::NEOHOOKEAN:
+        return 0;
+    case ConstitutiveModel::JOHNSON_COOK:
+        return JC_ISV::count;
+    default:
+        return -1;
+    }
+}
+
+inline void Validate_Constitutive_Model_Registry()
+{
+    for (const auto &mi : Get_Constitutive_Model_Registry())
+    {
+        const int np = static_cast<int>(mi.param_names.size());
+        const int ni = static_cast<int>(mi.isv_names.size());
+        if (np != Expected_Param_Count(mi.id))
+            amrex::Abort(std::string("Constitutive model registry: '") +
+                         mi.name + "' lists " + std::to_string(np) +
+                         " parameters but its "
+                         "XxxP enum has " +
+                         std::to_string(Expected_Param_Count(mi.id)));
+        if (ni != Expected_ISV_Count(mi.id))
+            amrex::Abort(std::string("Constitutive model registry: '") +
+                         mi.name + "' lists " + std::to_string(ni) +
+                         " ISV names but its "
+                         "Xxx_ISV enum has " +
+                         std::to_string(Expected_ISV_Count(mi.id)));
+        if (mi.n_required < 0 || mi.n_required > np)
+            amrex::Abort(std::string("Constitutive model registry: '") +
+                         mi.name + "' has an invalid n_required");
+        if (np > MAX_MODEL_PARAMS || ni > EXAGOOP_NISV)
+            amrex::Abort(std::string("Constitutive model registry: '") +
+                         mi.name +
+                         "' exceeds MAX_MODEL_PARAMS or EXAGOOP_NISV");
+    }
+}
+} // namespace
 
 /**
  * @brief Computes Cauchy stress for a linear elastic solid.

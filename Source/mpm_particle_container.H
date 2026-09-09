@@ -5,6 +5,7 @@
 #include <AMReX_NeighborParticles.H>
 #include <mpm_specs.H>
 #include <constants.H>
+#include <constitutive_models.H>
 // clang-format on
 
 class MPMParticleContainer
@@ -110,12 +111,7 @@ class MPMParticleContainer
                   Real vel[AMREX_SPACEDIM],
                   int ppc[AMREX_SPACEDIM],
                   Real dens,
-                  int constmodel,
-                  Real E,
-                  Real nu,
-                  Real bulkMod,
-                  Real Gama_pres,
-                  Real visc,
+                  int material_id,
 #if USE_TEMP
                   amrex::Real T,
                   amrex::Real thermcond,
@@ -527,6 +523,48 @@ class MPMParticleContainer
     void apply_constitutive_model(const amrex::Real &dt,
                                   amrex::Real applied_strainrate);
 
+    amrex::Gpu::DeviceVector<MaterialParams> m_device_material_table; // device
+    amrex::Vector<MaterialParams> m_host_material_table;              // host
+
+    /** @brief Uploads the host material table to the device. */
+    void copy_to_device_material_table(
+        const amrex::Vector<MaterialParams> &host_table);
+
+    /**
+     * @brief Largest number of ISV slots used by any material in the table
+     *        (0 for elastic/neo-Hookean only, 1 with a fluid, 8 with JC).
+     */
+    int num_isv_slots_used() const;
+
+    /** @brief Number of materials in the table (0 before it is built). */
+    int num_materials() const
+    {
+        return static_cast<int>(m_host_material_table.size());
+    }
+
+    /**
+     * @brief Aborts unless every phase-0 particle's material_indx lies in
+     *        [0, num_materials()). Call once after particles are created,
+     *        read, or restored.
+     */
+    void validate_material_indices();
+
+    /**
+     * @brief Builds the material table from the input file
+     *        (mpm.num_materials, mpm.material_<id>.model / parameters) and
+     *        uploads it to the device. Called once, before any particle
+     *        exists. Aborts on a missing or malformed block.
+     */
+    void build_material_table_from_input();
+
+    /**
+     * @brief Writes the material table as a human-readable sidecar
+     *        (id, model, parameter names/values, ISV slot names) so that
+     *        plotfile columns isv_k / material_indx can be interpreted in
+     *        post-processing. I/O rank only.
+     */
+    void write_material_table(const std::string &filename) const;
+
     /**
      * @brief Applies the constitutive model using an incremental (delta‑strain)
      *        formulation.
@@ -593,12 +631,7 @@ class MPMParticleContainer
                                    amrex::Real vel[AMREX_SPACEDIM],
                                    amrex::Real dens,
                                    amrex::Real vol,
-                                   int constmodel,
-                                   amrex::Real E,
-                                   amrex::Real nu,
-                                   amrex::Real bulkmod,
-                                   amrex::Real Gama_pres,
-                                   amrex::Real visc
+                                   int material_idx
 #if USE_TEMP
                                    ,
                                    amrex::Real T,

@@ -10,27 +10,12 @@ import matplotlib.pyplot as plt
 AMREX_SPACEDIM = 2
 USE_TEMP = True
 
-CXX_ENUM = {
-    "radius": 0, "xvel": 1, "yvel": 2, "zvel": 3,
-    "xvel_prime": 4, "yvel_prime": 5, "zvel_prime": 6,
-    "strainrate": 7, "strain": 13, "stress": 19,
-    "deformation_gradient": 25, "volume": 34, "mass": 35,
-    "density": 36, "jacobian": 37, "pressure": 38,
-    "vol_init": 39, "E": 40, "nu": 41, "Bulk_modulus": 42,
-    "Gama_pressure": 43, "Dynamic_viscosity": 44, "yacceleration": 45,
-    "temperature": 46, "specific_heat": 47, "thermal_conductivity": 48,
-    "heat_flux": 49, "heat_source": 52,
-}
-
-def build_field_dict(dim, use_temp):
-    fields = {f"pos{'xyz'[d]}": d for d in range(dim)}
-    for name, idx in CXX_ENUM.items():
-        if not use_temp and name in (
-            "temperature","specific_heat","thermal_conductivity",
-            "heat_flux","heat_source"):
-            continue
-        fields[name] = idx + dim
-    return fields
+# Column map for ExaGOOP ASCII particle dumps: shared helper, kept in sync
+# with Source/mpm_specs.H (was a hard-coded per-script copy before).
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)),
+                                  "..", "..", "..", "Tools", "PostProcess"))
+from exagoop_columns import build_field_dict
 
 
 def T_exact_flux(x, t, q=1.0, k=1.0, L=1.0, N=300):
