@@ -116,12 +116,11 @@ int main(int argc, char *argv[])
                 Update_MP_Positions(specs, mpm_pc, dt); // step 19
             }
 
-            // mpm_pc.updateNeighbors();
-
             if (specs.stress_update_scheme == 1)
             {
                 // Algo 2, 19
                 G2P_Momentum(specs, mpm_pc, nodaldata, 1, 0, dt);
+                mpm_pc.updateNeighbors();
                 // 20
                 P2G_Momentum(specs, mpm_pc, nodaldata, 0, 1, 0);
                 // 21
@@ -131,6 +130,7 @@ int main(int argc, char *argv[])
 
 #if USE_TEMP
                 G2P_Temperature(specs, mpm_pc, nodaldata, 1, 0, dt);
+                mpm_pc.updateNeighbors();
                 P2G_Temperature(specs, mpm_pc, nodaldata, 1, 0, 1);
                 Apply_Nodal_BCs_Temperature(geom, nodaldata, specs, dt, time,
                                             false);
