@@ -34,16 +34,16 @@ temperature is a passive output.
 
 | Parameter | Value |
 |---|---|
-| Domain | `[-9,9] x [-9,9] x [0,100]` mm, 18 x 18 x 20 cells (`dx=dy=1`, `dz=5`) |
-| Column | `[-5,5]^2 x [0,100]` mm, 2x2x2 ppc = 16,000 particles |
+| Domain | `[-9,9] x [-9,9] x [0,100]` mm, 18 x 18 x 100 cells (`dx=dy=dz=1`) |
+| Column | `[-5,5]^2 x [0,100]` mm, 2x2x2 ppc = 80,000 particles |
 | Periodicity | **`0 0 0`** — see the warning below |
 | Constitutive model | `johnson_cook` (cm_id = 2), Table 10.3 in mm-ms-kg |
 | `zlo` | `noslip` (clamped base) |
-| `zhi` | `noslip` + UDF wall velocity (`UDF/libwall_twist.so`) |
+| `zhi` | `noslip` + UDF wall velocity (`UDF/libwall_twist.so`; on macOS build gives `.dylib` — edit `udf_lib` in the generated input) |
 | `xlo/xhi/ylo/yhi` | `slip` (column never reaches them) |
 | Thermal BCs | adiabatic on all faces |
 | Order scheme / stress update | 3 (cubic B-splines) / MUSL |
-| `alpha_pic_flip`, CFL | 0.99, 0.3 |
+| `alpha_pic_flip`, CFL | 0.999, 0.3 (see *Angular-momentum drain* below) |
 | Gravity | none |
 
 Two geometric constraints that are easy to get wrong:
@@ -129,3 +129,26 @@ expected this early.
   rigid-body maximum of `omega*7.07 = 44.4`. Massless nodes should not
   contribute to G2P. Settle this before trusting quantitative results at the
   later frames.
+
+## Angular-momentum drain (why `alpha_pic_flip = 0.999`)
+
+This benchmark is a worst case for updated-Lagrangian FLIP/PIC transfers: the
+whole solution is angular-momentum transport along a slender body, and the
+transfers do not conserve angular momentum at free surfaces (the nodal mass
+centroid of a surface node is not the node position; APIC fixes this exactly,
+FLIP/PIC do not). Measured on the 0.99 run (slab 20 < z < 80 at 0.9 ms): the
+stresses deliver 4.6 N.m of net torque to the slab, the particles gain
+0.25 N.m/ms — the 1 % PIC part removes 2.5 N.m/ms and the FLIP acceleration
+transfer 1.95 N.m/ms. A rigid rotation of the 10 x 10 section with cubic
+B-splines at dx = 1 loses 5x its angular momentum per ms through 1 % PIC alone
+(dx = 0.5 halves it; independent of ppc). The visible symptom is a
+driven-face-heavy twist with M_z decreasing towards the base, and a slip
+layer at the grip when PIC is increased (alpha = 0.95).
+
+With alpha = 0.999 the drain is 10x smaller (54 %/ms of the slab's angular
+momentum at 0.03 ms, torque delivered to the particles 94 %). Do not lower
+alpha to damp noise here; use the proper 8-ppc lattice (the 3-D generator
+bug that produced 2 diagonal particles per cell and 1/4 of the column mass
+was fixed on 2026-09-15). If Fig. 10.27 must be matched quantitatively the
+remaining options are APIC/affine transfers or a total-Lagrangian MPM, which
+is what the source paper of this benchmark uses.

@@ -69,7 +69,7 @@
     }
   ],
   "CFL": 0.3,
-  "alpha_pic_flip": 0.99,
+  "alpha_pic_flip": 0.999,
   "order_scheme": 3,
   "stress_update_scheme": "MUSL",
   "output_tag": "3D_Twisted_Column_JC",

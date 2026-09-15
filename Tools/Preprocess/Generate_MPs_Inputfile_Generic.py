@@ -349,12 +349,18 @@ def generate_particle_chunks(
         cy = ymin + iy * dy
         cz = zmin + iz * dz
         CX, CY, CZ = np.meshgrid(cx, cy, cz, indexing="ij")
-        PX = CX[:, :, :, None] + offsets[0][None, None, None, :] * dx
-        PY = CY[:, :, :, None] + offsets[1][None, None, None, :] * dy
-        PZ = CZ[:, :, :, None] + offsets[2][None, None, None, :] * dz
-        PX = PX.ravel()
-        PY = PY.ravel()
-        PZ = PZ.ravel()
+
+        # Full tensor product of the per-direction offsets: ppc[0]*ppc[1]*ppc[2]
+        # particles per cell (a single shared offset axis would place only
+        # ppc particles on the cell diagonal with the wrong volume).
+        OX, OY, OZ = np.meshgrid(offsets[0], offsets[1], offsets[2], indexing="ij")
+
+        PX = CX[:, :, :, None, None, None] + OX[None, None, None, :, :, :] * dx
+        PY = CY[:, :, :, None, None, None] + OY[None, None, None, :, :, :] * dy
+        PZ = CZ[:, :, :, None, None, None] + OZ[None, None, None, :, :, :] * dz
+        PX = PX.reshape(-1)
+        PY = PY.reshape(-1)
+        PZ = PZ.reshape(-1)
         if shape_obj is not None:
             mask = np.array([shape_obj.contains((x, y, z)) for x, y, z in zip(PX, PY, PZ)])
             PX = PX[mask]
