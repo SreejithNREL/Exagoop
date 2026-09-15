@@ -84,7 +84,8 @@ amrex::Real MPMParticleContainer::Calculate_time_step(MPMspecs &specs)
                     Cs = std::sqrt((lambda + 2.0 * mu) /
                                    p.rdata(realData::density));
                 }
-                else if (mat[matrl_idx].model == ConstitutiveModel::JOHNSON_COOK)
+                else if (mat[matrl_idx].model ==
+                         ConstitutiveModel::JOHNSON_COOK)
                 {
                     const amrex::Real Emod = mat[matrl_idx].p[JCP::E];
                     const amrex::Real nu = mat[matrl_idx].p[JCP::nu];

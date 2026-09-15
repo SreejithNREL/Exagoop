@@ -279,9 +279,9 @@ void MPMParticleContainer::apply_constitutive_model(
                                             0.0, 0.0, 0.0, 1.0};
                         for (int r = 0; r < AMREX_SPACEDIM; ++r)
                             for (int c = 0; c < AMREX_SPACEDIM; ++c)
-                                F[r * 3 + c] = p.rdata(
-                                    realData::deformation_gradient +
-                                    r * AMREX_SPACEDIM + c);
+                                F[r * 3 + c] =
+                                    p.rdata(realData::deformation_gradient +
+                                            r * AMREX_SPACEDIM + c);
 
                         // Per-particle state from the ISV block.
                         amrex::Real ep = p.rdata(isv_slot(JC_ISV::ep));
@@ -292,8 +292,7 @@ void MPMParticleContainer::apply_constitutive_model(
 
                         amrex::Real press = 0.0, hsrc = 0.0;
 #if USE_TEMP
-                        const amrex::Real Tcur =
-                            p.rdata(realData::temperature);
+                        const amrex::Real Tcur = p.rdata(realData::temperature);
 #else
                         const amrex::Real Tcur = mp.p[JCP::Tr];
 #endif
@@ -304,10 +303,9 @@ void MPMParticleContainer::apply_constitutive_model(
                             mp.p[JCP::B], mp.p[JCP::n], mp.p[JCP::C],
                             mp.p[JCP::m], mp.p[JCP::eps_dot_0], Tcur,
                             mp.p[JCP::Tr], mp.p[JCP::Tm], mp.p[JCP::chi],
-                            mp.p[JCP::c0], mp.p[JCP::Salpha],
-                            mp.p[JCP::Gamma0], mp.p[JCP::D1], mp.p[JCP::D2],
-                            mp.p[JCP::D3], mp.p[JCP::D4], mp.p[JCP::D5], dmg,
-                            dt);
+                            mp.p[JCP::c0], mp.p[JCP::Salpha], mp.p[JCP::Gamma0],
+                            mp.p[JCP::D1], mp.p[JCP::D2], mp.p[JCP::D3],
+                            mp.p[JCP::D4], mp.p[JCP::D5], dmg, dt);
 
                         // Persist state.
                         p.rdata(isv_slot(JC_ISV::ep)) = ep;
