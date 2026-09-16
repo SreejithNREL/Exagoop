@@ -293,9 +293,9 @@ void MPMParticleContainer::apply_constitutive_model(
                         amrex::Real press = 0.0, hsrc = 0.0;
 #if USE_TEMP
                         const amrex::Real Tcur = p.rdata(realData::temperature);
-                        const amrex::Real e_int = mp.p[JCP::rho0] *
-                                                  p.rdata(realData::spheat) *
-                                                  (Tcur - mp.p[JCP::Tr]);
+                        const amrex::Real e_int =
+                            mp.p[JCP::rho0] * p.rdata(realData::specific_heat) *
+                            (Tcur - mp.p[JCP::Tr]);
 #else
                         const amrex::Real Tcur = mp.p[JCP::Tr];
                         const amrex::Real e_int = 0.0; // no T field
