@@ -18,15 +18,21 @@ path-independent: at every output, every yielded particle must have a von
 Mises stress on or below $\sigma_f$ (on = plastically loading, below = elastic
 unloading as the block's momentum reverses), never above; and the median
 distance from the surface over the block must be $< 10^{-3}$. Typical result:
-0 particles above, median $\sim 10^{-4}$.
+0 particles above, median at round-off (the radial return solves for the
+plastic increment with the hardening surface at the updated state).
 
 ## Running
 
 ```bash
-./Generate_MPs_and_InputFiles.sh          # mpm_particles.dat + .inp (2D, USE_TEMP=FALSE build)
-./ExaGOOP2d.gnu.ex Inputs_2DJCInertialCompression.inp
+./Generate_MPs_and_InputFiles.sh          # mpm_particles.dat + .inp
+(cd ../../Build_Gnumake && make -j8 DIM=2 USE_TEMP=FALSE USE_HDF5=FALSE)   # -> ExaGOOP2d.gnu.MPI.ex
+../../Build_Gnumake/ExaGOOP2d.gnu.MPI.ex Inputs_2DJCInertialCompression.inp
 python3 PostProcess/validate.py
 ```
+
+The case needs a `USE_TEMP=FALSE` build (the particle file carries no thermal
+columns). The repository default is `USE_MPI=TRUE`, hence the `.MPI.ex` name;
+a `USE_MPI=FALSE` build produces `ExaGOOP2d.gnu.ex` instead.
 
 Note: `mpm.applied_strainrate` cannot be used to drive this case — it only
 adds to the accumulated strain array and never enters the strain-rate field
@@ -47,7 +53,7 @@ its deviatoric stress is removed and only compressive pressure is retained.
 
 ```bash
 ./Generate_MPs_and_InputFiles_Damage.sh
-./ExaGOOP2d.gnu.ex Inputs_2DJCInertialCompression_Damage.inp
+../../Build_Gnumake/ExaGOOP2d.gnu.MPI.ex Inputs_2DJCInertialCompression_Damage.inp
 python3 PostProcess/validate_damage.py
 ```
 

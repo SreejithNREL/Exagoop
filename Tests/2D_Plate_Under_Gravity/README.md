@@ -148,15 +148,9 @@ cd ../../Build_Gnumake && make -j8 DIM=2 USE_EB=TRUE USE_TEMP=TRUE USE_HDF5=FALS
 
 `USE_EB=TRUE` is required — the level-set pedestal lives behind `#if USE_EB`.
 
-If your environment limits how long a single command may run, `resume_chunk.sh`
-runs the case in wall-clock-bounded pieces, resuming from the newest checkpoint
-each time:
-
-```bash
-LIMIT=40 ./resume_chunk.sh     # repeat until run.log reports "finalized" (t = 0.2)
-```
-(The chunked run writes outputs every 0.005 ms instead of 0.01 ms so that less
-progress is lost at each restart.)
+The run writes a checkpoint at every output; to resume an interrupted run pass
+`amr.restart_checkfile=Solution/checkpoint_files/<tag>/chkNNNNNN` on the command
+line.
 
 ## Post-Processing
 
@@ -244,7 +238,6 @@ is internally consistent, since the global energy balance closes to 0.15 %.
 ```
 2D_Plate_Under_Gravity/
 ├── Generate_MPs_and_InputFiles.sh     runs the repository preprocessor (Tools/Preprocess)
-├── resume_chunk.sh                    checkpoint-resumed chunked run
 ├── PreProcess/
 │   └── config.json                    case definition
 └── PostProcess/

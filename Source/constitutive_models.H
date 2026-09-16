@@ -637,18 +637,7 @@ johnson_cook_stress_update(const amrex::Real F[9],
                             strial[YZ] * strial[YZ]);
     amrex::Real seq_trial = std::sqrt(amrex::Real(1.5) * seq2);
 
-    amrex::Real strain_fac =
-        JC_A + JC_B * std::pow(amrex::max(ep, amrex::Real(0.0)), JC_n);
-
-    amrex::Real rate_fac = amrex::Real(1.0);
-    if (JC_C > amrex::Real(0.0) && eps_dot_0 > amrex::Real(0.0))
-    {
-        amrex::Real epd_norm =
-            seq_trial / (amrex::Real(3.0) * G * dt * eps_dot_0);
-        epd_norm = amrex::max(epd_norm, amrex::Real(1.0));
-        rate_fac = amrex::Real(1.0) + JC_C * std::log(epd_norm);
-    }
-
+    // Thermal softening factor: T is held fixed over the step.
     amrex::Real temp_fac = amrex::Real(1.0);
     if (JC_m > amrex::Real(0.0) && (Tm - Tr) > amrex::Real(0.0))
     {
@@ -659,20 +648,85 @@ johnson_cook_stress_update(const amrex::Real F[9],
                               amrex::Real(1.0) - std::pow(Tstar, JC_m));
     }
 
+    const bool use_rate =
+        (JC_C > amrex::Real(0.0) && eps_dot_0 > amrex::Real(0.0) &&
+         dt > amrex::Real(0.0));
+
+    auto flow = [&](amrex::Real d, amrex::Real &dsig) -> amrex::Real
+    {
+        amrex::Real epn = amrex::max(ep + d, amrex::Real(0.0));
+        amrex::Real epn_pow =
+            (epn > amrex::Real(0.0)) ? std::pow(epn, JC_n) : amrex::Real(0.0);
+        amrex::Real strain_fac = JC_A + JC_B * epn_pow;
+        amrex::Real dstrain = amrex::Real(0.0);
+        if (JC_B != amrex::Real(0.0) && epn > amrex::Real(0.0))
+            dstrain = JC_B * JC_n * epn_pow / epn; // B n epn^(n-1)
+
+        amrex::Real rate_fac = amrex::Real(1.0);
+        amrex::Real drate = amrex::Real(0.0);
+        if (use_rate)
+        {
+            amrex::Real epd_norm = d / (dt * eps_dot_0);
+            if (epd_norm > amrex::Real(1.0))
+            {
+                rate_fac = amrex::Real(1.0) + JC_C * std::log(epd_norm);
+                drate = JC_C / d;
+            }
+        }
+        dsig = (dstrain * rate_fac + strain_fac * drate) * temp_fac;
+        return amrex::max(strain_fac * rate_fac * temp_fac, amrex::Real(0.0));
+    };
+
+    amrex::Real dsig_unused;
     amrex::Real sigma_f =
-        amrex::max(strain_fac * rate_fac * temp_fac, amrex::Real(0.0));
+        flow(amrex::Real(0.0), dsig_unused); // current surface
 
     amrex::Real dep = amrex::Real(0.0); // plastic strain increment this step
     amrex::Real ep_dot = amrex::Real(0.0);
-    if (seq_trial <= sigma_f || seq_trial < amrex::Real(1e-30))
+    if (damage >= amrex::Real(1.0))
+    {
+        // failed: no deviatoric strength, no plastic flow, no plastic heating
+        for (int c = 0; c < NCOMP_TENSOR; ++c)
+            sdev_ur[c] = amrex::Real(0.0);
+    }
+    else if (seq_trial <= sigma_f || seq_trial < amrex::Real(1e-30))
     {
         for (int c = 0; c < NCOMP_TENSOR; ++c)
             sdev_ur[c] = strial[c];
     }
     else
     {
-        dep = amrex::max((seq_trial - sigma_f) / (amrex::Real(3.0) * G),
-                         amrex::Real(0.0));
+        const amrex::Real threeG = amrex::Real(3.0) * G;
+        amrex::Real lo = amrex::Real(0.0);
+        amrex::Real hi = seq_trial / threeG;
+        amrex::Real d = (seq_trial - sigma_f) / threeG; // explicit estimate
+        amrex::Real dsig = amrex::Real(0.0);
+        amrex::Real sig_d = sigma_f;
+        const amrex::Real rtol = amrex::Real(1e-12) * seq_trial;
+        for (int it = 0; it < 50; ++it)
+        {
+            sig_d = flow(d, dsig);
+            amrex::Real r = seq_trial - threeG * d - sig_d;
+            if (std::abs(r) <= rtol)
+                break;
+            if (r > amrex::Real(0.0))
+                lo = d;
+            else
+                hi = d;
+            amrex::Real drdd = -(threeG + dsig);
+            amrex::Real dn = d - r / drdd;
+            if (!(dn > lo && dn < hi))             // outside bracket or NaN
+                dn = amrex::Real(0.5) * (lo + hi); // bisect
+            if (std::abs(dn - d) <= amrex::Real(1e-14) * hi)
+            {
+                d = dn;
+                sig_d = flow(d, dsig);
+                break;
+            }
+            d = dn;
+        }
+        dep = amrex::max(d, amrex::Real(0.0));
+        sigma_f = sig_d; // converged flow stress
         ep += dep;
         amrex::Real scale = sigma_f / seq_trial;
         for (int c = 0; c < NCOMP_TENSOR; ++c)

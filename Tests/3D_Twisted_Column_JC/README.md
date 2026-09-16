@@ -76,13 +76,14 @@ cd ../../Build_Gnumake && make -j8 DIM=3 USE_TEMP=TRUE USE_HDF5=FALSE && cd -
 ../../Build_Gnumake/ExaGOOP3d.gnu.MPI.ex Inputs_3D_Twisted_Column_JC.inp
 ```
 
-The full 3 ms is ~42,000 steps at ~0.23 s/step — about **3 hours**, i.e. a
-cluster run. `resume_chunk.sh SECONDS TEND WRITE_OUT` runs it in
-wall-clock-bounded pieces resuming from the newest checkpoint, e.g.
-`./resume_chunk.sh 40 0.09 0.005`.
-
-For production, refine `nz` to >= 40. `dt` is set by `dx = 1`, so that costs
-about 2x, not 8x — at `dz = 5` there are only ~6.7 cells per helical turn.
+The full 3 ms is ~43,000 steps (`dt` is set by `dx = 1`, not by the particle
+count). With 80,000 particles and linear shape functions a serial run takes
+about 35 minutes on a laptop; cubic B-splines cost 3-4x more per step. The run
+writes a checkpoint at every output; to resume pass
+`amr.restart_checkfile=Solution/checkpoint_files/<tag>/chkNNNNNN` on the
+command line. With MPI, `max_grid_size` around 6-8 balances halo cost against
+the fact that only the central 10 x 10 cells of the 18 x 18 section hold
+particles.
 
 ## Post-Processing
 
