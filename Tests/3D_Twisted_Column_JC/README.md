@@ -1,0 +1,155 @@
+# Test Case: 3D Twisted Column (Johnson-Cook)
+
+Reproduces the *twisted column* benchmark of
+
+> V.P. Nguyen, A. de Vaucorbeil, S. Bordas, *The Material Point Method: Theory,
+> Implementations and Applications*, Springer. Sect. 10.3.3,
+> Fig. 10.26 (setup), Table 10.3 (material, shared with the plate case),
+> Fig. 10.27 (FEM), Fig. 10.28 (ULMPM, cubic B-splines + MUSL).
+
+## Physical Problem
+
+A 100 mm copper column of 10 x 10 mm square section is clamped at `z = 0`. Its
+top surface is driven as a rigid body about the z axis at `omega = 2*pi` rad/ms
+— one full turn per millisecond, three turns over the reference 3 ms run. The
+book states the purpose as assessing **robustness under large, highly nonlinear
+deformation**. Material is Johnson-Cook with a Mie-Grüneisen EOS; there is no
+gravity. The book's reference is an Abaqus FEM run (Fig. 10.27).
+
+Boundary velocity (book Eq. 10.45), applied to every node of the top face using
+the node's **current** coordinates:
+
+```
+v_x(t) = -omega * y(t),    v_y(t) = +omega * x(t),    v_z = 0
+```
+
+with `omega = omega_0 * n / T`, `omega_0 = 2*pi` rad/ms, `n` turns over final
+time `T`. The reference run is `n = 3`, `T = 3 ms`, hence `omega = 2*pi`.
+
+As in the plate case, `JC_C = JC_m = 0`, so the flow stress reduces to
+`sigma_f = A + B*eps_p^n` — no rate sensitivity, no thermal softening, and
+temperature is a passive output.
+
+## Setup in ExaGOOP
+
+| Parameter | Value |
+|---|---|
+| Domain | `[-9,9] x [-9,9] x [0,100]` mm, 18 x 18 x 100 cells (`dx=dy=dz=1`) |
+| Column | `[-5,5]^2 x [0,100]` mm, 2x2x2 ppc = 80,000 particles |
+| Periodicity | **`0 0 0`** — see the warning below |
+| Constitutive model | `johnson_cook` (cm_id = 2), Table 10.3 in mm-ms-kg |
+| `zlo` | `noslip` (clamped base) |
+| `zhi` | `noslip` + UDF wall velocity (`UDF/libwall_twist.so`; on macOS build gives `.dylib` — edit `udf_lib` in the generated input) |
+| `xlo/xhi/ylo/yhi` | `slip` (column never reaches them) |
+| Thermal BCs | adiabatic on all faces |
+| Order scheme / stress update | 3 (cubic B-splines) / MUSL |
+| `alpha_pic_flip`, CFL | 0.999, 0.3 (see *Angular-momentum drain* below) |
+| Gravity | none |
+
+Two geometric constraints that are easy to get wrong:
+
+* **the domain z-extent must equal the column length.** The twist is a *domain
+  face* BC, so if `prob_hi[z]` sits above the column top the BC drives empty
+  space and nothing happens.
+* **x,y must exceed `5*sqrt(2) = 7.07 mm`**, the radius the section corners
+  sweep to once the top has rotated. `±9` leaves ~2 cells of margin.
+
+### WARNING — periodicity
+
+The upstream preprocessor **hardcoded `mpm.is_it_periodic = 0 0 1` for every
+3-D case** (a periodic z), with no way to override it. That identifies the
+`k = 0` and `k = nz` nodal planes: the twist imposed on the top face also lands
+on the clamped base, `nodal_bcs` zeroes it, the FLIP update then injects
+`-v_backup` into the base particles, and the run diverges (T ~ 1e11 C by
+t = 0.01 ms). The local copy of the generator now reads `"periodic": [x,y,z]`
+from `config.json` (default `[0,0,0]`).
+
+**Check any other 3-D deck for this line** — `3D_Compression_Column` still
+carries `0 0 1`.
+
+## Running
+
+```bash
+./Generate_MPs_and_InputFiles.sh          # builds UDF/, writes particles + deck
+(cd UDF && make)                       # builds libwall_twist.so / .dylib
+cd ../../Build_Gnumake && make -j8 DIM=3 USE_TEMP=TRUE USE_HDF5=FALSE && cd -
+../../Build_Gnumake/ExaGOOP3d.gnu.MPI.ex Inputs_3D_Twisted_Column_JC.inp
+```
+
+The full 3 ms is ~43,000 steps (`dt` is set by `dx = 1`, not by the particle
+count). With 80,000 particles and linear shape functions a serial run takes
+about 35 minutes on a laptop; cubic B-splines cost 3-4x more per step. The run
+writes a checkpoint at every output; to resume pass
+`amr.restart_checkfile=Solution/checkpoint_files/<tag>/chkNNNNNN` on the
+command line. With MPI, `max_grid_size` around 6-8 balances halo cost against
+the fact that only the central 10 x 10 cells of the 18 x 18 section hold
+particles.
+
+## Post-Processing
+
+```bash
+python3 PostProcess/validate.py           # newest frame
+python3 PostProcess/validate.py Solution/ascii_files/3D_Twisted_Column_JC/matpnt_t0.090048
+```
+
+> **Voigt ordering is dimension-dependent** (`Source/constants.H`):
+> 3-D is `XX, XY, XZ, YY, YZ, ZZ`, but 2-D is `XX, XY, YY, XZ, YZ, ZZ`.
+> Using the 2-D order on 3-D data silently swaps `XZ` and `YY` and fabricates
+> von Mises values ~8x too large, which looks exactly like a broken radial
+> return. `validate.py` documents and uses the 3-D order.
+
+## Results at t = 0.090 ms (book Fig. 10.28 frame 1 is t = 0.09 ms)
+
+| Check | Result |
+|---|---|
+| Particles above the yield surface | **0** (max overshoot `-1.26e-07`) |
+| On the yield surface | 15,396 of 15,448 plastically strained |
+| Energy balance `E_th / (chi * W_pl)` | **0.958** |
+| Clamped base, `\|v_xy\|` max at z < 2 | **0.030** mm/ms |
+| Twist profile monotonic in z | yes (median 0.045 -> 22.0 mm/ms) |
+| Top surface `\|v\| / (omega*r)` | 1.041 |
+| Imposed top rotation | `omega*t` = 32.4 deg |
+| `sigma_eq` max | 210 MPa (book scale 440) |
+| `T` max | 3.11 C (book scale 76) |
+| `eps_p` max | 0.088 |
+
+Consistent with the book's first frame, which shows a nearly uniform column with
+only the top beginning to twist and a temperature field still essentially at the
+reference value. Deformation and heating concentrate near the driven end, as
+expected this early.
+
+### Known residuals
+
+* **Energy balance closes to 4%**, against 0.15% for the 2-D plate. Suspected to
+  be the massless-node issue below, which inflates strain rates near the driven
+  face; worth re-checking at later times.
+* **Top surface over-speeds by ~4%** (`|v|/(omega*r) = 1.041`). The UDF is
+  imposed on *every* node of the boundary face, out to the domain corners, not
+  only where material sits. With cubic B-splines a particle at `r = 7.07` reaches
+  nodes at `r = 9`, whose imposed speed is `omega*9 = 56.5` mm/ms against a
+  rigid-body maximum of `omega*7.07 = 44.4`. Massless nodes should not
+  contribute to G2P. Settle this before trusting quantitative results at the
+  later frames.
+
+## Angular-momentum drain (why `alpha_pic_flip = 0.999`)
+
+This benchmark is a worst case for updated-Lagrangian FLIP/PIC transfers: the
+whole solution is angular-momentum transport along a slender body, and the
+transfers do not conserve angular momentum at free surfaces (the nodal mass
+centroid of a surface node is not the node position; APIC fixes this exactly,
+FLIP/PIC do not). Measured on the 0.99 run (slab 20 < z < 80 at 0.9 ms): the
+stresses deliver 4.6 N.m of net torque to the slab, the particles gain
+0.25 N.m/ms — the 1 % PIC part removes 2.5 N.m/ms and the FLIP acceleration
+transfer 1.95 N.m/ms. A rigid rotation of the 10 x 10 section with cubic
+B-splines at dx = 1 loses 5x its angular momentum per ms through 1 % PIC alone
+(dx = 0.5 halves it; independent of ppc). The visible symptom is a
+driven-face-heavy twist with M_z decreasing towards the base, and a slip
+layer at the grip when PIC is increased (alpha = 0.95).
+
+With alpha = 0.999 the drain is 10x smaller (54 %/ms of the slab's angular
+momentum at 0.03 ms, torque delivered to the particles 94 %). Do not lower
+alpha to damp noise here; use the proper 8-ppc lattice (the 3-D generator
+bug that produced 2 diagonal particles per cell and 1/4 of the column mass
+was fixed on 2026-09-15). If Fig. 10.27 must be matched quantitatively the
+remaining options are APIC/affine transfers or a total-Lagrangian MPM, which
+is what the source paper of this benchmark uses.

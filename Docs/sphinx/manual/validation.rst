@@ -370,88 +370,121 @@ Simulation is performed using :math:`CFL=0.1` and :math:`\alpha_{P-F}=0.95`. The
    Comparison of the water front location with time. Solid line shows ExaGOOP solution and red circles indicate experimental data from :cite:`martin1952`
 
 
-Torsion of a three-dimensional elastic column
-----------------------------------------------
+Twisted column with the Johnson-Cook model
+------------------------------------------
 
-This test case verifies the :ref:`udf_moving_wall` feature by twisting a
-linearly elastic column about its axis using a rotating top wall and
-comparing the resulting twist-angle profile against the analytical
-quasi-static solution.
+This test case exercises the Johnson-Cook constitutive model (von Mises
+plasticity with power-law hardening, Mie-Grüneisen pressure and adiabatic
+plastic heating) together with the :ref:`udf_moving_wall` feature on the
+twisted-column benchmark of Nguyen, de Vaucorbeil and Bordas, *The Material
+Point Method: Theory, Implementations and Applications* (Springer, 2023),
+Sect. 10.3.3, Fig. 10.27.  A copper column clamped at its base is twisted
+three full turns in 3 ms by a rigidly rotating top face.
 
 **Problem configuration**
 
-A square-cross-section elastic column occupies the domain
-:math:`[-W, W]^2 \times [0, L]` with half-width :math:`W = 0.25` m and
-height :math:`L = 2` m.  The background nodal grid spans
-:math:`[-B, B]^2 \times [0, L]` with :math:`B = 0.6` m and is
-discretised into :math:`12 \times 12 \times 20` cells.  Material
-properties are :math:`E = 10^7` Pa, :math:`\nu = 0.3`, and
-:math:`\rho = 1000` kg/m³.
+The column occupies :math:`[-5, 5]^2 \times [0, 100]` mm (square section
+:math:`10 \times 10` mm, length :math:`L = 100` mm) inside the background
+domain :math:`[-9, 9]^2 \times [0, 100]` mm discretised into
+:math:`18 \times 18 \times 100` cells (:math:`\Delta x = 1` mm).  The
+lateral extent must exceed :math:`5\sqrt{2} = 7.07` mm, the radius swept by
+the section corners.  With :math:`2 \times 2 \times 2` material points per
+cell the column carries 80,000 material points.  Units are mm, ms and kg, so
+stresses are in GPa and energies in J.
+
+The material is the copper of Table 10.3 of the reference:
+:math:`\rho = 8.94 \times 10^{-6}` kg/mm³, :math:`E = 115` GPa,
+:math:`\nu = 0.31`, Johnson-Cook :math:`A = 0.065` GPa, :math:`B = 0.356`
+GPa, :math:`n = 0.37`, :math:`C = m = 0` (no strain-rate or thermal
+softening), Taylor-Quinney coefficient :math:`\chi = 0.9`,
+:math:`c_p = 384` J/(kg K), :math:`k = 3.86 \times 10^{-4}` W/(mm K),
+Mie-Grüneisen :math:`c_0 = 3586` mm/ms, :math:`S = 1.5`,
+:math:`\Gamma_0 = 0`.  All faces are adiabatic.
 
 Boundary conditions are:
 
 - **Bottom face** (:math:`z = 0`): no-slip, zero velocity — clamped base.
-- **Lateral faces** (:math:`x = \pm B`,  :math:`y = \pm B`): slip walls.
+- **Lateral faces**: slip walls (never reached by the column).
 - **Top face** (:math:`z = L`): no-slip with a UDF imposing solid-body
-  rotation about the :math:`z`-axis at angular velocity
-  :math:`\omega = 0.5` rad/s:
+  rotation about the :math:`z`-axis,
 
   .. math::
 
-     v_x = -\omega y, \qquad v_y = \omega x, \qquad v_z = 0.
+     v_x = -\omega(t)\, y, \qquad v_y = \omega(t)\, x, \qquad v_z = 0,
 
-The UDF is provided as a compiled shared library (``libwall_twist``).  The
-relevant input file lines are:
+  with :math:`\omega(t) = \Omega \min(t / t_r, 1)`,
+  :math:`\Omega = 2\pi` rad/ms (one turn per millisecond) and a ramp
+  :math:`t_r = 0.5` ms.  An impulsive start launches a plastic torsional
+  wave from the driven face; the ramp, shorter than the wave transit time,
+  lets the twist rate become uniform along the column before the twist
+  angle is appreciable.
+
+The UDF is compiled into ``UDF/libwall_twist.so`` (``.dylib`` on macOS) and
+selected in the input file:
 
 .. code-block:: bash
 
    mpm.bc_zlo_mom            = noslip
    mpm.bc_zhi_mom            = noslip
-   mpm.bc_zhi_mom.udf_lib    = "./UDF/libwall_twist.dylib"
+   mpm.bc_zhi_mom.udf_lib    = "./UDF/libwall_twist.so"
    mpm.bc_zhi_mom.udf_func   = "wall_vel_twist"
 
-**Analytical solution**
+The reference deck uses linear shape functions (``order_scheme = 1``), the
+MUSL stress update, ``alpha_pic_flip = 0.999`` and :math:`\text{CFL} = 0.3`;
+the 3 ms run takes about 43,000 steps.
 
-Under quasi-static loading the twist angle grows linearly with height and
-linearly with time.  For an elastic column driven by a rotating top wall,
-the expected twist angle at height :math:`z` and time :math:`t` is:
+**Expected behaviour**
+
+The column deforms in torsion with the twist angle growing linearly along
+:math:`z`.  With the ramp the top-face rotation is
+:math:`\theta(L, t) = \Omega (t - t_r/2)` for :math:`t > t_r`, so the
+column has completed three turns at :math:`t = 3.25` ms; the frames at
+:math:`t = 1.75, 2.5, 3.25` ms correspond to the 1.5, 2.25 and 3.0 ms
+panels of Fig. 10.27.  The section is fully plastic almost immediately
+(first yield at :math:`A = 65` MPa), so the torque transmitted through any
+cross-section,
 
 .. math::
 
-   \theta(z, t) = \omega \, t \, \frac{z}{L}.
+   M_z = \int_A \left( x\,\sigma_{yz} - y\,\sigma_{xz} \right) \mathrm{d}A,
 
-At :math:`z = 0` the angle is zero (clamped base) and at :math:`z = L`
-the angle equals :math:`\omega t` (enforced by the wall).
+must be uniform along the column (the rotational inertia is negligible) and
+close to the fully plastic torque of a square section,
+:math:`M_p = \tau_y a^3 / 3` with :math:`\tau_y = \sigma_f / \sqrt{3}`
+(:math:`\approx 70` N·m at :math:`\bar{\varepsilon}_p \approx 0.4`).
+Plastic work heats the column adiabatically; the temperature stays a few
+tens of degrees above ambient.
 
 **ExaGOOP results**
 
-The MPM simulation is run to :math:`t = 4` s using
-:math:`\text{CFL} = 0.3` and the USL stress-update scheme with
-:math:`2^3 = 8` material points per cell, giving 4000 material points
-in total.
+``PostProcess/validate.py`` checks that no material point lies above the
+Johnson-Cook flow surface, that the thermal energy balances
+:math:`\chi \int \sigma_f \dot{\varepsilon}_p\, \mathrm{d}t`, that the base
+is clamped, that the twist profile is monotonic in :math:`z`, and that the
+top-face speed equals :math:`\omega r`.  ``PostProcess/diagnose_twist.py``
+prints, per horizontal band, the rotation rate :math:`\omega/\Omega`
+(uniform twist: :math:`z/L`), the plastic strain and temperature, and
+:math:`M_z`.  At :math:`t = 3` ms the reference deck gives :math:`M_z`
+between 64.8 and 67.1 N·m over the whole length, :math:`\omega/\Omega =
+0.48` at mid-height (0.50 ideal), a median plastic strain of 0.33-0.43 and
+a median temperature of 21-29 °C, uniform along the column, with a peak of
+41 °C; the deformed shape matches Fig. 10.27.
 
-:numref:`f-twist-profile` shows the twist-angle profile
-:math:`\theta(z)` at a representative time snapshot compared to the
-analytical linear profile.  The base (:math:`z = 0`) remains fixed and
-the angle grows linearly towards the top, in close agreement with the
-analytical prediction.
+**Known limitations**
 
-.. figure:: ../landing/_images/none.png
-   :name: f-twist-profile
-   :height: 0
-   :width: 0
-   :figwidth: 100%
-   :align: center
-   :alt: Twist angle profile
+The updated-Lagrangian FLIP/PIC transfers do not conserve angular momentum
+at free surfaces (the mass centroid of a surface node is not the node
+position).  On a section only ten cells wide this drains angular momentum
+from the rotating column: with 1 % PIC blending and cubic B-splines a rigid
+rotation loses several times its angular momentum per millisecond, which
+shows up as a twist rate decreasing towards the base and a torque that is
+not uniform along :math:`z`.  The reference deck therefore uses linear shape
+functions (one-cell surface skin) and ``alpha_pic_flip = 0.999``; the small
+remaining lag of :math:`\omega/\Omega` near the base is this effect.
+Affine (APIC) transfers or a total-Lagrangian formulation remove it
+entirely.  Results with cubic B-splines are discussed in the test's README.
 
-   Twist-angle profile :math:`\theta(z)` at a representative time
-   snapshot.  Red markers show the MPM result (mean rotation angle per
-   horizontal layer); dashed line shows the analytical solution
-   :math:`\theta = \omega t z / L`.
-
-The test case is located in ``Tests/3D_Twisted_Column/``.  Pre-processing
+The test case is located in ``Tests/3D_Twisted_Column_JC/``.  Pre-processing
 and post-processing scripts are provided in the ``PreProcess/`` and
 ``PostProcess/`` subdirectories respectively.  The UDF source and
 platform-aware ``Makefile`` are in ``UDF/``.
-
-
