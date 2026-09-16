@@ -32,6 +32,7 @@ Requires matplotlib + imageio; --mp4 additionally requires ffmpeg.
 
 import glob
 import os
+import subprocess
 import sys
 
 import numpy as np
@@ -41,7 +42,6 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
 ROOT = "Solution/ascii_files/3D_Twisted_Column_JC"
-import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                 "..", "..", "..", "Tools", "PostProcess"))
 from exagoop_columns import build_field_dict
@@ -153,10 +153,13 @@ def main():
 
     if want_mp4:
         mp4 = os.path.splitext(out)[0] + ".mp4"
-        rc = os.system(
-            f'ffmpeg -y -loglevel error -framerate {fps} '
-            f'-i {tmpdir}/f%05d.png -pix_fmt yuv420p '
-            f'-vf "pad=ceil(iw/2)*2:ceil(ih/2)*2" {mp4}')
+        # argv list, no shell: the user-supplied output path is one argument
+        # (no injection, and paths with spaces work)
+        rc = subprocess.run(
+            ["ffmpeg", "-y", "-loglevel", "error", "-framerate", str(fps),
+             "-i", os.path.join(tmpdir, "f%05d.png"), "-pix_fmt", "yuv420p",
+             "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", mp4],
+            check=False).returncode
         print(f"wrote {mp4}" if rc == 0 else "[WARN] ffmpeg failed; GIF still written")
 
     print(f"(intermediate PNGs left in {tmpdir}/)")

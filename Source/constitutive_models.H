@@ -585,6 +585,7 @@ johnson_cook_stress_update(const amrex::Real F[9],
                            amrex::Real c0,
                            amrex::Real Salpha,
                            amrex::Real Gamma0,
+                           amrex::Real e_int,
                            amrex::Real Dd1,
                            amrex::Real Dd2,
                            amrex::Real Dd3,
@@ -681,8 +682,7 @@ johnson_cook_stress_update(const amrex::Real F[9],
     }
 
     amrex::Real eta = (rho0 > amrex::Real(0.0)) ? rho / rho0 : amrex::Real(1.0);
-    pressure =
-        mie_gruneisen_eos(eta, rho0, c0, Salpha, Gamma0, amrex::Real(0.0));
+    pressure = mie_gruneisen_eos(eta, rho0, c0, Salpha, Gamma0, e_int);
 
     if ((Dd1 > amrex::Real(0.0) || Dd2 > amrex::Real(0.0)) &&
         damage < amrex::Real(1.0))

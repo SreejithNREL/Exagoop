@@ -293,8 +293,12 @@ void MPMParticleContainer::apply_constitutive_model(
                         amrex::Real press = 0.0, hsrc = 0.0;
 #if USE_TEMP
                         const amrex::Real Tcur = p.rdata(realData::temperature);
+                        const amrex::Real e_int = mp.p[JCP::rho0] *
+                                                  p.rdata(realData::spheat) *
+                                                  (Tcur - mp.p[JCP::Tr]);
 #else
                         const amrex::Real Tcur = mp.p[JCP::Tr];
+                        const amrex::Real e_int = 0.0; // no T field
 #endif
                         johnson_cook_stress_update(
                             F, strainrate, sdev, ep, stress, press, hsrc,
@@ -304,7 +308,7 @@ void MPMParticleContainer::apply_constitutive_model(
                             mp.p[JCP::m], mp.p[JCP::eps_dot_0], Tcur,
                             mp.p[JCP::Tr], mp.p[JCP::Tm], mp.p[JCP::chi],
                             mp.p[JCP::c0], mp.p[JCP::Salpha], mp.p[JCP::Gamma0],
-                            mp.p[JCP::D1], mp.p[JCP::D2], mp.p[JCP::D3],
+                            e_int, mp.p[JCP::D1], mp.p[JCP::D2], mp.p[JCP::D3],
                             mp.p[JCP::D4], mp.p[JCP::D5], dmg, dt);
 
                         // Persist state.
