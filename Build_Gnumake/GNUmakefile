@@ -5,8 +5,6 @@ EBASE = ExaGOOP
 
 include $(MPM_HOME)/Build_Gnumake/Make.local
 NVCC_HOST_COMP ?= gnu
-#  SYS       DIM  EB     TEMP   COMP    DBG    MPI    OMP    HDF5   GPU        TIME  STATUS
-# 25  gnumake     3  TRUE   TRUE   gnu     FALSE  TRUE   FALSE  FALSE  SYCL     154.8s  FAIL
 # ===============================================================
 # AMReX configuration
 # ===============================================================
